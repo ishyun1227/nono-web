@@ -1,5 +1,14 @@
 # NONO Firebase 운영
 
+## 연결된 프로젝트
+
+- 프로젝트: `nono-web-ishyun-20261020` (NONO), Spark 무료
+- 데이터베이스: `nono-web-ishyun-20261020-default-rtdb`, 싱가포르 `asia-southeast1`
+- 인증: 익명 게스트 로그인
+- 공개 사이트: https://nono-web.ishyun1227.workers.dev/
+- Cloudflare Workers 빌드 명령: `npm run build`, 배포 명령: `npx wrangler deploy`
+- `dist/`에 HTML·사용자 설정·공개 Firebase 설정 3개 파일만 복사해 배포합니다. 서버 규칙, 테스트, 개발 의존성은 공개 웹 자산에 포함하지 않습니다.
+
 ## 무료 구성
 
 Firebase Spark의 익명 Authentication + Realtime Database를 사용합니다. Cloud Functions, Cloud Run, 유료 요금제 전환은 필요하지 않습니다. Spark 한도는 동시 연결 100개, 데이터 저장 1GB, 다운로드 월 10GB입니다. 브라우저 탭마다 연결을 사용하므로 100명이 보장되는 것은 아닙니다. 한도는 Firebase 공식 가격표를 확인하세요: https://firebase.google.com/pricing
@@ -13,7 +22,7 @@ Firebase Spark의 익명 Authentication + Realtime Database를 사용합니다. 
 5. `node tools/seed-answers.cjs PROJECT_ID`로 기본 퍼즐의 검증용 답안을 서버에 등록합니다. 이 명령은 `/privateAnswers`만 갱신하며 사용자 기록이나 방을 삭제하지 않습니다.
 6. Cloudflare Pages에 Git 변경을 배포한 뒤 운영 주소에서 독립된 두 브라우저로 초대·대결·협동·기록 저장을 확인합니다.
 
-프로젝트/데이터베이스가 준비되기 전까지 기본 설정은 비어 있으며 오프라인 체험으로 표시됩니다. 로컬 에뮬레이터 성공과 운영 배포 성공은 별개입니다.
+현재 웹 설정과 운영 서버 규칙·기본 퍼즐 답안은 연결되어 있습니다. 로컬 에뮬레이터 성공과 운영 배포 성공은 별개이며 검증 상태는 `TEST-RESULTS.md`에 기록합니다.
 
 ## 서버 규칙
 

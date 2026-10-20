@@ -6,6 +6,7 @@ const { pathToFileURL } = require('node:url');
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/firebase-config.js', route => route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
   await page.goto(pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href);
   await page.locator('#nono-open-settings').waitFor();
   await page.click('#nono-open-settings');
