@@ -1,0 +1,42 @@
+# NONO Firebase 운영
+
+## 무료 구성
+
+Firebase Spark의 익명 Authentication + Realtime Database를 사용합니다. Cloud Functions, Cloud Run, 유료 요금제 전환은 필요하지 않습니다. Spark 한도는 동시 연결 100개, 데이터 저장 1GB, 다운로드 월 10GB입니다. 브라우저 탭마다 연결을 사용하므로 100명이 보장되는 것은 아닙니다. 한도는 Firebase 공식 가격표를 확인하세요: https://firebase.google.com/pricing
+
+## 운영 연결
+
+1. Firebase에 로그인하고 NONO 전용 Spark 프로젝트와 Realtime Database를 만듭니다. 위치는 한국에서 가까운 `asia-southeast1`을 권장합니다.
+2. Authentication에서 익명 로그인을 켭니다.
+3. 웹 앱을 등록하고 공개 웹 설정을 `firebase-config.js`에 넣습니다. 서비스 계정 비밀키는 넣지 않습니다.
+4. `npx -y firebase-tools@latest deploy --only database --project PROJECT_ID`로 규칙을 배포합니다.
+5. `node tools/seed-answers.cjs PROJECT_ID`로 기본 퍼즐의 검증용 답안을 서버에 등록합니다. 이 명령은 `/privateAnswers`만 갱신하며 사용자 기록이나 방을 삭제하지 않습니다.
+6. Cloudflare Pages에 Git 변경을 배포한 뒤 운영 주소에서 독립된 두 브라우저로 초대·대결·협동·기록 저장을 확인합니다.
+
+프로젝트/데이터베이스가 준비되기 전까지 기본 설정은 비어 있으며 오프라인 체험으로 표시됩니다. 로컬 에뮬레이터 성공과 운영 배포 성공은 별개입니다.
+
+## 서버 규칙
+
+- 방 목록 전체 읽기와 비인증 접근을 차단합니다. 코드를 아는 인증 사용자는 방 메타정보와 참가자 목록을 읽을 수 있습니다.
+- 슬롯 0~3만 허용해 동시 입장에서도 4명을 초과하지 않습니다. 남의 슬롯을 덮어쓸 수 없습니다.
+- 대결은 방장이 참가자 2명 이상일 때 시작합니다. 시작 후 신규 참가자는 차단하고 기존 대결 상태를 가진 사용자는 재입장할 수 있습니다.
+- 대결 보드는 본인만 수정하며 완료 후에는 변경할 수 없습니다. 협동 보드는 참가자가 트랜잭션으로 수정합니다.
+- 시작/완료 시간은 서버 시간으로 검증합니다. 대결 완료와 기록 등록은 비공개 답안과 일치해야 합니다.
+- 기록은 본인 최고 기록만 보관합니다. 순위표는 시간순 최대 12건만 조회합니다.
+
+익명 계정은 브라우저 데이터 삭제/기기 변경 시 다른 계정이 됩니다. 정답 자동 계산이나 자동 플레이를 완전히 막는 경쟁 서버는 아닙니다. 친목 대결과 기록 비교용입니다. 방 데이터는 자동 삭제되지 않으므로 Firebase 콘솔에서 오래된 방과 사용량을 주기적으로 관리하세요.
+
+## 검증
+
+Node.js와 Java 21 이상이 필요합니다.
+
+```text
+npm ci
+npm test
+npm run test:multiplayer
+npm run test:browser
+```
+
+Chromium을 설치하려면 `npx playwright install chromium`을 실행합니다. 이미 설치된 Edge를 사용하려면 Windows PowerShell에서 `$env:BROWSER_CHANNEL='msedge'`를 지정합니다.
+
+서버 테스트는 비인증 접근, 답안 비공개, 방 인원, 협동 충돌, 방장 권한, 시작 후 입장, 타인 보드 수정, 허위 완료, 기록 변조, 제한된 순위 조회를 확인합니다. 브라우저 테스트는 별도 브라우저 계정 두 개로 초대·동시 협동·대결 시작과 완료 전파·기록 저장을 확인하며 `test-results/`에 화면을 저장합니다. 모든 자동 테스트는 `demo-nono` 에뮬레이터를 사용합니다.

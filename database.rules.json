@@ -1,0 +1,147 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "privateAnswers": {
+      ".read": false,
+      ".write": false
+    },
+    "rooms": {
+      "$room": {
+        "meta": {
+          ".read": "auth != null",
+          ".write": "auth != null && ((!data.exists() && newData.child('host').val() == auth.uid) || (data.child('host').val() == auth.uid && data.child('mode').val() == 'race' && data.child('status').val() == 'lobby' && newData.child('status').val() == 'playing' && ((root.child('rooms').child($room).child('players').child('0').exists() && root.child('rooms').child($room).child('players').child('1').exists()) || (root.child('rooms').child($room).child('players').child('0').exists() && root.child('rooms').child($room).child('players').child('2').exists()) || (root.child('rooms').child($room).child('players').child('0').exists() && root.child('rooms').child($room).child('players').child('3').exists()) || (root.child('rooms').child($room).child('players').child('1').exists() && root.child('rooms').child($room).child('players').child('2').exists()) || (root.child('rooms').child($room).child('players').child('1').exists() && root.child('rooms').child($room).child('players').child('3').exists()) || (root.child('rooms').child($room).child('players').child('2').exists() && root.child('rooms').child($room).child('players').child('3').exists()))))",
+          ".validate": "newData.hasChildren(['host','mode','puzzleId','size','status','createdAt','startedAt'])",
+          "host": {
+            ".validate": "newData.isString() && (!data.exists() || newData.val() == data.val())"
+          },
+          "mode": {
+            ".validate": "(!data.exists() && (newData.val() == 'race' || newData.val() == 'coop')) || newData.val() == data.val()"
+          },
+          "puzzleId": {
+            ".validate": "(newData.val() == 'heart5' || newData.val() == 'cat10' || newData.val() == 'rocket10') && (!data.exists() || newData.val() == data.val())"
+          },
+          "size": {
+            ".validate": "newData.val() == (newData.parent().child('puzzleId').val() == 'heart5' ? 5 : 10)"
+          },
+          "status": {
+            ".validate": "newData.val() == (newData.parent().child('mode').val() == 'coop' ? 'playing' : (data.exists() ? 'playing' : 'lobby'))"
+          },
+          "createdAt": {
+            ".validate": "newData.val() == (data.exists() ? data.val() : now)"
+          },
+          "startedAt": {
+            ".validate": "newData.val() == (newData.parent().child('status').val() == 'playing' ? now : 0)"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        "players": {
+          ".read": "auth != null",
+          "$slot": {
+            ".write": "auth != null && ($slot == '0' || $slot == '1' || $slot == '2' || $slot == '3') && ((!newData.exists() && data.child('uid').val() == auth.uid) || (newData.child('uid').val() == auth.uid && (!data.exists() || data.child('uid').val() == auth.uid) && root.child('rooms').child($room).child('meta').exists() && (root.child('rooms').child($room).child('meta/mode').val() == 'coop' || root.child('rooms').child($room).child('meta/status').val() == 'lobby' || root.child('rooms').child($room).child('states').child(auth.uid).exists())))",
+            ".validate": "newData.hasChildren(['uid','name','joinedAt'])",
+            "name": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 18"
+            },
+            "joinedAt": {
+              ".validate": "newData.val() == (data.exists() ? data.val() : now)"
+            },
+            "$other": {
+              ".validate": false
+            },
+            "uid": {
+              ".validate": "newData.val() == auth.uid"
+            }
+          }
+        },
+        "board": {
+          ".read": "auth != null && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)",
+          ".write": "auth != null && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid) && root.child('rooms').child($room).child('meta/mode').val() == 'coop'",
+          ".validate": "newData.isString() && newData.val().matches(/^[012]+$/) && newData.val().length == root.child('rooms').child($room).child('meta/size').val() * root.child('rooms').child($room).child('meta/size').val()"
+        },
+        "states": {
+          ".read": "auth != null && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)",
+          "$uid": {
+            ".write": "auth != null && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid) && auth.uid == $uid && root.child('rooms').child($room).child('meta/mode').val() == 'race' && root.child('rooms').child($room).child('meta/status').val() == 'playing' && (!data.exists() || data.child('finishedAt').val() == 0) && newData.exists()",
+            ".validate": "newData.hasChildren(['board','filled','startedAt','finishedAt'])",
+            "board": {
+              ".validate": "newData.isString() && newData.val().matches(/^[012]+$/) && newData.val().length == root.child('rooms').child($room).child('meta/size').val() * root.child('rooms').child($room).child('meta/size').val()"
+            },
+            "filled": {
+              ".validate": "newData.isString() && newData.val() == newData.parent().child('board').val().replace('2', '0')"
+            },
+            "startedAt": {
+              ".validate": "newData.val() == root.child('rooms').child($room).child('meta/startedAt').val()"
+            },
+            "finishedAt": {
+              ".validate": "newData.val() == 0 || (newData.val() == now && newData.parent().child('filled').val() == root.child('privateAnswers').child(root.child('rooms').child($room).child('meta/puzzleId').val()).val())"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        }
+      }
+    },
+    "runs": {
+      "$puzzle": {
+        "$uid": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid && root.child('privateAnswers').child($puzzle).exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['name','startedAt','finishedAt','filled','changes'])",
+          "name": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 18"
+          },
+          "startedAt": {
+            ".validate": "newData.val() == (newData.parent().child('finishedAt').val() == 0 ? now : data.val())"
+          },
+          "finishedAt": {
+            ".validate": "newData.val() == 0 || (data.exists() && data.val() == 0 && newData.val() == now && newData.parent().child('filled').val() == root.child('privateAnswers').child($puzzle).val())"
+          },
+          "filled": {
+            ".validate": "newData.isString() && newData.val().matches(/^[01]+$/) && newData.val().length == root.child('privateAnswers').child($puzzle).val().length"
+          },
+          "changes": {
+            ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000 && newData.val() % 1 == 0"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "scores": {
+      "$puzzle": {
+        ".read": "auth != null && query.orderByChild == 'duration' && query.limitToFirst <= 12",
+        ".indexOn": [
+          "duration"
+        ],
+        "$uid": {
+          ".read": "auth != null && auth.uid == $uid",
+          ".write": "auth != null && auth.uid == $uid && newData.exists() && (!data.exists() || newData.child('duration').val() < data.child('duration').val())",
+          ".validate": "newData.hasChildren(['name','startedAt','finishedAt','duration','changes']) && root.child('runs').child($puzzle).child($uid).child('finishedAt').val() > 0",
+          "name": {
+            ".validate": "newData.val() == root.child('runs').child($puzzle).child($uid).child('name').val()"
+          },
+          "startedAt": {
+            ".validate": "newData.val() == root.child('runs').child($puzzle).child($uid).child('startedAt').val()"
+          },
+          "finishedAt": {
+            ".validate": "newData.val() == root.child('runs').child($puzzle).child($uid).child('finishedAt').val()"
+          },
+          "changes": {
+            ".validate": "newData.val() == root.child('runs').child($puzzle).child($uid).child('changes').val()"
+          },
+          "duration": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() == newData.parent().child('finishedAt').val() - newData.parent().child('startedAt').val()"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    }
+  }
+}

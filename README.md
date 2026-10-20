@@ -16,7 +16,7 @@
 | Build output directory | / (저장소 최상위 경로) |
 | Root directory | 기본값/비움 |
 
-현재 `index.html` 한 파일에 UI, CSS, JS, 픽셀 이미지가 포함되어 있어 별도의 빌드 명령이 필요 없습니다.
+UI는 `index.html`, 사용자 설정은 `settings.js`, 공개 Firebase 웹 설정은 `firebase-config.js`에 있습니다. 별도의 빌드 명령은 필요 없습니다. `node_modules`와 테스트 도구는 배포할 필요가 없습니다.
 
 ## 현재 사용 가능 범위
 
@@ -25,7 +25,7 @@
 - 실시간 대결 및 협동: Firebase 연결 전에는 사용 불가
 - 온라인 기록 경쟁: Firebase 연결 전에는 사용 불가
 
-본 저장소는 기본적으로 Firebase 연결 값이 비어 있는 **프런트엔드 체험 버전**입니다. Firebase를 설정할 때에는 인증과 데이터베이스 보안 규칙을 먼저 검토해야 합니다.
+Firebase 연결값이 비어 있으면 오프라인 체험으로 실행됩니다. 익명 인증, 서버 보안 규칙, 에뮬레이터 테스트가 포함되어 있으며 운영 연결과 테스트 방법은 [FIREBASE.md](FIREBASE.md)에 있습니다. Firebase 프로젝트 생성·규칙 배포·웹 설정 반영이 완료되어야 온라인 기능을 사용할 수 있습니다.
 
 ## 주의
 
