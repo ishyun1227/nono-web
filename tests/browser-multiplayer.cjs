@@ -14,7 +14,7 @@ async function main(){
   for(const c of contexts)await c.route(/https:\/\/www.gstatic.com\/firebasejs\/[\d.]+\/(firebase-[\w-]+\.js)/,route=>{const name=route.request().url().split('/').pop();return route.fulfill({path:path.join(process.cwd(),'node_modules/firebase',name),contentType:'text/javascript'});});
   const [a,b]=await Promise.all(contexts.map(c=>c.newPage()));const errors=[];
   for(const p of [a,b])p.setDefaultTimeout(20000);
-  for(const p of [a,b])p.on('pageerror',e=>errors.push(e.message));
+  for(const p of [a,b]){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')console.error('BROWSER:',m.text());});}
   await Promise.all([a.goto('http://127.0.0.1:4173'),b.goto('http://127.0.0.1:4173')]);
   for(const p of [a,b])await p.waitForFunction(()=>document.querySelector('#connection').textContent.includes('온라인 연결'));
   await a.fill('#nickname','Alice');await b.fill('#nickname','Bob');
@@ -28,7 +28,7 @@ async function main(){
   await Promise.all([a.evaluate(()=>leaveGame()),b.evaluate(()=>leaveGame())]);
   await a.click('[data-mode="race"]');await a.click('#create-room');await a.waitForURL(/room=/);const race=new URL(a.url()).searchParams.get('room');
   await b.click('[data-mode="race"]');await b.fill('#room-code',race);await b.click('#join-room');await b.locator('#lobby-players').getByText('Alice').waitFor();
-  await a.click('#start-race');for(const p of [a,b])await p.waitForFunction(()=>meta?.status==='playing'&&raceStates[currentId()]);
+  await a.click('#start-race');for(const p of [a,b])await p.waitForFunction(()=>meta?.status==='playing'&&!startingRace&&!settingBoard&&raceStates[currentId()]);
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1')paint(i,'1',true);},answers.heart5);
   await a.waitForFunction(()=>finished);await b.waitForFunction(()=>Object.values(raceStates).some(s=>s.finishedAt>0));
   await b.screenshot({path:'test-results/race-desktop.png'});

@@ -104,7 +104,7 @@ const modes={practice:['혼자 풀기','퍼즐을 골라 바로 시작해 보세
 const onlineReady=()=>Boolean(database&&currentUser);
 let database=null,currentUser=null,mode='practice',puzzle=PUZZLES[0],roomCode=null,meta=null,players={},raceStates={},roomBoard=null;
 let board=emptyBoard(puzzle),selected=0,tool='1',startedAt=0,finishedAt=0,finished=false,changes=0,finishing=false;
-let unsubscribe=[],pointerDown=false,dragTool='1',busyRoom=false,settingBoard=false;
+let unsubscribe=[],pointerDown=false,dragTool='1',busyRoom=false,settingBoard=false,startingRace=false;
 let undoStack=[],redoStack=[],homeRankUnsub=null;
 let serverOffset=0,raceQueue=Promise.resolve(),mySlot=null;
 const serverNow=()=>Date.now()+serverOffset;
@@ -258,7 +258,7 @@ function handleKeyboard(e){
 
 function paint(index,to,drag){
   if(finished||finishing||!board||$('play-area').classList.contains('hidden'))return;
-  if(mode==='race'&&meta?.status!=='playing')return;
+  if(mode==='race'&&(startingRace||meta?.status!=='playing'))return;
   const prev=board[index];const next=drag?to:(prev===to&&to!=='0'?'0':to);if(prev===next)return;
   if(mode==='coop'){
     if(!onlineReady()||!roomCode)return;
@@ -333,13 +333,13 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
     mySlot=claimed;await onDisconnect(ref(database,`rooms/${code}/players/${mySlot}`)).remove();
     clearListeners();roomCode=code;mode=info.mode;puzzle=p;meta=info;board=emptyBoard(p);startedAt=info.startedAt||0;finishedAt=0;finished=false;selected=0;changes=0;finishing=false;raceStates={};$('puzzle').value=puzzle.id;setMode(mode);showGame();
     const url=new URL(location.href);url.searchParams.set('room',code);history.replaceState({},'',url);
-    unsubscribe.push(onValue(ref(database,`rooms/${code}/meta`),s=>{meta=s.val();if(!meta)return;if(meta.mode==='race'){const lobby=meta.status==='lobby';$('lobby').classList.toggle('hidden',!lobby);$('play-area').classList.toggle('hidden',lobby);$('lobby-code').textContent=`방 코드 ${code}`;$('start-race').classList.toggle('hidden',currentId()!==meta.host);if(!lobby)ensureRaceState().catch(firebaseError);}else{$('lobby').classList.add('hidden');$('play-area').classList.remove('hidden');}tick();},firebaseError));
+    unsubscribe.push(onValue(ref(database,`rooms/${code}/meta`),s=>{meta=s.val();if(!meta)return;if(meta.mode==='race'){const lobby=meta.status==='lobby';$('lobby').classList.toggle('hidden',!lobby);$('play-area').classList.toggle('hidden',lobby);$('lobby-code').textContent=`방 코드 ${code}`;$('start-race').classList.toggle('hidden',currentId()!==meta.host);if(!lobby&&!startingRace)ensureRaceState().catch(firebaseError);}else{$('lobby').classList.add('hidden');$('play-area').classList.remove('hidden');}tick();},firebaseError));
     unsubscribe.push(onValue(ref(database,`rooms/${code}/players`),s=>{players=Object.fromEntries(Object.entries(s.val()||{}).filter(([,p])=>p));$('lobby-players').innerHTML=`<div class="lobby-list">${Object.values(players).map(p=>`<span class="player-pill">${escapeHTML(p.name)}</span>`).join('')}</div>`;renderLive();},firebaseError));
     if(mode==='race')unsubscribe.push(onValue(ref(database,`rooms/${code}/states`),s=>{raceStates=s.val()||{};const own=raceStates[currentId()];if(own?.board){if(!pendingRaceWrites)board=own.board.split('');finishedAt=own.finishedAt||0;finished=finishedAt>0;render();}renderLive();},firebaseError));
     if(mode==='coop')unsubscribe.push(onValue(ref(database,`rooms/${code}/board`),s=>{const value=s.val();if(typeof value==='string'&&value.length===puzzle.size*puzzle.size){roomBoard=value;board=value.split('');const wasFinished=finished;finished=isSolved(board,puzzle);if(finished&&!wasFinished)toast('협동 퍼즐 완성!');render();}renderLive();},firebaseError));
   }catch(e){firebaseError(e);}}
 async function ensureRaceState(){if(!meta||meta.status!=='playing'||!roomCode)return;const path=`rooms/${roomCode}/states/${currentId()}`,start=meta.startedAt,blank='0'.repeat(puzzle.size*puzzle.size);if(settingBoard)return;settingBoard=true;try{await runTransaction(ref(database,path),current=>current?undefined:{board:blank,filled:blank,startedAt:start,finishedAt:0});}finally{settingBoard=false;}}
-async function startRace(){if(!roomCode||!meta||meta.host!==currentId())return;if(Object.keys(players).length<2){toast('대결은 최소 2명부터 시작할 수 있어요.');return;}try{await set(ref(database,`rooms/${roomCode}/meta`),{...meta,status:'playing',startedAt:serverTimestamp()});}catch(e){firebaseError(e);}}
+async function startRace(){if(!roomCode||!meta||meta.host!==currentId()||startingRace)return;if(Object.keys(players).length<2){toast('대결은 최소 2명부터 시작할 수 있어요.');return;}startingRace=true;try{await set(ref(database,`rooms/${roomCode}/meta`),{...meta,status:'playing',startedAt:serverTimestamp()});meta=(await get(ref(database,`rooms/${roomCode}/meta`))).val();await ensureRaceState();}catch(e){firebaseError(e);}finally{startingRace=false;}}
 let pendingRaceWrites=0;
 function queueRaceState(solved){
   const code=roomCode,uid=currentId(),snapshot=board.join(''),start=meta?.startedAt;
