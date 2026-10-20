@@ -256,7 +256,7 @@ function saveHudField(key,field,value){
 }
 function endHudEdit(){
  hudEdit=false;$('nono-hud-editor')?.remove();
- for(const key of ['hints','drag','progress']){const e=hudElement(key);e?.classList.remove('nono-hud-target');if(e)e.dataset.selected='false';}
+ for(const key of ['hints','drag','progress']){const e=hudElement(key);e?.classList.remove('nono-hud-target');if(e){e.dataset.selected='false';if(e.__nonoHudMove){e.removeEventListener('pointerdown',e.__nonoHudMove);delete e.__nonoHudMove;delete e.dataset.nonoDragBound;}}}
  updateBoard();
 }
 function beginHudEdit(){
@@ -279,7 +279,7 @@ function beginHudEdit(){
    const stop=(ev)=>{e.removeEventListener('pointermove',dragging);e.removeEventListener('pointerup',stop);saveHudField(key,'x',parseFloat(e.style.left));saveHudField(key,'y',parseFloat(e.style.top));};
    e.addEventListener('pointermove',dragging);e.addEventListener('pointerup',stop,{once:true});
   };
-  if(!e.dataset.nonoDragBound){e.addEventListener('pointerdown',move);e.dataset.nonoDragBound='1';}
+  if(!e.dataset.nonoDragBound){e.addEventListener('pointerdown',move);e.__nonoHudMove=move;e.dataset.nonoDragBound='1';}
  }
  updateBoard();sync();
 }
