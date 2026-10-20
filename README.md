@@ -2,30 +2,31 @@
 
 간소화한 NONO 웹 버전의 첫 공개 배포용 저장소입니다.
 
-## Cloudflare Pages 배포 설정
+## Cloudflare Workers 배포 설정
 
-1. Cloudflare 대시보드에서 **Workers & Pages → Create → Pages → Connect to Git**으로 이동합니다.
+1. Cloudflare 대시보드에서 **Workers & Pages → nono-web → Settings → Builds**로 이동합니다.
 2. GitHub 저장소 `ishyun1227/nono-web`을 선택합니다.
 3. 아래 값을 지정하고 배포합니다.
 
 | 설정 | 값 |
 | --- | --- |
-| Framework preset | None |
 | Production branch | main |
-| Build command | 비움 (필요하면 `exit 0`) |
-| Build output directory | / (저장소 최상위 경로) |
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Preview deploy command | `npx wrangler preview` |
+| Assets directory | `dist` (`wrangler.jsonc`에 지정) |
 | Root directory | 기본값/비움 |
 
-현재 `index.html` 한 파일에 UI, CSS, JS, 픽셀 이미지가 포함되어 있어 별도의 빌드 명령이 필요 없습니다.
+UI는 `index.html`, 사용자 설정은 `settings.js`, 공개 Firebase 웹 설정은 `firebase-config.js`에 있습니다. 빌드는 이 3개 파일만 `dist/`로 복사합니다. `node_modules`와 테스트·서버 규칙 파일은 웹에 배포하지 않습니다.
 
 ## 현재 사용 가능 범위
 
 - 싱글플레이: 실행 가능
 - 키보드: 방향키, Space, X, Backspace, Ctrl+Z/Y
-- 실시간 대결 및 협동: Firebase 연결 전에는 사용 불가
-- 온라인 기록 경쟁: Firebase 연결 전에는 사용 불가
+- 실시간 대결 및 협동: Firebase 익명 인증과 Realtime Database 사용
+- 온라인 기록 경쟁: 서버 검증과 퍼즐별 최고 기록 순위표
 
-본 저장소는 기본적으로 Firebase 연결 값이 비어 있는 **프런트엔드 체험 버전**입니다. Firebase를 설정할 때에는 인증과 데이터베이스 보안 규칙을 먼저 검토해야 합니다.
+Firebase 연결값이 비어 있으면 오프라인 체험으로 실행됩니다. 익명 인증, 서버 보안 규칙, 에뮬레이터 테스트가 포함되어 있으며 운영 연결과 테스트 방법은 [FIREBASE.md](FIREBASE.md)에 있습니다. Firebase 프로젝트 생성·규칙 배포·웹 설정 반영이 완료되어야 온라인 기능을 사용할 수 있습니다.
 
 ## 주의
 

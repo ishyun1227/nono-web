@@ -2,10 +2,11 @@ const { chromium } = require('playwright');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ headless: true, ...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{}) });
   const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
+  await page.route('**/firebase-config.js', route => route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
   await page.goto(pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href);
   await page.locator('#nono-open-settings').waitFor();
   await page.click('#nono-open-settings');

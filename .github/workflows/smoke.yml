@@ -12,11 +12,19 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Install Playwright
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install test dependencies
         run: |
-          npm install --no-save playwright@1.56.1
+          npm ci
           npx playwright install --with-deps chromium
       - name: Check JavaScript syntax
         run: node --check settings.js
       - name: Run browser test
         run: node tests/smoke.cjs
+      - name: Validate database security rules
+        run: npm run test:multiplayer
+      - name: Check two-browser multiplayer
+        run: npm run test:browser

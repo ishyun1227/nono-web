@@ -1,0 +1,52 @@
+const {initializeTestEnvironment,assertFails,assertSucceeds}=require('@firebase/rules-unit-testing');
+const {ref,set,get,runTransaction,serverTimestamp,query,orderByChild,limitToFirst}=require('firebase/database');
+const fs=require('node:fs'),assert=require('node:assert/strict');
+const {answers}=require('./puzzles.cjs');
+async function main(){
+ const env=await initializeTestEnvironment({projectId:'demo-nono',database:{host:'127.0.0.1',port:9000,rules:fs.readFileSync('database.rules.json','utf8')}});
+ try{
+  await env.clearDatabase();await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'privateAnswers'),answers));
+  const db=uid=>env.authenticatedContext(uid).database(),a=db('alice'),b=db('bob'),outsider=db('eve');
+  const meta=mode=>({host:'alice',mode,puzzleId:'heart5',size:5,status:mode==='race'?'lobby':'playing',createdAt:serverTimestamp(),startedAt:mode==='race'?0:serverTimestamp()});
+  const join=(d,code,slot,uid)=>set(ref(d,`rooms/${code}/players/${slot}`),{uid,name:uid,joinedAt:serverTimestamp()});
+  await assertFails(get(ref(env.unauthenticatedContext().database(),'rooms/ABCDEF/meta')));
+  await assertFails(get(ref(a,'privateAnswers')));
+  await assertSucceeds(set(ref(a,'rooms/ABCDEF/meta'),meta('coop')));
+  await join(a,'ABCDEF','0','alice');await join(b,'ABCDEF','1','bob');
+  await assertFails(set(ref(outsider,'rooms/ABCDEF/board'),'0'.repeat(25)));
+  await assertFails(set(ref(b,'rooms/ABCDEF/players/0'),{uid:'bob',name:'hijack',joinedAt:serverTimestamp()}));
+  await join(db('c'),'ABCDEF','2','c');await join(db('d'),'ABCDEF','3','d');
+  await assertFails(join(outsider,'ABCDEF','4','eve'));
+  await set(ref(a,'rooms/ABCDEF/board'),'0'.repeat(25));
+  await Promise.all([[a,0],[b,1]].map(([d,i])=>runTransaction(ref(d,'rooms/ABCDEF/board'),v=>{v=v||'0'.repeat(25);return v.slice(0,i)+'1'+v.slice(i+1);}))); 
+  assert.equal((await get(ref(a,'rooms/ABCDEF/board'))).val().slice(0,2),'11');
+  await assertFails(set(ref(a,'rooms/ABCDEF/board'),'bad'));
+  console.log('PASS cooperation concurrency, membership, capacity, board validation');
+  await set(ref(a,'rooms/GHJKLM/meta'),meta('race'));await join(a,'GHJKLM','0','alice');await join(b,'GHJKLM','1','bob');
+  const race=(await get(ref(a,'rooms/GHJKLM/meta'))).val();
+  await assertFails(set(ref(b,'rooms/GHJKLM/meta'),{...race,status:'playing',startedAt:serverTimestamp()}));
+  await set(ref(a,'rooms/GHJKLM/meta'),{...race,status:'playing',startedAt:serverTimestamp()});
+  await assertFails(join(outsider,'GHJKLM','2','eve'));
+  const startedAt=(await get(ref(a,'rooms/GHJKLM/meta/startedAt'))).val();
+  const state={board:'0'.repeat(25),filled:'0'.repeat(25),startedAt,finishedAt:0};
+  await set(ref(a,'rooms/GHJKLM/states/alice'),state);
+  await assertFails(set(ref(b,'rooms/GHJKLM/states/alice'),state));
+  await assertFails(set(ref(a,'rooms/GHJKLM/states/alice'),{...state,finishedAt:serverTimestamp()}));
+  await set(ref(a,'rooms/GHJKLM/states/alice'),{...state,board:answers.heart5,filled:answers.heart5,finishedAt:serverTimestamp()});
+  await assertFails(set(ref(a,'rooms/GHJKLM/states/alice'),state));
+  console.log('PASS race start authority, late joins, ownership, answer validation, immutable finish');
+  const run=ref(a,'runs/heart5/alice');
+  await set(run,{name:'Alice',startedAt:serverTimestamp(),finishedAt:0,filled:'0'.repeat(25),changes:0});
+  const initial=(await get(run)).val();
+  await assertFails(set(run,{...initial,filled:'0'.repeat(25),finishedAt:serverTimestamp()}));
+  await set(run,{...initial,filled:answers.heart5,finishedAt:serverTimestamp()});
+  const result=(await get(run)).val(),score={name:result.name,startedAt:result.startedAt,finishedAt:result.finishedAt,duration:result.finishedAt-result.startedAt,changes:result.changes};
+  await assertSucceeds(set(ref(a,'scores/heart5/alice'),score));
+  await assertFails(set(ref(b,'scores/heart5/alice'),{...score,duration:1}));
+  await assertFails(set(ref(a,'scores/heart5/alice'),{...score,duration:1}));
+  await assertFails(get(ref(b,'scores/heart5')));
+  const scores=await get(query(ref(b,'scores/heart5'),orderByChild('duration'),limitToFirst(12)));assert(scores.exists());
+  console.log('PASS record answer/time validation, score tampering, bounded leaderboard');
+ }finally{await env.cleanup();}
+}
+main().catch(e=>{console.error(e);process.exitCode=1;});
