@@ -8,6 +8,7 @@
 - 공개 사이트: https://nono-web.ishyun1227.workers.dev/
 - Cloudflare Workers 빌드 명령: `npm run build`, 배포 명령: `npx wrangler deploy`
 - `dist/`에 HTML·사용자 설정·공개 Firebase 설정 3개 파일만 복사해 배포합니다. 서버 규칙, 테스트, 개발 의존성은 공개 웹 자산에 포함하지 않습니다.
+- 의존성 설치 후에도 같은 정적 파일 빌드를 실행하므로, 별도 빌드 단계 없이 실행되는 미리보기 배포에도 `dist/`가 준비됩니다.
 
 ## 무료 구성
 
