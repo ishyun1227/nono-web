@@ -159,7 +159,10 @@ document.addEventListener('mouseover',e=>{if(e.target.closest('button'))playSoun
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveBoard()});window.addEventListener('pagehide',saveBoard);
 }
 function drawSettings(){const body=document.querySelector('#nono-settings-content');if(!body)return;const tab=Number(document.querySelector('.nono-settings-tabs .is-active')?.dataset.tab||0);body.innerHTML='';for(const [key,label,type,choices,help] of schema[tab][1]){const row=E('div','nono-setting'),l=E('label',null,label),sub=E('small',null,help);l.title=help;l.append(sub);row.append(l);let input;if(type==='color'){input=E('input');input.type='color';input.value=String(prefs[key]);input.oninput=()=>setPref(key,input.value,true);}else if(type==='bool'){input=E('input');input.type='checkbox';input.checked=!!prefs[key];input.onchange=()=>setPref(key,input.checked);}else if(type==='choice'){input=E('select');for(const item of choices){const p=String(item).split(':');const op=E('option',null,p.length>1?p.slice(1).join(':'):p[0]);op.value=p[0];input.append(op);}input.value=String(prefs[key]);input.onchange=()=>setPref(key,input.value);}else{input=E('input');input.type='range';input.min=choices[0];input.max=choices[1];input.step=choices[2];input.value=prefs[key];let val=E('span','nono-keys-hint',String(input.value));input.oninput=()=>{val.textContent=input.value;setPref(key,Number(input.value),true);};row.append(val);}input.setAttribute('aria-label',label);row.append(input);body.append(row);}
-if(tab===0){const h=E('p','nono-keys-hint','기본 단축키: 방향키 / Space 칠하기 / X 빈칸 / Backspace 지우기 / , 되돌리기 / . 다시 / 1·2 도구 / H 힌트 숫자 / Tab 전체보기. 웹 전용 키 변경은 다음 단계에서 제공.');body.prepend(h);}
+if(tab===0){
+ const panel=E('div');panel.innerHTML='<h3 style="font-size:15px;margin-top:18px">키 설정 · 기본키 / 보조키</h3><p class="nono-keys-hint">키를 클릭한 뒤 새 키를 누르세요. 다른 기능과 중복되면 경고만 표시합니다. Escape는 취소합니다.</p>';
+ const grid=E('div');for(const action of Object.keys(standardKeys)){const row=E('div','nono-setting');row.append(E('label',null,shortcutNames[action]));shortcut(action).forEach((code,slot)=>{const b=E('button','nono-modal-btn',code?displayKey(code):'+ 키');b.onclick=()=>editBinding(action,slot,b);row.append(b)});grid.append(row)}panel.append(grid);body.append(panel);
+}
 if(tab===5){const status=E('p','nono-settings-status','웹 화면에서 FPS: '+Math.round(fps)+' · 서버 Ping: Firebase 미연결');body.append(status);body.append(E('p','nono-keys-hint','멀티 커서·플레이어 이름·최근 입력은 현재 서버가 좌표 이벤트를 전송하지 않아 아직 적용되지 않습니다. Roblox 비행·1인칭 손/총 설정은 2D 웹판에 해당하지 않습니다.'));}
 }
 function openSettings(){if(settingsOpen)return;settingsOpen=true;const overlay=E('div','nono-settings-overlay');overlay.id='nono-settings-overlay';overlay.innerHTML='<div class="nono-settings" role="dialog" aria-modal="true" aria-label="노노그램 설정"><div class="nono-settings-head"><div><h2>⚙ 노노그램 설정</h2><small>변경 즉시 적용 · 장치별 브라우저 저장 · '+(device==='touch'?'터치':'PC')+' 프로필</small></div><button class="nono-modal-btn" id="nono-settings-close">닫기</button></div><div class="nono-settings-tabs"></div><div class="nono-settings-content" id="nono-settings-content"></div><div class="nono-settings-foot"><span>※ (시험/보류) 옵션은 사용하면서 평가할 기능입니다.</span><button class="nono-modal-btn" id="nono-settings-default">현재 장치 설정 초기화</button></div></div>';document.body.append(overlay);
@@ -237,18 +240,68 @@ function enumerateLine(hints,values){const n=values.length,states=[],out=[];func
 function logicHint(){hintStage++;let found=null;for(let axis of ['row','col']){for(let i=0;i<puzzle.size;i++){const values=lineValues(axis,i),poss=enumerateLine(hintsForLine(axis,i),values);if(!poss.length)continue;for(let j=0;j<puzzle.size;j++){if(values[j]!=='0')continue;const v=poss[0][j];if(poss.every(line=>line[j]===v)){found={axis,i,j,v,count:poss.length};break}}if(found)break}if(found)break}if(!found){toast('현재 논리적으로 확실한 칸이 없어요.');return;}
 const phase=[];if(prefs.hintLine)phase.push('line');if(prefs.hintExplanation)phase.push('explain');if(prefs.hintCell)phase.push('cell');if(!phase.length)return;const step=phase[(hintStage-1)%phase.length];helpTarget=found.axis==='row'?found.i*puzzle.size+found.j:found.j*puzzle.size+found.i;helpLine=found;const text=step==='line'?(found.axis==='row'?'행 ':'열 ')+(found.i+1)+'번에 확실한 칸이 있어요.':step==='explain'?'힌트 숫자를 놓는 가능한 '+found.count+'가지 배치 모두에 공통되는 칸이 있어요.':(found.v==='1'?'채울':'X 표시할')+' 수 있는 확실한 칸을 강조했어요.';toast(text);$('nono-hint-status').textContent=text;if(step==='cell'){document.querySelectorAll('#board .cell')[helpTarget]?.classList.add('nono-highlight-now');setTimeout(()=>document.querySelectorAll('#board .cell')[helpTarget]?.classList.remove('nono-highlight-now'),4500)}playSound('hint');}
 function moveSelection(dir,repeat){const n=puzzle.size,r=Math.floor(selected/n),c=selected%n;let row=r,col=c,delta=repeat?5:1;if(dir==='up')row-=delta;else if(dir==='down')row+=delta;else if(dir==='left')col-=delta;else col+=delta;row=prefs.wrap?(row+n*5)%n:Math.max(0,Math.min(n-1,row));col=prefs.wrap?(col+n*5)%n:Math.max(0,Math.min(n-1,col));selected=row*n+col;render();const cell=$('board').querySelectorAll('.cell')[selected];if(cell){cell.scrollIntoView({block:prefs.follow==='center'?'center':'nearest',inline:prefs.follow==='center'?'center':'nearest',behavior:prefs.followSpeed==='fast'?'instant':'smooth'});}}
+
+const standardKeys={
+ up:['ArrowUp',''],down:['ArrowDown',''],left:['ArrowLeft',''],right:['ArrowRight',''],
+ fill:['Space',''],cross:['KeyX',''],clear:['Backspace','Delete'],
+ undo:['Comma',''],redo:['Period',''],hint:['KeyH',''],overview:['Tab',''],
+ toolFill:['Digit1',''],toolCross:['Digit2','']
+};
+const shortcutNames={up:'위로 이동',down:'아래로 이동',left:'왼쪽 이동',right:'오른쪽 이동',
+ fill:'칸 칠하기',cross:'X 표시',clear:'칸 지우기',undo:'되돌리기',redo:'다시 실행',hint:'힌트 선택 모드',overview:'전체보기',toolFill:'칠하기 도구',toolCross:'X 도구'};
+let bindingCapture=null,moveHeld='',moveTimer=null,moveWait=null;
+function shortcut(action){
+ let base=standardKeys[action]||['',''];if(['up','down','left','right'].includes(action)&&prefs.move==='wasd'){
+  const m={up:'KeyW',down:'KeyS',left:'KeyA',right:'KeyD'};base=[m[action],''];
+ }
+ return prefs.keys&&Array.isArray(prefs.keys[action])?prefs.keys[action]:base;
+}
+function matches(action,e){return shortcut(action).includes(e.code)&&!e.isComposing}
+function displayKey(k){return ({Space:'Space',KeyX:'X',KeyH:'H',Backspace:'Backspace',Delete:'Delete',Tab:'Tab',Comma:',',Period:'.',ArrowUp:'↑',ArrowDown:'↓',ArrowLeft:'←',ArrowRight:'→'}[k]||k.replace(/^Key/,'').replace(/^Digit/,'')||'미지정')}
+function editBinding(action,slot,button){
+ bindingCapture={action,slot};button.textContent='새 키 입력…';
+ const handle=function(e){if(!bindingCapture)return;e.preventDefault();e.stopImmediatePropagation();
+  document.removeEventListener('keydown',handle,true);const capture=bindingCapture;bindingCapture=null;
+  if(e.code==='Escape'){drawSettings();return}
+  if(!prefs.keys)prefs.keys={};
+  const old=shortcut(capture.action).slice();old[capture.slot]=e.code;prefs.keys[capture.action]=old;
+  const conflict=Object.keys(standardKeys).filter(other=>other!==capture.action&&shortcut(other).includes(e.code));
+  persist();drawSettings();
+  if(conflict.length)toast('키 중복 경고: '+displayKey(e.code)+' · '+conflict.map(x=>shortcutNames[x]).join(', '));
+ };
+ document.addEventListener('keydown',handle,true);
+}
+function moveOne(dir,fast){moveSelection(dir,fast);if(keyboardDrag){paint(selected,keyboardDrag.to,true);keyboardDrag.steps++;dragCount=keyboardDrag.steps;render();}}
+function releaseMove(){if(moveTimer!==null)clearInterval(moveTimer);if(moveWait!==null)clearTimeout(moveWait);moveTimer=null;moveWait=null;moveHeld='';}
+function beginMove(code,dir,quick){
+ if(moveHeld===code)return;
+ releaseMove();moveHeld=code;moveOne(dir,quick);
+ const delay={short:170,normal:330,long:550}[prefs.repeatWait]||330;
+ const speed={slow:165,normal:85,fast:45}[prefs.repeat]||85;
+ moveWait=setTimeout(()=>{moveWait=null;moveTimer=setInterval(()=>moveOne(dir,quick),speed)},delay);
+}
 function keyDown(e){if(settingsOpen||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const key=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey;if(overviewOpen){if(key==='tab'||key==='escape'){e.preventDefault();e.stopImmediatePropagation();closeOverview()}return}
 if($('game').classList.contains('hidden')||!$('lobby').classList.contains('hidden'))return;
-if(key==='tab'||key==='h'){e.preventDefault();e.stopImmediatePropagation();if(key==='tab'){openOverview()}else{hintMode=!hintMode;hintIndex=hintMode?Math.floor(selected/puzzle.size):0;hintAxis='row';hintNumber=0;toast(hintMode?'힌트 선택: 방향키로 숫자 선택 · Space 흐림/복원 · H 복귀':'셀 이동 모드');render()}return}
+if(matches('overview',e)||matches('hint',e)){e.preventDefault();e.stopImmediatePropagation();if(matches('overview',e)){openOverview()}else{hintMode=!hintMode;hintIndex=hintMode?Math.floor(selected/puzzle.size):0;hintAxis='row';hintNumber=0;toast(hintMode?'힌트 선택: 방향키로 숫자 선택 · Space 흐림/복원 · H 복귀':'셀 이동 모드');render()}return}
 if(hintMode){if(key===' '||key==='spacebar'){e.preventDefault();e.stopImmediatePropagation();const k=hintAxis+':'+hintIndex+':'+hintNumber;manualClues[puzzle.id]=manualClues[puzzle.id]||{};manualClues[puzzle.id][k]=!manualClues[puzzle.id][k];saveBoard();render();return}if(key.startsWith('arrow')){e.preventDefault();e.stopImmediatePropagation();if(key==='arrowleft'||key==='arrowright'){hintNumber=(hintNumber+(key==='arrowright'?1:-1)+hintsForLine(hintAxis,hintIndex).length)%hintsForLine(hintAxis,hintIndex).length;}else{hintIndex=(hintIndex+(key==='arrowdown'?1:-1)+puzzle.size)%puzzle.size;hintNumber=0;}if(e.shiftKey){hintAxis=hintAxis==='row'?'col':'row';hintNumber=0;}render();return}}
 if(ctrl&&(key==='z'||key==='y')){e.preventDefault();e.stopImmediatePropagation();restoreHistory(key==='y'||e.shiftKey?redoStack:undoStack,key==='y'||e.shiftKey?undoStack:redoStack);return}
-if(key===','||key==='.') {e.preventDefault();e.stopImmediatePropagation();restoreHistory(key===','?undoStack:redoStack,key===','?redoStack:undoStack);return}
-if(key==='1'||key==='2'){tool=key;updateToolButtons();e.preventDefault();e.stopImmediatePropagation();return}
-let direction=null;if(prefs.move==='arrows'){direction={arrowup:'up',arrowdown:'down',arrowleft:'left',arrowright:'right'}[key]}else direction={w:'up',s:'down',a:'left',d:'right'}[key];
-if(direction){e.preventDefault();e.stopImmediatePropagation();if(keyboardDrag){moveSelection(direction,((prefs.quick==='Shift'&&e.shiftKey)||(prefs.quick==='Control'&&e.ctrlKey)||(prefs.quick==='Alt'&&e.altKey)));paint(selected,keyboardDrag.to,true);keyboardDrag.steps++;dragCount=keyboardDrag.steps;render();}else{moveSelection(direction,e[prefs.quick+'Key']||false)}return}
-if([' ','spacebar','x','backspace','delete'].includes(key)){e.preventDefault();e.stopImmediatePropagation();const to=key===' '||key==='spacebar'?'1':key==='x'?'2':'0';if((to==='1'||to==='2')&&!keyboardDrag)keyboardDrag={to,first:undoStack.length,steps:1};paint(selected,to,false);dragCount=1;render();return;}
+if(matches('undo',e)||matches('redo',e)){e.preventDefault();e.stopImmediatePropagation();restoreHistory(matches('undo',e)?undoStack:redoStack,matches('undo',e)?redoStack:undoStack);return}
+if(matches('toolFill',e)||matches('toolCross',e)){tool=matches('toolFill',e)?'1':'2';updateToolButtons();e.preventDefault();e.stopImmediatePropagation();return}
+
+ let direction=null;for(const dir of ['up','down','left','right'])if(matches(dir,e)){direction=dir;break}
+ if(direction){e.preventDefault();e.stopImmediatePropagation();
+  const quick=(prefs.quick==='Shift'&&e.shiftKey)||(prefs.quick==='Control'&&e.ctrlKey)||(prefs.quick==='Alt'&&e.altKey);
+  if(!e.repeat)beginMove(e.code,direction,quick);
+  return;
+ }
+ const to=matches('fill',e)?'1':matches('cross',e)?'2':matches('clear',e)?'0':null;
+ if(to!==null){e.preventDefault();e.stopImmediatePropagation();
+  if(e.repeat&&keyboardDrag&&keyboardDrag.to===to)return;
+  if(!keyboardDrag)keyboardDrag={to,first:undoStack.length,steps:1};
+  paint(selected,to,false);dragCount=1;render();return;
+ }
 }
-function endKeyboard(e){const key=e.key.toLowerCase();if(!keyboardDrag)return;if((keyboardDrag.to==='1'&&(key===' '||key==='spacebar'))||(keyboardDrag.to==='2'&&key==='x')||(keyboardDrag.to==='0'&&['backspace','delete'].includes(key))){squashHistory(keyboardDrag.first);keyboardDrag=null;dragCount=0;render();}}
+function endKeyboard(e){if(e.code===moveHeld)releaseMove();if(!keyboardDrag)return;if((keyboardDrag.to==='1'&&matches('fill',e))||(keyboardDrag.to==='2'&&matches('cross',e))||(keyboardDrag.to==='0'&&matches('clear',e))){squashHistory(keyboardDrag.first);keyboardDrag=null;dragCount=0;render();}}
 function squashHistory(first){if(!['practice','record'].includes(mode)||undoStack.length<=first+1)return;undoStack.splice(first+1,undoStack.length-first-1)}
 function setupPointer(){const target=$('board');target.addEventListener('pointerdown',e=>{if(!e.target.closest('.cell'))return;const index=Number(e.target.closest('.cell').dataset.index);dragStart=index;dragAxis='';dragBaseline=undoStack.length;dragCount=1},true);document.addEventListener('pointerup',()=>{if(dragStart!==null){squashHistory(dragBaseline);dragStart=null;dragAxis='';dragCount=0;render()}},true)}
 const oldPaint=paint;paint=function(index,to,drag){if(drag&&dragStart!==null){const n=puzzle.size;const ar=Math.floor(dragStart/n),ac=dragStart%n,r=Math.floor(index/n),c=index%n;if(!dragAxis){dragAxis=Math.abs(c-ac)>=Math.abs(r-ar)?'row':'col'}if((dragAxis==='row'&&r!==ar)||(dragAxis==='col'&&c!==ac))return;const from=selected;const start=dragAxis==='row'?from%n:Math.floor(from/n),end=dragAxis==='row'?c:r,step=end>=start?1:-1;for(let k=start;k!==end+step;k+=step){const at=dragAxis==='row'?ar*n+k:k*n+ac;if(prefs.dragPolicy==='skip'&&board[at]!=='0'&&at!==dragStart)continue;oldPaint(at,to,true);dragCount++}updateBoard();return;}
