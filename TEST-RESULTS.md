@@ -21,4 +21,14 @@
 
 GitHub Actions에서도 싱글플레이 회귀, 데이터베이스 규칙, 두 브라우저 멀티플레이 테스트가 모두 통과했습니다: https://github.com/ishyun1227/nono-web/actions/runs/39405416008
 
-**운영 서버:** 사용자 승인 후 Firebase 약관에 동의하고 프로젝트 `nono-web-ishyun-20261020`을 Spark 요금제로 활성화했습니다. 싱가포르 Realtime Database, 익명 인증, 서버 보안 규칙과 기본 퍼즐 답안 배포를 완료했습니다. 로컬 웹 화면을 실제 Firebase 서버에 연결한 독립 브라우저 2개에서 협동 동시 입력, 대결 시작·완료 전파, 온라인 기록 저장·순위표, 모바일 화면 테스트가 통과했습니다. 테스트가 만든 방과 기록만 별도 목록에 따라 삭제했습니다. 공개 사이트 자동 배포와 배포된 화면의 최종 검증은 이어서 수행합니다.
+**운영 서버:** 사용자 승인 후 Firebase 약관에 동의하고 프로젝트 `nono-web-ishyun-20261020`을 Spark 요금제로 활성화했습니다. 싱가포르 Realtime Database, 익명 인증, 서버 보안 규칙과 기본 퍼즐 답안 배포를 완료했습니다. 로컬 웹 화면을 실제 Firebase 서버에 연결한 독립 브라우저 2개에서 협동 동시 입력, 대결 시작·완료 전파, 온라인 기록 저장·순위표, 모바일 화면 테스트가 통과했습니다.
+
+**공개 사이트 검증 완료:** https://nono-web.ishyun1227.workers.dev/ 에서도 독립 브라우저 2개로 동일한 협동·대결·기록 저장·순위표·모바일 시나리오가 모두 통과했고 페이지 실행 오류는 0건이었습니다. 사용자의 일반 Chrome에서도 실제 CDN SDK를 로드한 뒤 `● 온라인 연결`을 확인했습니다. 테스트가 만든 방과 기록만 별도 목록에 따라 삭제했습니다. GitHub `main`의 전체 자동 테스트와 Cloudflare 운영 배포도 성공했습니다: https://github.com/ishyun1227/nono-web/actions/runs/39406205391
+
+배포된 HTML·사용자 설정·Firebase 설정의 SHA-256이 검증된 커밋 `67e25dcd1e173c67f5bc829843470fc745ce8b6d`의 파일과 바이트 단위로 일치했습니다. 개발용 `database.rules.json`, `TEST-RESULTS.md`, `package.json` 요청은 모두 HTTP 404였습니다.
+
+| 공개 파일 | SHA-256 |
+| --- | --- |
+| index.html | b8f5039300da5e464a7089c8d5568935a59bb83b42bedb28079d2a54edf70eaf |
+| settings.js | f6b5de712f16b234f2a98b1a67bde62a2614053c11936e1ae9c9f44f4a3786d7 |
+| firebase-config.js | d63bfe60059e5e64371e34600d9c189b11eb88ed7f50fd5b909f947a5d89b458 |
