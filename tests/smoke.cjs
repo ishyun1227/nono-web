@@ -11,6 +11,18 @@ const { pathToFileURL } = require('node:url');
   await page.click('#nono-open-settings');
   await page.locator('#nono-settings-content').waitFor();
   if (!await page.locator('.nono-setting').count()) throw new Error('No settings rendered');
+  const tabNames = await page.locator('.nono-settings-tabs button').allTextContents();
+  if (!tabNames.includes('멀티플레이') || tabNames.some(t => t.includes('성능'))) {
+    throw new Error('Settings should expose multiplayer without a performance tab: ' + tabNames.join(', '));
+  }
+  await page.getByRole('button', { name: '멀티플레이' }).click();
+  const multiSettings = await page.locator('#nono-settings-content').innerText();
+  if (!multiSettings.includes('다른 플레이어 커서') || !multiSettings.includes('다른 플레이어 이름')) {
+    throw new Error('Multiplayer preferences are missing');
+  }
+  if (/화질|품질|LOD|FPS|자동 성능|그래픽 프리셋/.test(multiSettings)) {
+    throw new Error('Removed graphics or performance controls are still visible');
+  }
   await page.click('#nono-settings-close');
   await page.click('#play-alone');
   await page.locator('#board .cell').first().waitFor();
