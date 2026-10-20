@@ -11,7 +11,7 @@ const defaults={move:'arrows',quick:'Shift',repeat:'normal',repeatWait:'normal',
  errorMode:'manual',errorDelay:10,errorStages:false,errorExact:false,errorStrength:'normal',
  dragPolicy:'skip',hintLine:true,hintExplanation:true,hintCell:false,
  soundInput:false,soundTheme:'basic',soundFinish:true,soundWrong:false,soundClick:false,soundHint:true,soundHover:false,volume:40,inputVolume:70,uiVolume:40,effectVolume:70,
- animation:'basic',shadow:true,quality:'normal',highlightQuality:'normal',lod:'normal',autoQuality:false,autoThreshold:'normal',
+ animation:'basic',
  zoomWheel:false,zoomSpeed:'normal',follow:'edge',followSpeed:'normal',
  focusEntry:'current',hudBg:'normal',hudSize:'normal',hudLayouts:{},overviewAnimated:false,feedback:'off',
  multiplayerCursor:'normal',multiplayerNames:true,otherInput:'1',hintsManual:{}};
@@ -75,28 +75,25 @@ const schema=[
  ['effectVolume','힌트·완료 음량','range',[0,100,5],'퍼즐 완료·힌트·오답 효과음'],
  ['animation','셀 입력 애니메이션 테마','choice',['basic:기본','pop:팝','ink:잉크','mechanic:기계식'],'채우기와 X는 각기 다른 효과를 사용'],
  ['feedback','진동 느낌 (시험/보류)','choice',['off:꺼짐','weak:약하게','normal:기본','strong:강하게'],'지원 기기에서만 진동; 카메라 흔들림은 없음']]],
- ['성능·멀티',[
- ['quality','화질 프리셋','choice',['low:낮음','normal:기본','high:높음','custom:사용자 지정'],'그림자·하이라이트·장식 강도 통합'],
- ['shadow','그림자','bool',null,'사이트 장식 그림자 표시'],
- ['highlightQuality','하이라이트 품질 (시험/보류)','choice',['low:낮음','normal:기본','high:높음'],'선택·행/열 하이라이트 표시 품질'],
- ['lod','대형 퍼즐 LOD (시험/보류)','choice',['low:약함','normal:기본','high:강함'],'큰 판을 축소했을 때 얇은 격자선 생략 강도'],
- ['autoQuality','자동 성능 조절','bool',null,'FPS가 낮아질 때 임시 효과를 줄임; 저장된 프리셋은 유지'],
- ['autoThreshold','자동 성능 조절 기준','choice',['quality:화질 우선','normal:기본','stability:안정성 우선'],'FPS 허용 기준'],
+ ['멀티플레이',[
  ['multiplayerCursor','다른 플레이어 커서 (온라인 연동 예정)','choice',['off:꺼짐','weak:연하게','normal:기본','strong:진하게'],'서버의 커서 좌표 동기화가 연결된 뒤 적용'],
  ['multiplayerNames','다른 플레이어 이름 (온라인 연동 예정)','bool',null,'실시간 커서 좌표 기능이 필요'],
  ['otherInput','다른 플레이어 최근 입력 (온라인 연동 예정)','choice',['off:꺼짐','1:1초','3:3초','5:5초'],'협동 방의 최근 입력 이벤트 동기화가 필요']]]
 ];
 let profiles={};try{profiles=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch{}
 let prefs=Object.assign({},defaults,profiles[device]||{});
+// Remove obsolete graphics/performance preferences saved by earlier builds.
+for(const key of ['quality','shadow','highlightQuality','lod','autoQuality','autoThreshold'])delete prefs[key];
 const manualClues={};let overviewOpen=false,hintMode=false,hintIndex=0,hintAxis='row',hintNumber=0,hintStage=0,lastInput=-1,lastInputTime=0,errorAt=0,errorFor='',dragStart=null,dragAxis='',dragBaseline=0,keyboardDrag=null,dragCount=0,autofollow=false,autoTimer=null,overviewZoom=1,helpTarget=-1,helpLine=null,settingsOpen=false;
-let soundContext=null,toolAction='1',fps=60,frames=0,lastFrame=performance.now(),lowFpsMs=0,runtimeLow=false,cellZoom=41,hudEdit=false,hudSelected='hints';
+let soundContext=null,toolAction='1',cellZoom=41,hudEdit=false,hudSelected='hints';
 function E(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;}
 function persist(){profiles[device]=Object.assign({},prefs);try{localStorage.setItem(KEY,JSON.stringify(profiles))}catch{}}
+persist();
 function saveKey(){return SAVE+puzzle.id;}
 function saveBoard(){if(mode!=='practice'||roomCode||!board||!puzzle)return;try{localStorage.setItem(saveKey(),JSON.stringify({board:board.join(''),startedAt,selected,manual:manualClues[puzzle.id]||{},savedAt:Date.now()}))}catch{}}
 function readBoard(){try{const data=JSON.parse(localStorage.getItem(saveKey())||'null');return data&&typeof data.board==='string'&&data.board.length===puzzle.size*puzzle.size?data:null}catch{return null}}
 function dropSave(){try{localStorage.removeItem(saveKey())}catch{}}
-function setPref(k,v,keepControl){prefs[k]=v;if(k==='quality'&&v!=='custom'){prefs.shadow=v!=='low';prefs.highlightQuality=v==='high'?'high':v==='low'?'low':'normal';}else if(['shadow','highlightQuality'].includes(k))prefs.quality='custom';persist();apply();if(settingsOpen&&!keepControl)drawSettings();}
+function setPref(k,v,keepControl){prefs[k]=v;persist();apply();if(settingsOpen&&!keepControl)drawSettings();}
 function playSound(which,variation){const active={input:prefs.soundInput,finish:prefs.soundFinish,wrong:prefs.soundWrong&&prefs.errorMode==='immediate',ui:prefs.soundClick,hint:prefs.soundHint,hover:prefs.soundHover};if(!active[which]||!prefs.volume)return;try{soundContext=soundContext||new(window.AudioContext||window.webkitAudioContext)();const o=soundContext.createOscillator(),g=soundContext.createGain(),t=soundContext.currentTime;const vol=prefs.volume/100*((which==='input'?prefs.inputVolume:which==='ui'||which==='hover'?prefs.uiVolume:prefs.effectVolume)/100)*.085;const base=which==='finish'?790:which==='wrong'?240:which==='hint'?650:which==='ui'?520:which==='hover'?410:variation==='2'?340:500;o.type=prefs.soundTheme==='pop'?'square':prefs.soundTheme==='soft'?'sine':'triangle';o.frequency.setValueAtTime(base,t);o.frequency.exponentialRampToValueAtTime(base*(which==='wrong'?.62:1.3),t+.085);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+.11);o.connect(g);g.connect(soundContext.destination);o.start(t);o.stop(t+.12)}catch{}}
 function mount(){
 const css=E('style');css.textContent=String.raw`
@@ -117,13 +114,10 @@ const css=E('style');css.textContent=String.raw`
 .nono-settings-foot{padding:12px 20px;background:#0f1930;display:flex;justify-content:space-between;gap:8px;align-items:center;color:#9fb0d1;font-size:12px}
 .nono-modal-btn{border:1px solid #6074aa;border-radius:9px;background:#252f58;color:#e9eeff;padding:8px 12px;cursor:pointer}
 .nono-fade-clue{opacity:.29}.nono-hint-target{background:#50478580!important;border-radius:5px}
-.nono-settings-status{color:#9de4d7;font-size:12px}
 .nono-extra-hud{font-size:12px;color:#eaf0ff;background:#1b2848db;border:1px solid #596d9c;border-radius:9px;padding:8px 10px;margin:8px 0;display:flex;gap:15px;align-items:center;justify-content:center}
 .nono-error{outline:2px solid #ff5671!important;outline-offset:-2px}.nono-error-line{background-color:#7b2b4366!important}
 body[data-error-intensity=weak] .nono-error{outline-width:1px!important}body[data-error-intensity=strong] .nono-error{outline-width:4px!important}body[data-error-intensity=strong] .nono-error-line{box-shadow:inset 0 0 0 3px #fa6688!important}
-#board .cell.active{outline-color:var(--nono-accent,#77d5fb)}body.nono-economy .nono-selected-row{background-color:#142845!important}
-body.nono-economy .hero-art{filter:none!important}body.nono-economy .card,body.nono-economy .button{box-shadow:none!important}
-body[data-nono-highlight=low] .nono-selected-row{box-shadow:none!important}body[data-nono-highlight=high] .nono-selected-row{box-shadow:inset 0 0 0 1px #78d3ff44!important}
+#board .cell.active{outline-color:var(--nono-accent,#77d5fb)}
 
 .nono-last{box-shadow:inset 0 0 0 3px var(--nono-accent,#77d5fb)!important}
 .nono-selected-row{background-color:#1f355e!important}.nono-done-line{opacity:.55}
@@ -157,7 +151,7 @@ body[data-nono-highlight=low] .nono-selected-row{box-shadow:none!important}body[
 @keyframes nono-cross-ink{from{opacity:.3;filter:blur(3px)}to{opacity:1;filter:blur(0)}}
 @keyframes nono-cross-mech{from{transform:translateX(-2px)}to{transform:none}}
 @keyframes nono-pop{from{transform:scale(.72)}to{transform:scale(1)}}@keyframes nono-ink{from{opacity:.45;filter:blur(2px)}to{opacity:1;filter:blur(0)}}@keyframes nono-mech{from{transform:translateY(-2px)}to{transform:none}}
-.nono-settings-btn-dark{background:#212b48!important}body.nono-no-shadow .card,body.nono-no-shadow .button{box-shadow:none!important}#nono-overview[hidden],#nono-minimap[hidden],#nono-hud[hidden]{display:none!important}
+.nono-settings-btn-dark{background:#212b48!important}#nono-overview[hidden],#nono-minimap[hidden],#nono-hud[hidden]{display:none!important}
 @media(max-width:650px){.nono-setting{align-items:flex-start;flex-direction:column;gap:7px}.nono-setting select{max-width:100%}.nono-settings-foot{flex-wrap:wrap}.nono-overview-grid{width:min(86vw,460px)}}
 `;document.head.append(css);
 const top=document.querySelector('.header-right');const b=E('button','nono-settings-toggle','⚙ 설정');b.id='nono-open-settings';top.insertBefore(b,top.firstChild);b.addEventListener('click',openSettings);
@@ -179,7 +173,7 @@ if(tab===0){
  const grid=E('div');for(const action of Object.keys(standardKeys)){const row=E('div','nono-setting');row.append(E('label',null,shortcutNames[action]));shortcut(action).forEach((code,slot)=>{const b=E('button','nono-modal-btn',code?displayKey(code):'+ 키');b.onclick=()=>editBinding(action,slot,b);row.append(b)});grid.append(row)}panel.append(grid);body.append(panel);
 }
 if(tab===1){const b=E('button','nono-modal-btn','▦ HUD 편집 · 위치/크기/배경');b.style.marginTop='15px';b.onclick=()=>{if($('game').classList.contains('hidden')){toast('게임을 시작한 후 HUD 위치를 편집할 수 있어요.');return;}closeSettings();beginHudEdit();};body.append(b);}
-if(tab===5){const status=E('p','nono-settings-status','웹 화면에서 FPS: '+Math.round(fps)+' · Ping: 측정 전');body.append(status);body.append(E('p','nono-keys-hint','멀티 커서·플레이어 이름·최근 입력은 현재 서버가 좌표 이벤트를 전송하지 않아 아직 적용되지 않습니다. Roblox 비행·1인칭 손/총 설정은 2D 웹판에 해당하지 않습니다.'));}
+if(tab===5){body.append(E('p','nono-keys-hint','멀티 커서·플레이어 이름·최근 입력은 현재 서버가 좌표 이벤트를 전송하지 않아 아직 적용되지 않습니다.'));}
 }
 function openSettings(){if(settingsOpen)return;settingsOpen=true;const overlay=E('div','nono-settings-overlay');overlay.id='nono-settings-overlay';overlay.innerHTML='<div class="nono-settings" role="dialog" aria-modal="true" aria-label="노노그램 설정"><div class="nono-settings-head"><div><h2>⚙ 노노그램 설정</h2><small>변경 즉시 적용 · 장치별 브라우저 저장 · '+(device==='touch'?'터치':'PC')+' 프로필</small></div><button class="nono-modal-btn" id="nono-settings-close">닫기</button></div><div class="nono-settings-tabs"></div><div class="nono-settings-content" id="nono-settings-content"></div><div class="nono-settings-foot"><span>※ (시험/보류) 옵션은 사용하면서 평가할 기능입니다.</span><button class="nono-modal-btn" id="nono-settings-default">현재 장치 설정 초기화</button></div></div>';document.body.append(overlay);
 const tabs=overlay.querySelector('.nono-settings-tabs');schema.forEach(([title],i)=>{const b=E('button',i===0?'is-active':'',title);b.dataset.tab=i;b.onclick=()=>{tabs.querySelector('.is-active')?.classList.remove('is-active');b.classList.add('is-active');drawSettings()};tabs.append(b)});
@@ -297,7 +291,7 @@ function updateClueDecor(){
  c.querySelectorAll('.col-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-index',prefs.lineNumbers&&(i+1)%prefs.lineInterval===0);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
  if(prefs.bothClues){const rc=r.cloneNode(true),cc=c.cloneNode(true);rc.classList.add('nono-extra-row');cc.classList.add('nono-extra-col');target.append(rc,cc);}
 }
-function apply(){document.body.dataset.errorIntensity=prefs.errorStrength;document.body.dataset.nonoHighlight=prefs.highlightQuality;document.body.classList.toggle('nono-economy',runtimeLow||prefs.quality==='low');document.body.classList.toggle('nono-no-shadow',!prefs.shadow||prefs.quality==='low'||runtimeLow);document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();}
+function apply(){document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();}
 function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+n+'</b>';const g=E('div','nono-minimap-grid');g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
 function openOverview(){if($('game').classList.contains('hidden'))return;overviewOpen=true;const modal=$('nono-overview');modal.hidden=false;modal.dataset.position=prefs.overviewPosition;modal.dataset.size=prefs.overviewSize;const n=puzzle.size,filled=board.filter(v=>v==='1').length,black=totalBlack(puzzle),pr=Math.round(filled/Math.max(1,black)*100);$('nono-overview-info').textContent=prefs.overviewInfo==='off'?'':prefs.overviewInfo==='percent'?pr+'%':prefs.overviewInfo==='filled'?filled+'칸':prefs.overviewInfo==='remaining'?Math.max(0,black-filled)+'칸':'진행 '+pr+'% · 칠함 '+filled+'칸 · 남음 '+Math.max(0,black-filled)+'칸';const g=$('nono-overview-grid');g.innerHTML='';g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{g.append(E('i',v==='1'?'is-filled':'',v==='2'?'×':''))});apply();}
 function closeOverview(){overviewOpen=false;$('nono-overview').hidden=true;apply();}
@@ -370,7 +364,7 @@ function endKeyboard(e){if(e.code===moveHeld)releaseMove();if(!keyboardDrag)retu
 function squashHistory(first){if(!['practice','record'].includes(mode)||undoStack.length<=first+1)return;undoStack.splice(first+1,undoStack.length-first-1)}
 function setupPointer(){const target=$('board');target.addEventListener('pointerdown',e=>{if(!e.target.closest('.cell'))return;const index=Number(e.target.closest('.cell').dataset.index);dragStart=index;dragAxis='';dragBaseline=undoStack.length;dragCount=1},true);document.addEventListener('pointerup',()=>{if(dragStart!==null){squashHistory(dragBaseline);dragStart=null;dragAxis='';dragCount=0;render()}},true)}
 const oldPaint=paint;paint=function(index,to,drag){if(drag&&dragStart!==null){const n=puzzle.size;const ar=Math.floor(dragStart/n),ac=dragStart%n,r=Math.floor(index/n),c=index%n;if(!dragAxis){dragAxis=Math.abs(c-ac)>=Math.abs(r-ar)?'row':'col'}if((dragAxis==='row'&&r!==ar)||(dragAxis==='col'&&c!==ac))return;const from=selected;const start=dragAxis==='row'?from%n:Math.floor(from/n),end=dragAxis==='row'?c:r,step=end>=start?1:-1;for(let k=start;k!==end+step;k+=step){const at=dragAxis==='row'?ar*n+k:k*n+ac;if(prefs.dragPolicy==='skip'&&board[at]!=='0'&&at!==dragStart)continue;oldPaint(at,to,true);dragCount++}updateBoard();return;}
-const prev=board[index];oldPaint(index,to,drag);if(board[index]!==prev){lastInput=index;lastInputTime=Date.now();if(prefs.lastInput==='3'||prefs.lastInput==='5')setTimeout(()=>{if(Date.now()-lastInputTime>=Number(prefs.lastInput)*1000)updateBoard()},Number(prefs.lastInput)*1000+50);playSound('input',to);if(prefs.errorMode==='immediate'&&wrongCells().length)notifyWrong('immediate');else scheduleWrong();saveBoard();const cl=$('board').querySelectorAll('.cell')[index];if(cl&&prefs.animation!=='basic'&&prefs.quality!=='low'){const style='nono-input-'+prefs.animation;cl.classList.remove(style,'nono-anim-cross','nono-anim-fill');void cl.offsetWidth;cl.classList.add(style,to==='2'?'nono-anim-cross':'nono-anim-fill');}if(prefs.feedback!=='off'&&navigator.vibrate)navigator.vibrate(prefs.feedback==='strong'?45:prefs.feedback==='normal'?25:12)}updateBoard();};
+const prev=board[index];oldPaint(index,to,drag);if(board[index]!==prev){lastInput=index;lastInputTime=Date.now();if(prefs.lastInput==='3'||prefs.lastInput==='5')setTimeout(()=>{if(Date.now()-lastInputTime>=Number(prefs.lastInput)*1000)updateBoard()},Number(prefs.lastInput)*1000+50);playSound('input',to);if(prefs.errorMode==='immediate'&&wrongCells().length)notifyWrong('immediate');else scheduleWrong();saveBoard();const cl=$('board').querySelectorAll('.cell')[index];if(cl&&prefs.animation!=='basic'){const style='nono-input-'+prefs.animation;cl.classList.remove(style,'nono-anim-cross','nono-anim-fill');void cl.offsetWidth;cl.classList.add(style,to==='2'?'nono-anim-cross':'nono-anim-fill');}if(prefs.feedback!=='off'&&navigator.vibrate)navigator.vibrate(prefs.feedback==='strong'?45:prefs.feedback==='normal'?25:12)}updateBoard();};
 const oldRender=render;render=function(){oldRender();updateBoard()};
 const oldShow=showGame;showGame=function(){oldShow();cellZoom=41;releaseMove();hintMode=false;hintStage=0;lastInput=-1;const saved=mode==='practice'?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();manualClues[puzzle.id]=saved.manual||{};finished=isSolved(board,puzzle);if(finished)finishedAt=Date.now();oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
 const oldLeave=leaveGame;leaveGame=async function(){releaseMove();saveBoard();closeOverview();return oldLeave()};
@@ -380,7 +374,6 @@ document.addEventListener('click',e=>{if(e.target.closest('#restart')){e.prevent
 document.addEventListener('click',e=>{if(e.target.closest('#leave-game')){e.preventDefault();e.stopImmediatePropagation();if(!confirm('로비로 나갈까요? 진행 상황은 자동 저장됩니다.'))return;leaveGame()}},true);
 
 const oldCheck=checkBoard;checkBoard=function(){notifyWrong('direct')};
-function loop(now){frames++;if(now-lastFrame>1300){fps=frames*1000/(now-lastFrame);frames=0;lastFrame=now;if(prefs.autoQuality){const minFps={quality:25,normal:40,stability:52}[prefs.autoThreshold]||40;if(fps<minFps)lowFpsMs+=1300;else lowFpsMs=Math.max(0,lowFpsMs-2100);const next=lowFpsMs>3600;if(next!==runtimeLow){runtimeLow=next;apply();}}else if(runtimeLow){runtimeLow=false;lowFpsMs=0;apply();}}requestAnimationFrame(loop)}requestAnimationFrame(loop);
 mount();setupPointer();
 $('board').addEventListener('wheel',e=>{if(!prefs.zoomWheel||!e.ctrlKey)return;e.preventDefault();
  const inc={slow:2,normal:4,fast:7}[prefs.zoomSpeed]||4;
