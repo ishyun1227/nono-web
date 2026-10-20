@@ -19,4 +19,4 @@
 
 화면 캡처는 테스트를 실행한 컴퓨터의 `test-results/coop-desktop.png`, `race-desktop.png`, `record-mobile.png`에 생성됩니다. 모바일 기록 화면을 시각적으로 확인했습니다.
 
-**운영 상태:** Firebase 계정 로그인이 필요합니다. 새 Spark 프로젝트 생성, 운영 규칙/답안 배포, 실제 공개 사이트의 두 기기 검증은 아직 수행하지 않았습니다. `firebase-config.js`는 연결값이 비어 있습니다. 에뮬레이터 통과를 운영 연결 완료로 간주하지 않습니다.
+**운영 상태:** Google 계정 로그인과 Google Cloud 프로젝트 `nono-web-ishyun-20261020`(표시 이름 NONO) 생성은 완료됐습니다. Firebase 활성화(`addFirebase`)는 `403 PERMISSION_DENIED`로 거부됐습니다. Firebase 공식 문서상 권한 부족 또는 최초 Firebase 약관 미동의 시 발생할 수 있으므로 콘솔에서 계정 초기 설정 확인이 필요합니다. Firebase 데이터베이스 생성, 운영 규칙/답안 배포, 실제 공개 사이트의 두 기기 검증은 아직 수행하지 않았습니다. `firebase-config.js`는 연결값이 비어 있습니다. 에뮬레이터 통과를 운영 연결 완료로 간주하지 않습니다.
