@@ -32,7 +32,7 @@ const { pathToFileURL } = require('node:url');
   if (!tabNames.includes('멀티플레이') || tabNames.some(t => t.includes('성능'))) {
     throw new Error('Settings should expose multiplayer without a performance tab: ' + tabNames.join(', '));
   }
-  await page.getByRole('button', { name: '멀티플레이' }).click();
+  await page.getByRole('tab', { name: '멀티플레이' }).click();
   const multiSettings = await page.locator('#nono-settings-content').innerText();
   if (!multiSettings.includes('다른 플레이어 커서') || !multiSettings.includes('다른 플레이어 이름')) {
     throw new Error('Multiplayer preferences are missing');
