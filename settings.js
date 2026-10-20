@@ -132,7 +132,7 @@ const css=E('style');css.textContent=String.raw`
 #board.nono-thin .cell{border-width:.5px}#board.nono-thick .cell{border-width:2px}
 #board .cell.nono-input-pop{animation:nono-pop .2s ease-out}#board .cell.nono-input-ink{animation:nono-ink .28s ease-out}#board .cell.nono-input-mechanic{animation:nono-mech .17s ease-out}
 @keyframes nono-pop{from{transform:scale(.72)}to{transform:scale(1)}}@keyframes nono-ink{from{opacity:.45;filter:blur(2px)}to{opacity:1;filter:blur(0)}}@keyframes nono-mech{from{transform:translateY(-2px)}to{transform:none}}
-.nono-settings-btn-dark{background:#212b48!important}body.nono-no-shadow .card,body.nono-no-shadow .button{box-shadow:none!important}
+.nono-settings-btn-dark{background:#212b48!important}body.nono-no-shadow .card,body.nono-no-shadow .button{box-shadow:none!important}#nono-overview[hidden],#nono-minimap[hidden],#nono-hud[hidden]{display:none!important}
 @media(max-width:650px){.nono-setting{align-items:flex-start;flex-direction:column;gap:7px}.nono-setting select{max-width:100%}.nono-settings-foot{flex-wrap:wrap}.nono-overview-grid{width:min(86vw,460px)}}
 `;document.head.append(css);
 const top=document.querySelector('.header-right');const b=E('button','nono-settings-toggle','⚙ 설정');b.id='nono-open-settings';top.insertBefore(b,top.firstChild);b.addEventListener('click',openSettings);
@@ -157,7 +157,36 @@ const tabs=overlay.querySelector('.nono-settings-tabs');schema.forEach(([title],
 overlay.querySelector('#nono-settings-close').onclick=closeSettings;overlay.querySelector('#nono-settings-default').onclick=()=>{if(confirm('현재 장치의 설정을 기본값으로 되돌릴까요?')){prefs=Object.assign({},defaults);persist();apply();drawSettings();}};
 overlay.addEventListener('click',e=>{if(e.target===overlay)closeSettings()});drawSettings();}
 function closeSettings(){settingsOpen=false;document.getElementById('nono-settings-overlay')?.remove();}
-function wrongCells(){const out=[];for(let i=0;i<board.length;i++){const isBlack=!!puzzle.pattern[Math.floor(i/puzzle.size)]?.[i%puzzle.size];if((board[i]==='1'&&!isBlack)||(board[i]==='2'&&isBlack))out.push(i)}return out;}
+
+let cachedSolutionId='',cachedSolution=null;
+function exactSolution(){
+ if(cachedSolutionId===puzzle.id)return cachedSolution;
+ cachedSolutionId=puzzle.id;cachedSolution=null;
+ // Derive from publicly available row/column clues; use only when solution is unique.
+ if(puzzle.size>20)return null;
+ const n=puzzle.size,empty=Array(n).fill('0'),choices=puzzle.rows.map(h=>enumerateLine(h,empty));let answers=[],columns=Array.from({length:n},()=>[]);
+ function possiblePrefix(c,v){const h=puzzle.cols[c];const length=v.length;const options=enumerateLine(h,empty);return options.some(line=>line.slice(0,length).join('')===v.join(''));}
+ function solve(row){
+  if(answers.length>=2)return;
+  if(row===n){answers.push(columns.map((_,c)=>columns[c].slice()));return}
+  for(const bits of choices[row]){
+   for(let c=0;c<n;c++)columns[c].push(bits[c]);
+   if(columns.every((col,c)=>possiblePrefix(c,col)))solve(row+1);
+   for(let c=0;c<n;c++)columns[c].pop();
+   if(answers.length>=2)break;
+  }
+ }
+ solve(0);
+ if(answers.length!==1)return null;
+ const cols=answers[0];cachedSolution=Array.from({length:n*n},(_,i)=>cols[i%n][Math.floor(i/n)]==='1');return cachedSolution;
+}
+function wrongCells(){
+ const solution=exactSolution();if(!solution)return [];
+ const out=[];for(let i=0;i<board.length;i++){
+  if((board[i]==='1'&&!solution[i])||(board[i]==='2'&&solution[i]))out.push(i);
+ }
+ return out;
+}
 function notifyWrong(kind){const bad=wrongCells();if(!bad.length){if(kind==='direct')toast('현재 표시된 오답이 없어요.');return}let detail=kind==='direct'||kind==='immediate'||prefs.errorExact?'정확한 칸':kind==='line'?'행·열':'전체';if(!prefs.errorExact&&detail==='정확한 칸')detail='개수';toast('오답 '+bad.length+'개 · '+detail+' 알림');const until=performance.now()+1250;const cells=document.querySelectorAll('#board .cell');if(prefs.errorExact){for(const i of bad)cells[i]?.classList.add('nono-error');setTimeout(()=>bad.forEach(i=>cells[i]?.classList.remove('nono-error')),1200)}else if(kind==='line'){for(const i of bad){cells[i]?.classList.add('nono-error-line');setTimeout(()=>cells[i]?.classList.remove('nono-error-line'),1200)}}else{$('board').classList.add('nono-error');setTimeout(()=>$('board').classList.remove('nono-error'),800)}if(kind==='immediate')playSound('wrong');}
 function scheduleWrong(){if(prefs.errorMode!=='delay')return;clearTimeout(autoTimer);const original=wrongCells().join(',');if(!original)return;autoTimer=setTimeout(()=>{if(wrongCells().join(',')!==original)return;notifyWrong('delayed');if(prefs.errorStages){setTimeout(()=>{if(wrongCells().join(',')===original)notifyWrong('line')},prefs.errorDelay*1000);if(prefs.errorExact)setTimeout(()=>{if(wrongCells().join(',')===original)notifyWrong('direct')},prefs.errorDelay*2000)}},prefs.errorDelay*1000);}
 function hintsForLine(axis,i){return axis==='row'?puzzle.rows[i]:puzzle.cols[i]}
@@ -192,7 +221,7 @@ if(ctrl&&(key==='z'||key==='y')){e.preventDefault();e.stopImmediatePropagation()
 if(key===','||key==='.') {e.preventDefault();e.stopImmediatePropagation();restoreHistory(key===','?undoStack:redoStack,key===','?redoStack:undoStack);return}
 if(key==='1'||key==='2'){tool=key;updateToolButtons();e.preventDefault();e.stopImmediatePropagation();return}
 let direction=null;if(prefs.move==='arrows'){direction={arrowup:'up',arrowdown:'down',arrowleft:'left',arrowright:'right'}[key]}else direction={w:'up',s:'down',a:'left',d:'right'}[key];
-if(direction){e.preventDefault();e.stopImmediatePropagation();if(keyboardDrag){moveSelection(direction,e[prefs.quick+'Key']||false);paint(selected,keyboardDrag.to,true);keyboardDrag.steps++;dragCount=keyboardDrag.steps;render();}else{moveSelection(direction,e[prefs.quick+'Key']||false)}return}
+if(direction){e.preventDefault();e.stopImmediatePropagation();if(keyboardDrag){moveSelection(direction,((prefs.quick==='Shift'&&e.shiftKey)||(prefs.quick==='Control'&&e.ctrlKey)||(prefs.quick==='Alt'&&e.altKey)));paint(selected,keyboardDrag.to,true);keyboardDrag.steps++;dragCount=keyboardDrag.steps;render();}else{moveSelection(direction,e[prefs.quick+'Key']||false)}return}
 if([' ','spacebar','x','backspace','delete'].includes(key)){e.preventDefault();e.stopImmediatePropagation();const to=key===' '||key==='spacebar'?'1':key==='x'?'2':'0';if((to==='1'||to==='2')&&!keyboardDrag)keyboardDrag={to,first:undoStack.length,steps:1};paint(selected,to,false);dragCount=1;render();return;}
 }
 function endKeyboard(e){const key=e.key.toLowerCase();if(!keyboardDrag)return;if((keyboardDrag.to==='1'&&(key===' '||key==='spacebar'))||(keyboardDrag.to==='2'&&key==='x')||(keyboardDrag.to==='0'&&['backspace','delete'].includes(key))){squashHistory(keyboardDrag.first);keyboardDrag=null;dragCount=0;render();}}
@@ -207,7 +236,7 @@ const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playS
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
 document.addEventListener('click',e=>{if(e.target.closest('#restart')){e.preventDefault();e.stopImmediatePropagation();if(!confirm('퍼즐을 초기화할까요? 현재 진행 상황이 지워집니다.'))return;dropSave();board=emptyBoard(puzzle);startedAt=Date.now();selected=0;finished=false;finishedAt=0;resetHistory();render();saveBoard();}},true);
 document.addEventListener('click',e=>{if(e.target.closest('#leave-game')){e.preventDefault();e.stopImmediatePropagation();if(!confirm('로비로 나갈까요? 진행 상황은 자동 저장됩니다.'))return;leaveGame()}},true);
-document.addEventListener('pointerdown',e=>{if(e.target.closest('.cell')){e.target.setPointerCapture?.(e.pointerId)}},true);
+
 const oldCheck=checkBoard;checkBoard=function(){notifyWrong('direct')};
 function loop(now){frames++;if(now-lastFrame>1300){fps=frames*1000/(now-lastFrame);frames=0;lastFrame=now}requestAnimationFrame(loop)}requestAnimationFrame(loop);
 mount();setupPointer();apply();
