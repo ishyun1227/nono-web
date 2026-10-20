@@ -11,6 +11,23 @@ const { pathToFileURL } = require('node:url');
   await page.click('#nono-open-settings');
   await page.locator('#nono-settings-content').waitFor();
   if (!await page.locator('.nono-setting').count()) throw new Error('No settings rendered');
+  // Guard against the collapsed tab strip seen when the settings modal has lots of options.
+  for (const viewport of [{width:1440,height:900},{width:390,height:660}]) {
+    await page.setViewportSize(viewport);
+    const geometry = await page.locator('.nono-settings-tabs').evaluate(el => {
+      const tab = el.querySelector('button');
+      const bar = el.getBoundingClientRect();
+      const btn = tab.getBoundingClientRect();
+      return {barHeight:bar.height,buttonHeight:btn.height,
+        cropped:btn.top < bar.top || btn.bottom > bar.bottom,
+        horizontalScroll:getComputedStyle(el).overflowX,
+        verticalScroll:getComputedStyle(el).overflowY};
+    });
+    if (geometry.barHeight < 54 || geometry.buttonHeight < 36 || geometry.cropped) {
+      throw new Error('Settings tab bar is clipped at ' + viewport.width + 'px: ' + JSON.stringify(geometry));
+    }
+  }
+  await page.setViewportSize({width:1440,height:900});
   const tabNames = await page.locator('.nono-settings-tabs button').allTextContents();
   if (!tabNames.includes('멀티플레이') || tabNames.some(t => t.includes('성능'))) {
     throw new Error('Settings should expose multiplayer without a performance tab: ' + tabNames.join(', '));
