@@ -19,4 +19,6 @@
 
 화면 캡처는 테스트를 실행한 컴퓨터의 `test-results/coop-desktop.png`, `race-desktop.png`, `record-mobile.png`에 생성됩니다. 모바일 기록 화면을 시각적으로 확인했습니다.
 
+GitHub Actions에서도 싱글플레이 회귀, 데이터베이스 규칙, 두 브라우저 멀티플레이 테스트가 모두 통과했습니다: https://github.com/ishyun1227/nono-web/actions/runs/39405416008
+
 **운영 서버:** 사용자 승인 후 Firebase 약관에 동의하고 프로젝트 `nono-web-ishyun-20261020`을 Spark 요금제로 활성화했습니다. 싱가포르 Realtime Database, 익명 인증, 서버 보안 규칙과 기본 퍼즐 답안 배포를 완료했습니다. 로컬 웹 화면을 실제 Firebase 서버에 연결한 독립 브라우저 2개에서 협동 동시 입력, 대결 시작·완료 전파, 온라인 기록 저장·순위표, 모바일 화면 테스트가 통과했습니다. 테스트가 만든 방과 기록만 별도 목록에 따라 삭제했습니다. 공개 사이트 자동 배포와 배포된 화면의 최종 검증은 이어서 수행합니다.
