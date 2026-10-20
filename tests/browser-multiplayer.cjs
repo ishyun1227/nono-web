@@ -25,6 +25,12 @@ async function main(){
   for(const p of [a,b])await p.waitForFunction(()=>board[0]==='1'&&board[1]==='1');
   await a.screenshot({path:'test-results/coop-desktop.png'});
   console.log('PASS two independent browsers: invitation, cooperative concurrent input');
+  await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)paint(i,answer[i]==='1'?'1':'0',true);},answers.heart5);
+  for(const p of [a,b])await p.waitForFunction(()=>finished&&finishedAt>0);
+  const coopFinish=await b.evaluate(()=>{tick();return {at:finishedAt,label:document.querySelector('#timer').textContent};});
+  await b.waitForTimeout(1100);
+  assert.equal(await b.evaluate(()=>{tick();return document.querySelector('#timer').textContent;}),coopFinish.label);
+  console.log('PASS cooperative completion freezes timer for both players');
   await Promise.all([a.evaluate(()=>leaveGame()),b.evaluate(()=>leaveGame())]);
   await a.click('[data-mode="race"]');await a.click('#create-room');await a.waitForURL(/room=/);const race=new URL(a.url()).searchParams.get('room');
   await b.click('[data-mode="race"]');await b.fill('#room-code',race);await b.click('#join-room');await b.locator('#lobby-players').getByText('Alice').waitFor();
@@ -35,6 +41,11 @@ async function main(){
   console.log('PASS synchronized race start, rapid input, completion and opponent results');
   await a.evaluate(()=>leaveGame());await a.click('[data-mode="record"]');await a.click('#play-alone');
   await a.locator('#game').waitFor({state:'visible'});
+  const firstRun=await a.evaluate(()=>startedAt);
+  a.once('dialog',d=>d.accept());await a.click('#restart');
+  await a.waitForFunction(prior=>!startingAlone&&startedAt!==prior,firstRun);
+  const runTimes=await a.evaluate(async()=>({local:startedAt,server:(await get(ref(database,`runs/${puzzle.id}/${currentId()}`))).val().startedAt}));
+  assert.equal(runTimes.local,runTimes.server,'Restart must establish a fresh server-timed record run');
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1')paint(i,'1',true);},answers.heart5);
   await a.waitForFunction(()=>finished);await a.locator('#live-results').getByText('1위 Alice').waitFor();
   await a.setViewportSize({width:390,height:844});await a.screenshot({path:'test-results/record-mobile.png',fullPage:true});
