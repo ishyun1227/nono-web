@@ -26,6 +26,9 @@ const schema=[
  ['guide','조작 도움말','choice',['always:항상','start:시작할 때만','off:끄기'],'퍼즐 시작 시 10초 동안 도움말 표시 가능']]],
  ['편의성·힌트',[
  ['rowHighlight','현재 행·열 강조','bool',null,'선택 셀이 속한 행과 열을 강조'],
+ ['color','강조 색상','color',null,'선택/최근 입력 하이라이트 색상'],
+ ['hudSize','HUD 크기','choice',['small:작게','normal:기본','large:크게'],'HUD의 글자 크기'],
+ ['hudBg','HUD 배경','choice',['weak:연하게','normal:기본','strong:진하게'],'HUD 배경 농도'],
  ['autoHintFade','완료된 숫자 자동 흐림','bool',null,'X/경계로 닫히고 힌트 순서가 유일할 때만 자동 처리; 수동 지정 우선'],
  ['completeLines','완료된 행·열 표시','bool',null,'완전히 해결된 줄의 배경을 은은하게 흐림'],
  ['hintHud','현재 행·열 숫자 HUD','bool',null,'선택한 칸의 행/열 힌트를 작은 안내창에 표시'],
@@ -85,7 +88,7 @@ const schema=[
 ];
 let profiles={};try{profiles=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch{}
 let prefs=Object.assign({},defaults,profiles[device]||{});
-const manualClues={};let overviewOpen=false,hintMode=false,hintIndex=0,hintAxis='row',hintStage=0,lastInput=-1,lastInputTime=0,errorAt=0,errorFor='',dragStart=null,dragAxis='',dragBaseline=0,keyboardDrag=null,dragCount=0,autofollow=false,autoTimer=null,overviewZoom=1,helpTarget=-1,helpLine=null,settingsOpen=false;
+const manualClues={};let overviewOpen=false,hintMode=false,hintIndex=0,hintAxis='row',hintNumber=0,hintStage=0,lastInput=-1,lastInputTime=0,errorAt=0,errorFor='',dragStart=null,dragAxis='',dragBaseline=0,keyboardDrag=null,dragCount=0,autofollow=false,autoTimer=null,overviewZoom=1,helpTarget=-1,helpLine=null,settingsOpen=false;
 let soundContext=null,toolAction='1',fps=60,frames=0,lastFrame=performance.now();
 function E(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;}
 function persist(){profiles[device]=Object.assign({},prefs);try{localStorage.setItem(KEY,JSON.stringify(profiles))}catch{}}
@@ -93,7 +96,7 @@ function saveKey(){return SAVE+puzzle.id;}
 function saveBoard(){if(mode!=='practice'||roomCode||!board||!puzzle)return;try{localStorage.setItem(saveKey(),JSON.stringify({board:board.join(''),startedAt,selected,manual:manualClues[puzzle.id]||{},savedAt:Date.now()}))}catch{}}
 function readBoard(){try{const data=JSON.parse(localStorage.getItem(saveKey())||'null');return data&&typeof data.board==='string'&&data.board.length===puzzle.size*puzzle.size?data:null}catch{return null}}
 function dropSave(){try{localStorage.removeItem(saveKey())}catch{}}
-function setPref(k,v){prefs[k]=v;if(k==='quality'&&v!=='custom'){prefs.shadow=v!=='low';prefs.highlightQuality=v==='high'?'high':v==='low'?'low':'normal';}else if(['shadow','highlightQuality'].includes(k))prefs.quality='custom';persist();apply();if(settingsOpen)drawSettings();}
+function setPref(k,v,keepControl){prefs[k]=v;if(k==='quality'&&v!=='custom'){prefs.shadow=v!=='low';prefs.highlightQuality=v==='high'?'high':v==='low'?'low':'normal';}else if(['shadow','highlightQuality'].includes(k))prefs.quality='custom';persist();apply();if(settingsOpen&&!keepControl)drawSettings();}
 function playSound(which,variation){const active={input:prefs.soundInput,finish:prefs.soundFinish,wrong:prefs.soundWrong&&prefs.errorMode==='immediate',ui:prefs.soundClick,hint:prefs.soundHint,hover:prefs.soundHover};if(!active[which]||!prefs.volume)return;try{soundContext=soundContext||new(window.AudioContext||window.webkitAudioContext)();const o=soundContext.createOscillator(),g=soundContext.createGain(),t=soundContext.currentTime;const vol=prefs.volume/100*((which==='input'?prefs.inputVolume:which==='ui'||which==='hover'?prefs.uiVolume:prefs.effectVolume)/100)*.085;const base=which==='finish'?790:which==='wrong'?240:which==='hint'?650:which==='ui'?520:which==='hover'?410:variation==='2'?340:500;o.type=prefs.soundTheme==='pop'?'square':prefs.soundTheme==='soft'?'sine':'triangle';o.frequency.setValueAtTime(base,t);o.frequency.exponentialRampToValueAtTime(base*(which==='wrong'?.62:1.3),t+.085);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+.11);o.connect(g);g.connect(soundContext.destination);o.start(t);o.stop(t+.12)}catch{}}
 function mount(){
 const css=E('style');css.textContent=String.raw`
@@ -130,6 +133,13 @@ const css=E('style');css.textContent=String.raw`
 .nono-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:8px 0}.nono-actions button{border-radius:9px;background:#202c50;border:1px solid #53649b;color:#f0f1ff;padding:8px 12px;cursor:pointer}
 .nono-keys-hint{font-size:12px;color:#9faed0}.nono-highlight-now{outline:2px solid var(--nono-accent,#77d5fb);outline-offset:-2px}
 #board.nono-thin .cell{border-width:.5px}#board.nono-thick .cell{border-width:2px}
+.nono-clue-index{position:relative}.nono-clue-index:before{content:attr(data-line-number);position:absolute;left:3px;top:2px;color:#83cbff;font-size:9px}
+#board.nono-both{grid-template-columns:max-content max-content max-content;grid-template-rows:max-content max-content max-content}
+#board .nono-extra-row{grid-area:2 / 3;opacity:.8;border-left:2px solid #6074ae;border-right:0}
+#board .nono-extra-col{grid-area:3 / 2;opacity:.8;border-top:2px solid #6074ae;border-bottom:0}
+#board .nono-extra-row .row-clue{justify-content:flex-start}
+#board .nono-extra-col .col-clue{justify-content:flex-start}
+#board .nono-extra-row .row-clue.nono-fade-clue,#board .nono-extra-col .col-clue.nono-fade-clue{opacity:.3}
 #board .cell.nono-input-pop{animation:nono-pop .2s ease-out}#board .cell.nono-input-ink{animation:nono-ink .28s ease-out}#board .cell.nono-input-mechanic{animation:nono-mech .17s ease-out}
 @keyframes nono-pop{from{transform:scale(.72)}to{transform:scale(1)}}@keyframes nono-ink{from{opacity:.45;filter:blur(2px)}to{opacity:1;filter:blur(0)}}@keyframes nono-mech{from{transform:translateY(-2px)}to{transform:none}}
 .nono-settings-btn-dark{background:#212b48!important}body.nono-no-shadow .card,body.nono-no-shadow .button{box-shadow:none!important}#nono-overview[hidden],#nono-minimap[hidden],#nono-hud[hidden]{display:none!important}
@@ -148,7 +158,7 @@ document.addEventListener('click',e=>{if(e.target.closest('button')&&e.target.id
 document.addEventListener('mouseover',e=>{if(e.target.closest('button'))playSound('hover')});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveBoard()});window.addEventListener('pagehide',saveBoard);
 }
-function drawSettings(){const body=document.querySelector('#nono-settings-content');if(!body)return;const tab=Number(document.querySelector('.nono-settings-tabs .is-active')?.dataset.tab||0);body.innerHTML='';for(const [key,label,type,choices,help] of schema[tab][1]){const row=E('div','nono-setting'),l=E('label',null,label),sub=E('small',null,help);l.title=help;l.append(sub);row.append(l);let input;if(type==='bool'){input=E('input');input.type='checkbox';input.checked=!!prefs[key];input.onchange=()=>setPref(key,input.checked);}else if(type==='choice'){input=E('select');for(const item of choices){const p=String(item).split(':');const op=E('option',null,p.length>1?p.slice(1).join(':'):p[0]);op.value=p[0];input.append(op);}input.value=String(prefs[key]);input.onchange=()=>setPref(key,input.value);}else{input=E('input');input.type='range';input.min=choices[0];input.max=choices[1];input.step=choices[2];input.value=prefs[key];let val=E('span','nono-keys-hint',String(input.value));input.oninput=()=>{val.textContent=input.value;setPref(key,Number(input.value));};row.append(val);}input.setAttribute('aria-label',label);row.append(input);body.append(row);}
+function drawSettings(){const body=document.querySelector('#nono-settings-content');if(!body)return;const tab=Number(document.querySelector('.nono-settings-tabs .is-active')?.dataset.tab||0);body.innerHTML='';for(const [key,label,type,choices,help] of schema[tab][1]){const row=E('div','nono-setting'),l=E('label',null,label),sub=E('small',null,help);l.title=help;l.append(sub);row.append(l);let input;if(type==='color'){input=E('input');input.type='color';input.value=String(prefs[key]);input.oninput=()=>setPref(key,input.value,true);}else if(type==='bool'){input=E('input');input.type='checkbox';input.checked=!!prefs[key];input.onchange=()=>setPref(key,input.checked);}else if(type==='choice'){input=E('select');for(const item of choices){const p=String(item).split(':');const op=E('option',null,p.length>1?p.slice(1).join(':'):p[0]);op.value=p[0];input.append(op);}input.value=String(prefs[key]);input.onchange=()=>setPref(key,input.value);}else{input=E('input');input.type='range';input.min=choices[0];input.max=choices[1];input.step=choices[2];input.value=prefs[key];let val=E('span','nono-keys-hint',String(input.value));input.oninput=()=>{val.textContent=input.value;setPref(key,Number(input.value),true);};row.append(val);}input.setAttribute('aria-label',label);row.append(input);body.append(row);}
 if(tab===0){const h=E('p','nono-keys-hint','기본 단축키: 방향키 / Space 칠하기 / X 빈칸 / Backspace 지우기 / , 되돌리기 / . 다시 / 1·2 도구 / H 힌트 숫자 / Tab 전체보기. 웹 전용 키 변경은 다음 단계에서 제공.');body.prepend(h);}
 if(tab===5){const status=E('p','nono-settings-status','웹 화면에서 FPS: '+Math.round(fps)+' · 서버 Ping: Firebase 미연결');body.append(status);body.append(E('p','nono-keys-hint','멀티 커서·플레이어 이름·최근 입력은 현재 서버가 좌표 이벤트를 전송하지 않아 아직 적용되지 않습니다. Roblox 비행·1인칭 손/총 설정은 2D 웹판에 해당하지 않습니다.'));}
 }
@@ -199,11 +209,25 @@ $('undo').style.display=prefs.undoButtons?'':'none';$('redo').style.display=pref
 $('nono-hint-action').style.display=(prefs.hintLine||prefs.hintExplanation||prefs.hintCell)?'':'none';
 const hintGuide=document.querySelector('.board-caption');if(hintGuide)hintGuide.hidden=prefs.guide==='off';
 cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',!!prefs.rowHighlight&&(r===Math.floor(selected/n)||col===selected%n));c.classList.toggle('nono-done-line',!!prefs.completeLines&&(lineSolved('row',r)||lineSolved('col',col)));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<n-1);});
-for(const axis of ['row','col']){const elems=$('board').querySelectorAll(axis==='row'?'.row-clue':'.col-clue');elems.forEach((el,i)=>{el.querySelectorAll('span').forEach((span,j)=>{const stored=(manualClues[puzzle.id]||{})[axis+':'+i+':'+j];span.classList.toggle('nono-fade-clue',stored===true||(stored!==false&&prefs.autoHintFade&&canFade(axis,i,j)));span.classList.toggle('nono-hint-target',hintMode&&hintAxis===axis&&hintIndex===i&&j===0);});});}
+for(const axis of ['row','col']){const elems=$('board').querySelectorAll(axis==='row'?'#board > .row-clues:not(.nono-extra-row) .row-clue':'#board > .col-clues:not(.nono-extra-col) .col-clue');elems.forEach((el,i)=>{el.querySelectorAll('span').forEach((span,j)=>{const stored=(manualClues[puzzle.id]||{})[axis+':'+i+':'+j];span.classList.toggle('nono-fade-clue',stored===true||(stored!==false&&prefs.autoHintFade&&canFade(axis,i,j)));span.classList.toggle('nono-hint-target',hintMode&&hintAxis===axis&&hintIndex===i&&j===hintNumber);});});}
 const hints='행 '+hintsForLine('row',Math.floor(selected/n)).join(' ')+' · 열 '+hintsForLine('col',selected%n).join(' ');
-$('nono-hud').textContent=prefs.hintHud?hints+(prefs.dragHud&&dragCount>0?' · 드래그 '+dragCount+'칸':''):prefs.dragHud&&dragCount>0?'드래그 '+dragCount+'칸':'';
-$('nono-hud').hidden=!(prefs.hintHud||prefs.dragHud&&dragCount>0);
+$('nono-hud').textContent=(prefs.hintHud||prefs.pinnedClues?hints:'')+(prefs.dragHud&&dragCount>0?' · 드래그 '+dragCount+'칸':'');
+$('nono-hud').style.fontSize=prefs.hudSize==='large'?'16px':prefs.hudSize==='small'?'10px':'12px';$('nono-hud').style.background=prefs.hudBg==='weak'?'#1b284866':prefs.hudBg==='strong'?'#111b33':'#1b2848db';
+$('nono-hud').style.position=prefs.pinnedClues?'sticky':'';$('nono-hud').style.top=prefs.pinnedClues?'0':'';$('nono-hud').style.zIndex=prefs.pinnedClues?'30':'';
+$('nono-hud').hidden=!(prefs.hintHud||prefs.pinnedClues||prefs.dragHud&&dragCount>0);
+updateClueDecor();
 drawMinimap();
+}
+
+function updateClueDecor(){
+ const target=$('board'),n=puzzle.size;
+ target.classList.toggle('nono-both',!!prefs.bothClues);
+ target.querySelector('.nono-extra-row')?.remove();target.querySelector('.nono-extra-col')?.remove();
+ const r=target.querySelector('.row-clues'),c=target.querySelector('.col-clues');
+ if(!r||!c)return;
+ r.querySelectorAll('.row-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-index',prefs.lineNumbers&&(i+1)%prefs.lineInterval===0);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
+ c.querySelectorAll('.col-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-index',prefs.lineNumbers&&(i+1)%prefs.lineInterval===0);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
+ if(prefs.bothClues){const rc=r.cloneNode(true),cc=c.cloneNode(true);rc.classList.add('nono-extra-row');cc.classList.add('nono-extra-col');target.append(rc,cc);}
 }
 function apply(){document.body.classList.toggle('nono-no-shadow',!prefs.shadow||prefs.quality==='low');document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();}
 function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+n+'</b>';const g=E('div','nono-minimap-grid');g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
@@ -215,8 +239,8 @@ const phase=[];if(prefs.hintLine)phase.push('line');if(prefs.hintExplanation)pha
 function moveSelection(dir,repeat){const n=puzzle.size,r=Math.floor(selected/n),c=selected%n;let row=r,col=c,delta=repeat?5:1;if(dir==='up')row-=delta;else if(dir==='down')row+=delta;else if(dir==='left')col-=delta;else col+=delta;row=prefs.wrap?(row+n*5)%n:Math.max(0,Math.min(n-1,row));col=prefs.wrap?(col+n*5)%n:Math.max(0,Math.min(n-1,col));selected=row*n+col;render();const cell=$('board').querySelectorAll('.cell')[selected];if(cell){cell.scrollIntoView({block:prefs.follow==='center'?'center':'nearest',inline:prefs.follow==='center'?'center':'nearest',behavior:prefs.followSpeed==='fast'?'instant':'smooth'});}}
 function keyDown(e){if(settingsOpen||['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const key=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey;if(overviewOpen){if(key==='tab'||key==='escape'){e.preventDefault();e.stopImmediatePropagation();closeOverview()}return}
 if($('game').classList.contains('hidden')||!$('lobby').classList.contains('hidden'))return;
-if(key==='tab'||key==='h'){e.preventDefault();e.stopImmediatePropagation();if(key==='tab'){openOverview()}else{hintMode=!hintMode;hintIndex=hintMode?Math.floor(selected/puzzle.size):0;hintAxis='row';toast(hintMode?'힌트 선택: 방향키로 숫자 선택 · Space 흐림/복원 · H 복귀':'셀 이동 모드');render()}return}
-if(hintMode){if(key===' '||key==='spacebar'){e.preventDefault();e.stopImmediatePropagation();const k=hintAxis+':'+hintIndex+':0';manualClues[puzzle.id]=manualClues[puzzle.id]||{};manualClues[puzzle.id][k]=!manualClues[puzzle.id][k];saveBoard();render();return}if(key.startsWith('arrow')){e.preventDefault();e.stopImmediatePropagation();if(key==='arrowleft'||key==='arrowright')hintAxis=hintAxis==='row'?'col':'row';else hintIndex=(hintIndex+(key==='arrowdown'?1:-1)+puzzle.size)%puzzle.size;render();return}}
+if(key==='tab'||key==='h'){e.preventDefault();e.stopImmediatePropagation();if(key==='tab'){openOverview()}else{hintMode=!hintMode;hintIndex=hintMode?Math.floor(selected/puzzle.size):0;hintAxis='row';hintNumber=0;toast(hintMode?'힌트 선택: 방향키로 숫자 선택 · Space 흐림/복원 · H 복귀':'셀 이동 모드');render()}return}
+if(hintMode){if(key===' '||key==='spacebar'){e.preventDefault();e.stopImmediatePropagation();const k=hintAxis+':'+hintIndex+':'+hintNumber;manualClues[puzzle.id]=manualClues[puzzle.id]||{};manualClues[puzzle.id][k]=!manualClues[puzzle.id][k];saveBoard();render();return}if(key.startsWith('arrow')){e.preventDefault();e.stopImmediatePropagation();if(key==='arrowleft'||key==='arrowright'){hintNumber=(hintNumber+(key==='arrowright'?1:-1)+hintsForLine(hintAxis,hintIndex).length)%hintsForLine(hintAxis,hintIndex).length;}else{hintIndex=(hintIndex+(key==='arrowdown'?1:-1)+puzzle.size)%puzzle.size;hintNumber=0;}if(e.shiftKey){hintAxis=hintAxis==='row'?'col':'row';hintNumber=0;}render();return}}
 if(ctrl&&(key==='z'||key==='y')){e.preventDefault();e.stopImmediatePropagation();restoreHistory(key==='y'||e.shiftKey?redoStack:undoStack,key==='y'||e.shiftKey?undoStack:redoStack);return}
 if(key===','||key==='.') {e.preventDefault();e.stopImmediatePropagation();restoreHistory(key===','?undoStack:redoStack,key===','?redoStack:undoStack);return}
 if(key==='1'||key==='2'){tool=key;updateToolButtons();e.preventDefault();e.stopImmediatePropagation();return}
