@@ -13,7 +13,7 @@ const defaults={move:'arrows',quick:'Shift',repeat:'normal',repeatWait:'normal',
  soundInput:false,soundTheme:'basic',soundFinish:true,soundWrong:false,soundClick:false,soundHint:true,soundHover:false,volume:40,inputVolume:70,uiVolume:40,effectVolume:70,
  animation:'basic',shadow:true,quality:'normal',highlightQuality:'normal',lod:'normal',autoQuality:false,autoThreshold:'normal',
  zoomWheel:false,zoomSpeed:'normal',follow:'edge',followSpeed:'normal',
- focusEntry:'current',hudBg:'normal',hudSize:'normal',overviewAnimated:false,feedback:'off',
+ focusEntry:'current',hudBg:'normal',hudSize:'normal',hudLayouts:{},overviewAnimated:false,feedback:'off',
  multiplayerCursor:'normal',multiplayerNames:true,otherInput:'1',hintsManual:{}};
 const schema=[
  ['조작',[
@@ -89,7 +89,7 @@ const schema=[
 let profiles={};try{profiles=JSON.parse(localStorage.getItem(KEY)||'{}')||{}}catch{}
 let prefs=Object.assign({},defaults,profiles[device]||{});
 const manualClues={};let overviewOpen=false,hintMode=false,hintIndex=0,hintAxis='row',hintNumber=0,hintStage=0,lastInput=-1,lastInputTime=0,errorAt=0,errorFor='',dragStart=null,dragAxis='',dragBaseline=0,keyboardDrag=null,dragCount=0,autofollow=false,autoTimer=null,overviewZoom=1,helpTarget=-1,helpLine=null,settingsOpen=false;
-let soundContext=null,toolAction='1',fps=60,frames=0,lastFrame=performance.now(),lowFpsMs=0,runtimeLow=false,cellZoom=41;
+let soundContext=null,toolAction='1',fps=60,frames=0,lastFrame=performance.now(),lowFpsMs=0,runtimeLow=false,cellZoom=41,hudEdit=false,hudSelected='hints';
 function E(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;}
 function persist(){profiles[device]=Object.assign({},prefs);try{localStorage.setItem(KEY,JSON.stringify(profiles))}catch{}}
 function saveKey(){return SAVE+puzzle.id;}
@@ -145,6 +145,12 @@ body[data-nono-highlight=low] .nono-selected-row{box-shadow:none!important}body[
 #board .nono-extra-row .row-clue{justify-content:flex-start}
 #board .nono-extra-col .col-clue{justify-content:flex-start}
 #board .nono-extra-row .row-clue.nono-fade-clue,#board .nono-extra-col .col-clue.nono-fade-clue{opacity:.3}
+
+#nono-drag-hud{width:max-content;min-width:110px;margin-left:auto;margin-right:auto}
+.nono-hud-target{outline:2px dashed #78d9ff!important;cursor:move!important;touch-action:none;z-index:10050!important}
+.nono-hud-target[data-selected=true]{outline-color:#fab5ff!important;box-shadow:0 0 0 4px #a974fc66!important}
+.nono-hud-editor{position:fixed;z-index:10060;left:50%;transform:translateX(-50%);bottom:16px;background:#0c162af5;border:1px solid #546f9d;border-radius:14px;padding:12px;display:flex;gap:9px;align-items:center;flex-wrap:wrap;max-width:95vw;justify-content:center;box-shadow:0 12px 40px #000a}
+.nono-hud-editor label{font-size:12px}.nono-hud-editor select{background:#1e2b48;color:#fff;border:1px solid #526da4;border-radius:7px;padding:7px}
 #board .cell.nono-input-pop{animation:nono-pop .2s ease-out}#board .cell.nono-input-ink{animation:nono-ink .28s ease-out}#board .cell.nono-input-mechanic{animation:nono-mech .17s ease-out}
 @keyframes nono-pop{from{transform:scale(.72)}to{transform:scale(1)}}@keyframes nono-ink{from{opacity:.45;filter:blur(2px)}to{opacity:1;filter:blur(0)}}@keyframes nono-mech{from{transform:translateY(-2px)}to{transform:none}}
 .nono-settings-btn-dark{background:#212b48!important}body.nono-no-shadow .card,body.nono-no-shadow .button{box-shadow:none!important}#nono-overview[hidden],#nono-minimap[hidden],#nono-hud[hidden]{display:none!important}
@@ -155,7 +161,7 @@ const bar=E('div','nono-actions');bar.id='nono-actions';bar.innerHTML='<button t
 document.querySelector('.board-footer').after(bar);
 document.getElementById('nono-hint-action').onclick=logicHint;
 document.getElementById('nono-check-action').onclick=()=>notifyWrong('direct');
-const h=E('div','nono-extra-hud');h.id='nono-hud';document.querySelector('.board-top').after(h);
+const h=E('div','nono-extra-hud');h.id='nono-hud';document.querySelector('.board-top').after(h);const d=E('div','nono-extra-hud');d.id='nono-drag-hud';d.hidden=true;h.after(d);
 const m=E('div','nono-minimap');m.id='nono-minimap';m.hidden=true;document.body.append(m);
 const o=E('div','nono-overview');o.id='nono-overview';o.hidden=true;o.innerHTML='<div class="nono-overview-card"><div class="nono-options" style="justify-content:space-between"><strong>전체보기 · 현재 입력</strong><button class="nono-modal-btn" id="nono-overview-close">닫기 (Tab)</button></div><p id="nono-overview-info" class="nono-keys-hint"></p><div class="nono-overview-grid" id="nono-overview-grid"></div></div>';document.body.append(o);
 document.getElementById('nono-overview-close').onclick=closeOverview;o.addEventListener('click',e=>{if(e.target===o)closeOverview()});
@@ -168,6 +174,7 @@ if(tab===0){
  const panel=E('div');panel.innerHTML='<h3 style="font-size:15px;margin-top:18px">키 설정 · 기본키 / 보조키</h3><p class="nono-keys-hint">키를 클릭한 뒤 새 키를 누르세요. 다른 기능과 중복되면 경고만 표시합니다. Escape는 취소합니다.</p>';
  const grid=E('div');for(const action of Object.keys(standardKeys)){const row=E('div','nono-setting');row.append(E('label',null,shortcutNames[action]));shortcut(action).forEach((code,slot)=>{const b=E('button','nono-modal-btn',code?displayKey(code):'+ 키');b.onclick=()=>editBinding(action,slot,b);row.append(b)});grid.append(row)}panel.append(grid);body.append(panel);
 }
+if(tab===1){const b=E('button','nono-modal-btn','▦ HUD 편집 · 위치/크기/배경');b.style.marginTop='15px';b.onclick=()=>{if($('game').classList.contains('hidden')){toast('게임을 시작한 후 HUD 위치를 편집할 수 있어요.');return;}closeSettings();beginHudEdit();};body.append(b);}
 if(tab===5){const status=E('p','nono-settings-status','웹 화면에서 FPS: '+Math.round(fps)+' · 서버 Ping: Firebase 미연결');body.append(status);body.append(E('p','nono-keys-hint','멀티 커서·플레이어 이름·최근 입력은 현재 서버가 좌표 이벤트를 전송하지 않아 아직 적용되지 않습니다. Roblox 비행·1인칭 손/총 설정은 2D 웹판에 해당하지 않습니다.'));}
 }
 function openSettings(){if(settingsOpen)return;settingsOpen=true;const overlay=E('div','nono-settings-overlay');overlay.id='nono-settings-overlay';overlay.innerHTML='<div class="nono-settings" role="dialog" aria-modal="true" aria-label="노노그램 설정"><div class="nono-settings-head"><div><h2>⚙ 노노그램 설정</h2><small>변경 즉시 적용 · 장치별 브라우저 저장 · '+(device==='touch'?'터치':'PC')+' 프로필</small></div><button class="nono-modal-btn" id="nono-settings-close">닫기</button></div><div class="nono-settings-tabs"></div><div class="nono-settings-content" id="nono-settings-content"></div><div class="nono-settings-foot"><span>※ (시험/보류) 옵션은 사용하면서 평가할 기능입니다.</span><button class="nono-modal-btn" id="nono-settings-default">현재 장치 설정 초기화</button></div></div>';document.body.append(overlay);
@@ -219,14 +226,63 @@ const hintGuide=document.querySelector('.board-caption');if(hintGuide)hintGuide.
 cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',!!prefs.rowHighlight&&(r===Math.floor(selected/n)||col===selected%n));c.classList.toggle('nono-done-line',!!prefs.completeLines&&(lineSolved('row',r)||lineSolved('col',col)));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<n-1);});
 for(const axis of ['row','col']){const elems=$('board').querySelectorAll(axis==='row'?'#board > .row-clues:not(.nono-extra-row) .row-clue':'#board > .col-clues:not(.nono-extra-col) .col-clue');elems.forEach((el,i)=>{el.querySelectorAll('span').forEach((span,j)=>{const stored=(manualClues[puzzle.id]||{})[axis+':'+i+':'+j];span.classList.toggle('nono-fade-clue',stored===true||(stored!==false&&prefs.autoHintFade&&canFade(axis,i,j)));span.classList.toggle('nono-hint-target',hintMode&&hintAxis===axis&&hintIndex===i&&j===hintNumber);});});}
 const hints='행 '+hintsForLine('row',Math.floor(selected/n)).join(' ')+' · 열 '+hintsForLine('col',selected%n).join(' ');
-$('nono-hud').textContent=(prefs.hintHud||prefs.pinnedClues?hints:'')+(prefs.dragHud&&dragCount>0?' · 드래그 '+dragCount+'칸':'');
-$('nono-hud').style.fontSize=prefs.hudSize==='large'?'16px':prefs.hudSize==='small'?'10px':'12px';$('nono-hud').style.background=prefs.hudBg==='weak'?'#1b284866':prefs.hudBg==='strong'?'#111b33':'#1b2848db';
+$('nono-hud').textContent=hints;
+$('nono-hud').hidden=!hudEdit&&!(prefs.hintHud||prefs.pinnedClues||getHudConfig('hints').show===true)||getHudConfig('hints').show===false&&!hudEdit;
+$('nono-drag-hud').textContent=dragCount>0?'드래그 '+dragCount+'칸':'드래그 칸 수';
+$('nono-drag-hud').hidden=!hudEdit&&(!prefs.dragHud||dragCount===0)||getHudConfig('drag').show===false&&!hudEdit;
+$('nono-hud').style.fontSize=prefs.hudSize==='large'?'16px':prefs.hudSize==='small'?'10px':'12px';
+$('nono-hud').style.background=prefs.hudBg==='weak'?'#1b284866':prefs.hudBg==='strong'?'#111b33':'#1b2848db';
 $('nono-hud').style.position=prefs.pinnedClues?'sticky':'';$('nono-hud').style.top=prefs.pinnedClues?'0':'';$('nono-hud').style.zIndex=prefs.pinnedClues?'30':'';
-$('nono-hud').hidden=!(prefs.hintHud||prefs.pinnedClues||prefs.dragHud&&dragCount>0);
+for(const key of ['hints','drag','progress'])applyHudConfig(key);
 updateClueDecor();
 drawMinimap();
 }
 
+
+function getHudConfig(key){return (prefs.hudLayouts&&prefs.hudLayouts[key])||{}}
+function hudElement(key){return key==='hints'?$('nono-hud'):key==='drag'?$('nono-drag-hud'):$('progress').parentElement}
+function applyHudConfig(key){
+ const e=hudElement(key),c=getHudConfig(key);if(!e)return;
+ if(c.size)e.style.fontSize=c.size==='large'?'18px':c.size==='small'?'11px':'14px';
+ if(c.bg)e.style.background=c.bg==='weak'?'#14203a66':c.bg==='strong'?'#0b1124':'#1a2748df';
+ if(c.x!=null&&c.y!=null){e.style.position='fixed';e.style.left=c.x+'px';e.style.top=c.y+'px';e.style.zIndex='150';}
+ if(key==='progress'&&c.show===false&&!hudEdit)e.style.display='none';
+ else if(key==='progress')e.style.display='';
+}
+function saveHudField(key,field,value){
+ prefs.hudLayouts=prefs.hudLayouts||{};
+ prefs.hudLayouts[key]=Object.assign({},prefs.hudLayouts[key]||{});
+ prefs.hudLayouts[key][field]=value;persist();updateBoard();
+}
+function endHudEdit(){
+ hudEdit=false;$('nono-hud-editor')?.remove();
+ for(const key of ['hints','drag','progress']){const e=hudElement(key);e?.classList.remove('nono-hud-target');if(e)e.dataset.selected='false';}
+ updateBoard();
+}
+function beginHudEdit(){
+ if(hudEdit)return;hudEdit=true;hudSelected='hints';const bar=E('div','nono-hud-editor');bar.id='nono-hud-editor';
+ const select=E('select');for(const [v,t] of [['hints','행·열 숫자'],['drag','드래그 칸 수'],['progress','진행도']]){const option=E('option',null,t);option.value=v;select.append(option)}select.onchange=()=>{hudSelected=select.value;bar.querySelectorAll('[data-selected]').forEach(el=>el.dataset.selected='false');hudElement(hudSelected).dataset.selected='true';sync()};
+ const visibility=E('input');visibility.type='checkbox';visibility.onchange=()=>saveHudField(hudSelected,'show',visibility.checked);
+ const size=E('select');for(const [v,t] of [['small','작게'],['normal','기본'],['large','크게']]){const option=E('option',null,t);option.value=v;size.append(option)}size.onchange=()=>saveHudField(hudSelected,'size',size.value);
+ const bg=E('select');for(const [v,t] of [['weak','연하게'],['normal','기본'],['strong','진하게']]){const option=E('option',null,t);option.value=v;bg.append(option)}bg.onchange=()=>saveHudField(hudSelected,'bg',bg.value);
+ const reset=E('button','nono-modal-btn','선택 HUD 초기화');reset.onclick=()=>{delete prefs.hudLayouts[hudSelected];persist();const el=hudElement(hudSelected);el.style.left='';el.style.top='';el.style.position='';updateBoard();sync();};
+ const all=E('button','nono-modal-btn','전체 초기화');all.onclick=()=>{if(!confirm('모든 HUD 위치와 모양을 초기화할까요?'))return;prefs.hudLayouts={};persist();for(const key of ['hints','drag','progress']){const e=hudElement(key);e.style.left='';e.style.top='';e.style.position='';}updateBoard();sync();};
+ const done=E('button','nono-modal-btn','✓ 편집 완료');done.onclick=endHudEdit;
+ const labeled=(label,input)=>{const e=E('label');e.textContent=label+' ';e.append(input);return e};
+ bar.append(labeled('대상',select),labeled('보이기',visibility),labeled('크기',size),labeled('배경',bg),reset,all,done);document.body.append(bar);
+ function sync(){const c=getHudConfig(hudSelected);visibility.checked=c.show!==false;size.value=c.size||'normal';bg.value=c.bg||'normal';for(const key of ['hints','drag','progress'])hudElement(key).dataset.selected=key===hudSelected?'true':'false';}
+ for(const key of ['hints','drag','progress']){const e=hudElement(key);e.classList.add('nono-hud-target');e.hidden=false;
+  const move=(event)=>{
+   if(!hudEdit)return;if(event.button!==0)return;const rect=e.getBoundingClientRect(),ox=event.clientX-rect.left,oy=event.clientY-rect.top;
+   hudSelected=key;select.value=key;sync();e.setPointerCapture(event.pointerId);
+   const dragging=(ev)=>{const x=Math.max(0,Math.min(window.innerWidth-60,ev.clientX-ox)),y=Math.max(0,Math.min(window.innerHeight-32,ev.clientY-oy));e.style.position='fixed';e.style.left=x+'px';e.style.top=y+'px';e.style.zIndex='10050';};
+   const stop=(ev)=>{e.removeEventListener('pointermove',dragging);e.removeEventListener('pointerup',stop);saveHudField(key,'x',parseFloat(e.style.left));saveHudField(key,'y',parseFloat(e.style.top));};
+   e.addEventListener('pointermove',dragging);e.addEventListener('pointerup',stop,{once:true});
+  };
+  if(!e.dataset.nonoDragBound){e.addEventListener('pointerdown',move);e.dataset.nonoDragBound='1';}
+ }
+ updateBoard();sync();
+}
 function updateClueDecor(){
  const target=$('board'),n=puzzle.size;
  target.classList.toggle('nono-both',!!prefs.bothClues);
