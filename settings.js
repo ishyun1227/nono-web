@@ -101,17 +101,17 @@ const css=E('style');css.textContent=String.raw`
 .nono-settings-toggle:hover{border-color:#8d91fa}.nono-options{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .nono-settings-overlay{position:fixed;inset:0;background:#050a17c9;z-index:10000;display:grid;place-items:center;padding:16px}
 .nono-settings{width:min(820px,98vw);max-height:92vh;display:flex;flex-direction:column;background:#121c35;border:1px solid #42517e;border-radius:21px;box-shadow:0 26px 90px #000a;color:#eaf0ff;overflow:hidden}
-.nono-settings-head{padding:17px 21px;border-bottom:1px solid #303e62;display:flex;justify-content:space-between;align-items:center;gap:14px}
+.nono-settings-head{flex:0 0 auto;padding:17px 21px;border-bottom:1px solid #303e62;display:flex;justify-content:space-between;align-items:center;gap:14px}
 .nono-settings-head h2{font-size:21px;margin:0}.nono-settings-head small{color:#a9b7d7}
-.nono-settings-tabs{padding:12px;display:flex;gap:6px;overflow:auto;border-bottom:1px solid #293756}
-.nono-settings-tabs button{background:#1a2946;border:1px solid #2a3a61;border-radius:10px;color:#cbd5f8;padding:9px 12px;white-space:nowrap;cursor:pointer}
-.nono-settings-tabs button.is-active{background:#4545a4;color:#fff;border-color:#8687ff}
-.nono-settings-content{padding:12px 19px;overflow:auto;min-height:100px}
+.nono-settings-tabs{flex:0 0 auto;min-height:62px;padding:10px 18px;display:flex;align-items:center;gap:8px;overflow-x:auto;overflow-y:hidden;scrollbar-width:thin;scrollbar-color:#485a87 transparent;border-bottom:1px solid #293756;overscroll-behavior-x:contain}
+.nono-settings-tabs button{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:8px 16px;background:#1a2946;border:1px solid #39486c;border-radius:11px;color:#cbd5f8;font-size:13px;font-weight:650;line-height:1.3;white-space:nowrap;cursor:pointer;transition:background .15s,border-color .15s,color .15s}
+.nono-settings-tabs button.is-active{background:#4648a9;color:#fff;border-color:#9691ff;box-shadow:inset 0 0 0 1px #b6b0ff20}
+.nono-settings-content{flex:1 1 auto;min-height:0;padding:12px 19px;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain}
 .nono-setting{min-height:55px;padding:10px 2px;display:flex;justify-content:space-between;align-items:center;gap:18px;border-bottom:1px solid #ffffff14}
 .nono-setting label{font-size:13px;flex:1;cursor:help}.nono-setting small{font-size:11px;color:#98a9cf;display:block;margin-top:2px;line-height:1.4}
 .nono-setting select,.nono-setting input[type=number]{background:#1e2b4a;color:#fff;border:1px solid #48577d;border-radius:9px;padding:9px;max-width:180px}
 .nono-setting input[type=checkbox]{width:20px;height:20px;accent-color:#806cfa}.nono-setting input[type=range]{accent-color:#8e72fe;width:144px}
-.nono-settings-foot{padding:12px 20px;background:#0f1930;display:flex;justify-content:space-between;gap:8px;align-items:center;color:#9fb0d1;font-size:12px}
+.nono-settings-foot{flex:0 0 auto;padding:12px 20px;background:#0f1930;display:flex;justify-content:space-between;gap:8px;align-items:center;color:#9fb0d1;font-size:12px}
 .nono-modal-btn{border:1px solid #6074aa;border-radius:9px;background:#252f58;color:#e9eeff;padding:8px 12px;cursor:pointer}
 .nono-fade-clue{opacity:.29}.nono-hint-target{background:#50478580!important;border-radius:5px}
 .nono-extra-hud{font-size:12px;color:#eaf0ff;background:#1b2848db;border:1px solid #596d9c;border-radius:9px;padding:8px 10px;margin:8px 0;display:flex;gap:15px;align-items:center;justify-content:center}
@@ -176,7 +176,7 @@ if(tab===1){const b=E('button','nono-modal-btn','▦ HUD 편집 · 위치/크기
 if(tab===5){body.append(E('p','nono-keys-hint','멀티 커서·플레이어 이름·최근 입력은 현재 서버가 좌표 이벤트를 전송하지 않아 아직 적용되지 않습니다.'));}
 }
 function openSettings(){if(settingsOpen)return;settingsOpen=true;const overlay=E('div','nono-settings-overlay');overlay.id='nono-settings-overlay';overlay.innerHTML='<div class="nono-settings" role="dialog" aria-modal="true" aria-label="노노그램 설정"><div class="nono-settings-head"><div><h2>⚙ 노노그램 설정</h2><small>변경 즉시 적용 · 장치별 브라우저 저장 · '+(device==='touch'?'터치':'PC')+' 프로필</small></div><button class="nono-modal-btn" id="nono-settings-close">닫기</button></div><div class="nono-settings-tabs"></div><div class="nono-settings-content" id="nono-settings-content"></div><div class="nono-settings-foot"><span>※ (시험/보류) 옵션은 사용하면서 평가할 기능입니다.</span><button class="nono-modal-btn" id="nono-settings-default">현재 장치 설정 초기화</button></div></div>';document.body.append(overlay);
-const tabs=overlay.querySelector('.nono-settings-tabs');schema.forEach(([title],i)=>{const b=E('button',i===0?'is-active':'',title);b.dataset.tab=i;b.onclick=()=>{tabs.querySelector('.is-active')?.classList.remove('is-active');b.classList.add('is-active');drawSettings()};tabs.append(b)});
+const tabs=overlay.querySelector('.nono-settings-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','설정 분류');schema.forEach(([title],i)=>{const b=E('button',i===0?'is-active':'',title);b.type='button';b.setAttribute('role','tab');b.setAttribute('aria-selected',String(i===0));b.dataset.tab=i;b.onclick=()=>{const prev=tabs.querySelector('.is-active');if(prev){prev.classList.remove('is-active');prev.setAttribute('aria-selected','false')}b.classList.add('is-active');b.setAttribute('aria-selected','true');b.scrollIntoView({block:'nearest',inline:'nearest'});drawSettings()};tabs.append(b)});
 overlay.querySelector('#nono-settings-close').onclick=closeSettings;overlay.querySelector('#nono-settings-default').onclick=()=>{if(confirm('현재 장치의 설정을 기본값으로 되돌릴까요?')){prefs=Object.assign({},defaults);persist();apply();drawSettings();}};
 overlay.addEventListener('click',e=>{if(e.target===overlay)closeSettings()});drawSettings();}
 function closeSettings(){settingsOpen=false;document.getElementById('nono-settings-overlay')?.remove();}
