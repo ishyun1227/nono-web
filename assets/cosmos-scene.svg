@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="650" viewBox="0 0 1200 650">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#07152b"/><stop offset=".65" stop-color="#102d57"/><stop offset="1" stop-color="#071629"/></linearGradient><radialGradient id="planet"><stop stop-color="#c7f2ff"/><stop offset=".7" stop-color="#4ac8ea"/><stop offset="1" stop-color="#335fcb"/></radialGradient><linearGradient id="ship" x2="0" y2="1"><stop stop-color="#def7fb"/><stop offset="1" stop-color="#63a9db"/></linearGradient></defs>
+<rect width="1200" height="650" fill="url(#sky)"/>
+<g fill="#f3fbff"><circle cx="89" cy="67" r="3"/><circle cx="175" cy="190" r="2"/><circle cx="285" cy="97" r="4"/><circle cx="345" cy="233" r="2"/><circle cx="485" cy="81" r="3"/><circle cx="636" cy="198" r="3"/><circle cx="739" cy="90" r="3"/><circle cx="1077" cy="114" r="3"/><circle cx="1153" cy="263" r="2"/></g>
+<circle cx="841" cy="239" r="193" fill="#36b5ff" opacity=".12"/><circle cx="841" cy="239" r="137" fill="url(#planet)"/><path d="M750 167q140 20 234 125M713 240q110 10 210 110" fill="none" stroke="#d1f8fa" opacity=".4" stroke-width="12"/>
+<ellipse cx="850" cy="240" rx="256" ry="65" fill="none" stroke="#62f4ff" stroke-width="10" opacity=".65" transform="rotate(-18 850 240)"/>
+<ellipse cx="850" cy="240" rx="255" ry="65" fill="none" stroke="#bed5fc" stroke-width="3" opacity=".65" transform="rotate(-18 850 240)"/>
+<g transform="translate(480 310) rotate(-12)">
+<path d="M0 88l185-60 80 60-185 55z" fill="url(#ship)" stroke="#cdfcff" stroke-width="8"/>
+<path d="M108 49l38-84 54 62-14 16z" fill="#99ddeb" stroke="#cdfcff" stroke-width="7"/>
+<path d="M95 130l-32 70 76-85" fill="#90beed" stroke="#cdfcff" stroke-width="7"/>
+<path d="M-15 94l-82 32 50 10 21-17z" fill="#33d1ff"/>
+<circle cx="204" cy="81" r="11" fill="#f0feff"/>
+</g>
+<g stroke="#64daed" stroke-width="3" opacity=".58" fill="none"><path d="M0 473h1200M0 534h1200M0 601h1200"/><path d="M210 473L0 650M380 473L270 650M590 473L585 650M780 473L910 650M960 473L1200 650"/></g>
+<path d="M0 467l140-60 110 20 70-45 124 55 116-45 130 37 140-50 172 75 98-35v231H0z" fill="#071b32" opacity=".85"/>
+<path d="M0 563h1200M0 598h1200" stroke="#5bedf4" stroke-width="4" opacity=".5"/>
+<g fill="#48cfe3"><rect x="114" y="474" width="65" height="5"/><rect x="306" y="473" width="78" height="5"/><rect x="927" y="468" width="72" height="5"/></g>
+<g stroke="#35d1f3" fill="none" stroke-width="4"><path d="M85 300h110m-110 0v75m100-75v-45"/><path d="M1094 353h-100m100 0v75"/></g>
+</svg>
