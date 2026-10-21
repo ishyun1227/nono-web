@@ -3,10 +3,13 @@
 'use strict';
 const TRIAL_KEY='nono-theme-session-trial-v1';
 const themes=[
-  {id:'neon',label:'네온 다크',desc:'기본 · 기존 NONO 디자인',price:0,colors:['#0c142c','#283a69','#b7a0f5','#7689c8','#f5f0ff']},
-  {id:'pastel',label:'파스텔 드림',desc:'밝은 분홍·라벤더 분위기',price:500,colors:['#fff7fc','#e9d7f4','#be85e2','#dac6e6','#382d50']},
-  {id:'retro',label:'레트로 아케이드',desc:'옛 게임기처럼 선명한 픽셀 감성',price:1000,colors:['#09160e','#1b3926','#b9ef62','#42664a','#d5ffd3']},
-  {id:'forest',label:'마법의 숲',desc:'깊은 초록과 은은한 마법빛',price:2000,colors:['#09221a','#1c4d36','#8dd9ab','#446f59','#e7fff0']}
+  {id:'neon',tier:'color',label:'네온 다크',desc:'기본 · 기존 NONO 디자인',price:0,colors:['#0c142c','#283a69','#b7a0f5','#7689c8','#f5f0ff']},
+  {id:'pastel',tier:'color',label:'파스텔 드림',desc:'기존 디자인에 분홍·라벤더 색상',price:250,colors:['#fff7fc','#e9d7f4','#be85e2','#dac6e6','#382d50']},
+  {id:'retro',tier:'color',label:'레트로 그린',desc:'기존 디자인에 초록빛 픽셀 감성',price:400,colors:['#09160e','#1b3926','#b9ef62','#42664a','#d5ffd3']},
+  {id:'forest',tier:'color',label:'포레스트 그린',desc:'기존 디자인에 깊은 초록과 황금빛',price:500,colors:['#09221a','#1c4d36','#8dd9ab','#446f59','#e7fff0']},
+  {id:'arcade',tier:'world',label:'픽셀 시티 아케이드',desc:'네온 도시, 코인 게임기, 픽셀 버튼의 세계',price:5000,colors:['#100625','#2d1054','#ff51ba','#4f7cea','#f9f1ff']},
+  {id:'enchanted',tier:'world',label:'정령의 숲',desc:'달빛 숲, 나무 액자, 판타지 서체와 장식',price:7000,colors:['#09241e','#28503a','#eaca83','#6d986e','#fff3d2']},
+  {id:'cosmos',tier:'world',label:'우주 관제실',desc:'우주선, 홀로그램 HUD, 관제 콘솔형 배치',price:9000,colors:['#06182d','#143754','#72dff4','#517996','#f3faff']}
 ];
 const byId=Object.fromEntries(themes.map(t=>[t.id,t]));
 const savedTrial=(()=>{
@@ -15,7 +18,10 @@ const savedTrial=(()=>{
 let activeTheme=byId[savedTrial]?savedTrial:'neon'; // Session trial is not a purchase and grants no ownership or server privileges.
 let modal=null,selection=activeTheme,previousTheme=activeTheme;
 const previewArt=['00100','01110','11111','01110','00100'].join('');
-const themeColor={neon:'#0c1225',pastel:'#fff7fc',retro:'#080e0c',forest:'#071a14'};
+const themeColor={neon:'#0c1225',pastel:'#fff7fc',retro:'#080e0c',forest:'#071a14',arcade:'#09091e',enchanted:'#091b18',cosmos:'#071727'};
+const hero=document.querySelector('.hero');
+if(hero){const scene=document.createElement('div');scene.className='nono-world-scene';scene.setAttribute('aria-hidden','true');hero.append(scene);}
+
 function applyTheme(id){
   const theme=byId[id]?id:'neon';
   document.body.dataset.nonoTheme=theme;
@@ -34,7 +40,7 @@ function showMessage(){
   });
   modal.querySelector('.nono-theme-message').textContent=t.id==='neon'
     ?'기본 테마는 무료로 계속 사용할 수 있어요.'
-    :t.label+' 미리보기 · 포인트 구매 기능은 아직 없습니다. 무료 체험은 이 브라우저 탭에서 유지되며, 탭을 닫으면 초기화됩니다.';
+    :t.label+' '+(t.tier==='world'?'월드 테마':'색상 테마')+' 미리보기 · 포인트 구매는 아직 연결되지 않았습니다. 무료 체험은 현재 탭에서만 유지됩니다.';
   const action=modal.querySelector('.nono-theme-use');
   action.textContent=selection===activeTheme?'선택한 테마 사용 중':t.id==='neon'?'기본 테마 적용':'무료 체험 적용';
 }
@@ -64,11 +70,23 @@ function openTheme(){
   modal=document.createElement('div');modal.className='nono-theme-overlay';modal.id='nono-theme-overlay';
   const panel=document.createElement('section');
   panel.className='nono-theme-dialog';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','nono-theme-title');
-  panel.innerHTML='<div class="nono-theme-head"><div><h2 class="nono-theme-title" id="nono-theme-title">🎨 사이트 테마</h2><p class="nono-theme-subtitle">테마를 눌러 홈·퍼즐판·설정창 디자인을 미리 보세요.<br>구매 기능을 만들기 전에는 무료 체험만 가능합니다.</p></div><button type="button" class="nono-theme-close" id="nono-theme-close">닫기</button></div><div class="nono-theme-list" id="nono-theme-list"></div><div class="nono-theme-foot"><p class="nono-theme-message" id="nono-theme-message"></p><button type="button" class="nono-theme-use" id="nono-theme-use">적용</button></div>';
-  const list=panel.querySelector('#nono-theme-list');
+  panel.innerHTML='<div class="nono-theme-head"><div><h2 class="nono-theme-title" id="nono-theme-title">🎨 NONO 테마 상점</h2><p class="nono-theme-subtitle">색상 테마는 저렴하게, 월드 테마는 완전히 다른 사이트 분위기로!<br>지금은 가격만 표시하며 모두 무료 미리보기로 체험할 수 있습니다.</p></div><button type="button" class="nono-theme-close" id="nono-theme-close">닫기</button></div><div class="nono-theme-groups" id="nono-theme-groups"></div><div class="nono-theme-foot"><p class="nono-theme-message" id="nono-theme-message"></p><button type="button" class="nono-theme-use" id="nono-theme-use">적용</button></div>';
+  const groups=panel.querySelector('#nono-theme-groups'),lists={};
+  for(const [tier,title,info] of [
+    ['color','🎨 색상 테마','기존 디자인 유지 · 0 ~ 500 P 예정'],
+    ['world','✨ 월드 테마','배경·메뉴·카드·게임판 전면 재설계 · 5,000 ~ 9,000 P 예정']
+  ]){
+    const section=document.createElement('section');section.className='nono-theme-section';
+    const heading=document.createElement('div');heading.className='nono-theme-section-heading';
+    const h3=document.createElement('h3');h3.textContent=title;
+    const small=document.createElement('small');small.textContent=info;
+    heading.append(h3,small);
+    const list=document.createElement('div');list.className='nono-theme-list';
+    lists[tier]=list;section.append(heading,list);groups.append(section);
+  }
   for(const theme of themes){
     const btn=document.createElement('button');
-    btn.type='button';btn.className='nono-theme-card';btn.dataset.themeId=theme.id;
+    btn.type='button';btn.className='nono-theme-card';btn.dataset.themeId=theme.id;btn.dataset.tier=theme.tier;
     const [bg,bg2,fill,line,ink]=theme.colors;
     btn.innerHTML='<div class="nono-theme-sample" aria-hidden="true"><span class="nono-theme-preview-text">NONO</span><span class="nono-theme-pixels">'+Array.from(previewArt,(v)=>'<i class="'+(v==='1'?'fill':'')+'"></i>').join('')+'</span></div><span class="nono-theme-card-info"><span class="nono-theme-card-top"><strong></strong><span class="nono-theme-price"></span></span><small></small></span>';
     const swatch=btn.querySelector('.nono-theme-sample');
@@ -77,7 +95,7 @@ function openTheme(){
     btn.querySelector('small').textContent=theme.desc;
     btn.setAttribute('aria-label',theme.label+' 미리보기');
     btn.addEventListener('click',()=>chooseTheme(theme.id));
-    list.append(btn);
+    lists[theme.tier].append(btn);
   }
   modal.append(panel);document.body.append(modal);
   modal.addEventListener('click',e=>{if(e.target===modal)closeTheme(false)});
@@ -91,5 +109,5 @@ openButton.addEventListener('click',openTheme);
 const header=document.querySelector('.header-right');
 if(header)header.insertBefore(openButton,document.getElementById('nono-open-settings')||header.firstChild);
 applyTheme(activeTheme);
-window.NONO_THEMES={open:openTheme,get current(){return activeTheme},list:themes.map(({id,label,price})=>({id,label,price}))};
+window.NONO_THEMES={open:openTheme,get current(){return activeTheme},list:themes.map(({id,label,price,tier})=>({id,label,price,tier}))};
 })();
