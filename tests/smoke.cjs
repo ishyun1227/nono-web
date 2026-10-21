@@ -64,6 +64,7 @@ const { pathToFileURL } = require('node:url');
   const worldItems=page.locator('.nono-world-puzzle');
   await worldItems.last().click();
   if(!await page.locator('#puzzle').inputValue())throw new Error('Premium puzzle selection did not set puzzle picker');
+  await page.selectOption('#puzzle','heart5'); // Continue the existing five-cell completion/resume regression test.
   await page.click('#nono-open-settings');
   await page.locator('#nono-settings-content').waitFor();
   if (!await page.locator('.nono-setting').count()) throw new Error('No settings rendered');
