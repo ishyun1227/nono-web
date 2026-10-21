@@ -116,13 +116,16 @@ body[data-nono-theme="library"] .mode-card{
 }
 body[data-nono-theme="library"] .mode-card:before{
   content:"";inset:0 0 auto 0;height:130px;display:block;position:absolute;z-index:0;
-  background:linear-gradient(0deg,#141a2d 0%,transparent 49%),url('./assets/library-scene.svg') center / 260% auto no-repeat;
+  background-image:linear-gradient(0deg,#141a2d 0%,transparent 58%),url('./assets/library-modes-sprite.webp');
+  background-size:100% 100%,400% 100%;
+  background-position:center,0% center;
+  background-repeat:no-repeat;
   opacity:.96;pointer-events:none;
 }
-body[data-nono-theme="library"] .mode-card:nth-child(1):before{background-position:center,5% 22%}
-body[data-nono-theme="library"] .mode-card:nth-child(2):before{background-position:center,55% 12%}
-body[data-nono-theme="library"] .mode-card:nth-child(3):before{background-position:center,92% 55%}
-body[data-nono-theme="library"] .mode-card:nth-child(4):before{background-position:center,76% 82%}
+body[data-nono-theme="library"] .mode-card:nth-child(1):before{background-position:center,0% center}
+body[data-nono-theme="library"] .mode-card:nth-child(2):before{background-position:center,33.333% center}
+body[data-nono-theme="library"] .mode-card:nth-child(3):before{background-position:center,66.667% center}
+body[data-nono-theme="library"] .mode-card:nth-child(4):before{background-position:center,100% center}
 body[data-nono-theme="library"] .mode-card:after{content:"";position:absolute;top:119px;left:12px;right:12px;height:1px;background:#b78d54a8}
 body[data-nono-theme="library"] .mode-card .mode-icon{
   position:absolute;z-index:1;top:100px;left:50%;transform:translateX(-50%);
