@@ -46,7 +46,8 @@ body[data-nono-theme="library"] .hero{
   border-radius:0!important;box-shadow:none!important;
   padding:70px clamp(25px,7vw,105px)!important;
   background:
-    linear-gradient(90deg,#0d1227 0%,#0e1227f2 22%,#0a1024ab 51%,#090c18aa 100%),
+    linear-gradient(90deg,#0d1227 0%,#0e1227eb 26%,#0a10247c 53%,#090c1833 100%),
+    url('./assets/library-reference-painting.webp') right center/65% 110% no-repeat,
     url('./assets/library-scene.svg') 100% 42%/cover no-repeat!important;
 }
 body[data-nono-theme="library"] .hero .nono-world-scene{
