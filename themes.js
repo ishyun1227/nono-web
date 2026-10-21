@@ -1,7 +1,7 @@
 /* NONO cosmetic themes. Purchases/point balances are intentionally not implemented here. */
 (function(){
 'use strict';
-const THEME_KEY='nono-theme-equipped-v1';
+const TRIAL_KEY='nono-theme-session-trial-v1';
 const themes=[
   {id:'neon',label:'네온 다크',desc:'기본 · 기존 NONO 디자인',price:0,colors:['#0c142c','#283a69','#b7a0f5','#7689c8','#f5f0ff']},
   {id:'pastel',label:'파스텔 드림',desc:'밝은 분홍·라벤더 분위기',price:500,colors:['#fff7fc','#e9d7f4','#be85e2','#dac6e6','#382d50']},
@@ -9,10 +9,10 @@ const themes=[
   {id:'forest',label:'마법의 숲',desc:'깊은 초록과 은은한 마법빛',price:2000,colors:['#09221a','#1c4d36','#8dd9ab','#446f59','#e7fff0']}
 ];
 const byId=Object.fromEntries(themes.map(t=>[t.id,t]));
-const saved=(()=>{
-  try{return localStorage.getItem(THEME_KEY)}catch{return null}
+const savedTrial=(()=>{
+  try{return sessionStorage.getItem(TRIAL_KEY)}catch{return null}
 })();
-let activeTheme=saved==='neon'?'neon':'neon'; // Point purchases have not been implemented; never trust client-side ownership claims.
+let activeTheme=byId[savedTrial]?savedTrial:'neon'; // Session trial is not a purchase and grants no ownership or server privileges.
 let modal=null,selection=activeTheme,previousTheme=activeTheme;
 const previewArt=['00100','01110','11111','01110','00100'].join('');
 const themeColor={neon:'#0c1225',pastel:'#fff7fc',retro:'#080e0c',forest:'#071a14'};
@@ -34,7 +34,7 @@ function showMessage(){
   });
   modal.querySelector('.nono-theme-message').textContent=t.id==='neon'
     ?'기본 테마는 무료로 계속 사용할 수 있어요.'
-    :t.label+' 미리보기 · 포인트 구매 기능은 아직 없습니다. 무료 체험은 새로고침하면 해제됩니다.';
+    :t.label+' 미리보기 · 포인트 구매 기능은 아직 없습니다. 무료 체험은 이 브라우저 탭에서 유지되며, 탭을 닫으면 초기화됩니다.';
   const action=modal.querySelector('.nono-theme-use');
   action.textContent=selection===activeTheme?'선택한 테마 사용 중':t.id==='neon'?'기본 테마 적용':'무료 체험 적용';
 }
@@ -46,7 +46,7 @@ function closeTheme(keepPreview){
   if(!modal)return;
   if(keepPreview){
     activeTheme=selection;
-    if(activeTheme==='neon'){try{localStorage.setItem(THEME_KEY,'neon')}catch{}}
+    try{if(activeTheme==='neon')sessionStorage.removeItem(TRIAL_KEY);else sessionStorage.setItem(TRIAL_KEY,activeTheme)}catch{}
   }else applyTheme(previousTheme);
   modal.remove();modal=null;
   document.removeEventListener('keydown',onKey);
