@@ -1,0 +1,388 @@
+/* Mystic Library: closer recreation of the approved illustrated design.
+   Actual controls, puzzles, timers and data remain part of NONO. */
+
+/* Typographic identity, brass header and working navigation. */
+.nono-library-nav{display:none}
+body[data-nono-theme="library"] .shell{max-width:1370px}
+body[data-nono-theme="library"] .topbar{
+  position:relative;z-index:7;display:flex;gap:20px;height:76px;
+  margin:0!important;padding:0 18px!important;border:0!important;
+  border-bottom:2px solid #926736!important;border-radius:0!important;
+  background:linear-gradient(#141628ed,#080f20f7)!important;
+  box-shadow:0 6px 18px #0008!important;
+}
+body[data-nono-theme="library"] .nono-library-nav{display:flex;align-items:center;justify-content:center;gap:5px;flex:1}
+body[data-nono-theme="library"] .nono-library-nav button{
+  padding:13px 15px;border:0;border-bottom:2px solid transparent;
+  background:transparent;color:#ebd9b8;font-family:Georgia,"Noto Serif KR",serif;
+  font-size:12px;letter-spacing:.01em;white-space:nowrap;
+}
+body[data-nono-theme="library"] .nono-library-nav button:hover,
+body[data-nono-theme="library"] .nono-library-nav button:focus-visible{
+  border-bottom-color:#d9b67e;color:#fff5d7;background:#e0b56612;
+}
+body[data-nono-theme="library"] .topbar .brand{
+  flex-shrink:0;font:500 30px Georgia,"Noto Serif KR",serif;
+  letter-spacing:.09em;color:#fff0cf;text-shadow:0 0 16px #dcb46b70;
+}
+body[data-nono-theme="library"] .brand-box{
+  background:transparent!important;box-shadow:none!important;width:39px;height:39px;
+  border:1px solid #e4bd72!important;color:#e9c28b!important;font-size:27px;
+}
+body[data-nono-theme="library"] .header-right{gap:8px!important}
+body[data-nono-theme="library"] .connection{max-width:125px;white-space:normal;font-size:10px;color:#d6c197}
+body[data-nono-theme="library"] :is(.profile-chip,.nono-theme-open){
+  border:1px solid #cda36e!important;border-radius:5px!important;padding:8px 12px!important;
+  background:#1c2133!important;color:#f1dfb8!important;box-shadow:none!important;
+}
+body[data-nono-theme="library"] #nono-open-settings{
+  border:1px solid #9f7847!important;color:#f4e1b5!important;background:#161c2b!important;
+}
+
+/* Hero built like a grand library window: full-bleed scene, live HTML headline and button. */
+body[data-nono-theme="library"] .hero{
+  margin:0 -28px 27px!important;min-height:427px!important;overflow:hidden;
+  border:0!important;border-bottom:2px solid #a98751!important;
+  border-radius:0!important;box-shadow:none!important;
+  padding:70px clamp(25px,7vw,105px)!important;
+  background:
+    linear-gradient(90deg,#0d1227 0%,#0e1227f2 22%,#0a1024ab 51%,#090c18aa 100%),
+    url('./assets/library-scene.svg') 100% 42%/cover no-repeat!important;
+}
+body[data-nono-theme="library"] .hero .nono-world-scene{
+  display:none!important;
+}
+body[data-nono-theme="library"] .hero:before{
+  content:"";position:absolute;z-index:1;inset:0;pointer-events:none;
+  background:
+    linear-gradient(90deg,#090b1acc 0%,transparent 45%),
+    radial-gradient(ellipse 40% 70% at 75% 41%,#e8bb5a0f,transparent 70%),
+    repeating-linear-gradient(0deg,#ebc97904 0 1px,transparent 2px 9px);
+}
+body[data-nono-theme="library"] .hero:after{
+  content:"✧     ✦      ✧";color:#e9bc7e99;position:absolute;bottom:23px;right:35px;
+  font-size:23px;letter-spacing:18px;z-index:1;pointer-events:none;
+}
+body[data-nono-theme="library"] .hero-copy{width:min(650px,68%)!important;z-index:3}
+body[data-nono-theme="library"] .hero .eyebrow{
+  font:700 12px Georgia,serif!important;color:#e9cd96!important;letter-spacing:.25em!important;
+}
+body[data-nono-theme="library"] .hero h1{
+  font-family:Georgia,"Noto Serif KR",serif!important;
+  font-size:clamp(41px,4.8vw,65px)!important;line-height:1.27!important;
+  font-weight:550!important;letter-spacing:-.065em!important;
+  color:#ffeccc!important;text-shadow:0 3px 25px #000b!important;
+  max-width:650px;margin:19px 0 18px!important;
+}
+body[data-nono-theme="library"] .hero h1 span{
+  background:linear-gradient(90deg,#e3b66c,#fff2cd);
+  background-clip:text;-webkit-background-clip:text;color:transparent;
+}
+body[data-nono-theme="library"] .hero-copy p{
+  font-family:Georgia,"Noto Serif KR",serif!important;
+  font-size:15px!important;color:#e8d8b9!important;max-width:540px;
+}
+body[data-nono-theme="library"] .nono-world-cta{
+  display:inline-flex;min-height:54px;margin-top:29px;padding:14px 35px;
+  border:1px solid #ddbf8a!important;border-radius:3px!important;
+  background:linear-gradient(180deg,#1c2033,#090f20)!important;
+  color:#ffdc94!important;box-shadow:inset 0 0 0 2px #846341,0 5px 20px #000a!important;
+  font-family:Georgia,"Noto Serif KR",serif;
+  font-size:15px;letter-spacing:.05em;
+}
+body[data-nono-theme="library"] .nono-world-cta:hover{filter:brightness(1.18)}
+
+/* Homepage section order matches the concept: hero, four destinations, illuminated book gallery, controls. */
+body[data-nono-theme="library"] .home-content{
+  display:flex;flex-direction:column;gap:0;padding-top:0;padding-bottom:65px;
+}
+body[data-nono-theme="library"] .section-heading{order:0;margin:4px 0 14px}
+body[data-nono-theme="library"] .section-heading .eyebrow{color:#d4b476!important}
+body[data-nono-theme="library"] .section-heading h2{
+  font:500 23px Georgia,"Noto Serif KR",serif!important;color:#f2d59c!important;
+}
+body[data-nono-theme="library"] .mode-select{
+  order:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;margin-bottom:15px;
+}
+body[data-nono-theme="library"] .mode-card{
+  min-height:250px!important;display:flex!important;flex-direction:column!important;
+  justify-content:end!important;align-items:stretch!important;gap:10px!important;
+  padding:135px 15px 20px!important;text-align:center!important;overflow:hidden;
+  border:2px solid #9d7749!important;border-radius:4px!important;
+  background:linear-gradient(180deg,#222039 1%,#15182d 47%,#131829 100%)!important;
+  box-shadow:inset 0 0 0 3px #ebc38d17,0 7px 16px #0006!important;
+}
+body[data-nono-theme="library"] .mode-card:before{
+  content:"";inset:0 0 auto 0;height:130px;display:block;position:absolute;z-index:0;
+  background:linear-gradient(0deg,#141a2d 0%,transparent 49%),url('./assets/library-scene.svg') center / 260% auto no-repeat;
+  opacity:.96;pointer-events:none;
+}
+body[data-nono-theme="library"] .mode-card:nth-child(1):before{background-position:center,5% 22%}
+body[data-nono-theme="library"] .mode-card:nth-child(2):before{background-position:center,55% 12%}
+body[data-nono-theme="library"] .mode-card:nth-child(3):before{background-position:center,92% 55%}
+body[data-nono-theme="library"] .mode-card:nth-child(4):before{background-position:center,76% 82%}
+body[data-nono-theme="library"] .mode-card:after{content:"";position:absolute;top:119px;left:12px;right:12px;height:1px;background:#b78d54a8}
+body[data-nono-theme="library"] .mode-card .mode-icon{
+  position:absolute;z-index:1;top:100px;left:50%;transform:translateX(-50%);
+  width:46px!important;height:46px!important;border-radius:50%!important;
+  border:2px solid #d7ac64!important;
+  background:radial-gradient(circle,#58415c,#1a2239)!important;
+  box-shadow:0 0 18px #e9a65455;color:#f9dca2!important;
+  font-size:26px!important;
+}
+body[data-nono-theme="library"] .mode-text{align-items:center;gap:9px!important;z-index:1}
+body[data-nono-theme="library"] .mode-text strong{
+  font:600 18px Georgia,"Noto Serif KR",serif!important;color:#ffe7b8!important;
+}
+body[data-nono-theme="library"] .mode-text small{
+  font:12px Georgia,"Noto Serif KR",serif!important;color:#cbb897!important;line-height:1.55!important;
+}
+body[data-nono-theme="library"] .mode-card.selected{
+  border-color:#f0ca83!important;box-shadow:inset 0 0 0 2px #e1ba78,0 0 23px #d9b46b44!important;
+}
+body[data-nono-theme="library"] .mode-card:hover{transform:translateY(-3px)}
+body[data-nono-theme="library"] .mode-card.selected .selected-indicator{color:#ffe2a5}
+
+/* Lower illustrated shelves use real registered puzzles, not fake screenshots or rankings. */
+body[data-nono-theme="library"] .nono-world-extras{
+  order:2;display:grid!important;grid-template-columns:minmax(0,1.5fr) minmax(270px,.85fr)!important;
+  gap:14px;margin:0 0 17px;
+}
+body[data-nono-theme="library"] .nono-world-panel{
+  padding:22px!important;background:
+    radial-gradient(circle at 70% 0%,#fff1cd,#ebcfa2 90%)!important;
+  border:8px double #8a6138!important;border-radius:5px!important;
+  box-shadow:inset 0 0 0 1px #efdfa5,0 10px 23px #0007!important;
+  color:#543b29!important;
+}
+body[data-nono-theme="library"] .nono-world-panel h3{
+  font:650 23px Georgia,"Noto Serif KR",serif!important;color:#543b29!important;
+}
+body[data-nono-theme="library"] .nono-world-panel>p{
+  font-family:Georgia,"Noto Serif KR",serif;color:#856044!important;font-size:12px;
+}
+body[data-nono-theme="library"] .nono-world-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+body[data-nono-theme="library"] .nono-world-puzzle{
+  min-height:152px;padding:9px!important;align-items:stretch;
+  border:2px solid #bb905e!important;border-radius:2px!important;
+  background:linear-gradient(#181d33,#2d2843)!important;color:#f9deb0!important;
+  text-align:center;box-shadow:0 4px 0 #ac865a99;
+}
+body[data-nono-theme="library"] .nono-world-puzzle span{
+  display:grid;place-items:center;width:100%!important;height:85px!important;
+  font-size:34px;color:#fce0a3;background:
+    radial-gradient(ellipse at 55% 25%,#fff4c71c,transparent 60%),
+    url('./assets/library-scene.svg') center / 400% auto!important;
+  border:1px solid #b89661!important;border-radius:0!important;
+  text-shadow:0 0 14px #f3d79599;
+}
+body[data-nono-theme="library"] .nono-world-puzzle:nth-child(2) span{background-position:center,25% 36%}
+body[data-nono-theme="library"] .nono-world-puzzle:nth-child(3) span{background-position:center,79% 53%}
+body[data-nono-theme="library"] .nono-world-puzzle:nth-child(4) span{background-position:center,68% 87%}
+body[data-nono-theme="library"] .nono-world-puzzle strong{
+  color:#ffecbf;font-size:11px;line-height:1.4;font-weight:650;
+}
+body[data-nono-theme="library"] .nono-world-puzzle small{color:#dcc29d!important;font-size:10px}
+body[data-nono-theme="library"] .nono-world-shop{
+  min-height:74px;background:linear-gradient(#182137,#0f162a)!important;
+  border:1px solid #a87b4e!important;color:#f3d39d!important;border-radius:3px!important;
+}
+body[data-nono-theme="library"] .setup{
+  order:3;padding:23px 27px!important;
+  border:2px solid #966f42!important;background:linear-gradient(130deg,#252038,#12182b)!important;
+  border-radius:4px!important;
+}
+
+/* Game: the whole board now reads as parchment mounted inside a carved-gold frame. */
+body[data-nono-theme="library"] .game{padding-top:25px}
+body[data-nono-theme="library"] .game-header{
+  margin-bottom:16px;padding:15px 22px;
+  border:1px solid #986f42;
+  background:linear-gradient(100deg,#1b1d32,#292139);
+  box-shadow:inset 0 0 0 2px #d1a96621;
+}
+body[data-nono-theme="library"] .game-header h1{
+  font:500 29px Georgia,"Noto Serif KR",serif!important;
+  color:#f9dda1!important;margin-bottom:8px;
+}
+body[data-nono-theme="library"] .game-crumb,
+body[data-nono-theme="library"] .text-button{color:#dbc29c!important}
+body[data-nono-theme="library"] .game-mode-badge{border-radius:3px;background:#493047;color:#f1d8a9;border-color:#b18d55}
+body[data-nono-theme="library"] .play-area:not(.has-sidebar){
+  display:grid;grid-template-columns:minmax(0,1fr) minmax(240px,290px);
+  gap:18px;max-width:1300px;margin:0 auto;align-items:start;
+}
+body[data-nono-theme="library"] .play-area.has-sidebar{max-width:1280px}
+body[data-nono-theme="library"] .board-card{
+  padding:26px!important;background:
+    radial-gradient(ellipse at 5% 2%,#f7e4bd,#ddbb86 110%)!important;
+  border:10px double #90653f!important;border-radius:5px!important;
+  outline:3px solid #28213a;outline-offset:3px;
+  box-shadow:inset 0 0 0 2px #fff1c9,0 17px 44px #0009!important;
+  color:#44301e!important;
+}
+body[data-nono-theme="library"] .board-card:before{
+  content:"✧   숫자의 도감   ✧";font:750 19px Georgia,"Noto Serif KR",serif;
+  letter-spacing:.09em;color:#634223;text-align:center;
+  margin-bottom:16px;padding-bottom:13px;border-bottom:1px solid #b38850;
+}
+body[data-nono-theme="library"] .board-top{
+  display:flex;flex-direction:row;justify-content:space-between;
+  border-bottom:1px solid #b58e61!important;padding:4px 3px 13px;
+}
+body[data-nono-theme="library"] .timer-stat{font-family:Georgia,serif!important;font-size:24px;color:#624323!important}
+body[data-nono-theme="library"] .timer-stat>span:first-child{color:#976439!important}
+body[data-nono-theme="library"] .mini-stat{color:#795333!important}
+body[data-nono-theme="library"] .mini-stat strong{color:#59391d!important}
+body[data-nono-theme="library"] .board-scroll{
+  display:flex;justify-content:center;overflow:auto;max-width:100%;
+  margin:16px 0 10px!important;padding:17px 9px 15px!important;
+  border:2px solid #ab814c;border-radius:0!important;
+  background:linear-gradient(120deg,#e8cfa4,#ddbb87 70%,#edcf9c)!important;
+  box-shadow:inset 0 0 20px #9a683c3d;
+}
+body[data-nono-theme="library"] .board{
+  --cell-size:35px!important;
+  --clue-size:30px!important;
+  filter:drop-shadow(0 8px 7px #4c392b35)!important;
+}
+body[data-nono-theme="library"] .board.board-small{--cell-size:46px!important}
+body[data-nono-theme="library"] :is(.col-clues,.row-clues,.corner){
+  border-color:#ab8146!important;background:#ead6b0!important;
+}
+body[data-nono-theme="library"] :is(.col-clue,.row-clue){
+  color:#583820!important;font-family:Georgia,serif!important;font-weight:900!important;
+}
+body[data-nono-theme="library"] .cells{
+  border:2px solid #9a744a!important;background:#0c1529!important;
+}
+body[data-nono-theme="library"] #board .cell{
+  background:#101b31!important;border-right:1px solid #4c4153!important;
+  border-bottom:1px solid #4c4153!important;color:#8b7d8c!important;
+}
+body[data-nono-theme="library"] #board .cell.filled{
+  background:linear-gradient(145deg,#ffe9b7,#dbb36e)!important;
+  color:#382943!important;
+}
+body[data-nono-theme="library"] #board .cell.cross{background:#172038!important;color:#6e6685!important}
+body[data-nono-theme="library"] #board .cell.active{outline:3px solid #d38b39!important;box-shadow:inset 0 0 8px #fbd5a94d!important}
+body[data-nono-theme="library"] .board-caption{color:#795a3e!important;line-height:1.6}
+body[data-nono-theme="library"] .board-footer{
+  border-top:1px solid #9c754d!important;padding:17px 0 0!important;
+  display:flex;gap:7px;
+}
+body[data-nono-theme="library"] .board-footer .tool-button{
+  border:1px solid #ac7e4d!important;border-radius:3px!important;
+  color:#e7c992!important;background:linear-gradient(#232039,#141a2c)!important;
+  box-shadow:inset 0 0 0 2px #c3a8781b!important;min-width:69px;
+}
+body[data-nono-theme="library"] .board-footer .tool-button.primary{
+  background:linear-gradient(#f4dfa8,#b78c50)!important;color:#382234!important;
+}
+body[data-nono-theme="library"] .bottom-row{color:#634526!important}
+body[data-nono-theme="library"] :is(.control-summary,.control-summary kbd,.board-card .rules,.board-card .rules summary,.bottom-row .text-button){
+  color:#654930!important;
+}
+body[data-nono-theme="library"] .board-card kbd{background:#eddeb8;border-color:#b79869;color:#493321}
+body[data-nono-theme="library"] .board-card .rules{border-color:#ae8960!important}
+body[data-nono-theme="library"] .board-card .rules p{color:#6a4e32}
+
+/* Objective panel uses only genuine game information; no fabricated multiplayer chat. */
+.nono-library-side{display:none}
+.nono-library-side[hidden]{display:none!important}
+body[data-nono-theme="library"] .play-area:not(.has-sidebar) .nono-library-side{
+  display:flex;flex-direction:column;gap:16px;min-width:0;
+  border:7px double #89623d;background:linear-gradient(130deg,#f1ddba,#d9b88e);
+  box-shadow:0 0 0 4px #201b2b,0 13px 40px #0008;
+  padding:20px 18px;color:#543823;
+}
+body[data-nono-theme="library"] .nono-library-side-header{
+  display:flex;align-items:center;gap:14px;padding-bottom:14px;
+  border-bottom:1px solid #ad8b5b;
+}
+body[data-nono-theme="library"] .nono-library-book{
+  width:74px;height:74px;display:grid;place-items:center;
+  flex:0 0 auto;border:4px double #b2894e;
+  background:linear-gradient(130deg,#17213c,#3e3051);
+  color:#ffe9ad;font-size:37px;box-shadow:inset 0 0 20px #d9b88355;
+}
+body[data-nono-theme="library"] .nono-library-side h2{
+  font:550 23px Georgia,"Noto Serif KR",serif;margin:0;color:#553820;
+}
+body[data-nono-theme="library"] .nono-library-side>p{
+  font:14px/1.75 Georgia,"Noto Serif KR",serif;color:#78583f;margin:0;
+}
+body[data-nono-theme="library"] .nono-library-meter{
+  display:grid;grid-template-columns:1fr auto;row-gap:10px;font:600 14px Georgia,serif;
+  color:#634a30;
+}
+body[data-nono-theme="library"] .nono-library-track{
+  grid-column:1/-1;background:#af906a;height:11px;border:2px solid #a38255;overflow:hidden;
+}
+body[data-nono-theme="library"] .nono-library-track span{
+  display:block;height:100%;background:linear-gradient(90deg,#61518b,#c195df);
+}
+body[data-nono-theme="library"] .nono-library-note{
+  border-top:2px solid #c2a072;border-bottom:2px solid #c2a072;
+  padding:14px 3px;font:14px/1.7 Georgia,serif;
+}
+body[data-nono-theme="library"] .nono-library-note summary{
+  cursor:pointer;color:#674829;font-weight:700;
+}
+body[data-nono-theme="library"] .nono-library-note p{color:#80634a}
+body[data-nono-theme="library"] .nono-library-quote{
+  border-left:2px solid #b1864d;padding:14px!important;
+  font-style:italic;color:#7b5b40!important;background:#fff7df45;
+}
+
+/* Existing real multiplayer standings use the same golden materials. */
+body[data-nono-theme="library"] .players-card{
+  border:5px double #ad8855!important;background:linear-gradient(#262037,#171b30)!important;
+  padding:20px!important;
+}
+body[data-nono-theme="library"] .players-card:before{
+  content:"✦ 탐험가의 기록 ✦";font:700 13px Georgia,serif;
+  letter-spacing:.1em;color:#eccb99;border-color:#b08b5b;
+}
+body[data-nono-theme="library"] .result-line{background:#28213a;border:1px solid #94714c}
+body[data-nono-theme="library"] .nono-settings{
+  border:8px double #ab8755!important;background:linear-gradient(140deg,#202039,#131a30)!important;
+  box-shadow:0 0 0 4px #211d2d,0 30px 90px #000b!important;
+}
+body[data-nono-theme="library"] .nono-settings-tabs button{
+  border-radius:2px!important;background:#282139!important;border-color:#977b57!important;color:#dcbf95!important;
+}
+body[data-nono-theme="library"] .nono-settings-tabs button.is-active{
+  background:linear-gradient(#f1d39e,#ad824d)!important;color:#281c2c!important;
+}
+
+/* Mobile board remains scrollable; controls, nav and art never occlude puzzle. */
+@media(max-width:1070px){
+  body[data-nono-theme="library"] .nono-library-nav button{padding:10px 8px;font-size:11px}
+  body[data-nono-theme="library"] .hero{min-height:355px!important}
+  body[data-nono-theme="library"] .mode-card{min-height:219px!important;padding-top:130px!important}
+  body[data-nono-theme="library"] .board{--cell-size:30px!important}
+}
+@media(max-width:760px){
+  body[data-nono-theme="library"] .nono-library-nav{display:none!important}
+  body[data-nono-theme="library"] .topbar{height:66px!important}
+  body[data-nono-theme="library"] .hero{margin-left:-16px!important;margin-right:-16px!important;min-height:330px!important;padding:34px 22px!important}
+  body[data-nono-theme="library"] .hero-copy{width:80%!important}
+  body[data-nono-theme="library"] .hero h1{font-size:34px!important}
+  body[data-nono-theme="library"] .hero-copy p{font-size:12px!important}
+  body[data-nono-theme="library"] .mode-select{grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+  body[data-nono-theme="library"] .mode-card{min-height:205px!important}
+  body[data-nono-theme="library"] .nono-world-extras{grid-template-columns:1fr!important}
+  body[data-nono-theme="library"] .nono-world-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  body[data-nono-theme="library"] .play-area:not(.has-sidebar){grid-template-columns:1fr}
+  body[data-nono-theme="library"] .nono-library-side{order:2}
+  body[data-nono-theme="library"] .board-card{padding:12px!important}
+  body[data-nono-theme="library"] .board-scroll{justify-content:flex-start}
+  body[data-nono-theme="library"] .board{--cell-size:30px!important}
+  body[data-nono-theme="library"] .board.board-small{--cell-size:40px!important}
+  body[data-nono-theme="library"] .board-footer .tool-button{min-width:0}
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-nono-theme="library"] *{animation:none!important;transition:none!important}
+}
