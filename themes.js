@@ -21,6 +21,24 @@ const previewArt=['00100','01110','11111','01110','00100'].join('');
 const themeColor={neon:'#0c1225',pastel:'#fff7fc',retro:'#080e0c',forest:'#071a14',arcade:'#09091e',enchanted:'#091b18',cosmos:'#071727'};
 const hero=document.querySelector('.hero');
 if(hero){const scene=document.createElement('div');scene.className='nono-world-scene';scene.setAttribute('aria-hidden','true');hero.append(scene);}
+const headline=document.querySelector('#hero-title');
+const description=document.querySelector('.hero-copy p');
+const slogan=document.querySelector('.hero-copy .eyebrow');
+const originals={
+  headline:headline?.innerHTML||'',description:description?.textContent||'',
+  slogan:slogan?.textContent||''
+};
+const premiumCopy={
+  arcade:{headline:'픽셀 도시에서<br><span>최고 점수에 도전.</span>',description:'코인을 넣고 퍼즐을 풀어 보세요. 오늘의 기록은 당신의 것!',slogan:'NONO ARCADE · INSERT COIN'},
+  enchanted:{headline:'숨겨진 그림을 찾는<br><span>마법의 여행.</span>',description:'숫자와 작은 칸을 따라, 정령의 숲 깊은 곳으로 떠나 보세요.',slogan:'NONO ENCHANTED · THE LOST GROVE'},
+  cosmos:{headline:'퍼즐 미션,<br><span>지금 시작합니다.</span>',description:'탐사선의 관제사가 되어 우주 속 비밀 그림을 완성하세요.',slogan:'NONO ORBIT · MISSION CONTROL'}
+};
+function syncHeroText(theme){
+  const copy=premiumCopy[theme];
+  if(headline)headline.innerHTML=copy?.headline||originals.headline;
+  if(description)description.textContent=copy?.description||originals.description;
+  if(slogan)slogan.textContent=copy?.slogan||originals.slogan;
+}
 
 function applyTheme(id){
   const theme=byId[id]?id:'neon';
@@ -28,6 +46,7 @@ function applyTheme(id){
   document.documentElement.dataset.nonoTheme=theme;
   document.documentElement.style.colorScheme=theme==='pastel'?'light':'dark';
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content',themeColor[theme]);
+  syncHeroText(theme);
   return theme;
 }
 function showMessage(){
