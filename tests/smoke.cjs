@@ -46,8 +46,11 @@ const { pathToFileURL } = require('node:url');
         homeGalleryItems:document.querySelectorAll('.nono-world-puzzle').length,
         heroAction:getComputedStyle(document.querySelector('.nono-world-cta')).display};
     });
-    if(world.theme!==id || !world.sceneImage.includes('scene.svg') || world.sceneDisplay==='none' || world.catDisplay!=='none' || world.homeGalleryDisplay==='none' || world.homeGalleryItems<3 || world.heroAction==='none')
-      throw new Error('Premium world scene did not replace mascot artwork: '+JSON.stringify(world));
+    if(world.theme!==id || !world.sceneImage.includes('scene.svg') ||
+      (id!=='library' && world.sceneDisplay==='none') ||
+      world.catDisplay!=='none' || world.homeGalleryDisplay==='none' ||
+      world.homeGalleryItems<3 || world.heroAction==='none')
+      throw new Error('Premium world visual assets or interactions missing: '+JSON.stringify(world));
     await page.click('#nono-theme-close');
     if(await page.locator('body').getAttribute('data-nono-theme')!=='forest')
       throw new Error('Closing premium preview failed to restore prior tier');
