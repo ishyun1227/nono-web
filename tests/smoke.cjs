@@ -61,6 +61,22 @@ const { pathToFileURL } = require('node:url');
   await page.click('#nono-theme-open');
   await page.getByRole('button',{name:'신비로운 도서관 미리보기'}).click();
   await page.locator('#nono-theme-use').click();
+  // The reference-inspired library is a real page layout, not just a color filter.
+  const libraryUI=await page.evaluate(()=>{
+    const hero=document.querySelector('.hero');
+    const topbar=document.querySelector('.topbar');
+    const card=document.querySelector('.mode-card');
+    const gallery=document.querySelector('.nono-world-panel');
+    return {nav:getComputedStyle(document.querySelector('.nono-library-nav')).display,
+      heroImage:getComputedStyle(hero).backgroundImage,
+      heroHeight:hero.getBoundingClientRect().height,
+      cardHeight:card.getBoundingClientRect().height,
+      galleryText:getComputedStyle(gallery).color,
+      headerHeight:topbar.getBoundingClientRect().height};
+  });
+  if(libraryUI.nav==='none' || !libraryUI.heroImage.includes('library-scene.svg') ||
+    libraryUI.heroHeight<390 || libraryUI.cardHeight<240)
+    throw new Error('Illustrated library homepage did not render as intended: '+JSON.stringify(libraryUI));
   const worldItems=page.locator('.nono-world-puzzle');
   await worldItems.last().click();
   if(!await page.locator('#puzzle').inputValue())throw new Error('Premium puzzle selection did not set puzzle picker');
@@ -102,6 +118,15 @@ const { pathToFileURL } = require('node:url');
   await page.locator('#board .cell').first().waitFor();
   const premiumBorder=await page.locator('.board-card').evaluate(el=>getComputedStyle(el).borderTopWidth);
   if(parseFloat(premiumBorder)<5)throw new Error('Premium library board frame was not applied to gameplay');
+  const illustratedGame=await page.evaluate(()=>{
+    const board=document.querySelector('.board-card');
+    const panel=document.querySelector('.nono-library-side');
+    return {boardBackground:getComputedStyle(board).backgroundImage,
+      panelVisible:getComputedStyle(panel).display!=='none' && !panel.hidden,
+      clueColor:getComputedStyle(document.querySelector('.row-clue')).color};
+  });
+  if(!illustratedGame.boardBackground.includes('gradient') || !illustratedGame.panelVisible)
+    throw new Error('Library parchment game area or live objective sidebar is missing: '+JSON.stringify(illustratedGame));
   await page.click('#nono-theme-open');
   await page.getByRole('button',{name:'크림 라벤더 미리보기'}).click();
   const colorBorder=await page.locator('.board-card').evaluate(el=>getComputedStyle(el).borderTopWidth);
