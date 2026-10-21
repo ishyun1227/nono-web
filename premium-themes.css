@@ -1,0 +1,253 @@
+
+/* Premium world skins: structural and decorative redesigns, with game logic untouched. */
+body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .nono-world-scene {
+  display:block;position:absolute;inset:0 0 0 28%;z-index:0;background-position:right center;background-size:cover;
+  background-repeat:no-repeat;pointer-events:none;opacity:.96;
+  mask-image:linear-gradient(90deg,transparent,#000 27%);
+}
+.nono-world-scene{display:none}
+body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .hero-art {display:none!important}
+body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .hero-copy {
+  width:min(65%,660px);position:relative;z-index:2;
+}
+body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .hero {
+  min-height:345px;padding:48px;isolation:isolate;overflow:hidden;
+}
+body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .hero h1{
+  font-size:clamp(36px,5vw,68px);line-height:1.1;letter-spacing:-.045em;
+}
+body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .mode-card {
+  overflow:hidden;isolation:isolate;min-height:120px;position:relative;
+}
+body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .mode-card .mode-icon{
+  width:52px;height:52px;font-size:27px;position:relative;z-index:1;
+}
+body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .mode-card .mode-text{position:relative;z-index:1}
+body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .nono-theme-dialog{
+  backdrop-filter:blur(15px);box-shadow:0 22px 95px #0008;
+}
+
+/* WORLD 01 · Neon arcade — chunky cabinet frames, scanlines, pixel city */
+body[data-nono-theme="arcade"]{
+  --theme-page:#080720;--theme-text:#fbf6ff;--theme-surface:#111233;--theme-panel:#17153f;
+  --theme-input:#0a1236;--theme-line:#7547b9;--theme-muted:#bdb5db;--theme-accent:#fe51bd;
+  --theme-accent2:#36e8f5;--theme-grid:#4753a0;--theme-cell:#10152e;--theme-cross:#1c2149;
+  --theme-fill:#e6d2ff;--theme-glow:#fa4cbf44;--theme-selected:#332060;
+  --theme-grad:linear-gradient(115deg,#160b38 10%,#191547 60%,#361452 100%);
+  font-family:ui-monospace,'Courier New',monospace;color-scheme:dark;
+  background:
+    repeating-linear-gradient(0deg,transparent 0,transparent 3px,#dc6aff06 4px,#dc6aff06 5px),
+    radial-gradient(circle at 55% -20%,#601d8c70,transparent 60%),#09091e!important
+}
+body[data-nono-theme="arcade"] .nono-world-scene{background-image:url('./assets/arcade-scene.svg')}
+body[data-nono-theme="arcade"] .topbar{
+  margin-top:12px;padding:0 18px;border:2px solid #553d99!important;
+  background:linear-gradient(180deg,#19133d,#0d102b);box-shadow:0 0 0 4px #0d1027,0 9px 0 #423475;
+  border-radius:4px;position:relative;
+}
+body[data-nono-theme="arcade"] .topbar:before{
+  content:'● 1UP   ○ 2UP';position:absolute;right:16px;bottom:-21px;
+  font:800 10px ui-monospace,monospace;letter-spacing:2px;color:#57eaf3;
+}
+body[data-nono-theme="arcade"] :is(.brand,.hero h1,.section-heading h2,.mode-text strong,.nono-settings-head h2,.nono-theme-title){
+  font-family:ui-monospace,'Courier New',monospace;letter-spacing:-.075em;text-transform:uppercase;
+}
+body[data-nono-theme="arcade"] .brand{font-weight:1000;text-shadow:3px 3px 0 #f942b7}
+body[data-nono-theme="arcade"] .brand-box{background:#fa45be;color:#131029;border-radius:2px;box-shadow:5px 5px 0 #19e4f1}
+body[data-nono-theme="arcade"] .hero{
+  margin-top:39px!important;border:3px solid #ec39bc!important;border-radius:3px!important;
+  box-shadow:6px 6px 0 #20bfe2,12px 12px 0 #38205e!important;
+  background:linear-gradient(90deg,#180a3e,#14082baa)!important;
+}
+body[data-nono-theme="arcade"] .hero .eyebrow{color:#73f1fa!important;letter-spacing:3px}
+body[data-nono-theme="arcade"] .hero h1{color:#ffdb65;text-shadow:4px 4px #ec389b,8px 8px #462079}
+body[data-nono-theme="arcade"] .hero h1 span{
+  background:linear-gradient(#ffed76 32%,#ff4fae 90%);background-clip:text;-webkit-background-clip:text;color:transparent;
+}
+body[data-nono-theme="arcade"] .hero p{color:#f7e7fe!important}
+body[data-nono-theme="arcade"] .mode-card{
+  border:3px solid var(--arcade-card,#45c5ee)!important;border-radius:3px!important;
+  background:linear-gradient(155deg,#1d1342,#0a1733)!important;
+  box-shadow:5px 5px 0 var(--arcade-card,#45c5ee)!important;
+}
+body[data-nono-theme="arcade"] .mode-card:nth-child(1){--arcade-card:#4bbafa}
+body[data-nono-theme="arcade"] .mode-card:nth-child(2){--arcade-card:#fb5f99}
+body[data-nono-theme="arcade"] .mode-card:nth-child(3){--arcade-card:#46ecd2}
+body[data-nono-theme="arcade"] .mode-card:nth-child(4){--arcade-card:#ffcc63}
+body[data-nono-theme="arcade"] .mode-card .mode-icon{border:2px solid var(--arcade-card);border-radius:2px;background:#0f1735;color:var(--arcade-card);box-shadow:3px 3px 0 #0007}
+body[data-nono-theme="arcade"] .mode-card.selected{filter:brightness(1.15)}
+body[data-nono-theme="arcade"] :is(.card,.board-card,.players-card,.nono-settings,.nono-theme-dialog,.nono-theme-card,.button,.tool-button,.profile-chip,.nono-theme-open){
+  border-radius:4px!important;
+}
+body[data-nono-theme="arcade"] :is(.board-card,.players-card,.setup){
+  border:3px solid #654ba8!important;box-shadow:5px 5px 0 #0b0e28,0 0 15px #a12c985c;
+}
+body[data-nono-theme="arcade"] .board-card{background:linear-gradient(180deg,#090e2a,#16103c)!important}
+body[data-nono-theme="arcade"] :is(.button.primary,.tool-button.primary,.nono-theme-use){
+  border:2px solid #ff8ada!important;background:linear-gradient(105deg,#ef2eac,#6848f2)!important;
+  box-shadow:4px 4px 0 #19bbd4!important;color:white!important;border-radius:3px!important;
+}
+body[data-nono-theme="arcade"] .cell.filled{background:#f1b8ff!important}
+body[data-nono-theme="arcade"] .nono-theme-dialog{border:3px solid #ff4dbc}
+body[data-nono-theme="arcade"] footer:before{content:'★ INSERT COIN  ★   ' ;color:#f8cc50}
+
+/* WORLD 02 · Enchanted forest — storybook serif, carved timber, fireflies, ornate corners */
+body[data-nono-theme="enchanted"]{
+  --theme-page:#091b18;--theme-text:#f4e8cc;--theme-surface:#1c3029;--theme-panel:#294035;
+  --theme-input:#132922;--theme-line:#97714b;--theme-muted:#c5bd9e;--theme-accent:#e8bc6e;
+  --theme-accent2:#8dd7a7;--theme-grid:#567465;--theme-cell:#112c25;--theme-cross:#254034;
+  --theme-fill:#d5d6a7;--theme-glow:#d9b96d42;--theme-selected:#355d46;
+  --theme-grad:linear-gradient(105deg,#1b3628,#0d251e);
+  font-family:Georgia,'Times New Roman',serif;color-scheme:dark;
+  background:radial-gradient(circle at 35% -20%,#c4a65f29,transparent 44%),radial-gradient(circle at 90% 75%,#1a895329,transparent 40%),#091b18!important
+}
+body[data-nono-theme="enchanted"] .nono-world-scene{background-image:url('./assets/enchanted-scene.svg')}
+body[data-nono-theme="enchanted"] .topbar{
+  margin-top:12px;padding:0 23px;background:linear-gradient(180deg,#463021,#211c19)!important;
+  border:2px ridge #a77c45!important;border-radius:30px 12px 30px 12px!important;box-shadow:0 8px 20px #0008,0 0 0 3px #213b2b;
+}
+body[data-nono-theme="enchanted"] .brand{font-family:Georgia,serif;font-size:30px;color:#ffedc9;text-shadow:0 3px 8px #ffca8455}
+body[data-nono-theme="enchanted"] .brand-box{border-radius:50%!important;background:linear-gradient(#e2c789,#9c7942)!important;color:#352515!important;box-shadow:0 0 19px #e4b76466}
+body[data-nono-theme="enchanted"] .hero{
+  background:#103126!important;border:5px ridge #b99a63!important;
+  border-radius:65px 12px 90px 12px!important;box-shadow:0 15px 45px #0009,0 0 0 7px #14251e!important;
+}
+body[data-nono-theme="enchanted"] .hero:after{
+  content:'✦  ✧  ✦';position:absolute;bottom:18px;right:35px;font-size:28px;letter-spacing:20px;color:#e9d39c;
+  opacity:.9;pointer-events:none
+}
+body[data-nono-theme="enchanted"] .hero .eyebrow{color:#d7c98e!important;letter-spacing:4px}
+body[data-nono-theme="enchanted"] .hero h1{font-family:Georgia,serif;letter-spacing:-.045em;color:#ffedcf;text-shadow:0 4px 12px #000b}
+body[data-nono-theme="enchanted"] .hero h1 span{background:linear-gradient(#f8dea7,#d1a25c);background-clip:text;-webkit-background-clip:text;color:transparent}
+body[data-nono-theme="enchanted"] .hero p{color:#e6debc!important}
+body[data-nono-theme="enchanted"] :is(.card,.board-card,.players-card,.nono-settings,.nono-theme-dialog,.nono-theme-card,.mode-card){
+  background:linear-gradient(140deg,#26382c,#182820)!important;border:2px solid #997a53!important;
+  border-radius:26px 7px 26px 7px!important;box-shadow:inset 0 0 0 3px #ddc59116,0 8px 18px #0005;
+}
+body[data-nono-theme="enchanted"] .mode-card{min-height:140px;padding:22px}
+body[data-nono-theme="enchanted"] .mode-card:before{
+  content:'❧';position:absolute;right:10px;bottom:-22px;font-size:99px;color:#b8a46d26;font-family:serif;z-index:0
+}
+body[data-nono-theme="enchanted"] .mode-card .mode-icon{
+  background:#463724!important;color:#f4d28e!important;border:2px solid #a07d4a!important;border-radius:50%!important;
+}
+body[data-nono-theme="enchanted"] .mode-card.selected{box-shadow:0 0 0 2px #e4bf7d,0 0 30px #d8af543b!important}
+body[data-nono-theme="enchanted"] :is(.button,.tool-button,.profile-chip,.nono-theme-open,.nono-theme-use){
+  border:2px solid #a0804c!important;border-radius:25px 5px 25px 5px!important;
+  background:linear-gradient(110deg,#423623,#1c2d26)!important;color:#ffe8b2!important;box-shadow:inset 0 0 7px #f4bb5530!important;
+}
+body[data-nono-theme="enchanted"] :is(.button.primary,.tool-button.primary,.nono-theme-use){
+  color:#312113!important;background:linear-gradient(130deg,#efd9a0,#cda566)!important;box-shadow:0 0 20px #cda56666!important;
+}
+body[data-nono-theme="enchanted"] .board-card{
+  background:linear-gradient(130deg,#1e342c,#12241c)!important;border:5px ridge #b59663!important;
+  border-radius:35px 5px 35px 5px!important
+}
+body[data-nono-theme="enchanted"] #board{filter:drop-shadow(0 0 12px #b5cc7b25)}
+body[data-nono-theme="enchanted"] footer:before{content:'❧  ';color:#e8bc6e}
+
+/* WORLD 03 · Orbital control — white-blue tactical glass HUD, sharp geometry, 2x2 mission cards */
+body[data-nono-theme="cosmos"]{
+  --theme-page:#061322;--theme-text:#ebfaff;--theme-surface:#14283e;--theme-panel:#18354b;
+  --theme-input:#091b2c;--theme-line:#42768d;--theme-muted:#a4cbd8;--theme-accent:#74e5f4;
+  --theme-accent2:#daeaff;--theme-grid:#37657a;--theme-cell:#092035;--theme-cross:#162e43;
+  --theme-fill:#97e9ef;--theme-glow:#60dcf84d;--theme-selected:#1d5366;
+  --theme-grad:linear-gradient(120deg,#0b273c,#092440);
+  font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color-scheme:dark;
+  background:
+    linear-gradient(90deg,#4c9cbb10 1px,transparent 1px),
+    linear-gradient(#4c9cbb0b 1px,transparent 1px),
+    radial-gradient(ellipse at 40% 0,#267c9b45,transparent 62%),#071727!important;
+  background-size:56px 56px,56px 56px,auto,auto!important;
+}
+body[data-nono-theme="cosmos"] .nono-world-scene{background-image:url('./assets/cosmos-scene.svg')}
+body[data-nono-theme="cosmos"] .topbar{
+  margin-top:15px;background:#0a243acb!important;border:1px solid #5bdaf077!important;
+  padding:0 22px;clip-path:polygon(18px 0,100% 0,100% calc(100% - 18px),calc(100% - 18px) 100%,0 100%,0 18px);
+  box-shadow:0 4px 25px #40bff91d;backdrop-filter:blur(16px);
+}
+body[data-nono-theme="cosmos"] .brand{font-weight:950;letter-spacing:.13em;color:#f7ffff}
+body[data-nono-theme="cosmos"] .brand-box{background:linear-gradient(130deg,#80d9ed,#206887)!important;border-radius:3px!important;color:#071e34!important}
+body[data-nono-theme="cosmos"] .hero{
+  background:linear-gradient(90deg,#081e34,#072238c9)!important;
+  border:1px solid #77d9ee99!important;border-radius:0!important;
+  clip-path:polygon(32px 0,100% 0,100% calc(100% - 32px),calc(100% - 32px) 100%,0 100%,0 32px);
+  box-shadow:inset 0 0 45px #40b2db44!important;
+}
+body[data-nono-theme="cosmos"] .hero h1{font-weight:900;letter-spacing:.04em;text-transform:uppercase;color:#e7faff}
+body[data-nono-theme="cosmos"] .hero h1 span{background:linear-gradient(110deg,#8eefff,#d5e9fd);background-clip:text;-webkit-background-clip:text;color:transparent}
+body[data-nono-theme="cosmos"] .hero .eyebrow{color:#b2e9ee!important}
+body[data-nono-theme="cosmos"] .hero p{color:#b8d9ed!important}
+@media(min-width:901px){
+ body[data-nono-theme="cosmos"] .mode-select{grid-template-columns:repeat(2,minmax(0,1fr));}
+ body[data-nono-theme="cosmos"] .mode-card{min-height:95px}
+}
+body[data-nono-theme="cosmos"] .mode-card{
+  background:linear-gradient(130deg,#123349,#09253c)!important;border:1px solid #4ca6c3!important;
+  border-radius:0 18px 0 18px!important;box-shadow:inset 0 0 0 1px #5fbbd225;
+}
+body[data-nono-theme="cosmos"] .mode-card:after{
+  content:'○ READY';position:absolute;right:14px;top:9px;color:#9bddde;font:700 9px ui-monospace,monospace;
+  letter-spacing:1px;opacity:.65
+}
+body[data-nono-theme="cosmos"] .mode-card .mode-icon{background:#0e4057!important;border:1px solid #7febf3!important;border-radius:4px!important}
+body[data-nono-theme="cosmos"] :is(.card,.board-card,.players-card,.nono-settings,.nono-theme-dialog,.nono-theme-card){
+  background:linear-gradient(130deg,#142d43,#0c2235)!important;border:1px solid #6bb4c682!important;
+  border-radius:2px 22px 2px 22px!important;box-shadow:inset 0 0 18px #2ca1bd14,0 12px 26px #0003;
+}
+body[data-nono-theme="cosmos"] :is(.button,.tool-button,.profile-chip,.nono-theme-open,.nono-theme-use){
+  background:#153449!important;color:#dffaff!important;border:1px solid #5799b9!important;
+  border-radius:0 12px 0 12px!important;letter-spacing:.02em
+}
+body[data-nono-theme="cosmos"] :is(.button.primary,.tool-button.primary,.nono-theme-use){
+  background:linear-gradient(115deg,#41b5cb,#437ac5)!important;
+  border-color:#98ebff!important;box-shadow:inset 0 0 0 1px #ffffff55,0 5px 18px #5de1fd34!important;color:#071d35!important;
+}
+body[data-nono-theme="cosmos"] .board-card{border:2px solid #81d9ed!important;background:#061c2b!important;padding:23px 27px 21px}
+body[data-nono-theme="cosmos"] .board-scroll{background:radial-gradient(circle,#1c526b31,transparent 70%)}
+body[data-nono-theme="cosmos"] footer:before{content:'✧  TRANSMISSION ONLINE  ·  ';color:#7de1f2}
+
+/* Premium tier category layout: displayed in the same accessible selection dialog. */
+.nono-theme-section{padding:0;margin:0 0 12px}
+.nono-theme-section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:2px 0 12px}
+.nono-theme-section-heading h3{font-size:15px;margin:0;color:var(--theme-text,#eef4ff)}
+.nono-theme-section-heading small{font-size:11px;color:var(--theme-muted,#91accf)}
+.nono-theme-section .nono-theme-list{padding:0 0 8px;overflow:visible}
+.nono-theme-groups{padding:14px 24px 20px;overflow-y:auto;scrollbar-gutter:stable}
+.nono-theme-card[data-tier="world"] .nono-theme-sample{
+  min-height:145px;background-position:center;background-size:cover;position:relative;isolation:isolate;
+}
+.nono-theme-card[data-tier="world"] .nono-theme-sample:before{
+  content:'';position:absolute;inset:0;background:linear-gradient(90deg,#070e1faa,transparent 75%);z-index:-1
+}
+.nono-theme-card[data-tier="world"] .nono-theme-preview-text{color:#f4f8ff;text-shadow:0 3px 16px #000d,0 0 15px var(--sample-fill);letter-spacing:.08em}
+.nono-theme-card[data-tier="world"] .nono-theme-pixels{display:none}
+.nono-theme-card[data-theme-id="arcade"] .nono-theme-sample{background-image:url('./assets/arcade-scene.svg')!important}
+.nono-theme-card[data-theme-id="enchanted"] .nono-theme-sample{background-image:url('./assets/enchanted-scene.svg')!important}
+.nono-theme-card[data-theme-id="cosmos"] .nono-theme-sample{background-image:url('./assets/cosmos-scene.svg')!important}
+.nono-theme-card[data-tier="world"]{border-width:2px;box-shadow:0 4px 19px #0004}
+.nono-theme-card[data-tier="world"] .nono-theme-price{color:#ffdc87}
+@media(max-width:900px){
+ body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .hero{
+ min-height:290px;padding:28px!important;
+ }
+ body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .hero-copy{width:min(65%,460px)}
+}
+@media(max-width:690px){
+ body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .hero{
+ min-height:290px;padding:25px 22px!important;
+ }
+ body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .hero-copy{width:76%}
+ body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .hero h1{font-size:34px!important}
+ body:is([data-nono-theme="arcade"],[data-nono-theme="enchanted"],[data-nono-theme="cosmos"]) .nono-world-scene{
+   inset:0 0 0 20%;opacity:.54;
+ }
+ body[data-nono-theme="arcade"] .topbar{padding:0 9px}
+ body[data-nono-theme="arcade"] .hero{box-shadow:3px 3px 0 #20bfe2!important}
+ body[data-nono-theme="enchanted"] .topbar{padding:0 9px}
+ body[data-nono-theme="cosmos"] .topbar{padding:0 9px}
+ .nono-theme-groups{padding:12px 16px}
+ .nono-theme-section-heading{align-items:start;flex-direction:column;gap:4px}
+ .nono-theme-card[data-tier="world"] .nono-theme-sample{min-height:100px}
+}
+@media(prefers-reduced-motion:reduce){body[data-nono-theme] *{transition:none!important}}
