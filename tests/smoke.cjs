@@ -9,6 +9,26 @@ const { pathToFileURL } = require('node:url');
   await page.route('**/firebase-config.js', route => route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
   await page.goto(pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href);
   await page.locator('#nono-open-settings').waitFor();
+
+  await page.locator('#nono-theme-open').waitFor();
+  await page.click('#nono-theme-open');
+  if (await page.locator('.nono-theme-card').count() !== 4) throw new Error('Four theme cards not found');
+  await page.getByRole('button', { name: '파스텔 드림 미리보기' }).click();
+  if (await page.locator('body').getAttribute('data-nono-theme') !== 'pastel')
+    throw new Error('Theme preview did not apply site-wide');
+  await page.click('#nono-theme-close');
+  if (await page.locator('body').getAttribute('data-nono-theme') !== 'neon')
+    throw new Error('Closing preview did not restore default theme');
+  await page.click('#nono-theme-open');
+  await page.getByRole('button', { name: '마법의 숲 미리보기' }).click();
+  await page.locator('#nono-theme-use').click();
+  if (await page.locator('body').getAttribute('data-nono-theme') !== 'forest')
+    throw new Error('Temporary theme trial was not applied');
+  const siteTheme = await page.locator('.hero').evaluate(el=>getComputedStyle(el).backgroundImage);
+  const cellTheme = await page.locator('#nono-theme-open').evaluate(el=>getComputedStyle(el).backgroundColor);
+  if(!siteTheme.includes('gradient') || cellTheme === 'rgba(0, 0, 0, 0)')
+    throw new Error('Theme did not update the surrounding UI');
+
   await page.click('#nono-open-settings');
   await page.locator('#nono-settings-content').waitFor();
   if (!await page.locator('.nono-setting').count()) throw new Error('No settings rendered');
@@ -71,7 +91,9 @@ const { pathToFileURL } = require('node:url');
   await page.locator('#nono-hud-editor').waitFor({state:'detached'});
   const {answers}=require('./puzzles.cjs');
   const completedAt=await page.evaluate(answer=>{board=answer.split('');startedAt=Date.now()-15000;finishLocal();return finishedAt;},answers.heart5);
-  await page.reload();await page.locator('#nono-open-settings').waitFor();await page.click('#play-alone');
+  await page.reload();await page.locator('#nono-open-settings').waitFor();
+  if(await page.locator('body').getAttribute('data-nono-theme')!=='neon')throw new Error('Locked theme trial was persisted as owned');
+  await page.click('#play-alone');
   const restoredAt=await page.evaluate(()=>finishedAt);
   if(restoredAt!==completedAt)throw new Error('Completed practice time changed on resume');
   if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
