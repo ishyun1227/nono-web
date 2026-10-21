@@ -21,7 +21,9 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
       - name: Check JavaScript syntax
-        run: node --check settings.js
+        run: |
+          node --check settings.js
+          node --check themes.js
       - name: Run browser test
         run: node tests/smoke.cjs
       - name: Validate database security rules
