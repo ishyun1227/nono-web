@@ -55,7 +55,7 @@ function closeTheme(keepPreview){
     try{if(activeTheme==='neon')sessionStorage.removeItem(TRIAL_KEY);else sessionStorage.setItem(TRIAL_KEY,activeTheme)}catch{}
   }else applyTheme(previousTheme);
   modal.remove();modal=null;
-  document.removeEventListener('keydown',onKey);
+  document.removeEventListener('keydown',onKey,true);
   openButton?.focus({preventScroll:true});
 }
 function onKey(e){if(e.key==='Escape'){e.preventDefault();closeTheme(false)}}
