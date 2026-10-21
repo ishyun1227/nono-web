@@ -12,7 +12,10 @@ const { pathToFileURL } = require('node:url');
 
   await page.locator('#nono-theme-open').waitFor();
   await page.click('#nono-theme-open');
-  if (await page.locator('.nono-theme-card').count() !== 4) throw new Error('Four theme cards not found');
+  if (await page.locator('.nono-theme-card').count() !== 7) throw new Error('Seven tiered theme cards not found');
+  if(await page.locator('.nono-theme-section').count()!==2)throw new Error('Color/world theme categories missing');
+  if(await page.locator('.nono-theme-card[data-tier="color"]').count()!==4)throw new Error('Incorrect color theme count');
+  if(await page.locator('.nono-theme-card[data-tier="world"]').count()!==3)throw new Error('Incorrect world theme count');
   await page.getByRole('button', { name: '파스텔 드림 미리보기' }).click();
   if (await page.locator('body').getAttribute('data-nono-theme') !== 'pastel')
     throw new Error('Theme preview did not apply site-wide');
@@ -20,10 +23,30 @@ const { pathToFileURL } = require('node:url');
   if (await page.locator('body').getAttribute('data-nono-theme') !== 'neon')
     throw new Error('Closing preview did not restore default theme');
   await page.click('#nono-theme-open');
-  await page.getByRole('button', { name: '마법의 숲 미리보기' }).click();
+  await page.getByRole('button', { name: '포레스트 그린 미리보기' }).click();
   await page.locator('#nono-theme-use').click();
   if (await page.locator('body').getAttribute('data-nono-theme') !== 'forest')
     throw new Error('Temporary theme trial was not applied');
+  // A full world skin must replace the hero artwork and structurally redesign the game.
+  for (const [id,label] of [['arcade','픽셀 시티 아케이드'],['enchanted','정령의 숲'],['cosmos','우주 관제실']]) {
+    await page.click('#nono-theme-open');
+    await page.getByRole('button',{name:label+' 미리보기'}).click();
+    const world=await page.evaluate(()=>{
+      const hero=document.querySelector('.hero');
+      const scene=hero.querySelector('.nono-world-scene');
+      return {theme:document.body.dataset.nonoTheme,
+        sceneImage:getComputedStyle(scene).backgroundImage,
+        sceneDisplay:getComputedStyle(scene).display,
+        catDisplay:getComputedStyle(hero.querySelector('.hero-art')).display,
+        heroBorder:getComputedStyle(hero).borderRadius,
+        cardBorder:getComputedStyle(document.querySelector('.mode-card')).borderRadius};
+    });
+    if(world.theme!==id || !world.sceneImage.includes('scene.svg') || world.sceneDisplay==='none' || world.catDisplay!=='none')
+      throw new Error('Premium world scene did not replace mascot artwork: '+JSON.stringify(world));
+    await page.click('#nono-theme-close');
+    if(await page.locator('body').getAttribute('data-nono-theme')!=='forest')
+      throw new Error('Closing premium preview failed to restore prior tier');
+  }
   const siteTheme = await page.locator('.hero').evaluate(el=>getComputedStyle(el).backgroundImage);
   const cellTheme = await page.locator('#nono-theme-open').evaluate(el=>getComputedStyle(el).backgroundColor);
   if(!siteTheme.includes('gradient') || cellTheme === 'rgba(0, 0, 0, 0)')
