@@ -11,7 +11,8 @@ const themes=[
   {id:'arcade',tier:'world',label:'픽셀 시티 아케이드',desc:'네온 게임기·픽셀 UI·아케이드 모니터',price:2500,colors:['#100625','#2d1054','#ff51ba','#4f7cea','#f9f1ff']},
   {id:'library',tier:'world',label:'신비로운 도서관',desc:'별자리 창문·양피지·황금빛 서고 전체 개편',price:3500,colors:['#0b0f21','#2c233d','#f5c97b','#a78656','#f8e6bd']},
   {id:'enchanted',tier:'world',label:'정령의 숲',desc:'달빛 숲, 나무 액자, 판타지 서체와 장식',price:4500,colors:['#09241e','#28503a','#eaca83','#6d986e','#fff3d2']},
-  {id:'cosmos',tier:'world',label:'우주 관제실',desc:'우주선, 홀로그램 HUD, 관제 콘솔형 배치',price:5500,colors:['#06182d','#143754','#72dff4','#517996','#f3faff']}
+  {id:'cosmos',tier:'world',label:'우주 관제실',desc:'우주선, 홀로그램 HUD, 관제 콘솔형 배치',price:5500,colors:['#06182d','#143754','#72dff4','#517996','#f3faff']},
+  {id:'terminal',tier:'world',label:'던전 터미널',desc:'형광 초록 CRT · 레트로 창형 퍼즐 데스크톱',price:6500,colors:['#17482b','#45d62e','#b3fb50','#061609','#07170c']}
 ];
 const byId=Object.fromEntries(themes.map(t=>[t.id,t]));
 const savedTrial=(()=>{
@@ -20,7 +21,7 @@ const savedTrial=(()=>{
 let activeTheme=byId[savedTrial]?savedTrial:'neon'; // Session trial is not a purchase and grants no ownership or server privileges.
 let modal=null,selection=activeTheme,previousTheme=activeTheme;
 const previewArt=['00100','01110','11111','01110','00100'].join('');
-const themeColor={neon:'#0c1225',aurora:'#071629',pastel:'#faf6f0',retro:'#080e0c',forest:'#071a14',arcade:'#09091e',library:'#0b0f21',enchanted:'#091b18',cosmos:'#071727'};
+const themeColor={neon:'#0c1225',aurora:'#071629',pastel:'#faf6f0',retro:'#080e0c',forest:'#071a14',arcade:'#09091e',library:'#0b0f21',enchanted:'#091b18',cosmos:'#071727',terminal:'#277432'};
 const hero=document.querySelector('.hero');
 if(hero){const scene=document.createElement('div');scene.className='nono-world-scene';scene.setAttribute('aria-hidden','true');hero.append(scene);}
 const headline=document.querySelector('#hero-title');
@@ -96,7 +97,7 @@ function openTheme(){
   const groups=panel.querySelector('#nono-theme-groups'),lists={};
   for(const [tier,title,info] of [
     ['color','🎨 색상 테마','레이아웃은 유지 · 0 ~ 500 P 예정'],
-    ['world','✨ 프리미엄 테마','배경·메뉴·카드·게임판 전면 재설계 · 2,500 ~ 5,500 P 예정']
+    ['world','✨ 프리미엄 테마','배경·메뉴·카드·게임판 전면 재설계 · 2,500 ~ 6,500 P 예정']
   ]){
     const section=document.createElement('section');section.className='nono-theme-section';
     const heading=document.createElement('div');heading.className='nono-theme-section-heading';
