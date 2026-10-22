@@ -1,6 +1,5 @@
 const { chromium } = require('playwright');
 const path = require('node:path');
-const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 (async () => {
   const browser = await chromium.launch({ headless: true, ...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{}) });
@@ -65,12 +64,11 @@ const { pathToFileURL } = require('node:url');
   await page.click('#nono-theme-open');
   await page.getByRole('button',{name:'신비로운 도서관 미리보기'}).click();
   await page.locator('#nono-theme-use').click();
-  for (const asset of ['library-reference-painting.webp','library-modes-sprite.webp']) {
-    const data=fs.readFileSync(path.resolve(__dirname,'..','assets',asset));
-    if(data.length<1000 || data.toString('ascii',0,4)!=='RIFF' ||
-      data.toString('ascii',8,12)!=='WEBP') {
-      throw new Error('Illustration asset is missing or invalid: '+asset);
-    }
+  // SVG originals are vector artwork, not compressed/cropped portions of the mockup.
+  for(const name of ['library-world','library-mode-practice','library-mode-race','library-mode-coop','library-mode-record']){
+    const response=await page.request.get(pathToFileURL(path.resolve(__dirname,'..','assets',name+'.svg')).href);
+    if(!response.ok() || !(await response.text()).includes('<svg'))
+      throw new Error('Real scalable library artwork missing: '+name);
   }
   // The reference-inspired library is a real page layout, not just a color filter.
   const libraryUI=await page.evaluate(()=>{
@@ -86,10 +84,10 @@ const { pathToFileURL } = require('node:url');
       galleryText:getComputedStyle(gallery).color,
       headerHeight:topbar.getBoundingClientRect().height};
   });
-  if(libraryUI.nav==='none' || !libraryUI.heroImage.includes('library-scene.svg') ||
+  if(libraryUI.nav==='none' || !libraryUI.heroImage.includes('library-world.svg') ||
     libraryUI.heroHeight<390 || libraryUI.cardHeight<240 ||
-    !libraryUI.heroImage.includes('library-reference-painting.webp') ||
-    !libraryUI.cardArtwork.includes('library-modes-sprite.webp'))
+    !libraryUI.heroImage.includes('linear-gradient') ||
+    !libraryUI.cardArtwork.includes('library-mode-practice.svg'))
     throw new Error('Illustrated library homepage did not render as intended: '+JSON.stringify(libraryUI));
   const worldItems=page.locator('.nono-world-puzzle');
   await worldItems.last().click();
