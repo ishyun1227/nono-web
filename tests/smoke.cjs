@@ -13,10 +13,10 @@ const { pathToFileURL } = require('node:url');
 
   await page.locator('#nono-theme-open').waitFor();
   await page.click('#nono-theme-open');
-  if (await page.locator('.nono-theme-card').count() !== 9) throw new Error('Nine tiered theme cards not found');
+  if (await page.locator('.nono-theme-card').count() !== 10) throw new Error('Ten tiered theme cards not found');
   if(await page.locator('.nono-theme-section').count()!==2)throw new Error('Color/world theme categories missing');
   if(await page.locator('.nono-theme-card[data-tier="color"]').count()!==5)throw new Error('Incorrect color theme count');
-  if(await page.locator('.nono-theme-card[data-tier="world"]').count()!==4)throw new Error('Incorrect world theme count');
+  if(await page.locator('.nono-theme-card[data-tier="world"]').count()!==5)throw new Error('Incorrect world theme count');
   await page.getByRole('button', { name: '크림 라벤더 미리보기' }).click();
   if (await page.locator('body').getAttribute('data-nono-theme') !== 'pastel')
     throw new Error('Theme preview did not apply site-wide');
@@ -241,6 +241,67 @@ const { pathToFileURL } = require('node:url');
   if(!mobileOk)throw new Error('Forest mobile layout failed');
   if(forestErrors.length)throw new Error('Forest JS errors: '+forestErrors.join(' | '));
   await forestPage.close();
+
+  // Terminal is a *separate* functional windowed website, not a recolor of the default UI.
+  const terminalPage=await browser.newPage({viewport:{width:1440,height:900}});
+  const terminalErrors=[];
+  terminalPage.on('pageerror',error=>terminalErrors.push(error.message));
+  await terminalPage.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
+  await terminalPage.goto(pathToFileURL(path.resolve(__dirname,'..','index.html')).href);
+  await terminalPage.click('#nono-theme-open');
+  await terminalPage.getByRole('button',{name:'던전 터미널 미리보기'}).click();
+  await terminalPage.locator('#nono-theme-use').click();
+  await terminalPage.locator('#terminal-experience').waitFor({state:'visible'});
+  const windows=await terminalPage.evaluate(()=>{
+    const root=document.getElementById('terminal-experience');
+    return {
+      originalHidden:getComputedStyle(document.querySelector('body>.shell')).display==='none',
+      desktopColumns:getComputedStyle(root.querySelector('.term-workspace')).gridTemplateColumns.split(' ').length,
+      windows:root.querySelectorAll('.term-window').length,
+      setupMoved:!!root.querySelector('#term-setup-mount #setup'),
+      gameMoved:!!root.querySelector('#term-game-mount #game'),
+      art:getComputedStyle(root).backgroundImage,
+      allModes:root.querySelectorAll('[data-term-mode]').length
+    };
+  });
+  if(!windows.originalHidden || windows.desktopColumns!==3 || windows.windows!==6 ||
+    !windows.setupMoved || !windows.gameMoved || windows.allModes!==4 ||
+    !windows.art.includes('terminal-wallpaper.svg'))
+    throw new Error('New CRT desktop is not independent or functional: '+JSON.stringify(windows));
+  await terminalPage.locator('[data-term-mode="race"]').click();
+  if(!await terminalPage.locator('.mode-card[data-mode="race"]').evaluate(el=>el.classList.contains('selected')))
+    throw new Error('CRT window mode failed to switch the real game');
+  await terminalPage.locator('[data-term-mode="practice"]').click();
+  await terminalPage.selectOption('#puzzle','heart5');
+  await terminalPage.click('#play-alone');
+  await terminalPage.locator('#terminal-experience #board .cell').first().waitFor({state:'visible'});
+  if(!await terminalPage.locator('#term-playing').isVisible() ||
+      await terminalPage.locator('#term-home').isVisible())
+    throw new Error('CRT game did not switch from Explorer to actual board');
+  await terminalPage.locator('#terminal-experience #board').focus();
+  await terminalPage.keyboard.press('ArrowRight');
+  await terminalPage.keyboard.press('Space');
+  await terminalPage.locator('#term-cross').click();
+  if(!await terminalPage.locator('#tool-cross').evaluate(el=>el.classList.contains('primary')))
+    throw new Error('CRT Tools are not attached to actual puzzle input');
+  await terminalPage.locator('#term-menu').click();
+  await terminalPage.getByRole('button',{name:'네온 다크 미리보기'}).click();
+  await terminalPage.locator('#nono-theme-use').click();
+  if(await terminalPage.locator('#terminal-experience').isVisible() ||
+    !await terminalPage.locator('body>.shell #game').count())
+    throw new Error('CRT environment did not restore original site when exiting');
+  await terminalPage.click('#nono-theme-open');
+  await terminalPage.getByRole('button',{name:'던전 터미널 미리보기'}).click();
+  await terminalPage.locator('#nono-theme-use').click();
+  await terminalPage.setViewportSize({width:390,height:740});
+  await terminalPage.locator('#terminal-experience #board .cell').first().waitFor({state:'visible'});
+  const terminalMobile=await terminalPage.evaluate(()=>{
+    const board=document.querySelector('#terminal-experience #board').getBoundingClientRect();
+    return board.width>0 && getComputedStyle(document.querySelector('.term-workspace')).display==='flex';
+  });
+  if(!terminalMobile)throw new Error('CRT mobile board is broken');
+  if(terminalErrors.length)throw new Error('CRT JavaScript errors: '+terminalErrors.join(' | '));
+  await terminalPage.close();
 
   if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
   console.log('NONO smoke test passed.');
