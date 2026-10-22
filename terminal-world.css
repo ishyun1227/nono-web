@@ -1,0 +1,493 @@
+/* NONO Pocket Dungeon: independent green CRT desktop.
+   Designed with real HTML controls, no assets or UI screenshots copied from reference.
+   The original game DOM is moved into the desktop's central window. */
+body[data-nono-theme="terminal"]{
+  --theme-page:#297d2d;--theme-text:#050a09;--theme-surface:#4cd83b;--theme-panel:#40bd38;
+  --theme-input:#85ee47;--theme-line:#050a09;--theme-muted:#1a481f;--theme-accent:#b3f84d;
+  --theme-accent2:#ffad43;--theme-grid:#081a0a;--theme-cell:#7bf34f;--theme-cross:#48a139;
+  --theme-fill:#101a16;--theme-glow:#50fe643d;--theme-selected:#e8fa65;
+  background:#174b2b!important;color:#050a09!important;color-scheme:light;
+}
+body[data-nono-theme="terminal"]>.shell{display:none!important}
+#terminal-experience[hidden],#terminal-experience [hidden]{display:none!important}
+#terminal-experience{
+  --t-ink:#06120c;--t-green:#4ad332;--t-bright:#94f154;--t-light:#a6fb52;
+  --t-dull:#369c34;--t-orange:#ff9e29;
+  --t-border:4px solid #07120c;
+  position:relative;isolation:isolate;min-height:100vh;
+  background:
+    repeating-linear-gradient(109deg,#0713090d 0 3px,transparent 3px 34px),
+    radial-gradient(ellipse at 78% 30%,#5bfc3c45,transparent 65%),
+    url('./assets/terminal-wallpaper.svg') center/cover fixed no-repeat,
+    #276f33;
+  font-family:'Trebuchet MS','Arial Black',Arial,sans-serif;font-weight:800;
+  color:#050d09;line-height:1.22;
+  text-shadow:none;overflow:hidden;
+}
+#terminal-experience *,#terminal-experience *::before,#terminal-experience *::after{box-sizing:border-box}
+#terminal-experience:after{
+  content:"";position:fixed;z-index:300;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,transparent 0 3px,#08140919 3px 5px);
+  mix-blend-mode:multiply;opacity:.58;
+}
+#terminal-experience:before{
+  content:"";position:fixed;z-index:300;inset:0;pointer-events:none;
+  border-radius:32px;box-shadow:inset 0 0 64px 21px #0814098a;
+}
+#terminal-experience button,#terminal-experience input,#terminal-experience select{font:inherit;color:inherit}
+#terminal-experience button{cursor:pointer}
+#terminal-experience button:focus-visible,#terminal-experience input:focus-visible,#terminal-experience select:focus-visible{
+ outline:4px dashed #fb9a28;outline-offset:2px;z-index:5;
+}
+#terminal-experience .term-crt{
+  display:flex;flex-direction:column;min-height:100vh;max-width:1800px;
+  margin:auto;padding:18px 15px 0;border-radius:25px;
+  border:3px solid #13382033;background:#265c281a;
+}
+#terminal-experience .term-workspace{
+  display:grid;grid-template-columns:minmax(240px,26%) minmax(340px,1fr) minmax(240px,25%);
+  align-items:stretch;gap:14px;min-height:calc(100vh - 115px);
+}
+#terminal-experience .term-left,#terminal-experience .term-right{display:flex;flex-direction:column;gap:15px;min-width:0}
+#terminal-experience .term-window{
+  display:flex;flex-direction:column;min-width:0;
+  border:var(--t-border);
+  background:linear-gradient(135deg,#62e73f,#3ac52e 76%);
+  box-shadow:inset 0 0 0 3px #17531b,5px 5px 0 #102013ab;
+}
+#terminal-experience .term-titlebar{
+  height:40px;min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:5px;
+  padding:0 6px 0 10px;border-bottom:6px double #07130c;
+  background:linear-gradient(180deg,#8cfb53,#39ce37);
+  color:#061009;letter-spacing:-.035em;font-size:20px;font-weight:1000;
+  white-space:nowrap;overflow:hidden;
+}
+#terminal-experience .term-titlebar strong{
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:1000;
+  font-family:'Arial Black','Trebuchet MS',sans-serif;
+}
+#terminal-experience .term-win-buttons{display:flex;align-items:center;gap:3px;flex-shrink:0}
+#terminal-experience .term-win-buttons i{
+  display:grid;place-items:center;width:24px;height:24px;font:bold 19px monospace;
+  border:4px solid #07120b;font-style:normal;background:#6ced47;
+  line-height:1;
+}
+#terminal-experience .term-player{height:335px;flex-shrink:0}
+#terminal-experience .term-player-inner{
+  display:grid;grid-template-columns:110px 1fr;gap:9px;align-content:start;
+  padding:18px 13px 12px;
+}
+#terminal-experience .term-avatar{
+  height:124px;border:6px double #05140b;background:
+    linear-gradient(160deg,#64e738,#319d36 65%,#29692c);
+  display:flex;align-items:center;justify-content:center;position:relative;
+}
+#terminal-experience .term-avatar-pixel{
+  font-size:82px;color:#ffb33e;text-shadow:5px 5px 0 #06180e,-3px 0 0 #103d20;
+  transform:rotate(-11deg);
+}
+#terminal-experience .term-avatar-eyes{
+  position:absolute;font-size:22px;color:#0c180c;top:49px;left:27px;
+  text-shadow:0 0 3px #d8eb40;
+}
+#terminal-experience .term-player-facts{
+  display:flex;flex-direction:column;gap:9px;padding:10px 0;min-width:0;
+}
+#terminal-experience .term-player-facts strong{
+  font-size:clamp(17px,1.45vw,25px);overflow-wrap:anywhere;text-shadow:1px 1px #b3f966;
+}
+#terminal-experience .term-player-facts span{
+  display:inline-block;width:fit-content;
+  border:3px solid #0b1a10;background:#93f64a;padding:3px 8px;
+  font-size:17px;
+}
+#terminal-experience .term-player-facts small{font-size:11px;word-break:break-word}
+#terminal-experience .term-stats-mini{
+  grid-column:1/-1;display:grid;grid-template-columns:1fr auto;gap:9px;
+  margin-top:10px;padding:8px 2px;
+  border-top:4px dashed #09160d;font-size:16px;
+}
+#terminal-experience .term-bar{
+  grid-column:1/-1;height:27px;border:5px solid #06180d;background:#101b12;
+}
+#terminal-experience .term-bar i{display:block;height:100%;background:linear-gradient(90deg,#f89a28,#e2ee42);width:0}
+#terminal-experience .term-log{flex:1;min-height:340px}
+#terminal-experience .term-log-body{
+  display:flex;flex-direction:column;gap:14px;flex:1;min-height:0;
+  padding:15px;background:linear-gradient(#44bb31 0 50%,#a6f451 50% 100%);
+}
+#terminal-experience .term-mono-head{font:900 15px monospace;background:#a1f451;border:3px solid #05160c;padding:9px 7px}
+#terminal-experience .term-log-body p{font:900 14px/1.9 monospace}
+#terminal-experience .term-log-box{
+  display:flex;flex-direction:column;gap:10px;margin-top:auto;
+  padding:12px;background:#8eec4a;border:4px dashed #10230c;
+  font:900 14px monospace;
+}
+#terminal-experience .term-log-box strong{
+  border-bottom:3px solid #101b0e;padding-bottom:6px;
+}
+#terminal-experience .term-log-tip{font-size:13px!important;margin:0}
+#terminal-experience .term-explorer{min-height:700px;background:#3ec537;overflow:hidden}
+#terminal-experience .term-browser-toolbar{
+  display:flex;align-items:center;gap:6px;padding:8px;
+  border-bottom:6px solid #07120d;
+  background:#70ee45;
+}
+#terminal-experience .term-browser-toolbar button{
+  flex:0 0 57px;height:37px;display:grid;place-items:center;
+  background:#5cdf42;border:4px solid #07140c;color:#07120c;
+  font-size:27px;line-height:1;
+}
+#terminal-experience .term-browser-toolbar button:hover{background:#b2fa55}
+#terminal-experience .term-address{
+  flex:1;min-width:0;height:37px;display:flex;align-items:center;
+  border:4px solid #0b180e;background:#72e84b;
+  padding:2px 9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font:900 14px 'Courier New',monospace;
+}
+#terminal-experience .term-explorer-content{
+  min-height:0;flex:1;overflow:auto;
+  background:
+    repeating-linear-gradient(0deg,#080f0b0a 0 1px,transparent 1px 5px),
+    linear-gradient(140deg,#53d63d,#32bf36);
+}
+#terminal-experience .term-home{padding:19px 22px 27px}
+#terminal-experience .term-directory-header{
+  display:flex;align-items:center;gap:14px;margin-bottom:17px;
+  padding:14px 13px;border:4px solid #07130c;
+  background:#adf552;
+}
+#terminal-experience .term-directory-icon{font-size:36px}
+#terminal-experience .term-directory-header>div{display:flex;flex-direction:column;gap:3px}
+#terminal-experience .term-directory-header b{font-size:21px}
+#terminal-experience .term-directory-header small{font-size:13px}
+#terminal-experience .term-mode-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+#terminal-experience .term-mode-grid button{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;min-width:0;
+  gap:7px;padding:5px 3px 13px;
+  border:4px solid transparent;background:transparent;color:#06150e;text-align:center;
+}
+#terminal-experience .term-mode-grid button[aria-pressed=true]{
+  background:#a5f64d;border-color:#08180d;box-shadow:4px 4px 0 #143b16a1;
+}
+#terminal-experience .term-mode-grid button:hover{background:#93f451;border-color:#10280e}
+#terminal-experience .term-mode-image{
+  width:100%;min-height:90px;display:grid;place-items:center;
+  color:#f5a030;background:#59d737;border:5px solid #081a0d;
+  box-shadow:inset 0 0 0 2px #bafa66;
+  text-shadow:4px 4px 0 #112211,-2px -2px 0 #081f0d;
+  font-size:clamp(43px,4vw,74px);line-height:1;
+}
+#terminal-experience .term-mode-grid button:nth-child(2) .term-mode-image{color:#f96755;background:#6cea3b}
+#terminal-experience .term-mode-grid button:nth-child(3) .term-mode-image{color:#fce461;background:#369f31}
+#terminal-experience .term-mode-grid button:nth-child(4) .term-mode-image{color:#eeab34;background:#72e957}
+#terminal-experience .term-mode-grid b{font-size:13px;white-space:nowrap}
+#terminal-experience .term-mode-grid small{font:900 11px monospace}
+#terminal-experience .term-folder-caption{
+  margin:17px 0 14px;padding:7px 9px;background:#93ef4d;
+  border:3px solid #0d240f;font:900 15px monospace;
+}
+#terminal-experience .term-file-grid{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;
+  padding:0 0 19px;
+}
+#terminal-experience .term-file{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+  padding:9px 3px;min-width:0;min-height:100px;text-align:center;
+  border:3px solid #10210e;background:#82f348;
+  font-size:12px;overflow:hidden;
+}
+#terminal-experience .term-file-icon{
+  display:grid;place-items:center;width:65px;height:60px;
+  font-size:47px;line-height:1;color:#fb9a26;
+  text-shadow:4px 4px 0 #071e0d,0 -2px 0 #0d210f;
+}
+#terminal-experience .term-file strong{
+  width:100%;white-space:normal;overflow-wrap:anywhere;font:900 11px/1.3 monospace;
+}
+#terminal-experience .term-file:hover{background:#c2fc51;transform:translateY(-2px)}
+#terminal-experience .term-file:active{background:#f1bb45}
+#terminal-experience .term-setup-mount #setup{
+  display:flex;flex-direction:column;gap:14px;padding:16px!important;
+  border:5px double #061b0c!important;background:#9af24a!important;
+  box-shadow:inset 0 0 0 4px #52be37!important;border-radius:0!important;
+}
+#terminal-experience .term-setup-mount #setup h3{
+  font:900 20px monospace;color:#07150b!important;
+}
+#terminal-experience .term-setup-mount #setup p{color:#0c2a13!important;font:900 12px/1.5 monospace}
+#terminal-experience .term-setup-mount .controls{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;width:100%;
+}
+#terminal-experience .term-setup-mount .controls label{
+  display:flex;flex-direction:column;gap:5px;color:#05170a;font:900 12px monospace;
+}
+#terminal-experience .term-setup-mount :is(input,select){
+  width:100%;min-width:0;height:40px;padding:5px 8px!important;
+  border:4px solid #05160c!important;border-radius:0!important;
+  background:#b1fb58!important;color:#08160d!important;
+  font:900 13px monospace;
+}
+#terminal-experience .term-setup-mount .setup-actions{display:flex;flex-wrap:wrap;gap:10px;width:100%}
+#terminal-experience .term-setup-mount .button{
+  min-height:44px;padding:8px 13px!important;background:#64e242!important;
+  border:4px solid #0b210f!important;box-shadow:3px 3px 0 #173b15!important;
+  border-radius:0!important;color:#07180c!important;font:900 13px monospace;
+}
+#terminal-experience .term-setup-mount .button.primary{background:#f4dd4d!important;color:#07100b!important}
+#terminal-experience .term-setup-mount .room-controls{flex-wrap:wrap}
+#terminal-experience .term-setup-mount .join-row{display:flex;gap:7px}
+#terminal-experience .term-playing{padding:12px;min-height:550px}
+#terminal-experience #game{margin:0!important;padding:0!important;min-height:0}
+#terminal-experience #game .game-header{
+  display:flex;gap:10px;justify-content:space-between;align-items:center;
+  margin-bottom:9px;padding:10px;border:4px solid #07150c;background:#9ff34f!important;
+}
+#terminal-experience #game .game-header h1{font:bold 21px monospace;color:#06160b!important}
+#terminal-experience #game .game-crumb{color:#153913!important;font:800 11px monospace}
+#terminal-experience #game .game-header .text-button{
+  background:#68d945;border:3px solid #06170d;border-radius:0;padding:4px 9px;
+  color:#06170b!important;font:900 12px monospace;
+}
+#terminal-experience #game .game-mode-badge{
+  color:#07190c!important;background:#a0e948!important;border:3px solid #09190d!important;border-radius:0!important;font-size:11px;
+}
+#terminal-experience #game .play-area{
+  display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important;
+  max-width:none!important;
+}
+#terminal-experience #game .board-card{
+  padding:14px 12px!important;border:5px double #051508!important;border-radius:0!important;
+  background:linear-gradient(125deg,#84e94b,#42c73b)!important;
+  color:#07170b!important;box-shadow:inset 0 0 0 3px #b1f65c!important;
+}
+#terminal-experience #game .board-card:before{
+  content:"▣  NONOGRAM — ACTIVE QUEST";display:block;
+  border:3px solid #071609;background:#b7f95b;
+  padding:6px 8px;margin-bottom:10px;
+  font:900 13px monospace;letter-spacing:0;
+}
+#terminal-experience #game .board-top{
+  padding:8px 0!important;display:flex;justify-content:space-between;
+  border-bottom:4px dashed #0b210e!important;gap:15px;
+}
+#terminal-experience #game .timer-stat,#terminal-experience #game .mini-stat{
+  color:#091e0f!important;font:900 16px monospace;
+}
+#terminal-experience #game .mini-stat strong{color:#07170b!important}
+#terminal-experience #game .board-scroll{
+  display:flex;justify-content:center;overflow:auto;
+  margin:12px 0!important;padding:12px 7px!important;max-width:100%;
+  border:5px solid #07180b;border-radius:0!important;
+  background:#76dc42!important;
+  box-shadow:inset 0 0 0 3px #a9fb4c!important;
+}
+#terminal-experience #game .board{filter:none!important;--cell-size:33px!important;--clue-size:28px!important}
+#terminal-experience #game .board.board-small{--cell-size:43px!important}
+#terminal-experience #game :is(.col-clues,.row-clues,.corner){
+  background:#aef454!important;border-color:#071809!important;
+}
+#terminal-experience #game :is(.col-clue,.row-clue){
+  color:#0a160b!important;font:1000 14px monospace!important;
+}
+#terminal-experience #game #board .cell{
+  background:#a8f654!important;
+  border-right:1px solid #11280e!important;border-bottom:1px solid #11280e!important;
+  color:#10351a!important;box-shadow:none!important;border-radius:0!important;
+}
+#terminal-experience #game #board .cell.filled{background:#08190e!important;color:#b5f954!important}
+#terminal-experience #game #board .cell.cross{background:#6ed844!important;color:#132d17!important}
+#terminal-experience #game #board .cell.active{outline:4px solid #ff9b27!important;outline-offset:-3px}
+#terminal-experience #game .board-caption,#terminal-experience #game .control-summary,
+#terminal-experience #game .bottom-row{color:#08170e!important;font:900 12px/1.45 monospace!important}
+#terminal-experience #game .board-footer{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:12px 0!important;border-top:4px dashed #09200f!important}
+#terminal-experience #game .board-footer .tool-button{
+  display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;
+  padding:5px 2px!important;min-width:0!important;
+  border:4px solid #071c0d!important;border-radius:0!important;
+  background:#96f150!important;color:#071709!important;box-shadow:3px 3px 0 #13401b!important;
+  font:900 10px monospace;
+}
+#terminal-experience #game .board-footer .tool-icon{font-size:26px;color:#082510!important}
+#terminal-experience #game .board-footer .tool-button.primary{background:#fac44b!important}
+#terminal-experience #game .bottom-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#terminal-experience #game .board-card kbd{padding:2px 5px;background:#9df44d;color:#0b240e;border:2px solid #0b260f}
+#terminal-experience #game :is(.rules,.rules summary,.rules p){color:#08250e!important;border-color:#0d2f12!important;font:900 12px/1.5 monospace}
+#terminal-experience #game .game-right{display:block!important}
+#terminal-experience #game .game-right.hidden{display:none!important}
+#terminal-experience #game .game-right .players-card{
+  border:5px solid #071809!important;border-radius:0!important;
+  background:#a9f357!important;color:#061b0d!important;
+  padding:10px!important;
+}
+#terminal-experience #game .game-right .players-card h3,#terminal-experience #game .game-right .players-card .eyebrow,
+#terminal-experience #game .game-right .players-card .muted{color:#061c0d!important}
+#terminal-experience #game .game-right .result-line{background:#73db3e!important;border:3px solid #102713!important;border-radius:0;color:#081c0b!important}
+#terminal-experience #game .lobby{padding:16px!important;border:5px solid #07190c!important;border-radius:0!important;background:#94ee51!important;color:#08170c!important}
+#terminal-experience #game .lobby h2,#terminal-experience #game .lobby p{color:#09220d!important}
+#terminal-experience #game .lobby .button{border:3px solid #0a180c!important;background:#b7f556!important;color:#08180c!important;border-radius:0!important}
+
+/* Side windows */
+#terminal-experience .term-right .term-window{min-height:0}
+#terminal-experience .term-status{height:244px;flex-shrink:0}
+#terminal-experience .term-status-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,1fr);
+  gap:0;margin:9px;border:5px solid #061609;min-height:0;flex:1;background:#87e847;
+}
+#terminal-experience .term-status-grid>div{
+  display:grid;grid-template-columns:auto 1fr;grid-template-rows:1fr auto;gap:1px 7px;
+  align-items:center;overflow:hidden;padding:6px;border:2px solid #07180c;
+  font-size:24px;line-height:1;
+}
+#terminal-experience .term-status-grid strong{font-size:clamp(11px,1vw,17px);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+#terminal-experience .term-status-grid small{grid-column:1/-1;text-align:right;font:900 10px monospace}
+#terminal-experience .term-inventory{height:285px;flex-shrink:0}
+#terminal-experience .term-inventory-inner{
+  display:flex;flex-direction:column;gap:10px;flex:1;
+  padding:11px;background:#72e33e;margin:9px;border:5px double #07140c;
+  min-height:0;
+}
+#terminal-experience .term-inventory-inner>p{
+  text-align:center;border:4px solid #071b0d;padding:8px 4px;margin:0;
+  background:#aeec50;font-size:13px;
+}
+#terminal-experience #term-inventory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;overflow:auto}
+#terminal-experience #term-inventory-grid .term-file{min-height:55px;padding:3px;border:3px solid #07170a}
+#terminal-experience #term-inventory-grid .term-file-icon{height:30px;width:100%;font-size:26px}
+#terminal-experience #term-inventory-grid .term-file strong{font-size:9px}
+#terminal-experience .term-inventory-inner>small{font:900 10px monospace}
+#terminal-experience .term-tools{flex:1;min-height:188px}
+#terminal-experience .term-tool-grid{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,1fr);gap:6px;
+  padding:10px;flex:1;
+}
+#terminal-experience .term-tool-grid button{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  border:4px solid #08180e;background:#86e74a;color:#07150c;
+  font-size:32px;line-height:1;
+}
+#terminal-experience .term-tool-grid button:hover{background:#eaf75f}
+#terminal-experience .term-tool-grid button small{font:900 11px monospace}
+#terminal-experience .term-taskbar{
+  display:flex;align-items:center;gap:15px;position:sticky;z-index:12;bottom:0;left:0;right:0;
+  min-height:61px;margin:12px -10px 0;padding:6px 12px;
+  background:linear-gradient(#5eda3e,#3ec334);
+  border:5px solid #06150b;box-shadow:0 -6px 0 #0d351c9e;
+}
+#terminal-experience .term-taskbar>button{
+  display:grid;place-items:center;min-width:136px;min-height:39px;
+  border:4px solid #08180d;background:#aaf752;font:1000 18px 'Arial Black',sans-serif;
+}
+#terminal-experience .term-taskbar nav{display:flex;align-items:center;gap:8px}
+#terminal-experience .term-taskbar nav button{
+  display:grid;place-items:center;width:39px;height:39px;padding:0;border:0;
+  background:transparent;color:#07160d;
+  text-shadow:2px 2px #e89b38;font-size:28px;
+}
+#terminal-experience .term-taskbar nav button:hover{background:#b7f057}
+#terminal-experience .term-task-right{margin-left:auto;display:flex;gap:16px;align-items:center;font:900 15px monospace}
+#terminal-experience .term-task-right #term-time{white-space:nowrap;font-size:18px}
+body[data-nono-theme="terminal"] .nono-theme-overlay{
+  background:#09260cd9!important;z-index:15000;
+}
+body[data-nono-theme="terminal"] .nono-theme-dialog{
+  background:#65db3e!important;color:#071a0b!important;border:6px solid #07150b!important;
+  border-radius:0!important;box-shadow:12px 12px 0 #103a1a!important;
+}
+body[data-nono-theme="terminal"] .nono-theme-head,body[data-nono-theme="terminal"] .nono-theme-foot{
+  background:#b1f258!important;color:#0c1e11!important;
+}
+body[data-nono-theme="terminal"] .nono-theme-title,body[data-nono-theme="terminal"] .nono-theme-subtitle{
+  color:#05190d!important;
+}
+body[data-nono-theme="terminal"] .nono-theme-section-heading{color:#05190b!important}
+body[data-nono-theme="terminal"] .nono-theme-card{
+  background:#a7f456!important;border:3px solid #06170c!important;border-radius:0!important;color:#071b0d!important;
+}
+body[data-nono-theme="terminal"] .nono-theme-card-info small{color:#244125!important}
+body[data-nono-theme="terminal"] .nono-theme-card[aria-pressed=true]{outline:4px solid #fc9d23!important}
+body[data-nono-theme="terminal"] .nono-theme-use,body[data-nono-theme="terminal"] .nono-theme-close{
+  border:4px solid #051709!important;background:#a9f354!important;color:#081809!important;border-radius:0!important;
+}
+
+/* Keep settings functional on top of the CRT rather than behind the separate desktop. */
+body[data-nono-theme="terminal"] .nono-settings{background:#61d843!important;color:#081a0c!important;border:6px solid #07140c!important;border-radius:0!important;box-shadow:10px 10px 0 #0b320c!important}
+body[data-nono-theme="terminal"] .nono-settings-head,
+body[data-nono-theme="terminal"] .nono-settings-tabs,
+body[data-nono-theme="terminal"] .nono-settings-foot{background:#a7ef4f!important;color:#07190c!important;border-color:#081d0e!important}
+body[data-nono-theme="terminal"] .nono-settings-head h2,
+body[data-nono-theme="terminal"] .nono-setting label{color:#08170a!important}
+body[data-nono-theme="terminal"] .nono-settings-tabs button{
+  background:#79e145!important;color:#09180b!important;border:3px solid #07160c!important;border-radius:0!important;
+}
+body[data-nono-theme="terminal"] .nono-settings-tabs button.is-active{background:#ffc04f!important;color:#07150b!important}
+body[data-nono-theme="terminal"] .nono-settings input,
+body[data-nono-theme="terminal"] .nono-settings select{background:#baf85b!important;color:#081e0e!important;border:3px solid #081a0c!important}
+body[data-nono-theme="terminal"] .nono-settings button{color:#071c0e!important}
+@media(max-width:1200px){
+ #terminal-experience .term-workspace{grid-template-columns:minmax(190px,23%) minmax(300px,1fr) minmax(205px,23%);gap:9px}
+ #terminal-experience .term-mode-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #terminal-experience .term-mode-image{min-height:60px;font-size:52px}
+ #terminal-experience .term-left .term-player-inner{grid-template-columns:80px 1fr}
+ #terminal-experience .term-avatar{height:94px}
+ #terminal-experience .term-avatar-pixel{font-size:61px}
+ #terminal-experience .term-avatar-eyes{top:34px;left:17px}
+ #terminal-experience .term-file-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #terminal-experience .term-titlebar{font-size:17px}
+}
+@media(max-width:900px){
+ #terminal-experience .term-workspace{display:flex;flex-direction:column;gap:12px}
+ #terminal-experience .term-explorer{order:0;min-height:0}
+ #terminal-experience .term-left{order:1;display:grid;grid-template-columns:1fr 1fr}
+ #terminal-experience .term-right{order:2;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+ #terminal-experience .term-player,#terminal-experience .term-log{min-height:235px;height:auto}
+ #terminal-experience .term-status,#terminal-experience .term-inventory,#terminal-experience .term-tools{height:auto;min-height:215px}
+ #terminal-experience .term-explorer-content{min-height:500px}
+}
+@media(max-width:640px){
+ #terminal-experience .term-crt{padding:8px 5px 0}
+ #terminal-experience .term-window{border-width:3px;box-shadow:2px 2px 0 #06150a}
+ #terminal-experience .term-workspace{gap:9px}
+ #terminal-experience .term-titlebar{font-size:16px;height:34px;min-height:34px;border-bottom-width:4px}
+ #terminal-experience .term-win-buttons i{width:20px;height:20px;font-size:16px;border-width:3px}
+ #terminal-experience .term-browser-toolbar{gap:4px;padding:5px}
+ #terminal-experience .term-browser-toolbar button{flex-basis:40px;height:35px;font-size:23px}
+ #terminal-experience .term-address{font-size:10px;height:35px}
+ #terminal-experience .term-home{padding:12px 9px 17px}
+ #terminal-experience .term-directory-header{gap:9px;padding:7px;border-width:3px}
+ #terminal-experience .term-directory-header b{font-size:15px}
+ #terminal-experience .term-directory-header small{font-size:10px}
+ #terminal-experience .term-mode-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px}
+ #terminal-experience .term-mode-grid button{border-width:3px}
+ #terminal-experience .term-mode-grid b{font-size:12px}
+ #terminal-experience .term-mode-image{min-height:60px;font-size:48px;border-width:3px}
+ #terminal-experience .term-file-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ #terminal-experience .term-file-icon{width:45px;height:39px;font-size:36px}
+ #terminal-experience .term-file{min-height:90px}
+ #terminal-experience .term-setup-mount .controls{grid-template-columns:1fr}
+ #terminal-experience .term-explorer-content{min-height:460px}
+ #terminal-experience .term-player{min-height:260px}
+ #terminal-experience .term-left{display:flex}
+ #terminal-experience .term-right{display:flex}
+ #terminal-experience .term-status{height:225px}
+ #terminal-experience .term-inventory{height:220px}
+ #terminal-experience .term-tools{height:245px}
+ #terminal-experience .term-playing{padding:4px}
+ #terminal-experience #game .game-header{padding:6px;flex-wrap:wrap}
+ #terminal-experience #game .game-header h1{font-size:16px}
+ #terminal-experience #game .board-card{padding:7px!important;border-width:3px!important}
+ #terminal-experience #game .board-scroll{justify-content:flex-start!important;padding:6px 3px!important}
+ #terminal-experience #game .board{--cell-size:28px!important;--clue-size:24px!important}
+ #terminal-experience #game .board.board-small{--cell-size:36px!important}
+ #terminal-experience #game .board-footer{gap:2px}
+ #terminal-experience #game .board-footer .tool-button{padding:3px 1px!important;border-width:2px!important;font-size:9px}
+ #terminal-experience #game .board-footer .tool-icon{font-size:20px}
+ #terminal-experience #game .bottom-row{flex-wrap:wrap}
+ #terminal-experience .term-taskbar{gap:7px;padding:3px 5px;min-height:48px;margin:9px -3px 0;border-width:3px}
+ #terminal-experience .term-taskbar>button{min-width:70px;min-height:35px;font-size:12px;border-width:3px}
+ #terminal-experience .term-taskbar nav{gap:0}
+ #terminal-experience .term-taskbar nav button{width:30px;height:34px;font-size:23px}
+ #terminal-experience .term-task-right{gap:5px;font-size:10px}
+ #terminal-experience .term-task-right #term-time{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){#terminal-experience *{transition:none!important;animation:none!important}}
