@@ -183,6 +183,65 @@ const { pathToFileURL } = require('node:url');
   await page.click('#play-alone');
   const restoredAt=await page.evaluate(()=>finishedAt);
   if(restoredAt!==completedAt)throw new Error('Completed practice time changed on resume');
+  // The moonlit forest must be an independent website layer, not altered colors on the default home.
+  const forestPage=await browser.newPage({viewport:{width:1440,height:900}});
+  const forestErrors=[];
+  forestPage.on('pageerror',error=>forestErrors.push(error.message));
+  await forestPage.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
+  await forestPage.goto(pathToFileURL(path.resolve(__dirname,'..','index.html')).href);
+  await forestPage.click('#nono-theme-open');
+  await forestPage.getByRole('button',{name:'정령의 숲 미리보기'}).click();
+  await forestPage.locator('#nono-theme-use').click();
+  await forestPage.locator('#fg-scene').waitFor({state:'visible'});
+  const forestHome=await forestPage.evaluate(()=>{
+    const root=document.getElementById('forest-experience');
+    const oldShell=document.querySelector('body>.shell');
+    const scene=document.getElementById('fg-scene');
+    return {
+      originalHidden:getComputedStyle(oldShell).display==='none',
+      ownHeader:!!root.querySelector('.fg-header'),
+      ownTrails:root.querySelectorAll('[data-forest-mode]').length,
+      sceneImage:getComputedStyle(scene).backgroundImage,
+      setupMounted:!!root.querySelector('#fg-setup-mount #setup'),
+      oldHomeInside:!!root.querySelector('#home-view')
+    };
+  });
+  if(!forestHome.originalHidden || !forestHome.ownHeader || forestHome.ownTrails!==4 ||
+     !forestHome.sceneImage.includes('forest-world.svg') || !forestHome.setupMounted || forestHome.oldHomeInside)
+    throw new Error('Standalone forest homepage incomplete: '+JSON.stringify(forestHome));
+  await forestPage.locator('[data-forest-mode="race"]').click();
+  if(!await forestPage.locator('.mode-card[data-mode="race"]').evaluate(el=>el.classList.contains('selected')))
+    throw new Error('Forest mode choice did not update actual NONO game mode');
+  await forestPage.locator('[data-forest-mode="practice"]').click();
+  await forestPage.selectOption('#puzzle','heart5');
+  await forestPage.click('#play-alone');
+  await forestPage.locator('#forest-experience #board .cell').first().waitFor({state:'visible'});
+  if(!await forestPage.locator('#fg-playing').isVisible() ||
+     await forestPage.locator('#fg-home').isVisible())
+    throw new Error('Forest home did not switch to its own playable scene');
+  await forestPage.locator('#forest-experience #board').focus();
+  await forestPage.keyboard.press('ArrowRight');
+  await forestPage.keyboard.press('Space');
+  await forestPage.click('#fg-theme');
+  await forestPage.getByRole('button',{name:'네온 다크 미리보기'}).click();
+  await forestPage.locator('#nono-theme-use').click();
+  if(await forestPage.locator('#forest-experience').isVisible() ||
+     !await forestPage.locator('body>.shell #game').count())
+    throw new Error('Switching out of forest did not restore the original game DOM');
+  await forestPage.click('#nono-theme-open');
+  await forestPage.getByRole('button',{name:'정령의 숲 미리보기'}).click();
+  await forestPage.locator('#nono-theme-use').click();
+  await forestPage.setViewportSize({width:390,height:740});
+  await forestPage.locator('#forest-experience #board .cell').first().waitFor({state:'visible'});
+  const mobileOk=await forestPage.evaluate(()=>{
+    const header=document.querySelector('.fg-header').getBoundingClientRect();
+    const board=document.querySelector('#forest-experience #board').getBoundingClientRect();
+    return header.width>330 && board.width>0;
+  });
+  if(!mobileOk)throw new Error('Forest mobile layout failed');
+  if(forestErrors.length)throw new Error('Forest JS errors: '+forestErrors.join(' | '));
+  await forestPage.close();
+
   if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
   console.log('NONO smoke test passed.');
   await browser.close();
