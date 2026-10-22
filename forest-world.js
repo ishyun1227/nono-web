@@ -182,5 +182,6 @@ function syncTheme(){
 }
 new MutationObserver(syncTheme).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
 syncTheme();
-window.NONO_FOREST={get active(){return active},home:()=>root.querySelector('#fg-home'),selectMode};
+window.NONO_FOREST={get active(){return active},home:()=>root.querySelector('#fg-home'),selectMode,
+ remount:()=>{if(document.body.dataset.nonoTheme==='enchanted'){mount();root.hidden=false;syncMode();syncScreen();}}};
 })();
