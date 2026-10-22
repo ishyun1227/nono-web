@@ -1,5 +1,6 @@
 const { chromium } = require('playwright');
 const path = require('node:path');
+const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 (async () => {
   const browser = await chromium.launch({ headless: true, ...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{}) });
@@ -66,8 +67,8 @@ const { pathToFileURL } = require('node:url');
   await page.locator('#nono-theme-use').click();
   // SVG originals are vector artwork, not compressed/cropped portions of the mockup.
   for(const name of ['library-world','library-mode-practice','library-mode-race','library-mode-coop','library-mode-record']){
-    const response=await page.request.get(pathToFileURL(path.resolve(__dirname,'..','assets',name+'.svg')).href);
-    if(!response.ok() || !(await response.text()).includes('<svg'))
+    const source=fs.readFileSync(path.resolve(__dirname,'..','assets',name+'.svg'),'utf8');
+    if(!source.includes('<svg') || !source.includes('viewBox'))
       throw new Error('Real scalable library artwork missing: '+name);
   }
   // The reference-inspired library is a real page layout, not just a color filter.
