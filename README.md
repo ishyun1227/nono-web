@@ -63,6 +63,17 @@ UI는 `index.html`, 사용자 설정은 `settings.js`, 공개 Firebase 웹 설�
 - 주의: 프리미엄 테마 구매·포인트 차감/영구 소유는 아직 미구현으로 기존 체험 정책을 유지합니다.
 - 테스트: `tests/smoke.cjs`에 숲 전용 DOM, 모드 선택, 키보드 입력, 실제 보드와 기본 테마 복귀, 모바일 렌더링 테스트 추가.
 
+## 프리미엄 테마 — 던전 터미널 (CRT Desktop)
+
+사용자가 제공한 1990년대 녹색 CRT 게임형 데스크톱 화면을 **시각적 참고자료로만 활용**해 제작한 독립 웹 UI입니다. 원본 게임의 이미지·아이콘·프로그램 코드는 복사하지 않았습니다.
+
+- **새 화면 구조:** [terminal-world.js](terminal-world.js)는 별도 `#terminal-experience`를 구성하며, 기존 NONO 홈 화면을 재사용하지 않습니다. 왼쪽 Player/Properties, 가운데 Dungeon Explorer, 오른쪽 Stats/Inventory/Tools, 아래 MENU 작업표시줄을 새 HTML로 제작했습니다.
+- **스타일:** [terminal-world.css](terminal-world.css)는 형광 연두 CRT, 검은 4~6px 창 테두리, DOS 폰트, 스캔라인·화면 비네팅, 녹색 화살표/아이템 카드를 구현합니다.
+- **자체 그래픽:** [terminal-wallpaper.svg](assets/terminal-wallpaper.svg)로 던전 지도 느낌의 손그림 배경 제작. 확대해도 깨지지 않습니다.
+- **실제 기능:** 별도 창은 기존 모드 버튼, 퍼즐 선택, 실제 게임판, 타이머, 진행률, 조작도구, 설정창, Firebase 멀티에 직접 연결됩니다. 테마를 바꾸면 기존 게임 노드를 원래 위치로 복원합니다.
+- **가짜 RPG 기능 없음:** Player 창에는 실제 입력한 이름과 게임 모드, 진행률을 표시합니다. Inventory는 존재하는 퍼즐 목록이며 포인트·코인·전투 스탯을 허위로 출력하지 않습니다. 현재 표시되는 테마 가격 6,500 P는 결제/소유 기능이 없는 **예정값**입니다.
+- PC / 모바일 반응형이며 `tests/smoke.cjs`에 페이지 구조, 키보드·모드 연동·테마 복귀 검사를 추가했습니다.
+
 ## 현재 사용 가능 범위
 
 - 싱글플레이: 실행 가능
