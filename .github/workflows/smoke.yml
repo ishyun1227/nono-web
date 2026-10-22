@@ -16,6 +16,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - name: Verify visual-world-builder skill
+        run: |
+          node .agents/skills/visual-world-builder/scripts/test-audit.mjs
+          node .agents/skills/visual-world-builder/scripts/audit-contract.mjs .agents/skills/visual-world-builder/assets/theme-contract.example.json
       - name: Install test dependencies
         run: |
           npm ci
