@@ -1,0 +1,176 @@
+/* NONO Moonlit Grove premium world. Independent site architecture, not a recolor.
+ * This stylesheet only affects #forest-experience and its actual transplanted
+ * game/setup controls, leaving all other NONO themes untouched. */
+body[data-nono-theme="enchanted"]{margin:0;background:#0b1d32!important;color:#f3eed7!important}
+body[data-nono-theme="enchanted"]>.shell{display:none!important}
+#forest-experience[hidden],#forest-experience [hidden]{display:none!important}
+#forest-experience{--fg-ink:#f6ecd2;--fg-night:#0b1931;--fg-mint:#a4e5d1;--fg-gold:#fbe69c;--fg-violet:#b8a8f3;--fg-light:#eef4da;font-family:Georgia,"Noto Serif KR","Nanum Myeongjo",serif;color:var(--fg-ink);background:linear-gradient(#0c1733,#182e42 55%,#0c2131);min-height:100vh;position:relative;isolation:isolate}
+#forest-experience *{box-sizing:border-box}
+#forest-experience button{font:inherit;cursor:pointer}
+#forest-experience button:focus-visible,#forest-experience a:focus-visible,#forest-experience input:focus-visible,#forest-experience select:focus-visible{outline:3px solid #f9e3a4;outline-offset:3px}
+#forest-experience .fg-header{position:relative;z-index:14;display:flex;align-items:center;justify-content:space-between;gap:24px;height:86px;padding:0 max(4.5vw,26px);background:linear-gradient(110deg,#14213ae6,#0d1a30f5);border-bottom:1px solid #7b8daa70;box-shadow:0 6px 28px #0713257a}
+#forest-experience .fg-logo{display:inline-flex;gap:13px;align-items:center;background:none;border:0;color:#fbebc4;text-align:left;letter-spacing:.14em;font:bold 26px Georgia,serif;white-space:nowrap}
+#forest-experience .fg-logo-mark{display:grid;place-items:center;width:49px;height:49px;border:2px solid #d6b775;border-radius:50%;color:#ffe8a6;background:radial-gradient(circle,#516484,#192d46);font-size:30px;box-shadow:0 0 24px #ffe5a82e}
+#forest-experience .fg-logo small{display:block;margin-top:3px;font-size:9px;letter-spacing:.25em;color:#b4c8dc}
+#forest-experience .fg-nav{display:flex;gap:8px;align-items:center;justify-content:center;flex:1}
+#forest-experience .fg-nav button{padding:10px 17px;border:1px solid transparent;border-radius:99px;background:transparent;color:#d6dddc;font-size:13px}
+#forest-experience .fg-nav button:hover{color:#ffe6a8;background:#37445d8c;border-color:#a69f8d5c}
+#forest-experience .fg-header-actions{display:flex;align-items:center;gap:10px;white-space:nowrap}
+#forest-experience .fg-online{font:11px Georgia,serif;color:#b4d6ca}
+#forest-experience .fg-iconbtn{display:flex;align-items:center;gap:7px;padding:10px 13px;border-radius:14px;background:#253b50;border:1px solid #708b8e;color:#f8e6c7;font-size:13px}
+#forest-experience .fg-iconbtn:hover{background:#35536a}
+#forest-experience .fg-main{min-height:calc(100vh - 86px)}
+#forest-experience .fg-forest-scene{position:relative;min-height:min(850px,calc(100vh - 88px));display:flex;align-items:center;justify-content:center;background:linear-gradient(90deg,#0c1c3a70,transparent 32%,#0b224226),url('./assets/forest-world.svg') center 50%/cover no-repeat;isolation:isolate;overflow:hidden}
+#forest-experience .fg-scene-vignette{position:absolute;z-index:0;inset:0;background:linear-gradient(180deg,#07152959 0%,transparent 20%,#08172a36 60%,#08192c 100%);pointer-events:none}
+#forest-experience .fg-hero-copy{position:relative;z-index:2;width:min(680px,88vw);margin:0 auto 90px;text-align:center;padding:29px 36px 40px;background:radial-gradient(ellipse at 50% 49%,#13284cb5 0%,#1124408f 59%,transparent 83%);text-shadow:0 3px 18px #0d1633}
+#forest-experience .fg-eyebrow{font-size:12px;letter-spacing:.25em;color:#f7dc98;font-weight:800}
+#forest-experience .fg-hero-copy h1{font-weight:600;font-size:clamp(40px,5.7vw,76px);line-height:1.23;margin:20px 0 22px;letter-spacing:-.045em;color:#fff5d9}
+#forest-experience .fg-hero-copy h1 em{font-style:normal;color:#ffdf88;text-shadow:0 0 22px #ffe18c44}
+#forest-experience .fg-hero-copy>p:not(.fg-eyebrow){font-size:16px;line-height:2;color:#dcebdc}
+#forest-experience .fg-bloom-button{display:inline-flex;align-items:center;justify-content:center;gap:10px;padding:15px 29px;margin:22px 0 0;border:2px solid #f9e3a1;border-radius:40px;background:linear-gradient(130deg,#ffe4a0,#dda45f);color:#243449;font-size:16px;font-weight:800;box-shadow:inset 0 0 0 2px #fff3c756,0 9px 26px #0b1b3380,0 0 24px #ffdd853b;transition:transform .17s}
+#forest-experience .fg-bloom-button:hover{transform:translateY(-3px)}
+#forest-experience .fg-scene-foot{position:absolute;bottom:24px;left:max(4.5vw,25px);right:max(4.5vw,25px);display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px;color:#dae5d9;z-index:2}
+#forest-experience .fg-scene-foot button{background:#172f45ad;border:1px solid #a5bcb07c;border-radius:18px;color:#fbebc8;padding:9px 17px}
+#forest-experience .fg-trails{position:relative;z-index:1;padding:91px max(5vw,28px) 105px;background:radial-gradient(ellipse at 50% -10%,#45677c33,transparent 70%),linear-gradient(#10263b,#142c40)}
+#forest-experience .fg-trails:before,#forest-experience .fg-field-guide:before{content:"❧  ✦  ❧";position:absolute;top:25px;left:50%;transform:translateX(-50%);color:#e8d99f;letter-spacing:23px;opacity:.75}
+#forest-experience .fg-trail-intro{text-align:center;max-width:720px;margin:0 auto 38px}
+#forest-experience .fg-kicker{font:bold 11px Georgia,serif;letter-spacing:.25em;color:#e5d599}
+#forest-experience .fg-trail-intro h2,#forest-experience .fg-field-guide h2,#forest-experience .fg-hollow h2{font-weight:600;color:#fff1d3;font-size:clamp(28px,3.5vw,43px);margin:12px 0 15px;letter-spacing:-.05em}
+#forest-experience .fg-trail-intro p,#forest-experience .fg-hollow-header p,#forest-experience .fg-field-guide>div:first-child p{font-size:14px;line-height:1.75;color:#cadbd5}
+#forest-experience .fg-trail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));max-width:1340px;gap:18px;margin:auto}
+#forest-experience .fg-trail-card{position:relative;display:flex;flex-direction:column;align-items:center;min-width:0;overflow:hidden;text-align:center;gap:8px;border:1px solid #8eb0ad8e;border-radius:27px 27px 13px 13px;background:linear-gradient(170deg,#344967,#152d43 65%,#12293e);color:#f4ead8;padding:0 14px 23px;min-height:312px;box-shadow:0 17px 32px #0b1a2bb3,0 0 0 5px #ffffff08;transition:transform .15s,box-shadow .15s}
+#forest-experience .fg-trail-card:hover{transform:translateY(-7px);box-shadow:0 22px 40px #08162d,0 0 23px #e4d8a73c}
+#forest-experience .fg-trail-card.is-selected{border:2px solid #ffe6ab;box-shadow:0 0 0 4px #e2cf863d,0 10px 33px #0a142d}
+#forest-experience .fg-trail-art{display:grid;place-items:center;position:relative;isolation:isolate;width:calc(100% + 28px);height:171px;margin:0 -14px 13px;overflow:hidden;background:linear-gradient(140deg,#243963,#5a5b8a);border-bottom:1px solid #dec78f4f}
+#forest-experience .fg-trail-art:before{content:"";position:absolute;z-index:-1;inset:-10%;background:radial-gradient(circle at 50% 45%,#ffeaa15a,transparent 33%),radial-gradient(ellipse at 20% 85%,#ba9adf75,transparent 48%),radial-gradient(ellipse at 78% 20%,#79b3ce5e,transparent 50%)}
+#forest-experience .fg-trail-art:after{content:"✧  ·  ✦  ·  ✧";position:absolute;bottom:11px;letter-spacing:12px;color:#e9dbaaba;font-size:12px}
+#forest-experience .fg-trail-art>span{font-size:84px;line-height:1;color:#ffe9b6;text-shadow:0 0 20px #ffe28ca1,0 4px 9px #0d2148}
+#forest-experience .fg-trail-race{background:linear-gradient(145deg,#282e57,#594d7c)}
+#forest-experience .fg-trail-coop{background:linear-gradient(145deg,#214b58,#528d85)}
+#forest-experience .fg-trail-record{background:linear-gradient(145deg,#242a5a,#5b658c)}
+#forest-experience .fg-trail-number{font:bold 10px Georgia,serif;letter-spacing:.13em;color:#b4d1c8}
+#forest-experience .fg-trail-card strong{font-size:20px;color:#ffe7b6;font-weight:700;margin-top:4px}
+#forest-experience .fg-trail-card small{color:#cbdad5;font-size:12px;line-height:1.6}
+#forest-experience .fg-trail-arrow{margin-top:auto;font-size:24px;color:#f9e3a0}
+#forest-experience .fg-hollow{position:relative;padding:67px 30px 83px;background:radial-gradient(ellipse at 50% 12%,#b8998552,transparent 47%),linear-gradient(#263f4f,#192c40)}
+#forest-experience .fg-hollow-badge{position:absolute;top:-31px;left:50%;transform:translateX(-50%);display:grid;place-items:center;width:63px;height:63px;border:3px double #ffe4a3;border-radius:50%;background:#344f63;color:#ffdf95;font-size:35px;box-shadow:0 0 22px #fbe3a744}
+#forest-experience .fg-hollow-header{text-align:center;margin:0 auto 29px}
+#forest-experience .fg-setup-mount{max-width:1120px;margin:auto}
+#forest-experience .fg-setup-mount #setup{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:24px;padding:28px 31px!important;min-height:170px;background:linear-gradient(125deg,#142b40f5,#304e5cdd)!important;border:2px solid #9bb7ac!important;border-radius:22px 22px 50px 22px!important;box-shadow:inset 0 0 0 5px #d3e0cb10,0 23px 42px #0b1d2b92!important}
+#forest-experience .fg-setup-mount .setup-description h3{font-size:20px;color:#ffebbf!important;margin-bottom:6px}
+#forest-experience .fg-setup-mount .setup-description p{font-size:12px;color:#d1e0d8!important}
+#forest-experience .fg-setup-mount .controls{display:flex;gap:15px;flex-wrap:wrap}
+#forest-experience .fg-setup-mount .controls label{font-size:12px;color:#d9dfdb;display:flex;flex-direction:column;gap:6px}
+#forest-experience .fg-setup-mount :is(input,select){min-width:140px;padding:11px 13px!important;border:1px solid #8ca99c!important;border-radius:11px!important;background:#0d293c!important;color:#f4f4d5!important}
+#forest-experience .fg-setup-mount :is(.button.primary,#create-room){background:linear-gradient(130deg,#f9e5a2,#e2b669)!important;color:#233746!important;border-radius:99px!important;border:1px solid #ffe4ab!important;box-shadow:0 7px 19px #091c3299!important}
+#forest-experience .fg-setup-mount .button.outline{border-radius:16px!important;background:#365169!important;color:#f8ecd5!important}
+#forest-experience .fg-field-guide{position:relative;padding:88px max(5vw,28px) 100px;background:linear-gradient(180deg,#11283e,#0b2035)}
+#forest-experience .fg-field-guide>div:first-child{max-width:680px;margin:0 auto 37px;text-align:center}
+#forest-experience .fg-puzzle-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:16px;max-width:1240px;margin:auto}
+#forest-experience .fg-puzzle-tile{display:flex;flex-direction:column;gap:11px;align-items:center;text-align:center;background:linear-gradient(150deg,#2a4658,#1c3449)!important;color:#f6e5c7;border:1px solid #90aca2;border-radius:20px;padding:15px 13px;min-height:163px;box-shadow:inset 0 0 0 3px #ffffff0c}
+#forest-experience .fg-puzzle-tile:hover{transform:translateY(-3px);background:#344c62!important}
+#forest-experience .fg-puzzle-symbol{display:grid;place-items:center;width:67px;height:67px;background:radial-gradient(circle at 50% 45%,#eac98270,#4b6284 70%);border:1px solid #d6bb84;border-radius:50%;font-size:32px;color:#ffeca5;text-shadow:0 0 16px #fce9ae}
+#forest-experience .fg-puzzle-tile strong{font-size:14px}
+#forest-experience .fg-puzzle-tile small{font-size:11px;color:#bcd9d2}
+#forest-experience .fg-footer{display:flex;gap:15px;justify-content:space-between;align-items:center;padding:26px 6vw;background:#0a192e;color:#9dbab9;font-size:11px;letter-spacing:.08em;border-top:1px solid #58788e65}
+
+/* Game is a separate moonlit clearing with a real board mounted in an interactive HUD. */
+#forest-experience .fg-playing{min-height:calc(100vh - 86px);padding:44px max(4.2vw,18px) 70px;background:
+linear-gradient(180deg,#0b1936d1,#142c42de 42%,#112738e9),
+url('./assets/forest-world.svg') center top/cover fixed no-repeat}
+#forest-experience .fg-playing-top{display:flex;align-items:center;justify-content:space-between;max-width:1320px;margin:0 auto 17px;border-bottom:1px solid #c3d3a755;padding:9px 7px 15px}
+#forest-experience .fg-playing-top h2{font-size:26px;margin:8px 0 0;font-weight:650;color:#f8e7be}
+#forest-experience .fg-leaf-mark{font-size:41px;color:#e0cb97}
+#forest-experience #game{min-height:0;padding:0!important;max-width:1350px;margin:0 auto}
+#forest-experience #game .game-header{display:flex;gap:15px;align-items:center;justify-content:space-between;padding:17px 25px;margin-bottom:18px;background:#0c233abf!important;border:1px solid #b7d6ae6a;border-radius:23px}
+#forest-experience #game .game-header h1{font-size:22px;color:#fff0cf}
+#forest-experience #game .game-crumb{color:#c2d8d2}
+#forest-experience #game .game-mode-badge{border:1px solid #93bbab;border-radius:15px;padding:7px 14px;background:#2d5961;color:#ffebbd}
+#forest-experience #game .play-area{display:grid!important;grid-template-columns:minmax(0,1fr) 280px!important;gap:24px!important;align-items:start;max-width:none!important}
+#forest-experience #game .board-card{min-width:0;padding:22px!important;border:2px solid #d7d9a5!important;border-radius:36px 36px 16px 16px!important;background:linear-gradient(145deg,#294255ef,#1c334bef)!important;box-shadow:inset 0 0 0 7px #c1d7bd14,0 22px 40px #06192ebc!important}
+#forest-experience #game .board-card:before{content:"❧  MOONLIGHT PICTURE  ❧";display:block;text-align:center;font:700 11px Georgia,serif;letter-spacing:.28em;color:#f4d997;margin:0 0 16px}
+#forest-experience #game .board-top{border-bottom:1px solid #b6d0a060;padding-bottom:11px;margin-bottom:13px}
+#forest-experience #game .timer-stat,#forest-experience #game .mini-stat{color:#f1e6cc!important}
+#forest-experience #game .mini-stat strong{color:#ffe5a3!important}
+#forest-experience #game .board-scroll{overflow:auto;max-width:100%;display:flex;justify-content:center;background:#b7b3d92b;border:1px solid #a0c4b373;border-radius:20px;padding:19px 9px!important;box-shadow:inset 0 5px 24px #071a3147}
+#forest-experience #game .board{filter:drop-shadow(0 9px 18px #05182f80);--cell-size:34px!important;--clue-size:29px!important}
+#forest-experience #game .board.board-small{--cell-size:43px!important}
+#forest-experience #game :is(.col-clues,.row-clues,.corner){background:#d0c6e9!important;color:#203955!important;border-color:#738db1!important}
+#forest-experience #game :is(.col-clue,.row-clue){color:#263955!important;font-weight:800!important}
+#forest-experience #game #board .cell{background:#102640!important;color:#c5bde0!important;border-right:1px solid #54718c!important;border-bottom:1px solid #54718c!important}
+#forest-experience #game #board .cell.filled{background:linear-gradient(135deg,#fff1b1,#f6cf81)!important;color:#293957!important}
+#forest-experience #game #board .cell.cross{background:#28425b!important;color:#d2c5da!important}
+#forest-experience #game #board .cell.active{outline:3px solid #ffd56b!important;box-shadow:inset 0 0 18px #f5f2bd66!important}
+#forest-experience #game .board-caption{color:#c8ddca!important;padding:16px 0 5px;font-size:13px}
+#forest-experience #game .board-footer{display:flex;gap:8px;border-top:1px solid #abc9bb65;padding-top:18px!important}
+#forest-experience #game .board-footer .tool-button{background:#233d52!important;color:#e4efdc!important;border:1px solid #8cadad!important;border-radius:17px!important;box-shadow:inset 0 0 0 2px #a5d3c91c!important}
+#forest-experience #game .board-footer .tool-button.primary{background:linear-gradient(145deg,#ffecaf,#dfb66e)!important;border-color:#ffe0a0!important;color:#21384a!important}
+#forest-experience #game .bottom-row,#forest-experience #game .rules{border-color:#799a9d80!important;color:#a7cbca!important}
+#forest-experience #game .bottom-row :is(.text-button,kbd),#forest-experience #game .rules summary,#forest-experience #game .rules p{color:#e5dfbe!important}
+#forest-experience #game .lobby{padding:28px;border:2px solid #c2d4a5!important;background:#1b3850!important;border-radius:20px!important}
+#forest-experience #game .game-right,#forest-experience #game .nono-library-side{min-width:0}
+#forest-experience #game .game-right .players-card{padding:21px!important;background:linear-gradient(140deg,#293d59,#20384e)!important;border:2px solid #b2caab!important;border-radius:24px!important;color:#f7ecd8!important}
+#forest-experience #game .game-right .players-card:before{content:"✧  함께하는 탐험가  ✧";display:block;color:#ffe6a8;font-size:12px;letter-spacing:.14em;padding:0 0 15px;border-bottom:1px solid #91aeb780}
+#forest-experience #game .game-right .players-card h3{color:#fff2c9!important}
+#forest-experience #game .game-right .result-line{background:#19374f!important;border:1px solid #85a7a9!important;color:#e6eadd!important}
+#forest-experience #game .nono-library-side{display:none!important}
+#forest-experience .fg-game-active .fg-playing{min-height:calc(100vh - 86px)}
+#forest-experience #game .board-card .tool-icon{color:inherit}
+#forest-experience #game .nono-selected-row{background-color:#4c799251!important}
+#forest-experience #game .nono-settings{border-color:#a2a8c0}
+#forest-experience .toast{z-index:50}
+
+/* Separate forest decor remains decorative; interactions respect reduced motion. */
+@media(max-width:1140px){
+ #forest-experience .fg-nav button{padding:9px 8px;font-size:12px}
+ #forest-experience .fg-trail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #forest-experience #game .play-area{grid-template-columns:minmax(0,1fr) 240px!important}
+}
+@media(max-width:840px){
+ #forest-experience .fg-header{height:75px;padding:0 15px}
+ #forest-experience .fg-nav{display:none}
+ #forest-experience .fg-online{display:none}
+ #forest-experience .fg-hero-copy{width:min(90vw,650px)}
+ #forest-experience #game .play-area{grid-template-columns:1fr!important}
+ #forest-experience #game .board-scroll{justify-content:flex-start!important}
+ #forest-experience .fg-playing{background-attachment:scroll}
+}
+@media(max-width:590px){
+ #forest-experience .fg-header{height:67px;padding:0 11px;gap:4px}
+ #forest-experience .fg-logo{font-size:20px;gap:6px}
+ #forest-experience .fg-logo-mark{width:37px;height:37px;font-size:23px}
+ #forest-experience .fg-logo small{font-size:7px}
+ #forest-experience .fg-iconbtn{padding:8px 9px;font-size:14px}
+ #forest-experience .fg-iconbtn span{display:none}
+ #forest-experience .fg-forest-scene{min-height:600px;background-position:53% center}
+ #forest-experience .fg-hero-copy{margin:0 auto 58px;padding:22px 16px 29px;width:100%}
+ #forest-experience .fg-hero-copy h1{font-size:40px}
+ #forest-experience .fg-hero-copy>p:not(.fg-eyebrow){font-size:13px}
+ #forest-experience .fg-bloom-button{font-size:14px;padding:13px 20px}
+ #forest-experience .fg-scene-foot{left:15px;right:15px;bottom:17px;font-size:10px}
+ #forest-experience .fg-trails{padding:77px 15px 81px}
+ #forest-experience .fg-trail-grid{gap:11px}
+ #forest-experience .fg-trail-card{min-height:270px;padding:0 9px 14px;border-radius:20px}
+ #forest-experience .fg-trail-art{height:141px;width:calc(100% + 18px);margin:0 -9px 8px}
+ #forest-experience .fg-trail-art>span{font-size:70px}
+ #forest-experience .fg-trail-card strong{font-size:15px}
+ #forest-experience .fg-trail-card small{font-size:10px}
+ #forest-experience .fg-trail-number{font-size:8px}
+ #forest-experience .fg-hollow{padding:60px 15px 75px}
+ #forest-experience .fg-setup-mount #setup{padding:19px!important}
+ #forest-experience .fg-setup-mount .controls{width:100%;flex-direction:column}
+ #forest-experience .fg-setup-mount .controls label{width:100%}
+ #forest-experience .fg-setup-mount :is(input,select){width:100%}
+ #forest-experience .fg-field-guide{padding:75px 15px}
+ #forest-experience .fg-puzzle-list{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ #forest-experience .fg-footer{flex-direction:column;text-align:center}
+ #forest-experience .fg-playing{padding:26px 11px 46px}
+ #forest-experience .fg-playing-top h2{font-size:21px}
+ #forest-experience #game .game-header{padding:13px;flex-wrap:wrap}
+ #forest-experience #game .board-card{padding:10px!important;border-radius:20px!important}
+ #forest-experience #game .board-scroll{padding:11px 5px!important}
+ #forest-experience #game .board{--cell-size:29px!important;--clue-size:25px!important}
+ #forest-experience #game .board.board-small{--cell-size:36px!important}
+ #forest-experience #game .board-footer .tool-button{min-width:0;padding:10px 4px!important}
+}
+@media(prefers-reduced-motion:reduce){#forest-experience *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
