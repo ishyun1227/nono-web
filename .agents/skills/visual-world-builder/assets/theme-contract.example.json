@@ -1,0 +1,51 @@
+{
+  "themeId": "example-premium",
+  "tier": "premium",
+  "referenceSummary": "Describe composition, materials, typography, and distinct UI hierarchy",
+  "primaryActions": [
+    {
+      "id": "choose-puzzle",
+      "surface": "explorer.file-grid",
+      "handler": "shared.selectPuzzle"
+    },
+    {
+      "id": "choose-mode",
+      "surface": "explorer.mode-panel",
+      "handler": "shared.setMode"
+    },
+    {
+      "id": "open-settings",
+      "surface": "taskbar.settings",
+      "handler": "shared.openSettings"
+    },
+    {
+      "id": "fill-cell",
+      "surface": "game.board",
+      "handler": "shared.fillCell"
+    }
+  ],
+  "additionalTriggers": [],
+  "decorations": [
+    {
+      "surface": "sidebar.inventory",
+      "kind": "noninteractive",
+      "content": "illustrated cartridge shelf"
+    },
+    {
+      "surface": "sidebar.decorative-star",
+      "kind": "easter-egg",
+      "content": "brief sparkle/message",
+      "changesGameState": false
+    }
+  ],
+  "noScreenshotAsInterface": true,
+  "originalGraphicsOnly": true,
+  "requiredReviews": [
+    "desktop-render",
+    "mobile-render",
+    "active-game-render",
+    "input-regression",
+    "theme-switch",
+    "data-preservation"
+  ]
+}
