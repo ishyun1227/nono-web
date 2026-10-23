@@ -18,6 +18,9 @@ async function main(){
   await Promise.all([a.goto('http://127.0.0.1:4173'),b.goto('http://127.0.0.1:4173')]);
   for(const p of [a,b])await p.waitForFunction(()=>document.querySelector('#connection').textContent.includes('온라인 연결'));
   await a.fill('#nickname','Alice');await b.fill('#nickname','Bob');
+  // The redesigned launcher starts with 10x10 selected. This scenario uses
+  // the known 5x5 fixture and must select it explicitly before room creation.
+  await a.locator('#nono-quick-sizes button').first().click();
   await a.click('[data-mode="coop"]');await a.click('#create-room');await a.waitForURL(/room=/);const coop=new URL(a.url()).searchParams.get('room');
   await b.click('[data-mode="coop"]');await b.fill('#room-code',coop);await b.click('#join-room');
   await b.locator('#board .cell').first().waitFor();
