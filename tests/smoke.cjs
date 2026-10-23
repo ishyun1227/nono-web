@@ -78,6 +78,31 @@ const { pathToFileURL } = require('node:url');
       throw new Error('Viewport-responsive NONO base layout failed: '+JSON.stringify({viewport,...layout}));
   }
   await page.setViewportSize({width:1440,height:900});
+  // Visual composition guard: prevent a tiny text cluster floating in a huge card.
+  const artDirection=await page.evaluate(()=>{
+    const panel=document.querySelector('#setup').getBoundingClientRect();
+    const r=selector=>{const a=document.querySelector(selector)?.getBoundingClientRect();return a?{x:a.x,y:a.y,w:a.width,h:a.height}:null};
+    const heading=document.querySelector('#setup-heading');
+    return {
+      panel:{x:panel.x,y:panel.y,w:panel.width,h:panel.height},
+      kicker:r('.nono-base-kicker'),heading:r('#setup-heading'),detail:r('.nono-base-detail'),
+      choices:r('#nono-quick-options'),start:r('#play-alone'),footer:r('.nono-base-footer'),
+      titleSize:parseFloat(getComputedStyle(heading).fontSize),
+      artImage:getComputedStyle(document.querySelector('#setup'),'::after').backgroundImage
+    };
+  });
+  const z=artDirection;
+  if(!z.kicker||!z.detail||!z.footer ||
+    z.titleSize<30 || z.heading.y-z.panel.y>z.panel.h*.38 ||
+    z.heading.y<=z.kicker.y || z.detail.y<=z.heading.y ||
+    z.choices.y<=z.detail.y || z.start.y<=z.choices.y ||
+    z.footer.y<=z.start.y || z.choices.x-z.panel.x>z.panel.w*.5 ||
+    !z.artImage.includes('nono-default-atmosphere.svg'))
+    throw new Error('Base-home visual proportions regressed: '+JSON.stringify(artDirection));
+  await page.screenshot({path:'test-results/default-home-desktop.png',fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  await page.screenshot({path:'test-results/default-home-mobile.png',fullPage:true});
+  await page.setViewportSize({width:1440,height:900});
   await page.locator('.mode-card[data-mode="race"]').click();
   if(!await page.locator('#nono-quick-room-options').isVisible() ||
     await page.locator('#nono-quick-options').isVisible())
