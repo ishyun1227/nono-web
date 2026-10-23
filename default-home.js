@@ -16,9 +16,11 @@ const difficulties=['쉬움','보통','어려움'];
 // verified difficulty-ranking logic are scheduled for the next phase.
 const pool={
   '5':{'쉬움':'heart5'},
-  '10':{'보통':'cat10','어려움':'rocket10'}
+  '10':{'보통':'cat10','어려움':'rocket10'},
+  '30':{'보통':'vox_crabino_front'}
 };
-let selectedSize=10,selectedDifficulty='보통',step='choose';
+const voxelIds=['vox_crabino_front','vox_crabino_side','vox_crabino_top'];
+let selectedSize=10,selectedDifficulty='보통',selectedVariant=0,step='choose';
 const wrap=document.createElement('div');
 wrap.className='nono-quick-setup';
 wrap.innerHTML=`
@@ -38,6 +40,7 @@ wrap.innerHTML=`
     <div class="nono-quick-group" id="nono-quick-difficulties" role="group" aria-label="난이도">
       <span class="nono-quick-label">난이도</span>
     </div>
+    <div class="nono-quick-group" id="nono-quick-variants" role="group" aria-label="브레인롯 퍼즐" hidden></div>
   </div>
   <div id="nono-quick-create-actions" hidden>
     <button type="button" class="nono-quick-back" id="nono-quick-create-back">← 뒤로</button>
@@ -60,6 +63,7 @@ function syncPuzzleFromSelection(){
   if(id==='heart5'){selectedSize=5;selectedDifficulty='쉬움'}
   else if(id==='rocket10'){selectedSize=10;selectedDifficulty='어려움'}
   else if(id==='cat10'){selectedSize=10;selectedDifficulty='보통'}
+  else if(voxelIds.includes(id)){selectedSize=30;selectedDifficulty='보통';selectedVariant=voxelIds.indexOf(id)}
 }
 function makeChoice(text,selected,disabled,handler,label){
   const button=document.createElement('button');
@@ -74,29 +78,43 @@ function makeChoice(text,selected,disabled,handler,label){
 function renderChoices(){
   const sizeGroup=$('nono-quick-sizes');
   const difficultyGroup=$('nono-quick-difficulties');
+  const variantGroup=$('nono-quick-variants');
   sizeGroup.querySelectorAll('button').forEach(b=>b.remove());
   difficultyGroup.querySelectorAll('button').forEach(b=>b.remove());
+  variantGroup.replaceChildren();
   for(const n of sizes){
-    const has=!!pool[n];
-    sizeGroup.append(makeChoice(n+'×'+n,n===selectedSize,!has,()=>{
+    const has=!!pool[n],soloOnly=n===30&&activeMode()!=='practice';
+    sizeGroup.append(makeChoice(n+'×'+n,n===selectedSize,!has||soloOnly,()=>{
       selectedSize=n;
-      if(!pool[n][selectedDifficulty])selectedDifficulty=Object.keys(pool[n])[0];
-      setNativePuzzle(pool[n][selectedDifficulty]);
+      if(n===30){selectedDifficulty='보통';selectedVariant=0;setNativePuzzle(voxelIds[0]);}
+      else{
+        if(!pool[n][selectedDifficulty])selectedDifficulty=Object.keys(pool[n])[0];
+        setNativePuzzle(pool[n][selectedDifficulty]);
+      }
       renderChoices();
-    },n+'×'+n+(has?' 선택':' 준비 중')));
+    },n+'×'+n+(has&&!soloOnly?' 선택':' 준비 중')));
   }
-  for(const d of difficulties){
-    const available=!!pool[selectedSize]?.[d];
-    difficultyGroup.append(makeChoice(d,d===selectedDifficulty,!available,()=>{
-      selectedDifficulty=d;
-      setNativePuzzle(pool[selectedSize][d]);
-      renderChoices();
-    },d+(available?' 선택':' 준비 중')));
+  difficultyGroup.hidden=selectedSize===30;
+  if(selectedSize!==30){
+    for(const d of difficulties){
+      const available=!!pool[selectedSize]?.[d];
+      difficultyGroup.append(makeChoice(d,d===selectedDifficulty,!available,()=>{
+        selectedDifficulty=d;setNativePuzzle(pool[selectedSize][d]);renderChoices();
+      },d+(available?' 선택':' 준비 중')));
+    }
+  }
+  variantGroup.hidden=selectedSize!==30;
+  if(selectedSize===30){
+    const label=document.createElement('span');label.className='nono-quick-label';label.textContent='퍼즐';variantGroup.append(label);
+    voxelIds.forEach((id,i)=>variantGroup.append(makeChoice('0'+(i+1),selectedVariant===i,false,()=>{
+      selectedVariant=i;setNativePuzzle(id);renderChoices();
+    },'30×30 브레인롯 퍼즐 0'+(i+1))));
   }
 }
 function screen(){
   if(!on())return;
   const mode=activeMode(),multi=mode==='race'||mode==='coop';
+  if(mode!=='practice'&&selectedSize===30){selectedSize=10;selectedDifficulty='보통';setNativePuzzle('cat10');}
   const choose=multi&&step==='choose',join=multi&&step==='join',create=multi&&step==='create';
   $('nono-quick-room-options').hidden=!choose;
   $('nono-quick-join-form').hidden=!join;

@@ -129,6 +129,19 @@ const { pathToFileURL } = require('node:url');
   await page.locator('#nono-quick-sizes button').nth(1).click();
   await page.locator('#nono-quick-difficulties button').nth(2).click();
   if(await page.locator('#puzzle').inputValue()!=='rocket10')throw new Error('Difficulty does not select actual puzzle');
+  // The voxel-derived 30x30 puzzles run inside NONO without disclosing the solved picture.
+  await page.locator('#nono-quick-sizes button').nth(5).click();
+  if(await page.locator('#puzzle').inputValue()!=='vox_crabino_front')throw new Error('Voxel 30x30 picker unavailable');
+  if(await page.locator('#nono-quick-variants button').count()!==3)throw new Error('Missing voxel puzzle viewpoints');
+  await page.locator('#nono-quick-variants button').nth(1).click();
+  if(await page.locator('#puzzle').inputValue()!=='vox_crabino_side')throw new Error('Side-view puzzle unavailable');
+  await page.locator('#nono-quick-variants button').nth(2).click();
+  if(await page.locator('#puzzle').inputValue()!=='vox_crabino_top')throw new Error('Top-view puzzle unavailable');
+  await page.locator('#play-alone').click();
+  if(await page.locator('#board .cell').count()!==900)throw new Error('Voxel board must contain 900 cells');
+  await page.locator('#leave-game').click();
+  await page.locator('#nono-quick-sizes button').nth(1).click();
+  await page.locator('#nono-quick-difficulties button').nth(2).click();
 
   await page.click('#nono-theme-open');
   if (await page.locator('.nono-theme-card').count() !== 10) throw new Error('Ten tiered theme cards not found');
