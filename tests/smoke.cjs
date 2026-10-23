@@ -32,7 +32,7 @@ const { pathToFileURL } = require('node:url');
       documentWidth:document.documentElement.scrollWidth,
       pageTheme:document.body.dataset.nonoTheme,
       titleColor:getComputedStyle(document.querySelector('.brand')).color,
-      selectedTabBackground:getComputedStyle(document.querySelector('.mode-card.selected')).backgroundImage,
+      selectedTabColor:getComputedStyle(document.querySelector('.mode-card.selected')).backgroundColor,
       choiceSizeRow:document.querySelector('#nono-quick-sizes').getBoundingClientRect().top,
       difficultyRow:document.querySelector('#nono-quick-difficulties').getBoundingClientRect().top
     };
@@ -47,7 +47,7 @@ const { pathToFileURL } = require('node:url');
     base.documentWidth>base.viewportWidth+2 ||
     base.shellHeight<800 || base.pageTheme!=='neon' ||
     base.fillerCount!==0 || base.artContent!=='none' ||
-    base.originalArt!=='none' || base.selectedTabBackground==='none' ||
+    base.originalArt!=='none' || base.selectedTabColor==='rgba(0, 0, 0, 0)' ||
     Math.abs(base.choiceSizeRow-base.difficultyRow)>2)
     throw new Error('Default launcher side edges / compact spacing broken: '+JSON.stringify(base));
   // The default homepage must use the entire available viewport at
