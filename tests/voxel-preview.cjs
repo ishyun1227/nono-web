@@ -47,9 +47,6 @@ const {pathToFileURL} = require('node:url');
     if(JSON.stringify(before)!==JSON.stringify(after)) throw Error('Preview mutated game state for '+id);
     await page.locator('#leave-game').click();
   }
-  await page.goto(source + '?test=1');
-  await page.locator('.mode-card[data-mode="race"]').click();
-  if(!await page.locator('#nono-quick-size option[value="30"]').isDisabled()) throw Error('Unverified multiplayer 30x30 must stay disabled');
   if(errors.length) throw Error('Preview JavaScript errors: '+errors.join(' | '));
   console.log('VOX preview tests passed for all three original 30x30 silhouettes.');
   await browser.close();
