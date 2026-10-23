@@ -1,0 +1,74 @@
+/* NONO decorative home, not a puzzle image picker. */
+.nono-welcome{display:none}
+body[data-nono-theme="neon"] .nono-welcome{
+ display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.1fr);align-items:center;gap:10px;
+ position:relative;isolation:isolate;overflow:hidden;
+ min-height:200px;margin:0 0 16px;padding:21px clamp(18px,3vw,35px);
+ border:1px solid #384568;border-radius:16px;
+ background:radial-gradient(ellipse 60% 120% at 84% 48%,#29376e8a,transparent 80%),
+ linear-gradient(110deg,#1c2845 0%,#121f3a 62%,#192b4c 100%);
+ color:#f8f8ff;
+}
+body[data-nono-theme="neon"] .nono-welcome::before{
+ content:"";position:absolute;inset:0;opacity:.13;z-index:-1;
+ background-image:linear-gradient(#8194cd 1px,transparent 1px),linear-gradient(90deg,#8194cd 1px,transparent 1px);
+ background-size:24px 24px;mask-image:linear-gradient(90deg,transparent 27%,black 95%);
+ pointer-events:none;
+}
+body[data-nono-theme="neon"] .nono-welcome-copy{position:relative;z-index:1;min-width:0}
+body[data-nono-theme="neon"] .nono-welcome-kicker{
+ display:inline-flex;align-items:center;gap:7px;margin-bottom:10px;
+ color:#b9bbff;font-size:10px;font-weight:800;letter-spacing:.12em
+}
+body[data-nono-theme="neon"] .nono-welcome-kicker::before{
+ content:"✦";color:#81e3df;font-size:13px
+}
+body[data-nono-theme="neon"] .nono-welcome h2{
+ font-size:clamp(21px,2.5vw,34px);font-weight:850;line-height:1.2;
+ letter-spacing:-.055em;margin:0 0 10px;color:#f2f4ff
+}
+body[data-nono-theme="neon"] .nono-welcome h2 span{color:#c7a6ff}
+body[data-nono-theme="neon"] .nono-welcome p{
+ max-width:420px;margin:0;font-size:12px;line-height:1.65;color:#b4c2df
+}
+body[data-nono-theme="neon"] .nono-welcome-art{
+ position:relative;display:flex;align-items:center;justify-content:center;
+ min-width:0;height:100%;pointer-events:none;user-select:none;
+}
+body[data-nono-theme="neon"] .nono-welcome-art img{
+ display:block;width:100%;height:auto;max-height:170px;
+ object-fit:contain;filter:drop-shadow(0 6px 11px #050b23b3);
+}
+body[data-nono-theme="neon"] .nono-welcome-note{
+ display:flex;align-items:center;gap:7px;margin:0 0 8px;
+ font-size:11px;color:#abbcdb;font-weight:600
+}
+body[data-nono-theme="neon"] .nono-welcome-note strong{color:#e1e7ff;font-size:12px}
+body[data-nono-theme="neon"] .nono-welcome-note::before{
+ content:"▦";font-size:13px;color:#7cddd7
+}
+/* The old hint-number paw must never appear beside puzzle choices. */
+.nono-home-illustration{display:none!important}
+body[data-nono-theme="neon"] #setup{
+ min-height:0!important;padding-right:clamp(17px,2.8vw,34px)!important;
+}
+body[data-nono-theme="neon"] .nono-welcome + .nono-welcome-note{margin-top:0}
+@media(max-width:760px){
+ body[data-nono-theme="neon"] .nono-welcome{
+  grid-template-columns:minmax(0,1fr) minmax(145px,.8fr);min-height:160px;
+  padding:16px 17px;margin-bottom:12px;
+ }
+ body[data-nono-theme="neon"] .nono-welcome h2{font-size:clamp(17px,4vw,25px)}
+ body[data-nono-theme="neon"] .nono-welcome-art img{max-height:126px}
+ body[data-nono-theme="neon"] .nono-welcome p{font-size:11px}
+}
+@media(max-width:520px){
+ body[data-nono-theme="neon"] .nono-welcome{
+  grid-template-columns:1fr;gap:4px;padding:18px 15px 12px;
+ }
+ body[data-nono-theme="neon"] .nono-welcome h2{font-size:23px}
+ body[data-nono-theme="neon"] .nono-welcome-art{height:78px}
+ body[data-nono-theme="neon"] .nono-welcome-art img{max-height:76px}
+ body[data-nono-theme="neon"] .nono-welcome p{font-size:11px}
+}
+@media(prefers-reduced-motion:reduce){.nono-welcome *{animation:none!important}}
