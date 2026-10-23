@@ -44,7 +44,25 @@ wrap.innerHTML=`
     <button type="button" class="nono-quick-room-action" id="nono-quick-create-submit">방 만들기 →</button>
   </div>
 `;
-setup.querySelector('.setup-description')?.after(wrap);
+// These are explanatory/decorative only; the native mode and puzzle handlers stay unique.
+const baseDescription=setup.querySelector('.setup-description');
+const kicker=document.createElement('div');
+kicker.className='nono-base-kicker';
+kicker.setAttribute('aria-hidden','true');
+kicker.innerHTML='<span class="nono-base-kicker-dot"></span><span id="nono-base-mode-index">01</span><span class="nono-base-kicker-divider"></span><span id="nono-base-mode-label">SOLO PLAY</span>';
+const detail=document.createElement('p');
+detail.className='nono-base-detail';
+detail.textContent='숫자를 따라가다 보면, 새로운 그림을 발견하게 돼요.';
+const footer=document.createElement('p');
+footer.className='nono-base-footer';
+footer.innerHTML='<span aria-hidden="true">✦</span> 어떤 그림인지는 완성한 뒤에 공개돼요.';
+if(baseDescription){
+  baseDescription.before(kicker);
+  baseDescription.after(detail,wrap);
+} else {
+  setup.prepend(kicker,detail,wrap);
+}
+setup.querySelector('.setup-actions')?.after(footer);
 const $=id=>document.getElementById(id);
 const on=()=>document.body.dataset.nonoTheme==='neon';
 const activeMode=()=>modeButtons.find(b=>b.classList.contains('selected'))?.dataset.mode||'practice';
@@ -97,6 +115,14 @@ function renderChoices(){
 function screen(){
   if(!on())return;
   const mode=activeMode(),multi=mode==='race'||mode==='coop';
+  const modeLabels={practice:['01','SOLO MODE','숫자를 따라가다 보면, 새로운 그림을 발견하게 돼요.'],
+    race:['02','VERSUS MODE','같은 퍼즐, 서로 다른 속도. 친구와 실력을 겨뤄보세요.'],
+    coop:['03','CO-OP MODE','한 장의 퍼즐을 함께 완성해 보세요.'],
+    record:['04','RECORD MODE','한 칸씩 더 빠르게. 나만의 최고 기록에 도전하세요.']};
+  const [index,english,description]=modeLabels[mode];
+  $('nono-base-mode-index').textContent=index;
+  $('nono-base-mode-label').textContent=english;
+  detail.textContent=description;
   const choose=multi&&step==='choose',join=multi&&step==='join',create=multi&&step==='create';
   $('nono-quick-room-options').hidden=!choose;
   $('nono-quick-join-form').hidden=!join;
