@@ -30,6 +30,7 @@ async function main(){
   console.log('PASS public quick match connects strangers and automatically starts a two-player race');
   // The redesigned launcher starts with 10x10 selected. This scenario uses
   // the known 5x5 fixture and must select it explicitly before room creation.
+  await a.click('[data-mode="practice"]');
   await a.locator('#nono-quick-sizes button').first().click();
   await a.click('[data-mode="coop"]');await a.click('#create-room');await a.waitForURL(/room=/);const coop=new URL(a.url()).searchParams.get('room');
   await b.click('[data-mode="coop"]');await b.fill('#room-code',coop);await b.click('#join-room');
