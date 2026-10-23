@@ -1,74 +1,83 @@
-/* NONO decorative home, not a puzzle image picker. */
-.nono-welcome{display:none}
-body[data-nono-theme="neon"] .nono-welcome{
- display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.1fr);align-items:center;gap:10px;
- position:relative;isolation:isolate;overflow:hidden;
- min-height:200px;margin:0 0 16px;padding:21px clamp(18px,3vw,35px);
- border:1px solid #384568;border-radius:16px;
- background:radial-gradient(ellipse 60% 120% at 84% 48%,#29376e8a,transparent 80%),
- linear-gradient(110deg,#1c2845 0%,#121f3a 62%,#192b4c 100%);
- color:#f8f8ff;
-}
-body[data-nono-theme="neon"] .nono-welcome::before{
- content:"";position:absolute;inset:0;opacity:.13;z-index:-1;
- background-image:linear-gradient(#8194cd 1px,transparent 1px),linear-gradient(90deg,#8194cd 1px,transparent 1px);
- background-size:24px 24px;mask-image:linear-gradient(90deg,transparent 27%,black 95%);
- pointer-events:none;
-}
-body[data-nono-theme="neon"] .nono-welcome-copy{position:relative;z-index:1;min-width:0}
-body[data-nono-theme="neon"] .nono-welcome-kicker{
- display:inline-flex;align-items:center;gap:7px;margin-bottom:10px;
- color:#b9bbff;font-size:10px;font-weight:800;letter-spacing:.12em
-}
-body[data-nono-theme="neon"] .nono-welcome-kicker::before{
- content:"✦";color:#81e3df;font-size:13px
-}
-body[data-nono-theme="neon"] .nono-welcome h2{
- font-size:clamp(21px,2.5vw,34px);font-weight:850;line-height:1.2;
- letter-spacing:-.055em;margin:0 0 10px;color:#f2f4ff
-}
-body[data-nono-theme="neon"] .nono-welcome h2 span{color:#c7a6ff}
-body[data-nono-theme="neon"] .nono-welcome p{
- max-width:420px;margin:0;font-size:12px;line-height:1.65;color:#b4c2df
-}
-body[data-nono-theme="neon"] .nono-welcome-art{
- position:relative;display:flex;align-items:center;justify-content:center;
- min-width:0;height:100%;pointer-events:none;user-select:none;
-}
-body[data-nono-theme="neon"] .nono-welcome-art img{
- display:block;width:100%;height:auto;max-height:170px;
- object-fit:contain;filter:drop-shadow(0 6px 11px #050b23b3);
-}
-body[data-nono-theme="neon"] .nono-welcome-note{
- display:flex;align-items:center;gap:7px;margin:0 0 8px;
- font-size:11px;color:#abbcdb;font-weight:600
-}
-body[data-nono-theme="neon"] .nono-welcome-note strong{color:#e1e7ff;font-size:12px}
-body[data-nono-theme="neon"] .nono-welcome-note::before{
- content:"▦";font-size:13px;color:#7cddd7
-}
-/* The old hint-number paw must never appear beside puzzle choices. */
-.nono-home-illustration{display:none!important}
+/* Default NONO launcher: character art is decoration inside the existing
+   mode setup card, never a puzzle picker or a playable answer. */
+.nono-friends-card-art{display:none}
 body[data-nono-theme="neon"] #setup{
- min-height:0!important;padding-right:clamp(17px,2.8vw,34px)!important;
+  display:grid;
+  grid-template-columns:minmax(0,1.28fr) minmax(0,1fr);
+  grid-template-rows:auto auto auto auto;
+  column-gap:clamp(12px,2.6vw,28px);
+  row-gap:15px;
+  align-items:center;
+  padding:23px clamp(17px,2.6vw,32px);
+  min-height:224px;
+  height:auto;
+  overflow:hidden;
+  position:relative;
+  background:linear-gradient(105deg,#19243a 0%,#19243a 52%,#1c2c4c 100%);
 }
-body[data-nono-theme="neon"] .nono-welcome + .nono-welcome-note{margin-top:0}
-@media(max-width:760px){
- body[data-nono-theme="neon"] .nono-welcome{
-  grid-template-columns:minmax(0,1fr) minmax(145px,.8fr);min-height:160px;
-  padding:16px 17px;margin-bottom:12px;
- }
- body[data-nono-theme="neon"] .nono-welcome h2{font-size:clamp(17px,4vw,25px)}
- body[data-nono-theme="neon"] .nono-welcome-art img{max-height:126px}
- body[data-nono-theme="neon"] .nono-welcome p{font-size:11px}
+body[data-nono-theme="neon"] #setup::before{
+  content:"";
+  display:block!important;
+  position:absolute;inset:0 0 0 49%;
+  pointer-events:none;
+  background-image:linear-gradient(#7086b21a 1px,transparent 1px),
+                   linear-gradient(90deg,#7086b21a 1px,transparent 1px);
+  background-size:26px 26px;
+  mask-image:linear-gradient(90deg,transparent 0%,black 35%);
 }
-@media(max-width:520px){
- body[data-nono-theme="neon"] .nono-welcome{
-  grid-template-columns:1fr;gap:4px;padding:18px 15px 12px;
- }
- body[data-nono-theme="neon"] .nono-welcome h2{font-size:23px}
- body[data-nono-theme="neon"] .nono-welcome-art{height:78px}
- body[data-nono-theme="neon"] .nono-welcome-art img{max-height:76px}
- body[data-nono-theme="neon"] .nono-welcome p{font-size:11px}
+body[data-nono-theme="neon"] #setup>.setup-description{
+  grid-column:1;grid-row:1;min-width:0;
 }
-@media(prefers-reduced-motion:reduce){.nono-welcome *{animation:none!important}}
+body[data-nono-theme="neon"] #setup>.nono-quick-setup{
+  grid-column:1;grid-row:2;min-width:0;
+}
+body[data-nono-theme="neon"] #setup>.setup-actions{
+  grid-column:1;grid-row:3;min-width:0;
+}
+body[data-nono-theme="neon"] #setup>.controls{
+  grid-column:1;grid-row:4;min-width:0;
+}
+body[data-nono-theme="neon"] #setup>.nono-friends-card-art{
+  display:flex;
+  position:relative;z-index:1;
+  grid-column:2;grid-row:1 / 5;
+  align-items:center;justify-content:center;
+  width:100%;max-width:100%;min-width:0;
+  padding:0;overflow:hidden;
+  pointer-events:none;user-select:none;
+}
+body[data-nono-theme="neon"] #setup>.nono-friends-card-art img{
+  display:block;width:100%;max-width:560px;height:auto;
+  aspect-ratio:960/156;
+  object-fit:contain;flex:none;
+  filter:drop-shadow(0 5px 7px #090f2580);
+}
+/* Keep the size and difficulty selectors in their existing click-driven flow. */
+body[data-nono-theme="neon"] #setup .nono-quick-block{max-width:100%}
+body[data-nono-theme="neon"] #setup>.setup-description,
+body[data-nono-theme="neon"] #setup>.nono-quick-setup,
+body[data-nono-theme="neon"] #setup>.setup-actions{
+  z-index:1;
+}
+/* On small screens keep characters inside the setup card, after its buttons. */
+@media(max-width:1020px){
+  body[data-nono-theme="neon"] #setup{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:auto auto auto auto auto;
+    gap:13px;
+    min-height:0;
+  }
+  body[data-nono-theme="neon"] #setup>.setup-description{grid-column:1;grid-row:1}
+  body[data-nono-theme="neon"] #setup>.nono-quick-setup{grid-column:1;grid-row:2}
+  body[data-nono-theme="neon"] #setup>.setup-actions{grid-column:1;grid-row:3}
+  body[data-nono-theme="neon"] #setup>.controls{grid-column:1;grid-row:4}
+  body[data-nono-theme="neon"] #setup>.nono-friends-card-art{
+    grid-column:1;grid-row:5;
+    max-width:620px;margin:0 auto;
+  }
+  body[data-nono-theme="neon"] #setup::before{inset:45% 0 0 0}
+}
+@media(max-width:660px){
+  body[data-nono-theme="neon"] #setup{padding:18px 15px;gap:12px}
+  body[data-nono-theme="neon"] #setup>.nono-friends-card-art{max-width:100%}
+}
