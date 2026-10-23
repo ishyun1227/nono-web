@@ -106,6 +106,11 @@ const { pathToFileURL } = require('node:url');
   await page.screenshot({path:'test-results/default-home-mobile.png',fullPage:true});
   await page.setViewportSize({width:1440,height:900});
   await page.locator('.mode-card[data-mode="race"]').click();
+  if(!await page.locator('#public-lobby').isVisible())throw new Error('Public room lobby must be visible in race mode');
+  if(!await page.locator('#quick-match').isVisible())throw new Error('Quick matching action missing');
+  if(!await page.locator('#public-room-toggle').isChecked())throw new Error('New rooms must default to public');
+  await page.locator('#quick-match').click();
+  if(!((await page.locator('#toast').innerText()).includes('온라인 연결')))throw new Error('Offline quick matching must show an honest connection warning');
   if(!await page.locator('#nono-quick-room-options').isVisible() ||
     await page.locator('#nono-quick-options').isVisible())
     throw new Error('Race should start with create/join choices only');
