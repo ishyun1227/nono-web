@@ -21,7 +21,7 @@
 <link rel="stylesheet" href="./forest-world.css?v=1" />
 <link rel="stylesheet" href="./terminal-world.css?v=1" />
 <link rel="stylesheet" href="./default-home.css?v=2" />
-<link rel="stylesheet" href="./public-lobby.css?v=1" />
+<link rel="stylesheet" href="./public-lobby.css?v=2" />
 <link rel="stylesheet" href="./pixel-friends.css?v=3" />
 </head>
 <body data-nono-theme="neon">
@@ -63,10 +63,15 @@
               <div id="room-controls" class="room-controls hidden"><button id="create-room" class="button primary" type="button">방 만들기 <span aria-hidden="true">→</span></button><div class="join-row"><input id="room-code" maxlength="6" placeholder="초대 코드 6자리" aria-label="방 코드"/><button id="join-room" class="button outline" type="button">참가</button></div></div>
             </div>
             <section id="public-lobby" class="public-lobby hidden" aria-label="공개 멀티플레이 로비">
-              <div class="public-lobby-heading"><div><strong>공개 로비</strong><p>모르는 플레이어와 함께 플레이하세요.</p></div><button id="quick-match" type="button" class="button primary">⚡ 빠른 매칭</button></div>
-              <label class="public-lobby-opt"><input id="public-room-toggle" type="checkbox" checked /> 내가 만드는 방을 공개 목록에 표시</label>
+              <button id="quick-match" type="button" class="button primary public-lobby-match">⚡ 빠른 매칭</button>
+              <div class="public-lobby-heading"><strong>공개 방 목록</strong><span class="public-lobby-live">● 실시간 갱신</span></div>
               <p id="public-room-message" class="public-room-message" role="status">온라인 로비에 연결 중…</p>
               <div id="public-room-list" class="public-room-list" aria-live="polite"></div>
+              <div class="public-lobby-footer">
+                <label class="public-lobby-opt"><input id="public-room-toggle" type="checkbox" checked /> 내가 만드는 방을 공개하기</label>
+                <button id="public-lobby-create" class="button outline" type="button">＋ 방 만들기</button>
+                <div class="public-lobby-invite"><input id="public-lobby-code" maxlength="6" placeholder="초대 코드 6자리" autocomplete="off" aria-label="초대 코드 6자리" /><button id="public-lobby-join" class="button outline" type="button">초대 코드 참가</button></div>
+              </div>
             </section>
             <div class="nono-friends-card-art" aria-hidden="true">
               <img src="./assets/friends-parade.svg?v=4" width="762" height="135" alt="" decoding="async" draggable="false">
@@ -156,6 +161,7 @@ function setMode(next){
   document.querySelectorAll('.mode-card').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
   $('room-controls').classList.toggle('hidden',!['race','coop'].includes(mode));
   $('play-alone').classList.toggle('hidden',['race','coop'].includes(mode));
+  $('quick-match').textContent=mode==='race'?'⚡ 빠른 대결':mode==='coop'?'⚡ 빠른 협동':'⚡ 빠른 매칭';
   renderPublicLobby();
 }
 function focusSetup(next){
@@ -197,6 +203,10 @@ function initHome(){
   $('nickname').addEventListener('input',()=>{storage.setItem('nono-nickname',nickname());updateProfileLabel();});
   $('create-room').addEventListener('click',createRoom);
   $('quick-match').addEventListener('click',quickMatch);
+  $('public-lobby-create').addEventListener('click',()=>createRoom());
+  const joinPublicCode=()=>{$('room-code').value=$('public-lobby-code').value.trim().toUpperCase();$('join-room').click();};
+  $('public-lobby-join').addEventListener('click',joinPublicCode);
+  $('public-lobby-code').addEventListener('keydown',event=>{if(event.key==='Enter')joinPublicCode();});
   $('public-room-list').addEventListener('click',event=>{
     const button=event.target.closest('button[data-room-code]');
     if(button&&!button.disabled)enterRoom(button.dataset.roomCode);
@@ -371,7 +381,7 @@ function renderPublicLobby(){
     const p=PUZZLES.find(p=>p.id===item.puzzleId),count=publicCounts[code];
     const amount=Number.isInteger(count)?count+'/4':'인원 확인 중';
     return '<div class="public-room-item"><div class="public-room-info"><strong>'+
-      escapeHTML(item.name||'플레이어')+'의 방</strong><small>'+escapeHTML(p.size+'×'+p.size+' · '+p.name+' · '+amount)+
+      escapeHTML(item.name||'플레이어')+'의 방</strong><small>'+escapeHTML(p.size+'×'+p.size+' · '+({heart5:'쉬움',cat10:'보통',rocket10:'어려움'}[p.id]||'미지정')+' · '+amount)+
       '</small></div><button type="button" data-room-code="'+code+'" class="button outline">참가</button></div>';
   }).join('');
 }
@@ -504,6 +514,6 @@ initHome();connectFirebase();
 <script src="./library-ui.js?v=1"></script>
 <script src="./forest-world.js?v=1"></script>
 <script src="./terminal-world.js?v=1"></script>
-<script src="./default-home.js?v=1"></script>
+<script src="./default-home.js?v=2"></script>
 </body>
 </html>
