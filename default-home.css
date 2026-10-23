@@ -273,33 +273,3 @@ body:not([data-nono-theme="neon"]) #setup .nono-quick-note{
  }
  body[data-nono-theme="neon"] #setup .nono-quick-block{gap:9px}
 }
-
-/* A real nonogram drawing belongs in the compact launcher. Keep it decorative
-   and separate from the actual puzzles so no playable answer is revealed. */
-.nono-home-illustration{display:none!important}
-body[data-nono-theme="neon"] #setup{
-  min-height:218px;
-  padding-right:clamp(226px,22vw,266px);
-}
-body[data-nono-theme="neon"] #setup .nono-home-illustration{
-  display:grid!important;place-items:center;
-  position:absolute;top:50%;right:clamp(15px,2.8vw,34px);
-  transform:translateY(-50%);
-  width:205px;height:194px;padding:7px;
-  background:#101c30;border:1px solid #394a69;border-radius:10px;
-  box-shadow:inset 0 1px 0 #ffffff0b;
-  pointer-events:none;
-}
-body[data-nono-theme="neon"] .nono-home-illustration svg{display:block;width:100%;height:100%;overflow:visible}
-body[data-nono-theme="neon"] .nono-art-clues{font:700 10px/1 sans-serif;fill:#bfcdec}
-body[data-nono-theme="neon"] .nono-art-empty{fill:#192941}
-body[data-nono-theme="neon"] .nono-art-filled{fill:#78dfcf}
-body[data-nono-theme="neon"] .nono-art-minor{fill:none;stroke:#415574;stroke-width:.85}
-body[data-nono-theme="neon"] .nono-art-major{fill:none;stroke:#8494b4;stroke-width:1.5}
-@media(max-width:800px){
-  body[data-nono-theme="neon"] #setup{padding-right:16px;min-height:0}
-  body[data-nono-theme="neon"] #setup .nono-home-illustration{
-    position:relative;top:auto;right:auto;transform:none;
-    align-self:center;width:146px;height:141px;padding:4px;
-  }
-}
