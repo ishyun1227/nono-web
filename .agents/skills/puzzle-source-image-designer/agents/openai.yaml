@@ -1,0 +1,6 @@
+interface:
+  display_name: "퍼즐용 그림 만들기"
+  short_description: "노노그램으로 바꾸기 쉬운 동물·사물·캐릭터 원본 이미지 제작"
+  default_prompt: "$puzzle-source-image-designer 귀여운 게를 15×15 노노그램용 원본 이미지로 만들어줘."
+policy:
+  allow_implicit_invocation: true
