@@ -1,118 +1,117 @@
-/* NONO DEFAULT / after usability review 2026-10-23
-   Preserve approved information architecture, NOT the white prototype's visual style.
-   All selectors are scoped to the default Neon world. */
-:root:has(body[data-nono-theme="neon"]){background:#0b1021!important;color-scheme:dark}
-body[data-nono-theme="neon"]{
- --nono-base-width:570px;
- background:
-   radial-gradient(ellipse 52% 58% at 68% 31%,#35368d48,transparent 78%),
-   radial-gradient(ellipse 48% 50% at 91% 93%,#147e8350,transparent 83%),
-   radial-gradient(ellipse 65% 72% at -22% 92%,#56479c2a,transparent 80%),
-   #0b1021!important;
- color:#f1f2ff!important;color-scheme:dark;min-height:100vh;min-height:100svh;
+/* NONO basic launcher — intentionally minimal.
+   Keep the approved mode / compact size+difficulty / start flow.
+   No answer-like illustration, fake interface decoration or redundant copy. */
+body[data-nono-theme="neon"] {
+  --nono-base-content: 1160px;
+  background: #0d1426!important;
+  color: #eff2ff!important;
+  color-scheme: dark;
+  min-height: 100vh;
+  min-height: 100svh;
 }
-body[data-nono-theme="neon"] .shell{
- position:relative;width:100%;max-width:none;margin:0;min-height:100vh;min-height:100svh;
- padding:0 28px 45px;overflow:clip;
- background-image:linear-gradient(#7b7fb30a 1px,transparent 1px),linear-gradient(90deg,#7b7fb30a 1px,transparent 1px);
- background-size:32px 32px;background-position:12px 12px;
+body[data-nono-theme="neon"] .shell {
+  width:100%;max-width:none;
+  margin:0;
+  padding:0 clamp(12px,3vw,42px) 32px;
+  min-height:100vh;min-height:100svh;
+  background:none;
 }
-body[data-nono-theme="neon"] .topbar{
- width:min(100%,var(--nono-base-width));height:84px;
- margin:0 0 12px;padding:0;border-bottom:1px solid #65749e40;
- display:flex;align-items:center;justify-content:space-between;gap:12px;
+body[data-nono-theme="neon"] .topbar {
+  width:min(100%,var(--nono-base-content));
+  height:72px;
+  margin:0 auto 22px;
+  padding:0;
+  border-bottom:1px solid #28324b;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
 }
-body[data-nono-theme="neon"] .brand{
- display:flex;align-items:center;gap:9px;
- font-weight:950;font-size:28px;letter-spacing:-.055em;
- color:#fff;text-shadow:0 1px 18px #bba5fe42;
+body[data-nono-theme="neon"] .brand {
+  display:flex;align-items:center;gap:9px;
+  color:#f9fbff;font-size:25px;font-weight:850;letter-spacing:-.045em;
+  text-shadow:none;
 }
-body[data-nono-theme="neon"] .brand-box{
- width:34px;height:34px;background:linear-gradient(145deg,#c19cfc,#7364fc);
- display:grid;place-items:center;font-size:21px;
- color:#14152e;border:1px solid #e1d2ffa0;border-radius:9px;
- box-shadow:0 0 0 4px #9180e31a,0 3px 20px #a884ff42;
+body[data-nono-theme="neon"] .brand-box {
+  width:31px;height:31px;
+  display:grid;place-items:center;
+  border:1px solid #8f84e7;
+  border-radius:8px;
+  color:#171b39;font-size:21px;
+  background:#a69cf7;box-shadow:none;
 }
-body[data-nono-theme="neon"] .brand-dot{color:#66efdd;margin-left:-7px}
-body[data-nono-theme="neon"] .header-right{gap:5px}
+body[data-nono-theme="neon"] .brand-dot{color:#78d9d0;margin-left:-7px}
+body[data-nono-theme="neon"] .header-right{gap:7px}
 body[data-nono-theme="neon"] .header-right .connection{display:none}
 body[data-nono-theme="neon"] .header-right .profile-chip{
- display:flex;justify-content:center;align-items:center;
- width:34px;height:32px;padding:0;background:#ffffff08;
- border:1px solid #a5b0df28;border-radius:9px;color:#c6b7ff;
+  display:flex;justify-content:center;align-items:center;
+  width:32px;height:32px;padding:0;
+  background:#172239;border:1px solid #344362;border-radius:8px;color:#cdd7ea;
 }
 body[data-nono-theme="neon"] .profile-chip #profile-name{display:none}
 body[data-nono-theme="neon"] .profile-avatar{
- width:27px;height:27px;border:0;background:none;
- color:#b9acf9;font-size:19px;
+  width:25px;height:25px;
+  display:grid;place-items:center;border:0;border-radius:0;
+  font-size:18px;color:#c8bdf5;background:transparent;
 }
 body[data-nono-theme="neon"] #nono-theme-open,
 body[data-nono-theme="neon"] #nono-open-settings{
- display:inline-flex;align-items:center;gap:5px;
- min-height:32px;padding:6px 9px!important;
- color:#cdd7f3!important;background:#ffffff08!important;
- border:1px solid #a5b0df28!important;border-radius:9px!important;
- box-shadow:none!important;font-size:12px!important;font-weight:600!important;
- white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;
+  min-height:32px;padding:5px 9px!important;
+  font-size:12px!important;font-weight:650!important;white-space:nowrap;
+  color:#c9d3eb!important;
+  background:#172239!important;border:1px solid #344362!important;
+  box-shadow:none!important;border-radius:8px!important;
 }
 body[data-nono-theme="neon"] #nono-theme-open:hover,
 body[data-nono-theme="neon"] #nono-open-settings:hover,
 body[data-nono-theme="neon"] .header-right .profile-chip:hover{
- background:#a892fe24!important;border-color:#b8abfa88!important;
+  background:#25324c!important;border-color:#5b6a91!important;
 }
-body[data-nono-theme="neon"] #home-view{
- position:relative;isolation:isolate;
- width:min(100%,var(--nono-base-width));max-width:var(--nono-base-width);
+body[data-nono-theme="neon"] .shell>main{width:100%;min-width:0}
+body[data-nono-theme="neon"] #home-view {
+  width:min(100%,var(--nono-base-content));
+  max-width:none;min-height:0;margin:0 auto;
 }
-body[data-nono-theme="neon"] #home-view::before{
- content:"NONO / CREATIVE PLAY";pointer-events:none;
- position:absolute;top:61px;left:calc(100% + 73px);
- color:#99a7d6;font:800 12px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;
- letter-spacing:.3em;white-space:nowrap;opacity:.7;
-}
+body[data-nono-theme="neon"] #home-view::before,
 body[data-nono-theme="neon"] #home-view::after{
- content:"";position:absolute;z-index:-1;pointer-events:none;
- left:calc(100% + 35px);top:-32px;
- width:clamp(440px,43vw,710px);height:clamp(425px,42vw,635px);
- background:url('./assets/nono-default-atmosphere.svg') center/contain no-repeat;
- filter:drop-shadow(0 28px 60px #04071899);
- opacity:.97;
+  content:none!important;display:none!important;
 }
-body[data-nono-theme="neon"] #home-view .home-content{
- position:relative;z-index:1;width:100%;max-width:var(--nono-base-width);
- padding:13px 0 12px;
+body[data-nono-theme="neon"] #home-view .home-content {
+  width:100%;max-width:none;min-height:0;
+  padding:0;display:block;
 }
 body[data-nono-theme="neon"] #home-view .hero,
 body[data-nono-theme="neon"] #home-view .section-heading,
 body[data-nono-theme="neon"] .home-content .nono-world-extras,
 body[data-nono-theme="neon"] .home-content .nono-world-panel,
 body[data-nono-theme="neon"] .home-content .nono-world-cta,
-body[data-nono-theme="neon"] .shell>footer{display:none!important}
-body[data-nono-theme="neon"] .mode-select{
- display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
- gap:5px;width:100%;margin:0 0 14px;min-width:0;
- padding:5px;
- border:1px solid #7b81b446;border-radius:14px;
- background:linear-gradient(135deg,#17203cbf,#1d2142db);
- box-shadow:0 15px 38px #03091d30;
+body[data-nono-theme="neon"] .shell>footer{
+  display:none!important;
 }
-body[data-nono-theme="neon"] .mode-select .mode-card{
- display:flex;align-items:center;justify-content:center;
- min-width:0;width:100%;min-height:37px;height:37px;padding:5px;
- margin:0;border:1px solid transparent;border-radius:9px;
- background:transparent;color:#9cadd2;
- box-shadow:none;transform:none;transition:background .15s,color .15s;
- font:750 14px/1.1 Inter,Pretendard,"Noto Sans KR",sans-serif;
+/* One top-level selector, no duplicate buttons or icon tiles. */
+body[data-nono-theme="neon"] .mode-select {
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;
+  width:100%;max-width:none;
+  margin:0 0 16px;padding:4px;
+  background:#161f34;border:1px solid #2c3a56;
+  border-radius:11px;box-shadow:none;
+}
+body[data-nono-theme="neon"] .mode-select .mode-card {
+  display:flex;align-items:center;justify-content:center;
+  width:100%;min-width:0;min-height:38px;height:38px;
+  margin:0;padding:5px 6px;
+  color:#a8b5ce;background:transparent;
+  border:1px solid transparent;border-radius:8px;box-shadow:none;
+  transform:none;
+  font:700 14px/1.1 Inter,Pretendard,"Noto Sans KR",sans-serif;
 }
 body[data-nono-theme="neon"] .mode-select .mode-card.selected{
- background:linear-gradient(120deg,#a990ff,#746bf2);
- color:#0b0e25;border-color:#c7baff;
- box-shadow:0 3px 14px #6658e74d,inset 0 1px 0 #ffffff6b;
+  color:#161932;background:#b4aafa;border-color:#c0b8ff;box-shadow:none;
 }
 body[data-nono-theme="neon"] .mode-select .mode-card:hover{
- background:#8879c335;color:#fff;transform:none;
+  color:#fff;background:#2a3554;transform:none;
 }
-body[data-nono-theme="neon"] .mode-select .mode-card.selected:hover{background:linear-gradient(120deg,#ad96ff,#786df6);color:#10112b}
+body[data-nono-theme="neon"] .mode-select .mode-card.selected:hover{
+  color:#13142a;background:#c0b5fc;
+}
 body[data-nono-theme="neon"] .mode-select .mode-card .mode-icon,
 body[data-nono-theme="neon"] .mode-select .mode-card .mode-text,
 body[data-nono-theme="neon"] .mode-select .mode-card .selected-indicator{display:none!important}
@@ -120,475 +119,157 @@ body[data-nono-theme="neon"] .mode-select .mode-card[data-mode="practice"]::afte
 body[data-nono-theme="neon"] .mode-select .mode-card[data-mode="race"]::after{content:"대결"}
 body[data-nono-theme="neon"] .mode-select .mode-card[data-mode="coop"]::after{content:"협동"}
 body[data-nono-theme="neon"] .mode-select .mode-card[data-mode="record"]::after{content:"기록"}
-body[data-nono-theme="neon"] #setup{
- display:flex;flex-direction:column;align-items:stretch;
- width:100%;max-width:var(--nono-base-width);min-width:0;
- gap:15px;padding:19px 22px 20px;
- color:#eef2ff;background:
-  linear-gradient(140deg,#263251ea,#1a2342f4 52%,#252349f5);
- border:1px solid #64749c91;border-radius:18px;
- box-shadow:0 16px 50px #04071880,inset 0 1px 0 #e6dfff14;
+/* Content only: do not stretch a short setup into a full-screen blank card. */
+body[data-nono-theme="neon"] #setup {
+  display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+  position:relative;
+  width:100%;max-width:none;min-width:0;
+  height:auto;min-height:0;flex:none;overflow:visible;
+  padding:26px clamp(17px,2.8vw,34px);
+  gap:18px;
+  background:#19243a;
+  border:1px solid #33415f;border-radius:14px;
+  color:#f1f4ff;
+  box-shadow:none;
 }
-body[data-nono-theme="neon"] #setup .setup-description{
- display:flex;align-items:center;min-height:24px;gap:10px;
+body[data-nono-theme="neon"] #setup::before,
+body[data-nono-theme="neon"] #setup::after {
+  content:none!important;display:none!important;
 }
-body[data-nono-theme="neon"] #setup .setup-description:before{
- content:"◈";color:#70ead5;font-size:17px;line-height:1;
- text-shadow:0 0 20px #66e8d69e;
-}
-body[data-nono-theme="neon"] #setup .setup-description h3{
- margin:0;color:#fff;font-size:20px;letter-spacing:-.025em;font-weight:850;
-}
-body[data-nono-theme="neon"] #setup .setup-description p{display:none}
-body[data-nono-theme="neon"] #setup>.controls{display:none}
-body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls{
- display:flex;width:min(100%,340px);align-items:flex-end;gap:8px;
-}
-body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls label:first-child{display:none}
-body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls label:last-child{color:#bac7e4;font-size:12px}
-body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls input{
- background:#111a35;color:#fff;border:1px solid #6677ae;
- height:37px;border-radius:8px;
-}
-body[data-nono-theme="neon"] #setup .setup-actions{
- display:flex;align-items:center;justify-content:flex-start;
- width:auto;min-width:0;gap:8px;margin:0;
-}
-body[data-nono-theme="neon"] #setup .setup-actions #play-alone{
- display:inline-flex;align-items:center;justify-content:center;
- min-width:0;min-height:36px;height:36px;
- padding:8px 19px;border:1px solid #a1f5e7;
- border-radius:10px;background:linear-gradient(105deg,#62edd5,#5bcfc6);
- color:#071b29;font:850 13px/1 Inter,Pretendard,sans-serif;
- box-shadow:0 3px 18px #60eadd40;
-}
-body[data-nono-theme="neon"] #setup .setup-actions #play-alone:hover{filter:brightness(1.13)}
-body[data-nono-theme="neon"] #setup .room-controls{display:none!important}
-body[data-nono-theme="neon"] #setup .nono-quick-setup{display:grid;gap:11px}
-body[data-nono-theme="neon"] #setup .nono-quick-setup [hidden]{display:none!important}
-body[data-nono-theme="neon"] #setup .nono-quick-block{
- display:flex;align-items:center;flex-wrap:nowrap;
- gap:8px;min-width:0;color:#e9edfe;margin:0;padding:0;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-group{
- display:flex;align-items:center;flex-wrap:nowrap;min-width:0;gap:3px;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-label{
- flex:0 0 auto;color:#b5c2e1;font-weight:700;font-size:11px;margin-right:2px;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-choice{
- display:inline-flex;justify-content:center;align-items:center;
- flex:0 0 auto;min-width:0;min-height:25px;
- padding:5px 5px;border-radius:6px;border:1px solid #8996c436;
- background:#131e3c;color:#ccd4ea;box-shadow:none;
- font:750 10px/1.1 Inter,Pretendard,"Noto Sans KR",sans-serif;
- white-space:nowrap;transition:background .13s,border-color .13s;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-choice[aria-pressed="true"]{
- background:#b1a0ff;color:#15132a;
- border-color:#cec7ff;font-weight:950;
- box-shadow:0 2px 11px #7865ff44;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-choice:hover:not(:disabled){background:#4f5c8b;color:#fff}
-body[data-nono-theme="neon"] #setup .nono-quick-choice:disabled{
- opacity:.38;cursor:not-allowed;background:transparent;filter:none;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-room-options{
- display:flex;flex-wrap:wrap;align-items:center;gap:9px;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-room-options button,
-body[data-nono-theme="neon"] #setup .nono-quick-room-action,
-body[data-nono-theme="neon"] #setup .nono-quick-back{
- min-height:34px;padding:7px 12px;
- color:#eaf1ff;background:#17264a;border:1px solid #7382b1;
- border-radius:9px;box-shadow:none;font-size:12px;font-weight:750;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-room-options button:hover,
-body[data-nono-theme="neon"] #setup .nono-quick-room-action:hover{background:#313e6b}
-body[data-nono-theme="neon"] #setup .nono-quick-room-action{
- color:#111b30;background:#7debdc;border-color:#88f0e2;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-back{
- background:transparent;border-color:transparent;color:#abb8d6;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-join{
- display:flex;align-items:center;gap:7px;flex-wrap:wrap;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-join input{
- width:155px;max-width:100%;height:34px;padding:6px 8px;
- border:1px solid #7a83bb;border-radius:8px;
- background:#141e3b;color:#fff;font-size:12px;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-note{margin:0;color:#bbc5e5;font-size:11px}
-body:not([data-nono-theme="neon"]) #setup .nono-quick-setup,
-body:not([data-nono-theme="neon"]) #setup .nono-quick-note{display:none!important}
-@media(max-width:1050px){
- body[data-nono-theme="neon"] #home-view::after{width:370px;left:calc(100% + 10px);opacity:.55}
- body[data-nono-theme="neon"] #home-view::before{display:none}
-}
-@media(max-width:850px){
- body[data-nono-theme="neon"] #home-view::after{display:none}
- body[data-nono-theme="neon"] .shell{padding:0 22px 40px}
-}
-@media(max-width:630px){
- body[data-nono-theme="neon"] .shell{padding:0 12px 25px}
- body[data-nono-theme="neon"] .topbar{height:70px;margin-bottom:4px}
- body[data-nono-theme="neon"] .brand{font-size:25px}
- body[data-nono-theme="neon"] .header-right{gap:3px}
- body[data-nono-theme="neon"] .mode-select{gap:2px;padding:4px}
- body[data-nono-theme="neon"] .mode-select .mode-card{font-size:13px;min-height:35px;height:35px}
- body[data-nono-theme="neon"] #setup{padding:15px 14px;gap:12px}
- body[data-nono-theme="neon"] #setup .nono-quick-block{flex-wrap:wrap;gap:6px 8px}
- body[data-nono-theme="neon"] #setup .nono-quick-group{flex-wrap:wrap;gap:3px}
- body[data-nono-theme="neon"] #setup .nono-quick-choice{font-size:10px;padding:5px 5px}
-}
-@media(prefers-reduced-motion:reduce){
- body[data-nono-theme="neon"] .mode-card,
- body[data-nono-theme="neon"] .nono-quick-choice{transition:none!important}
-}
-
-/* Fluid page layout: viewport width, not the prototype's fixed 570px. */
-body[data-nono-theme="neon"] .shell{
-  width:100%;max-width:none;min-height:100svh;
-  padding-inline:clamp(12px,3.2vw,64px);padding-bottom:clamp(16px,3vh,44px);
-}
-body[data-nono-theme="neon"] .topbar{
-  width:100%;max-width:none;height:clamp(65px,9vh,88px);
-  margin-bottom:clamp(12px,2vh,20px);
-}
-body[data-nono-theme="neon"] .shell>main{width:100%;min-width:0}
-body[data-nono-theme="neon"] #home-view{
-  width:100%;max-width:none;
-  min-height:calc(100svh - 84px - 65px);
-}
-body[data-nono-theme="neon"] #home-view::before,
-body[data-nono-theme="neon"] #home-view::after{display:none!important}
-body[data-nono-theme="neon"] #home-view .home-content{
-  display:flex;flex-direction:column;
-  width:100%;max-width:none;
-  min-height:inherit;padding:0;
-}
-body[data-nono-theme="neon"] .mode-select{
-  width:100%;max-width:none;flex:0 0 auto;
-  margin-bottom:clamp(11px,2vh,22px);
-}
-body[data-nono-theme="neon"] #setup{
-  position:relative;isolation:isolate;overflow:hidden;
-  width:100%;max-width:none;min-height:clamp(360px,55vh,760px);
-  flex:1 1 auto;justify-content:center;
-  padding:clamp(20px,5vw,78px);
-  gap:clamp(13px,2.4vh,24px);
-  border-radius:clamp(16px,2vw,30px);
-  background:
-    radial-gradient(ellipse 45% 90% at 82% 45%,#5a51b63b,transparent 87%),
-    radial-gradient(ellipse 44% 80% at 100% 100%,#229c9e25,transparent 85%),
-    linear-gradient(125deg,#263554f9,#1a2345f9 60%,#171b3bf9);
-}
-body[data-nono-theme="neon"] #setup::before{
-  content:"";position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-image:linear-gradient(#aab5ed11 1px,transparent 1px),
-    linear-gradient(90deg,#aab5ed11 1px,transparent 1px);
-  background-size:38px 38px;
-  mask-image:linear-gradient(90deg,transparent 40%,#000 80%);
-}
-body[data-nono-theme="neon"] #setup::after{
-  content:"";display:block;position:absolute;z-index:0;pointer-events:none;
-  right:1.5%;top:6%;bottom:6%;width:42%;
-  background:url('./assets/nono-default-atmosphere.svg') center/contain no-repeat;
-  filter:drop-shadow(0 18px 45px #05061ad0);
-}
+/* Explicitly suppress obsolete decorations from earlier releases. */
+body #setup .nono-base-kicker,
+body #setup .nono-base-detail,
+body #setup .nono-base-footer{display:none!important}
 body[data-nono-theme="neon"] #setup>.setup-description,
 body[data-nono-theme="neon"] #setup>.nono-quick-setup,
 body[data-nono-theme="neon"] #setup>.setup-actions,
 body[data-nono-theme="neon"] #setup>.controls{
-  width:60%;max-width:100%;flex-shrink:0;
-  position:relative;z-index:1;
-}
-body[data-nono-theme="neon"] #setup .setup-description h3{
-  font-size:clamp(23px,2.45vw,40px);
-}
-body[data-nono-theme="neon"] #setup .setup-description:before{
-  font-size:clamp(20px,2vw,29px);
-}
-body[data-nono-theme="neon"] #setup .nono-quick-block{
-  flex-wrap:wrap;gap:9px 14px;
-}
-body[data-nono-theme="neon"] #setup .nono-quick-group{flex-wrap:nowrap}
-body[data-nono-theme="neon"] #setup .nono-quick-label{
-  font-size:clamp(11px,.95vw,14px);
-}
-body[data-nono-theme="neon"] #setup .nono-quick-choice{
-  min-height:28px;padding:6px 7px;
-  font-size:clamp(10px,.85vw,12px);
-}
-body[data-nono-theme="neon"] #setup .setup-actions #play-alone{
-  min-height:42px;height:42px;padding:10px 21px;font-size:14px;
-}
-@media(min-width:1600px){
- body[data-nono-theme="neon"] .mode-select .mode-card{
-   min-height:45px;height:45px;font-size:16px;
- }
-}
-@media(max-width:1200px){
- body[data-nono-theme="neon"] #setup{
-   padding:clamp(20px,4.5vw,52px);
- }
- body[data-nono-theme="neon"] #setup>.setup-description,
- body[data-nono-theme="neon"] #setup>.nono-quick-setup,
- body[data-nono-theme="neon"] #setup>.setup-actions,
- body[data-nono-theme="neon"] #setup>.controls{width:67%}
- body[data-nono-theme="neon"] #setup::after{width:34%;right:0}
-}
-@media(max-width:900px){
- body[data-nono-theme="neon"] #setup{
-   min-height:clamp(320px,50vh,550px);
- }
- body[data-nono-theme="neon"] #setup>.setup-description,
- body[data-nono-theme="neon"] #setup>.nono-quick-setup,
- body[data-nono-theme="neon"] #setup>.setup-actions,
- body[data-nono-theme="neon"] #setup>.controls{width:73%}
- body[data-nono-theme="neon"] #setup::after{width:29%;opacity:.5;right:-1%}
-}
-@media(max-width:720px){
- body[data-nono-theme="neon"] .shell{
-   padding-inline:clamp(10px,3.5vw,22px);
- }
- body[data-nono-theme="neon"] .topbar{
-   height:65px;margin-bottom:10px;
- }
- body[data-nono-theme="neon"] #home-view,
- body[data-nono-theme="neon"] #home-view .home-content{
-   min-height:0;
- }
- body[data-nono-theme="neon"] #setup{
-   min-height:0;flex:0 1 auto;justify-content:flex-start;
-   padding:clamp(15px,4vw,25px);
- }
- body[data-nono-theme="neon"] #setup::after{display:none}
- body[data-nono-theme="neon"] #setup::before{mask-image:none;opacity:.38}
- body[data-nono-theme="neon"] #setup>.setup-description,
- body[data-nono-theme="neon"] #setup>.nono-quick-setup,
- body[data-nono-theme="neon"] #setup>.setup-actions,
- body[data-nono-theme="neon"] #setup>.controls{width:100%}
- body[data-nono-theme="neon"] #setup .setup-description h3{font-size:23px}
- body[data-nono-theme="neon"] #setup .nono-quick-block{
-   flex-wrap:wrap;gap:8px 10px;
- }
- body[data-nono-theme="neon"] #setup .nono-quick-group{flex-wrap:wrap}
-}
-@media(max-width:390px){
- body[data-nono-theme="neon"] .header-right{gap:1px}
- body[data-nono-theme="neon"] #nono-theme-open,
- body[data-nono-theme="neon"] #nono-open-settings{
-   padding-inline:5px!important;font-size:11px!important;
- }
- body[data-nono-theme="neon"] .brand{font-size:22px}
- body[data-nono-theme="neon"] #setup .nono-quick-choice{
-   padding:5px;font-size:10px;min-height:27px;
- }
-}
-
-/* Visual polish v2 — based on the actual 1704×864 screenshot, not a mockup.
-   Balance the large game illustration with an editorial, purposeful left column.
-   These are decorative treatments; only the original setup buttons are clickable. */
-body:not([data-nono-theme="neon"]) #setup .nono-base-kicker,
-body:not([data-nono-theme="neon"]) #setup .nono-base-detail,
-body:not([data-nono-theme="neon"]) #setup .nono-base-footer{
- display:none!important;
-}
-body[data-nono-theme="neon"]{
- background:
-   radial-gradient(ellipse 56% 65% at 83% 52%,#3a438d29,transparent 76%),
-   radial-gradient(ellipse 42% 55% at 22% 0%,#4148a323,transparent 77%),
-   #0b1125!important;
-}
-body[data-nono-theme="neon"] .shell{
- background-image:
-   linear-gradient(#a5b0fa07 1px,transparent 1px),
-   linear-gradient(90deg,#a5b0fa07 1px,transparent 1px);
- background-size:44px 44px;
-}
-body[data-nono-theme="neon"] .topbar{
- border-bottom-color:#a0a9dc26;
- margin-bottom:clamp(13px,2vh,20px);
-}
-body[data-nono-theme="neon"] .brand{
- font-size:clamp(25px,1.9vw,31px);
- font-weight:920;letter-spacing:-.06em;
-}
-body[data-nono-theme="neon"] .mode-select{
- padding:5px;gap:5px;
- border-color:#8291c733;
- background:linear-gradient(115deg,#1b2543eb,#151c36e9);
- box-shadow:0 9px 30px #060a1d55;
-}
-body[data-nono-theme="neon"] .mode-select .mode-card{
- letter-spacing:.025em;
-}
-body[data-nono-theme="neon"] .mode-select .mode-card.selected{
- background:linear-gradient(115deg,#aaa4ff,#8173f5 92%);
- color:#13152d;box-shadow:0 3px 18px #8177ee49;
- border-color:#bfb6ff;
-}
-body[data-nono-theme="neon"] #setup{
- --nono-feature-width:57%;
- min-height:clamp(380px,57vh,685px);
- gap:clamp(12px,2.4vh,21px);
- padding:clamp(25px,4.8vw,78px);
- background:
-   radial-gradient(ellipse 48% 84% at 76% 46%,#4b55b230,transparent 88%),
-   radial-gradient(ellipse 24% 50% at 100% 100%,#42d6bd16,transparent 90%),
-   linear-gradient(117deg,#1f2d4b,#1c2647 47%,#191b3c 100%);
- border:1px solid #7989c45c;
- box-shadow:0 22px 63px #02061b91,inset 0 1px 0 #e9eeff20;
-}
-body[data-nono-theme="neon"] #setup::before{
- opacity:.57;
- background-size:49px 49px;
- background-image:
-   linear-gradient(#c4baf310 1px,transparent 1px),
-   linear-gradient(90deg,#c4baf310 1px,transparent 1px);
- mask-image:linear-gradient(90deg,transparent 42%,#000 100%);
-}
-body[data-nono-theme="neon"] #setup::after{
- top:8%;right:2%;bottom:8%;width:42%;
- filter:drop-shadow(0 25px 45px #060b23e8);
- opacity:.93;
-}
-body[data-nono-theme="neon"] #setup>.setup-description,
-body[data-nono-theme="neon"] #setup>.nono-quick-setup,
-body[data-nono-theme="neon"] #setup>.setup-actions,
-body[data-nono-theme="neon"] #setup>.controls,
-body[data-nono-theme="neon"] #setup>.nono-base-kicker,
-body[data-nono-theme="neon"] #setup>.nono-base-detail,
-body[data-nono-theme="neon"] #setup>.nono-base-footer{
- width:var(--nono-feature-width);
- max-width:100%;position:relative;z-index:1;
- margin:0;flex-shrink:0;
-}
-body[data-nono-theme="neon"] #setup>.nono-base-kicker{
- display:flex;align-items:center;gap:9px;
- color:#b7c3e9;font:800 11px/1.3 ui-monospace,"SFMono-Regular",Consolas,monospace;
- letter-spacing:.22em;
-}
-body[data-nono-theme="neon"] #setup .nono-base-kicker-dot{
- flex:0 0 auto;width:7px;height:7px;border-radius:50%;
- background:#73f1d6;box-shadow:0 0 0 4px #73f1d61c,0 0 15px #73f1d68f;
-}
-body[data-nono-theme="neon"] #setup .nono-base-kicker-divider{
- flex:0 0 auto;height:12px;width:1px;background:#91a8dc70;
+  width:100%;max-width:100%;margin:0;position:relative;
+  flex:none;
 }
 body[data-nono-theme="neon"] #setup .setup-description{
- margin-top:-4px;min-height:0;
- gap:12px;
+  display:flex;align-items:center;gap:0;min-height:26px;
 }
-body[data-nono-theme="neon"] #setup .setup-description:before{
- color:#77f5dd;text-shadow:0 0 28px #58e9d4a0;
- font-size:26px;
+body[data-nono-theme="neon"] #setup .setup-description::before{
+  content:none!important;display:none!important;
 }
-body[data-nono-theme="neon"] #setup .setup-description h3{
- font-size:clamp(33px,3.5vw,59px);
- line-height:1.12;letter-spacing:-.06em;
- font-weight:900;
- text-shadow:0 4px 24px #121737aa;
+body[data-nono-theme="neon"] #setup .setup-description h3 {
+  margin:0;
+  color:#f8f9ff;font-size:22px;font-weight:800;
+  line-height:1.25;letter-spacing:-.035em;text-shadow:none;
 }
-body[data-nono-theme="neon"] #setup>.nono-base-detail{
- color:#bfc9e6;font-size:clamp(13px,1.1vw,17px);
- line-height:1.7;font-weight:450;letter-spacing:-.02em;
- max-width:550px;margin-top:-9px;margin-bottom:3px;
+body[data-nono-theme="neon"] #setup .setup-description p{display:none!important}
+body[data-nono-theme="neon"] #setup>.controls{display:none}
+body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls{
+  display:flex;align-items:flex-end;gap:8px;max-width:330px;
 }
-body[data-nono-theme="neon"] #setup .nono-quick-setup{
- gap:12px;margin-top:5px;
+body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls label:first-child{display:none}
+body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls label:last-child{
+  color:#b9c7e0;font-size:12px;
 }
+body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls input{
+  height:36px;background:#111b2d;border:1px solid #53617e;border-radius:7px;color:#fff;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-setup{display:grid;gap:10px}
+body[data-nono-theme="neon"] #setup .nono-quick-setup [hidden]{display:none!important}
 body[data-nono-theme="neon"] #setup .nono-quick-block{
- display:flex;align-items:center;flex-wrap:wrap;
- width:fit-content;max-width:100%;
- padding:9px 11px;gap:8px 13px;
- border:1px solid #7f8cc04a;
- border-radius:12px;
- background:linear-gradient(115deg,#101a37ba,#1d2746b9);
- box-shadow:inset 0 1px 0 #ffffff12;
+  display:flex;align-items:center;flex-wrap:wrap;
+  gap:8px 15px;width:fit-content;max-width:100%;
+  margin:0;padding:0;border:0;border-radius:0;
+  background:none;box-shadow:none;
 }
 body[data-nono-theme="neon"] #setup .nono-quick-group{
- display:flex;align-items:center;gap:4px;
+  display:flex;align-items:center;flex-wrap:wrap;gap:4px;
+  min-width:0;
 }
 body[data-nono-theme="neon"] #setup .nono-quick-label{
- margin-right:3px;
- color:#becae8;font-weight:800;font-size:11px;
+  flex:0 0 auto;margin-right:3px;
+  color:#c1cee5;font-size:12px;font-weight:700;
 }
 body[data-nono-theme="neon"] #setup .nono-quick-choice{
- min-height:28px;padding:6px 7px;
- font-size:10px;font-weight:650;
- border-color:#7487bf41;border-radius:6px;
- color:#c4d0e9;background:#202c4d;
+  display:inline-flex;align-items:center;justify-content:center;
+  flex:0 0 auto;min-width:0;min-height:29px;
+  padding:5px 7px;
+  color:#cbd5eb;background:#111b2e;
+  border:1px solid #35425e;border-radius:6px;
+  box-shadow:none;font:650 11px/1.15 Inter,Pretendard,"Noto Sans KR",sans-serif;
+  white-space:nowrap;
 }
 body[data-nono-theme="neon"] #setup .nono-quick-choice[aria-pressed="true"]{
- background:linear-gradient(155deg,#c4b4ff,#9b91fe);
- border-color:#d1c9ff;color:#18203c;
- box-shadow:0 0 0 1px #ffffff24,0 2px 14px #a496fa40;
- font-weight:850;
+  background:#b5abfa;border-color:#c4bbff;color:#12152a;font-weight:800;
+  box-shadow:none;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-choice:hover:not(:disabled){
+  background:#2a3652;color:#fff;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-choice:disabled{
+  background:none;opacity:.35;filter:none;cursor:not-allowed;
 }
 body[data-nono-theme="neon"] #setup .setup-actions{
- margin-top:3px;
+  display:flex;align-items:center;justify-content:flex-start;gap:8px;
 }
 body[data-nono-theme="neon"] #setup .setup-actions #play-alone{
- min-height:46px;height:46px;
- border:1px solid #80f7e0;border-radius:12px;
- padding:12px 24px;
- color:#10283b;
- background:linear-gradient(120deg,#82f7de,#59d6ca);
- box-shadow:0 8px 27px #45e5ca37,inset 0 1px 0 #fff8;
- font-size:15px;letter-spacing:-.01em;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:38px;height:38px;min-width:0;
+  padding:8px 16px;
+  background:#6be1d3;color:#122338;
+  border:1px solid #83e8dd;border-radius:9px;
+  box-shadow:none;
+  font:800 13px/1 Inter,Pretendard,sans-serif;
+  transform:none;
 }
 body[data-nono-theme="neon"] #setup .setup-actions #play-alone:hover{
- box-shadow:0 10px 30px #45e5ca68,inset 0 1px 0 #fffa;
- transform:translateY(-1px);
+  background:#8debe1;box-shadow:none;transform:none;
 }
-body[data-nono-theme="neon"] #setup>.nono-base-footer{
- color:#7e93bd;font-size:11px;font-weight:550;letter-spacing:-.02em;
- display:flex;align-items:center;gap:7px;margin-top:0;
+body[data-nono-theme="neon"] #setup .room-controls{display:none!important}
+body[data-nono-theme="neon"] #setup .nono-quick-room-options{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px;
 }
-body[data-nono-theme="neon"] #setup .nono-base-footer span{
- color:#87e4d4;font-size:13px;
+body[data-nono-theme="neon"] #setup .nono-quick-room-options button,
+body[data-nono-theme="neon"] #setup .nono-quick-room-action,
+body[data-nono-theme="neon"] #setup .nono-quick-back{
+  display:inline-flex;justify-content:center;align-items:center;
+  min-height:34px;padding:6px 12px;
+  font:700 12px/1.2 Inter,Pretendard,sans-serif;
+  color:#e6eeff;background:#25334b;border:1px solid #546582;
+  border-radius:8px;box-shadow:none;
 }
-@media(max-width:1350px){
- body[data-nono-theme="neon"] #setup{--nono-feature-width:63%}
- body[data-nono-theme="neon"] #setup::after{width:36%;opacity:.84}
- body[data-nono-theme="neon"] #setup .nono-quick-block{padding:8px;gap:7px}
- body[data-nono-theme="neon"] #setup .nono-quick-choice{padding:5px 6px}
+body[data-nono-theme="neon"] #setup .nono-quick-room-action{
+  color:#132237;background:#77dfd4;border-color:#81e5d9;
 }
-@media(max-width:1050px){
- body[data-nono-theme="neon"] #setup{--nono-feature-width:75%}
- body[data-nono-theme="neon"] #setup::after{width:34%;opacity:.37}
- body[data-nono-theme="neon"] #setup .setup-description h3{
-   font-size:clamp(31px,4vw,45px);
- }
+body[data-nono-theme="neon"] #setup .nono-quick-back{
+  background:transparent;border-color:transparent;color:#afbed8;
 }
-@media(max-width:720px){
- body[data-nono-theme="neon"] #setup{
-   --nono-feature-width:100%;gap:13px;
-   padding:clamp(20px,5.4vw,28px);
- }
- body[data-nono-theme="neon"] #setup::after{display:none!important}
- body[data-nono-theme="neon"] #setup .nono-base-kicker{font-size:10px;gap:6px}
- body[data-nono-theme="neon"] #setup .setup-description h3{
-   font-size:clamp(29px,7vw,42px);
- }
- body[data-nono-theme="neon"] #setup .nono-base-detail{
-   font-size:13px;margin-top:-5px;max-width:100%;
- }
- body[data-nono-theme="neon"] #setup .nono-quick-block{
-   max-width:100%;padding:8px;
- }
- body[data-nono-theme="neon"] #setup .nono-quick-group{
-   flex-wrap:wrap;
- }
- body[data-nono-theme="neon"] #setup .nono-base-footer{
-   font-size:10px;
- }
+body[data-nono-theme="neon"] #setup .nono-quick-join{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
 }
-@media(max-width:390px){
- body[data-nono-theme="neon"] #setup .nono-quick-choice{
-   font-size:10px;padding:5px;
+body[data-nono-theme="neon"] #setup .nono-quick-join input{
+  width:160px;max-width:100%;height:35px;
+  padding:5px 9px;background:#111b2e;color:#fff;
+  border:1px solid #556584;border-radius:7px;font-size:12px;
+}
+body:not([data-nono-theme="neon"]) #setup .nono-quick-setup,
+body:not([data-nono-theme="neon"]) #setup .nono-quick-note{
+  display:none!important;
+}
+@media(max-width:660px){
+  body[data-nono-theme="neon"] .shell{padding:0 12px 22px}
+  body[data-nono-theme="neon"] .topbar{height:63px;margin-bottom:13px}
+  body[data-nono-theme="neon"] .brand{font-size:22px}
+  body[data-nono-theme="neon"] .header-right{gap:3px}
+  body[data-nono-theme="neon"] .mode-select{gap:2px;padding:3px;margin-bottom:11px}
+  body[data-nono-theme="neon"] .mode-select .mode-card{
+    min-height:36px;height:36px;font-size:13px;
+  }
+  body[data-nono-theme="neon"] #setup{padding:18px 15px;gap:14px}
+  body[data-nono-theme="neon"] #setup .setup-description h3{font-size:20px}
+  body[data-nono-theme="neon"] #setup .nono-quick-block{gap:8px 11px}
+  body[data-nono-theme="neon"] #setup .nono-quick-choice{min-height:28px;padding:5px 6px;font-size:10px}
+}
+@media(max-width:380px){
+ body[data-nono-theme="neon"] #nono-theme-open,
+ body[data-nono-theme="neon"] #nono-open-settings{
+   padding:4px 5px!important;font-size:11px!important;
  }
+ body[data-nono-theme="neon"] #setup .nono-quick-block{gap:9px}
 }
