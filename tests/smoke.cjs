@@ -12,6 +12,45 @@ const { pathToFileURL } = require('node:url');
   await page.locator('#nono-open-settings').waitFor();
 
   await page.locator('#nono-theme-open').waitFor();
+  // The approved compact base layout shares one left/right edge across
+  // the header, all four mode tabs and the full settings card.
+  const base=await page.evaluate(()=>{
+    const rect=id=>{const r=document.querySelector(id).getBoundingClientRect();return {x:r.x,right:r.right,width:r.width,y:r.y,bottom:r.bottom}};
+    return {
+      header:rect('.topbar'),tabs:rect('.mode-select'),panel:rect('#setup'),
+      heroHidden:getComputedStyle(document.querySelector('.hero')).display==='none',
+      nativePickerHidden:getComputedStyle(document.querySelector('#setup>.controls')).display==='none',
+      controls:document.querySelectorAll('#nono-quick-sizes button').length,
+      difficulties:document.querySelectorAll('#nono-quick-difficulties button').length
+    };
+  });
+  if(!base.heroHidden || !base.nativePickerHidden || base.controls!==6 || base.difficulties!==3 ||
+    Math.abs(base.header.x-base.tabs.x)>1 ||
+    Math.abs(base.tabs.x-base.panel.x)>1 ||
+    Math.abs(base.header.right-base.tabs.right)>1 ||
+    Math.abs(base.tabs.right-base.panel.right)>1 ||
+    base.panel.y<base.tabs.bottom || base.panel.width>520)
+    throw new Error('Default launcher side edges / compact spacing broken: '+JSON.stringify(base));
+  await page.locator('.mode-card[data-mode="race"]').click();
+  if(!await page.locator('#nono-quick-room-options').isVisible() ||
+    await page.locator('#nono-quick-options').isVisible())
+    throw new Error('Race should start with create/join choices only');
+  await page.click('#nono-quick-create');
+  if(!await page.locator('#nono-quick-options').isVisible() ||
+    !await page.locator('#nono-quick-create-actions').isVisible())
+    throw new Error('Race room creation choices not displayed in place');
+  await page.locator('.mode-card[data-mode="practice"]').click();
+  if(await page.locator('#nono-quick-room-options').isVisible() ||
+    !await page.locator('#nono-quick-options').isVisible())
+    throw new Error('Solo needs only size and difficulty');
+  if(!await page.locator('#nono-quick-sizes button').nth(2).isDisabled())
+    throw new Error('Unavailable 15x15 puzzles must not pretend to work');
+  await page.locator('#nono-quick-sizes button').first().click();
+  if(await page.locator('#puzzle').inputValue()!=='heart5')throw new Error('5x5 does not select real puzzle');
+  await page.locator('#nono-quick-sizes button').nth(1).click();
+  await page.locator('#nono-quick-difficulties button').nth(2).click();
+  if(await page.locator('#puzzle').inputValue()!=='rocket10')throw new Error('Difficulty does not select actual puzzle');
+
   await page.click('#nono-theme-open');
   if (await page.locator('.nono-theme-card').count() !== 10) throw new Error('Ten tiered theme cards not found');
   if(await page.locator('.nono-theme-section').count()!==2)throw new Error('Color/world theme categories missing');
