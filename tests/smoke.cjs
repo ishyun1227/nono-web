@@ -20,8 +20,8 @@ const { pathToFileURL } = require('node:url');
       header:rect('.topbar'),tabs:rect('.mode-select'),panel:rect('#setup'),
       heroHidden:getComputedStyle(document.querySelector('.hero')).display==='none',
       nativePickerHidden:getComputedStyle(document.querySelector('#setup>.controls')).display==='none',
-      controls:document.querySelectorAll('#nono-quick-sizes button').length,
-      difficulties:document.querySelectorAll('#nono-quick-difficulties button').length,
+      controls:document.querySelectorAll('#nono-quick-size option').length,
+      difficulties:document.querySelectorAll('#nono-quick-difficulty option').length,
       pageBackground:getComputedStyle(document.body).backgroundColor,
       shellHeight:document.querySelector('.shell').getBoundingClientRect().height,
       artContent:getComputedStyle(document.querySelector('#setup'),'::after').content,
@@ -111,23 +111,37 @@ const { pathToFileURL } = require('node:url');
   if(!await page.locator('#public-room-toggle').isChecked())throw new Error('New rooms must default to public');
   await page.locator('#quick-match').click();
   if(!((await page.locator('#toast').innerText()).includes('온라인 연결')))throw new Error('Offline quick matching must show an honest connection warning');
-  if(!await page.locator('#nono-quick-room-options').isVisible() ||
-    await page.locator('#nono-quick-options').isVisible())
-    throw new Error('Race should start with create/join choices only');
-  await page.click('#nono-quick-create');
   if(!await page.locator('#nono-quick-options').isVisible() ||
-    !await page.locator('#nono-quick-create-actions').isVisible())
-    throw new Error('Race room creation choices not displayed in place');
+      !await page.locator('#public-lobby-create').isVisible() ||
+      await page.locator('#room-controls').isVisible())
+    throw new Error('Race needs compact filters, public lobby and no duplicate room controls');
+  const lobbyOrder=await page.evaluate(()=>{
+    const top=id=>document.getElementById(id).getBoundingClientRect().top;
+    return [top('nono-quick-options'),top('quick-match'),top('public-room-list'),top('public-lobby-create')];
+  });
+  if(lobbyOrder.some((n,i)=>i>0&&n<=lobbyOrder[i-1]))
+    throw new Error('Approved lobby order broken: '+lobbyOrder.join(','));
+  if(!await page.locator('#nono-quick-size option[value="30"]').isDisabled())
+    throw new Error('30x30 multiplayer must stay disabled');
+  await page.screenshot({path:'test-results/public-lobby-desktop.png',fullPage:true});
+  await page.setViewportSize({width:390,height:844});
+  if(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth+2))
+    throw new Error('Mobile public lobby has horizontal overflow');
+  await page.screenshot({path:'test-results/public-lobby-mobile.png',fullPage:true});
+  await page.setViewportSize({width:1440,height:900});
+  await page.locator('.mode-card[data-mode="coop"]').click();
+  if(!(await page.locator('#quick-match').innerText()).includes('빠른 협동'))
+    throw new Error('Coop quick-match label missing');
   await page.locator('.mode-card[data-mode="practice"]').click();
-  if(await page.locator('#nono-quick-room-options').isVisible() ||
-    !await page.locator('#nono-quick-options').isVisible())
-    throw new Error('Solo needs only size and difficulty');
-  if(!await page.locator('#nono-quick-sizes button').nth(2).isDisabled())
+  if(!await page.locator('#nono-quick-options').isVisible() ||
+      await page.locator('#public-lobby').isVisible())
+    throw new Error('Solo must show only size/difficulty');
+  if(!await page.locator('#nono-quick-size option[value="15"]').isDisabled())
     throw new Error('Unavailable 15x15 puzzles must not pretend to work');
-  await page.locator('#nono-quick-sizes button').first().click();
+  await page.selectOption('#nono-quick-size','5');
   if(await page.locator('#puzzle').inputValue()!=='heart5')throw new Error('5x5 does not select real puzzle');
-  await page.locator('#nono-quick-sizes button').nth(1).click();
-  await page.locator('#nono-quick-difficulties button').nth(2).click();
+  await page.selectOption('#nono-quick-size','10');
+  await page.selectOption('#nono-quick-difficulty','어려움');
   if(await page.locator('#puzzle').inputValue()!=='rocket10')throw new Error('Difficulty does not select actual puzzle');
   const voxelIds=await page.evaluate(()=>PUZZLES.filter(p=>p.size===30).map(p=>p.id));
   if(voxelIds.join(',')!=='vox_crabino_front,vox_crabino_side,vox_crabino_top')
