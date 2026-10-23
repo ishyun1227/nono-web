@@ -15,18 +15,8 @@ const {pathToFileURL} = require('node:url');
   await page.goto(source);
   if (await page.locator('#nono-vox-test-button').count()) throw Error('Preview must be absent for normal players');
   await page.goto(source + '?test=1');
-  const startup = await page.evaluate(() => ({
-    url:location.href,ready:document.readyState,theme:document.body?.dataset.nonoTheme,
-    hasHome:!!document.querySelector('#home-view'),
-    hasQuick:!!document.querySelector('#nono-quick-sizes'),
-    sizeChoices:document.querySelectorAll('#nono-quick-sizes button').length,
-    scriptCount:document.scripts.length,
-    errorText:document.body?.innerText.slice(0,100)
-  }));
-  console.log('VOX TEST STARTUP DIAGNOSTIC: '+JSON.stringify(startup));
-  console.log('VOX PAGE ERRORS: '+JSON.stringify(errors));
-  if(startup.sizeChoices!==6)throw Error('Voxel test setup not ready: '+JSON.stringify(startup));
-  await page.locator('#nono-quick-sizes button').nth(5).click();
+  // The default launcher uses a compact native size selector (not size buttons).
+  await page.selectOption('#nono-quick-size','30');
   const samples = [
     ['vox_crabino_front',315],
     ['vox_crabino_side',210],
@@ -57,7 +47,7 @@ const {pathToFileURL} = require('node:url');
     await page.locator('#leave-game').click();
   }
   await page.locator('.mode-card[data-mode="race"]').click();
-  if(await page.locator('#nono-quick-sizes button').nth(5).isEnabled()) throw Error('Unverified multiplayer 30x30 must stay disabled');
+  if(!await page.locator('#nono-quick-size option[value="30"]').isDisabled()) throw Error('Unverified multiplayer 30x30 must stay disabled');
   if(errors.length) throw Error('Preview JavaScript errors: '+errors.join(' | '));
   console.log('VOX preview tests passed for all three original 30x30 silhouettes.');
   await browser.close();
