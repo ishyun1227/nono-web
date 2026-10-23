@@ -142,6 +142,35 @@
           }
         }
       }
+    },
+    "publicRooms": {
+      ".read": "auth != null && query.orderByChild == 'createdAt' && query.limitToLast <= 30",
+      ".indexOn": [
+        "createdAt"
+      ],
+      "$room": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((!data.exists() && newData.exists() && root.child('rooms').child($room).child('meta/host').val() == auth.uid) || (data.child('host').val() == auth.uid && !newData.exists()))",
+        ".validate": "newData.hasChildren(['host','name','mode','puzzleId','createdAt'])",
+        "host": {
+          ".validate": "newData.isString() && newData.val() == auth.uid && newData.val() == root.child('rooms').child($room).child('meta/host').val()"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 18"
+        },
+        "mode": {
+          ".validate": "newData.val() == root.child('rooms').child($room).child('meta/mode').val()"
+        },
+        "puzzleId": {
+          ".validate": "newData.val() == root.child('rooms').child($room).child('meta/puzzleId').val()"
+        },
+        "createdAt": {
+          ".validate": "newData.isNumber() && newData.val() == root.child('rooms').child($room).child('meta/createdAt').val()"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
