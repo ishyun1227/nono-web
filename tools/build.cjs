@@ -4,4 +4,35 @@ fs.mkdirSync(output,{recursive:true});
 for(const name of ['index.html','settings.js','firebase-config.js','themes.css','themes.js','premium-themes.css','theme-extras.css','library-precision.css','theme-world-ui.js','library-ui.js','forest-world.css','forest-world.js','assets/forest-world.svg','terminal-world.css','terminal-world.js','assets/terminal-wallpaper.svg','default-home.css','default-home.js','pixel-friends.css','assets/friends-parade.svg','assets/library-scene.svg','assets/library-world.svg','assets/library-mode-practice.svg','assets/library-mode-race.svg','assets/library-mode-coop.svg','assets/library-mode-record.svg','assets/arcade-scene.svg','assets/enchanted-scene.svg','assets/cosmos-scene.svg']){
   const target=path.join(output,name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(root,name),target);
 }
-console.log('Built NONO static assets, including themes.css and themes.js');
+
+// Generate polished non-clickable decorations from the reference character strip.
+// The old heavily thresholded SVG removed dark eye outlines and damaged the faces.
+const zlib=require('node:zlib');
+const paletteSource=fs.readFileSync(path.join(root,'assets/friends-pixels-v2.txt'),'utf8').trim();
+const sprites=JSON.parse(zlib.inflateSync(Buffer.from(paletteSource,'base64')).toString('utf8'));
+const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+const escapeXml=(s)=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+if(sprites.length!==6)throw Error('Expected six mascot sprites');
+const parts=['<svg xmlns="http://www.w3.org/2000/svg" width="762" height="135" viewBox="0 0 762 135" aria-hidden="true">'];
+sprites.forEach(([colors, pixels],spriteIndex)=>{
+  const cellCount=40,px=118/cellCount;
+  if(pixels.length!==cellCount*cellCount||colors.length>64)throw Error('Invalid mascot data');
+  parts.push('<g transform="translate('+(8+spriteIndex*127)+',8) scale('+px+')" shape-rendering="crispEdges">');
+  for(let y=0;y<cellCount;y++){
+    for(let x=0;x<cellCount;){
+      const char=pixels[y*cellCount+x];
+      let end=x+1;
+      while(end<cellCount&&pixels[y*cellCount+end]===char)end++;
+      if(char!=='.'){
+        const idx=chars.indexOf(char),color=colors[idx];
+        if(idx<0||!color||!/^[a-f0-9]{6}$/.test(color))throw Error('Invalid mascot pixel');
+        parts.push('<rect x="'+x+'" y="'+y+'" width="'+(end-x)+'" height="1" fill="#'+escapeXml(color)+'"/>');
+      }
+      x=end;
+    }
+  }
+  parts.push('</g>');
+});
+parts.push('</svg>');
+fs.writeFileSync(path.join(output,'assets/friends-parade.svg'),parts.join(''));
+console.log('Built NONO static assets and restored six mascot portraits');
