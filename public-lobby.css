@@ -1,0 +1,17 @@
+/* Compact public matchmaking panel for default and premium themes. */
+#public-lobby.hidden{display:none!important}
+#public-lobby{grid-column:1/-1;min-width:0;margin:8px 0 0;padding:12px;border:1px solid rgba(140,151,188,.3);border-radius:13px;background:rgba(20,29,53,.22)}
+.public-lobby-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.public-lobby-heading strong{font-size:15px}
+.public-lobby-heading p{margin:4px 0 0;font-size:12px;opacity:.7}
+#public-lobby #quick-match{min-width:110px;padding:9px 13px;font-size:13px;white-space:nowrap}
+.public-lobby-opt{display:flex;align-items:center;gap:8px;margin:10px 0 4px;font-size:12px;cursor:pointer}
+.public-lobby-opt input{accent-color:#a08aff;flex:0 0 auto}
+.public-room-message{font-size:12px;opacity:.72;margin:9px 0}
+.public-room-list{display:grid;gap:7px}
+.public-room-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid rgba(142,154,190,.25);border-radius:9px;background:rgba(130,150,190,.06)}
+.public-room-info{min-width:0;display:grid;gap:3px}
+.public-room-info strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.public-room-info small{font-size:11px;opacity:.7}
+.public-room-item button{flex-shrink:0;font-size:12px;padding:7px 12px}
+@media(max-width:540px){#public-lobby{padding:10px}.public-lobby-heading{gap:8px}.public-lobby-heading strong{font-size:13px}#public-lobby #quick-match{min-width:94px;padding:8px 9px}.public-room-item{padding:8px}}

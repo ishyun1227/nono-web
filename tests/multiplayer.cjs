@@ -1,5 +1,5 @@
 const {initializeTestEnvironment,assertFails,assertSucceeds}=require('@firebase/rules-unit-testing');
-const {ref,set,get,runTransaction,serverTimestamp,query,orderByChild,limitToFirst}=require('firebase/database');
+const {ref,set,get,runTransaction,serverTimestamp,query,orderByChild,limitToFirst,limitToLast,remove}=require('firebase/database');
 const fs=require('node:fs'),assert=require('node:assert/strict');
 const {answers}=require('./puzzles.cjs');
 async function main(){
@@ -13,6 +13,18 @@ async function main(){
   await assertFails(get(ref(a,'privateAnswers')));
   await assertSucceeds(set(ref(a,'rooms/ABCDEF/meta'),meta('coop')));
   await join(a,'ABCDEF','0','alice');await join(b,'ABCDEF','1','bob');
+  const publicMeta=(await get(ref(a,'rooms/ABCDEF/meta'))).val();
+  const listing={host:'alice',name:'Alice',mode:'coop',puzzleId:'heart5',createdAt:publicMeta.createdAt};
+  await assertSucceeds(set(ref(a,'publicRooms/ABCDEF'),listing));
+  await assertFails(get(ref(b,'publicRooms')));
+  await assertFails(get(query(ref(b,'publicRooms'),orderByChild('createdAt'),limitToLast(31))));
+  const listed=await assertSucceeds(get(query(ref(b,'publicRooms'),orderByChild('createdAt'),limitToLast(30))));
+  assert(listed.exists()&&listed.hasChild('ABCDEF'));
+  await assertFails(set(ref(b,'publicRooms/ABCDEF'),{...listing,name:'hijacked'}));
+  await assertFails(remove(ref(b,'publicRooms/ABCDEF')));
+  await assertFails(set(ref(b,'publicRooms/ZZZZZZ'),{...listing,host:'bob'}));
+  await assertSucceeds(remove(ref(a,'publicRooms/ABCDEF')));
+  console.log('PASS bounded public discovery, host ownership and listing lifecycle');
   await assertFails(set(ref(outsider,'rooms/ABCDEF/board'),'0'.repeat(25)));
   await assertFails(set(ref(b,'rooms/ABCDEF/players/0'),{uid:'bob',name:'hijack',joinedAt:serverTimestamp()}));
   await join(db('c'),'ABCDEF','2','c');await join(db('d'),'ABCDEF','3','d');
