@@ -121,7 +121,7 @@ const { pathToFileURL } = require('node:url');
   });
   if(lobbyOrder.some((n,i)=>i>0&&n<=lobbyOrder[i-1]))
     throw new Error('Approved lobby order broken: '+lobbyOrder.join(','));
-  if(!await page.locator('#nono-quick-size option[value="30"]').isDisabled())
+  if(!await page.locator('#nono-quick-size option[value="30"]').evaluate(option=>option.disabled))
     throw new Error('30x30 multiplayer must stay disabled');
   await page.screenshot({path:'test-results/public-lobby-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
@@ -136,7 +136,7 @@ const { pathToFileURL } = require('node:url');
   if(!await page.locator('#nono-quick-options').isVisible() ||
       await page.locator('#public-lobby').isVisible())
     throw new Error('Solo must show only size/difficulty');
-  if(!await page.locator('#nono-quick-size option[value="15"]').isDisabled())
+  if(!await page.locator('#nono-quick-size option[value="15"]').evaluate(option=>option.disabled))
     throw new Error('Unavailable 15x15 puzzles must not pretend to work');
   await page.selectOption('#nono-quick-size','5');
   if(await page.locator('#puzzle').inputValue()!=='heart5')throw new Error('5x5 does not select real puzzle');
