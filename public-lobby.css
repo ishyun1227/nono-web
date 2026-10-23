@@ -1,17 +1,44 @@
-/* Compact public matchmaking panel for default and premium themes. */
+/* Real Firebase public-room list, compact and full width. */
 #public-lobby.hidden{display:none!important}
-#public-lobby{grid-column:1/-1;min-width:0;margin:8px 0 0;padding:12px;border:1px solid rgba(140,151,188,.3);border-radius:13px;background:rgba(20,29,53,.22)}
+#public-lobby{grid-column:1/-1;width:100%;min-width:0;display:flex;flex-direction:column;gap:10px;margin:0;padding:12px;border:1px solid rgba(140,151,188,.3);border-radius:12px;background:rgba(20,29,53,.22)}
+#public-lobby #quick-match{display:flex;align-items:center;justify-content:center;min-height:41px;width:100%;padding:9px 12px;font-size:13px;font-weight:800;white-space:nowrap}
 .public-lobby-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.public-lobby-heading strong{font-size:15px}
-.public-lobby-heading p{margin:4px 0 0;font-size:12px;opacity:.7}
-#public-lobby #quick-match{min-width:110px;padding:9px 13px;font-size:13px;white-space:nowrap}
-.public-lobby-opt{display:flex;align-items:center;gap:8px;margin:10px 0 4px;font-size:12px;cursor:pointer}
-.public-lobby-opt input{accent-color:#a08aff;flex:0 0 auto}
-.public-room-message{font-size:12px;opacity:.72;margin:9px 0}
-.public-room-list{display:grid;gap:7px}
+.public-lobby-heading strong{font-size:14px;font-weight:800}
+.public-lobby-live{font-size:11px;opacity:.72;white-space:nowrap}
+.public-room-message{font-size:12px;opacity:.78;margin:0}
+.public-room-list{display:grid;gap:7px;min-width:0}
 .public-room-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 10px;border:1px solid rgba(142,154,190,.25);border-radius:9px;background:rgba(130,150,190,.06)}
 .public-room-info{min-width:0;display:grid;gap:3px}
 .public-room-info strong{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.public-room-info small{font-size:11px;opacity:.7}
+.public-room-info small{font-size:11px;opacity:.78}
 .public-room-item button{flex-shrink:0;font-size:12px;padding:7px 12px}
-@media(max-width:540px){#public-lobby{padding:10px}.public-lobby-heading{gap:8px}.public-lobby-heading strong{font-size:13px}#public-lobby #quick-match{min-width:94px;padding:8px 9px}.public-room-item{padding:8px}}
+.public-lobby-footer{display:grid;gap:9px;border-top:1px solid rgba(142,154,190,.25);padding-top:10px}
+.public-lobby-opt{display:flex;align-items:center;gap:8px;margin:0;font-size:12px;cursor:pointer}
+.public-lobby-opt input{accent-color:#a08aff;flex:0 0 auto}
+#public-lobby-create{display:block;width:100%;min-height:39px;padding:8px 12px;font-weight:750;font-size:13px}
+.public-lobby-invite{display:flex;align-items:center;gap:7px;min-width:0}
+.public-lobby-invite input{flex:1;min-width:0;height:35px;padding:7px 10px;background:#111b2d;color:#eff2ff;border:1px solid #53617e;border-radius:8px;font-size:12px}
+.public-lobby-invite button{flex-shrink:0;min-height:35px;font-size:12px;padding:7px 11px}
+body:not([data-nono-theme="neon"]) #public-lobby .public-lobby-footer{border:0;padding:0}
+body:not([data-nono-theme="neon"]) #public-lobby-create,
+body:not([data-nono-theme="neon"]) #public-lobby .public-lobby-invite{display:none}
+body[data-nono-theme="neon"] #setup .nono-quick-setup{width:100%;display:block}
+body[data-nono-theme="neon"] #setup .nono-quick-block{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:10px;max-width:none}
+body[data-nono-theme="neon"] #setup .nono-quick-group{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0}
+body[data-nono-theme="neon"] #setup .nono-quick-group[hidden]{display:none!important}
+body[data-nono-theme="neon"] #setup .nono-quick-label{font-size:11px;font-weight:700;color:#c1cee5}
+body[data-nono-theme="neon"] #setup .nono-quick-group select{display:block;min-width:0;width:100%;height:37px;padding:7px 9px;background:#111b2e;border:1px solid #455776;border-radius:8px;color:#eef2ff;font-size:12px;line-height:1.2}
+body[data-nono-theme="neon"] #setup .nono-quick-group select option:disabled{color:#9099ab}
+body[data-nono-theme="neon"] #setup #nono-quick-variants{grid-column:1/-1;flex-direction:row;align-items:center;flex-wrap:wrap}
+body[data-nono-theme="neon"] #setup #public-lobby{background:#162137;border-color:#344462;padding:14px;gap:11px}
+body[data-nono-theme="neon"] #public-lobby #quick-match{background:#70ded4;border:1px solid #9cf0e5;color:#132237;border-radius:9px}
+body[data-nono-theme="neon"] #public-lobby #quick-match:hover:not(:disabled){background:#91efe4}
+body[data-nono-theme="neon"] #public-lobby-create{background:#242f49;border-color:#526487;color:#edf1ff;border-radius:9px}
+body[data-nono-theme="neon"] #setup .setup-actions:has(> #play-alone.hidden){display:none}
+@media(max-width:540px){
+ #public-lobby{padding:10px;gap:9px}
+ .public-room-item{padding:8px}
+ .public-lobby-heading strong{font-size:13px}
+ .public-lobby-invite button{padding:7px 8px}
+ body[data-nono-theme="neon"] #setup #public-lobby{padding:11px}
+}
