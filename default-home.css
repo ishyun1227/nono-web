@@ -129,6 +129,7 @@ body[data-nono-theme="neon"] #setup .nono-quick-choice:disabled{
   opacity:.35;cursor:not-allowed;background:transparent;
 }
 body[data-nono-theme="neon"] #setup .nono-quick-choice:hover:not(:disabled){background:#e8e8e9}
+body[data-nono-theme="neon"] #setup .nono-quick-setup [hidden]{display:none!important}
 body[data-nono-theme="neon"] #setup .nono-quick-room-options{
   display:flex;flex-wrap:wrap;gap:8px;align-items:center;
 }
