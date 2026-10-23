@@ -8,7 +8,7 @@ for(const name of ['index.html','settings.js','firebase-config.js','themes.css',
 // Generate polished non-clickable decorations from the reference character strip.
 // The old heavily thresholded SVG removed dark eye outlines and damaged the faces.
 const zlib=require('node:zlib');
-const paletteSource=fs.readFileSync(path.join(root,'assets/friends-pixels-v2.txt'),'utf8').trim();
+const paletteSource=fs.readFileSync(path.join(root,'assets/friends-pixels-v3.txt'),'utf8').trim();
 const sprites=JSON.parse(zlib.inflateSync(Buffer.from(paletteSource,'base64')).toString('utf8'));
 const chars='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 const escapeXml=(s)=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
@@ -32,7 +32,9 @@ sprites.forEach(([colors, pixels],spriteIndex)=>{
     }
   }
   parts.push('</g>');
+  const ringColors=['#a393ed','#f569a7','#ffd16a','#b1a3ec','#f36fbd','#77cbef'];
+  parts.push('<circle cx="'+(8+spriteIndex*127+59)+'" cy="67" r="57.5" fill="none" stroke="'+ringColors[spriteIndex]+'" stroke-opacity=".75" stroke-width="1.2"/>');
 });
 parts.push('</svg>');
 fs.writeFileSync(path.join(output,'assets/friends-parade.svg'),parts.join(''));
-console.log('Built NONO static assets and restored six mascot portraits');
+console.log('Built NONO static assets and restored six original grid characters');
