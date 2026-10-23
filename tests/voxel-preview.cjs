@@ -46,6 +46,17 @@ const {pathToFileURL} = require('node:url');
     const after = await page.evaluate(() => ({board:board.join(''),changes,finished,startedAt}));
     if(JSON.stringify(before)!==JSON.stringify(after)) throw Error('Preview mutated game state for '+id);
     await page.locator('#leave-game').click();
+    const state=await page.evaluate(()=>{
+      const node=document.querySelector('#nono-quick-variants button');
+      const parts=[];let parent=node;
+      while(parent&&parts.length<9){
+        const cs=getComputedStyle(parent);
+        parts.push({tag:parent.tagName,id:parent.id,className:String(parent.className).slice(0,100),display:cs.display,visibility:cs.visibility,rect:parent.getBoundingClientRect().width+'x'+parent.getBoundingClientRect().height});
+        parent=parent.parentElement;
+      }
+      return {mode:document.body.dataset.nonoTheme,homeHidden:document.querySelector('#home-view').classList.contains('hidden'),gameHidden:document.querySelector('#game').classList.contains('hidden'),parts};
+    });
+    console.log('VOX RETURN HOME DEBUG',JSON.stringify(state));
   }
   if(errors.length) throw Error('Preview JavaScript errors: '+errors.join(' | '));
   console.log('VOX preview tests passed for all three original 30x30 silhouettes.');
