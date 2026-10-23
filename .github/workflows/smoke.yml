@@ -30,6 +30,8 @@ jobs:
         run: |
           node --check settings.js
           node --check themes.js
+      - name: Verify completed VOX preview mode
+        run: node tests/voxel-preview.cjs
       - name: Run browser test
         run: node tests/smoke.cjs
       - name: Validate database security rules
