@@ -24,8 +24,10 @@ const { pathToFileURL } = require('node:url');
       difficulties:document.querySelectorAll('#nono-quick-difficulties button').length,
       pageBackground:getComputedStyle(document.body).backgroundColor,
       shellHeight:document.querySelector('.shell').getBoundingClientRect().height,
-      figureArt:getComputedStyle(document.querySelector('#home-view'),'::after').backgroundImage,
-      artVisibility:getComputedStyle(document.querySelector('#home-view'),'::after').display,
+      figureArt:getComputedStyle(document.querySelector('#setup'),'::after').backgroundImage,
+      artVisibility:getComputedStyle(document.querySelector('#setup'),'::after').display,
+      viewportWidth:window.innerWidth,
+      documentWidth:document.documentElement.scrollWidth,
       pageTheme:document.body.dataset.nonoTheme,
       titleColor:getComputedStyle(document.querySelector('.brand')).color,
       selectedTabBackground:getComputedStyle(document.querySelector('.mode-card.selected')).backgroundImage,
@@ -38,12 +40,44 @@ const { pathToFileURL } = require('node:url');
     Math.abs(base.tabs.x-base.panel.x)>1 ||
     Math.abs(base.header.right-base.tabs.right)>1 ||
     Math.abs(base.tabs.right-base.panel.right)>1 ||
-    base.panel.y<base.tabs.bottom || base.panel.width>575 ||
+    base.panel.y<base.tabs.bottom || base.panel.width<base.viewportWidth*.88 ||
+    base.documentWidth>base.viewportWidth+2 ||
     base.shellHeight<800 || base.pageTheme!=='neon' ||
     !base.figureArt.includes('nono-default-atmosphere.svg') ||
     base.artVisibility==='none' || base.selectedTabBackground==='none' ||
     Math.abs(base.choiceSizeRow-base.difficultyRow)>2)
     throw new Error('Default launcher side edges / compact spacing broken: '+JSON.stringify(base));
+  // The default homepage must use the entire available viewport at
+  // common desktop, tablet and phone sizes -- no fixed 570px strip.
+  for(const viewport of [
+    {width:1920,height:1080},
+    {width:1280,height:800},
+    {width:900,height:700},
+    {width:768,height:900},
+    {width:390,height:844},
+    {width:320,height:720}
+  ]){
+    await page.setViewportSize(viewport);
+    const layout=await page.evaluate(()=>{
+      const r=q=>{const b=document.querySelector(q).getBoundingClientRect();return {left:b.left,right:b.right,width:b.width,height:b.height}};
+      return {
+        header:r('.topbar'), tabs:r('.mode-select'),panel:r('#setup'),
+        viewport:innerWidth,overflow:document.documentElement.scrollWidth>innerWidth+2,
+        setupArt:getComputedStyle(document.querySelector('#setup'),'::after').display,
+        screen:document.querySelector('.shell').getBoundingClientRect().height
+      };
+    });
+    if(layout.overflow || layout.panel.width < layout.viewport*.85 ||
+      Math.abs(layout.header.left-layout.tabs.left)>1 ||
+      Math.abs(layout.tabs.left-layout.panel.left)>1 ||
+      Math.abs(layout.header.right-layout.tabs.right)>1 ||
+      Math.abs(layout.tabs.right-layout.panel.right)>1 ||
+      (layout.viewport<=720&&layout.setupArt!=='none') ||
+      (layout.viewport>=901&&layout.setupArt==='none') ||
+      layout.screen<viewport.height-1)
+      throw new Error('Viewport-responsive NONO base layout failed: '+JSON.stringify({viewport,...layout}));
+  }
+  await page.setViewportSize({width:1440,height:900});
   await page.locator('.mode-card[data-mode="race"]').click();
   if(!await page.locator('#nono-quick-room-options').isVisible() ||
     await page.locator('#nono-quick-options').isVisible())
