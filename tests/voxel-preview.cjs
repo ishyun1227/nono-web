@@ -15,14 +15,15 @@ const {pathToFileURL} = require('node:url');
   await page.goto(source);
   if (await page.locator('#nono-vox-test-button').count()) throw Error('Preview must be absent for normal players');
   await page.goto(source + '?test=1');
-  // The default launcher uses a compact native size selector (not size buttons).
-  await page.selectOption('#nono-quick-size','30');
+  // The launcher now uses native size selection. Open a fresh game per viewpoint.
   const samples = [
     ['vox_crabino_front',315],
     ['vox_crabino_side',210],
     ['vox_crabino_top',287]
   ];
   for (let variant = 0; variant < samples.length; variant++) {
+    await page.goto(source + '?test=1');
+    await page.selectOption('#nono-quick-size','30');
     const [id,expected] = samples[variant];
     await page.locator('#nono-quick-variants button').nth(variant).click();
     if (await page.locator('#puzzle').inputValue() !== id) throw Error('Incorrect preview puzzle: ' + id);
@@ -46,6 +47,7 @@ const {pathToFileURL} = require('node:url');
     if(JSON.stringify(before)!==JSON.stringify(after)) throw Error('Preview mutated game state for '+id);
     await page.locator('#leave-game').click();
   }
+  await page.goto(source + '?test=1');
   await page.locator('.mode-card[data-mode="race"]').click();
   if(!await page.locator('#nono-quick-size option[value="30"]').isDisabled()) throw Error('Unverified multiplayer 30x30 must stay disabled');
   if(errors.length) throw Error('Preview JavaScript errors: '+errors.join(' | '));
