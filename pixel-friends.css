@@ -81,3 +81,29 @@ body[data-nono-theme="neon"] #setup>.setup-actions{
   body[data-nono-theme="neon"] #setup{padding:18px 15px;gap:12px}
   body[data-nono-theme="neon"] #setup>.nono-friends-card-art{max-width:100%}
 }
+
+/* Approved public lobby layout: full-width filters and list, mascot kept below. */
+body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden)){
+  display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+  gap:12px;padding:19px clamp(14px,2.5vw,27px);min-height:0;
+  overflow:visible;background:#19243a;
+}
+body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))::before{
+  content:none!important;display:none!important;
+}
+body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))>.setup-description,
+body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))>.nono-quick-setup,
+body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))>#public-lobby{
+  width:100%;max-width:none;min-width:0;position:relative;z-index:1;
+}
+body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))>.nono-friends-card-art{
+  display:flex;width:100%;max-width:560px;min-width:0;align-self:center;
+  margin:0 auto;padding:0;grid-column:auto;grid-row:auto;
+}
+body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))>.nono-friends-card-art img{
+  display:block;width:100%;height:auto;max-height:96px;object-fit:contain;
+}
+@media(max-width:660px){
+ body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden)){gap:10px;padding:13px 12px}
+ body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))>.nono-friends-card-art img{max-height:72px}
+}
