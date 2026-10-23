@@ -143,6 +143,40 @@ const { pathToFileURL } = require('node:url');
   await page.selectOption('#nono-quick-size','10');
   await page.selectOption('#nono-quick-difficulty','어려움');
   if(await page.locator('#puzzle').inputValue()!=='rocket10')throw new Error('Difficulty does not select actual puzzle');
+  // Every (size, difficulty) pair must list all matching real puzzle IDs, not
+  // only the 30x30 voxel group. Keep solution thumbnails and titles hidden.
+  await page.selectOption('#nono-quick-size','30');
+  if(!await page.locator('#nono-quick-difficulty').isVisible())
+    throw new Error('Difficulty filter is missing for 30x30');
+  if(await page.locator('#nono-quick-variants button').allTextContents().then(x=>x.join(','))!=='01,02,03')
+    throw new Error('30x30 puzzle choices should show 01 / 02 / 03');
+  await page.locator('#nono-quick-variants button').nth(2).click();
+  if(await page.locator('#puzzle').inputValue()!=='vox_crabino_top')
+    throw new Error('30x30 puzzle 03 is not wired to the real puzzle');
+  await page.selectOption('#nono-quick-size','10');
+  await page.selectOption('#nono-quick-difficulty','보통');
+  await page.evaluate(()=>{
+    const fixture={...PUZZLES.find(p=>p.id==='cat10'),id:'cat10_extra_test',difficulty:'보통'};
+    PUZZLES.push(fixture);
+    const option=document.createElement('option');
+    option.value=fixture.id;option.textContent='시험용 퍼즐';
+    document.querySelector('#puzzle').append(option);
+    document.querySelector('#puzzle').dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  if(await page.locator('#nono-quick-variants button').allTextContents().then(x=>x.join(','))!=='01,02')
+    throw new Error('All puzzles matching the size and difficulty must appear');
+  await page.locator('#nono-quick-variants button').nth(1).click();
+  if(await page.locator('#puzzle').inputValue()!=='cat10_extra_test')
+    throw new Error('Newly registered matching puzzle was not selectable');
+  await page.evaluate(()=>{
+    const index=PUZZLES.findIndex(p=>p.id==='cat10_extra_test');
+    if(index!==-1)PUZZLES.splice(index,1);
+    document.querySelector('#puzzle option[value="cat10_extra_test"]')?.remove();
+    document.querySelector('#puzzle').value='cat10';
+    document.querySelector('#puzzle').dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  if(await page.locator('#nono-quick-variants button').count()!==1)
+    throw new Error('Puzzle chooser was not refreshed after list changes');
   const voxelIds=await page.evaluate(()=>PUZZLES.filter(p=>p.size===30).map(p=>p.id));
   if(voxelIds.join(',')!=='vox_crabino_front,vox_crabino_side,vox_crabino_top')
     throw new Error('Missing voxel puzzle datasets');
