@@ -1,0 +1,167 @@
+/* NONO base theme: compact user-approved launcher.
+   Only the default neon theme changes; world themes keep their own architecture. */
+body[data-nono-theme="neon"] {
+  background:#fff!important;color:#202124!important;color-scheme:light;
+  --nono-base-width:510px;
+}
+body[data-nono-theme="neon"] .shell {
+  width:100%;max-width:none;margin:0;padding:0 24px;
+}
+body[data-nono-theme="neon"] .topbar {
+  width:min(100%,var(--nono-base-width));height:68px;
+  margin:0;padding:0;border:0;
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+}
+body[data-nono-theme="neon"] .brand {
+  color:#202124;font-size:25px;letter-spacing:-.05em;gap:9px;
+}
+body[data-nono-theme="neon"] .brand-box {
+  width:26px;height:26px;background:none;box-shadow:none;
+  color:#202124;border-radius:0;font-size:22px;
+}
+body[data-nono-theme="neon"] .brand-dot{display:none}
+body[data-nono-theme="neon"] .header-right {gap:7px}
+body[data-nono-theme="neon"] .header-right .connection{display:none}
+body[data-nono-theme="neon"] .header-right .profile-chip{
+  width:27px;height:28px;padding:3px;background:none;border:0;color:#5f6368;
+  box-shadow:none;justify-content:center;
+}
+body[data-nono-theme="neon"] .profile-chip #profile-name{display:none}
+body[data-nono-theme="neon"] .profile-avatar{width:24px;height:24px;color:#555;background:none;font-size:19px}
+body[data-nono-theme="neon"] #nono-theme-open,
+body[data-nono-theme="neon"] #nono-open-settings{
+  background:none;border:0;box-shadow:none;padding:5px 3px;min-height:28px;
+  border-radius:6px;color:#62666a;font-size:12px;white-space:nowrap;
+}
+body[data-nono-theme="neon"] #nono-theme-open:hover,
+body[data-nono-theme="neon"] #nono-open-settings:hover{
+  background:#ededee;color:#212225;
+}
+body[data-nono-theme="neon"] #home-view,
+body[data-nono-theme="neon"] #home-view .home-content{
+  width:min(100%,var(--nono-base-width));max-width:var(--nono-base-width);
+}
+body[data-nono-theme="neon"] #home-view .hero,
+body[data-nono-theme="neon"] #home-view .section-heading,
+body[data-nono-theme="neon"] .home-content .nono-world-extras,
+body[data-nono-theme="neon"] .home-content .nono-world-panel,
+body[data-nono-theme="neon"] .home-content .nono-world-cta,
+body[data-nono-theme="neon"] .shell>footer {display:none!important}
+body[data-nono-theme="neon"] .home-content{padding:8px 0 10px}
+body[data-nono-theme="neon"] .mode-select{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:2px;margin:0 0 12px;padding:0;width:100%;min-width:0;
+}
+body[data-nono-theme="neon"] .mode-select .mode-card{
+  min-width:0;width:100%;min-height:35px;height:35px;
+  display:flex;align-items:center;justify-content:center;
+  padding:6px 5px;margin:0;border:0;border-radius:99px;
+  background:transparent;color:#73777c;box-shadow:none;
+  transform:none;font:600 14px/1.1 Inter,Pretendard,sans-serif;
+}
+body[data-nono-theme="neon"] .mode-select .mode-card.selected{
+  background:#f1f1f2;color:#202124;
+}
+body[data-nono-theme="neon"] .mode-select .mode-card:hover{background:#ececed;color:#24262a;transform:none}
+body[data-nono-theme="neon"] .mode-select .mode-card .mode-icon,
+body[data-nono-theme="neon"] .mode-select .mode-card .mode-text,
+body[data-nono-theme="neon"] .mode-select .mode-card .selected-indicator{display:none!important}
+body[data-nono-theme="neon"] .mode-select .mode-card[data-mode="practice"]::after{content:"혼자"}
+body[data-nono-theme="neon"] .mode-select .mode-card[data-mode="race"]::after{content:"대결"}
+body[data-nono-theme="neon"] .mode-select .mode-card[data-mode="coop"]::after{content:"협동"}
+body[data-nono-theme="neon"] .mode-select .mode-card[data-mode="record"]::after{content:"기록"}
+body[data-nono-theme="neon"] #setup{
+  display:flex;flex-direction:column;align-items:stretch;
+  width:100%;min-width:0;max-width:var(--nono-base-width);
+  padding:13px 15px 14px;gap:12px;
+  background:#f4f4f5;border:0;border-radius:16px;
+  color:#202124;box-shadow:none;
+}
+body[data-nono-theme="neon"] #setup .setup-description{display:flex;align-items:center;gap:8px;min-height:23px}
+body[data-nono-theme="neon"] #setup .setup-description h3{
+  margin:0;color:#202124;font-size:16px;letter-spacing:-.01em;font-weight:750;
+}
+body[data-nono-theme="neon"] #setup .setup-description p{display:none}
+body[data-nono-theme="neon"] #setup>.controls{display:none}
+body[data-nono-theme="neon"] #setup>.controls .controls label{width:auto}
+body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls{
+  display:flex;align-items:flex-end;width:min(100%,330px);
+}
+body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls label:first-child{display:none}
+body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls label:last-child{
+  color:#4f5357;font-size:12px;
+}
+body[data-nono-theme="neon"] #setup[data-nono-profile-open="true"]>.controls input{
+  background:#fff;color:#202124;border:1px solid #ddd;height:34px;border-radius:6px;
+}
+body[data-nono-theme="neon"] #setup .setup-actions{
+  min-width:0;width:auto;display:flex;align-items:center;
+  justify-content:flex-start;gap:8px;margin-top:1px;
+}
+body[data-nono-theme="neon"] #setup .setup-actions #play-alone{
+  min-width:0;min-height:34px;height:34px;padding:7px 16px;
+  border-radius:50px;border:0;background:#202124;color:#fff;
+  font-size:13px;font-weight:700;box-shadow:none;
+}
+body[data-nono-theme="neon"] #setup .setup-actions #play-alone:hover{background:#36393d}
+body[data-nono-theme="neon"] #setup .room-controls{display:none!important}
+body[data-nono-theme="neon"] #setup .nono-quick-block{
+  display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;
+  color:#232528;min-width:0;margin:0;padding:0;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-group{
+  display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-group .nono-quick-label{
+  font-size:12px;color:#42464b;font-weight:600;margin-right:2px;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-choice{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:0;min-height:26px;padding:5px 6px;
+  border:1px solid transparent;border-radius:6px;
+  background:#fff;color:#4b4e52;font:600 10px/1.1 Inter,Pretendard,sans-serif;
+  white-space:nowrap;box-shadow:none;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-choice[aria-pressed="true"]{
+  color:#17191b;font-weight:850;background:#e3e3e5;border-color:#ceced2;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-choice:disabled{
+  opacity:.35;cursor:not-allowed;background:transparent;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-choice:hover:not(:disabled){background:#e8e8e9}
+body[data-nono-theme="neon"] #setup .nono-quick-room-options{
+  display:flex;flex-wrap:wrap;gap:8px;align-items:center;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-room-options button,
+body[data-nono-theme="neon"] #setup .nono-quick-room-action,
+body[data-nono-theme="neon"] #setup .nono-quick-back{
+  font-weight:650;font-size:12px;min-height:32px;
+  padding:5px 11px;background:#fff;color:#26282a;
+  border:1px solid #d9d9dc;border-radius:8px;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-room-action{
+  border:0;background:#202124;color:#fff;padding:7px 14px;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-back{
+  border:0;background:transparent;color:#666;padding:3px 6px;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-join{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+body[data-nono-theme="neon"] #setup .nono-quick-join input{
+  width:160px;max-width:100%;height:33px;
+  background:#fff;color:#202124;border:1px solid #ddd;border-radius:7px;
+  padding:5px 9px;font-size:12px;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-note{margin:0;color:#767a7e;font-size:11px}
+body[data-nono-theme="neon"] #setup .nono-quick-setup{display:grid;gap:10px}
+body:not([data-nono-theme="neon"]) #setup .nono-quick-setup,
+body:not([data-nono-theme="neon"]) #setup .nono-quick-note{display:none!important}
+@media (max-width:560px){
+ body[data-nono-theme="neon"] .shell{padding:0 12px}
+ body[data-nono-theme="neon"] .topbar{height:58px}
+ body[data-nono-theme="neon"] .brand{font-size:23px}
+ body[data-nono-theme="neon"] .header-right{gap:3px}
+ body[data-nono-theme="neon"] .mode-select .mode-card{font-size:13px}
+ body[data-nono-theme="neon"] #setup{padding:12px;gap:11px}
+ body[data-nono-theme="neon"] #setup .nono-quick-block{gap:8px}
+ body[data-nono-theme="neon"] #setup .nono-quick-choice{font-size:10px;padding:5px 5px}
+}
