@@ -18,6 +18,16 @@ async function main(){
   await Promise.all([a.goto('http://127.0.0.1:4173'),b.goto('http://127.0.0.1:4173')]);
   for(const p of [a,b])await p.waitForFunction(()=>document.querySelector('#connection').textContent.includes('온라인 연결'));
   await a.fill('#nickname','Alice');await b.fill('#nickname','Bob');
+  // Public matchmaking: a stranger should see and join an actual waiting room.
+  await Promise.all([a.click('[data-mode="race"]'),b.click('[data-mode="race"]')]);
+  await a.click('#quick-match');await a.waitForURL(/room=/);
+  const matchCode=new URL(a.url()).searchParams.get('room');
+  await b.locator('#public-room-list [data-room-code="'+matchCode+'"]').waitFor({state:'visible'});
+  await b.click('#quick-match');await b.waitForURL(/room=/);
+  assert.equal(new URL(b.url()).searchParams.get('room'),matchCode,'Quick match must join the existing public room');
+  for(const p of [a,b])await p.waitForFunction(()=>meta?.status==='playing'&&Boolean(raceStates[currentId()]));
+  await Promise.all([a.evaluate(()=>leaveGame()),b.evaluate(()=>leaveGame())]);
+  console.log('PASS public quick match connects strangers and automatically starts a two-player race');
   // The redesigned launcher starts with 10x10 selected. This scenario uses
   // the known 5x5 fixture and must select it explicitly before room creation.
   await a.locator('#nono-quick-sizes button').first().click();
