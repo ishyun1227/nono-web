@@ -24,7 +24,9 @@ const { pathToFileURL } = require('node:url');
       difficulties:document.querySelectorAll('#nono-quick-difficulties button').length,
       pageBackground:getComputedStyle(document.body).backgroundColor,
       shellHeight:document.querySelector('.shell').getBoundingClientRect().height,
-      figureArt:getComputedStyle(document.querySelector('#setup'),'::after').backgroundImage,
+      artContent:getComputedStyle(document.querySelector('#setup'),'::after').content,
+      originalArt:getComputedStyle(document.querySelector('#home-view'),'::after').content,
+      fillerCount:document.querySelectorAll('.nono-base-kicker,.nono-base-detail,.nono-base-footer').length,
       artVisibility:getComputedStyle(document.querySelector('#setup'),'::after').display,
       viewportWidth:window.innerWidth,
       documentWidth:document.documentElement.scrollWidth,
@@ -40,11 +42,12 @@ const { pathToFileURL } = require('node:url');
     Math.abs(base.tabs.x-base.panel.x)>1 ||
     Math.abs(base.header.right-base.tabs.right)>1 ||
     Math.abs(base.tabs.right-base.panel.right)>1 ||
-    base.panel.y<base.tabs.bottom || base.panel.width<base.viewportWidth*.88 ||
+    base.panel.y<base.tabs.bottom || base.panel.width<1000 ||
+    base.panel.height>340 || Math.abs(base.panel.x-(base.viewportWidth-base.panel.right))>2 ||
     base.documentWidth>base.viewportWidth+2 ||
     base.shellHeight<800 || base.pageTheme!=='neon' ||
-    !base.figureArt.includes('nono-default-atmosphere.svg') ||
-    base.artVisibility==='none' || base.selectedTabBackground==='none' ||
+    base.fillerCount!==0 || base.artContent!=='none' ||
+    base.originalArt!=='none' || base.selectedTabBackground==='none' ||
     Math.abs(base.choiceSizeRow-base.difficultyRow)>2)
     throw new Error('Default launcher side edges / compact spacing broken: '+JSON.stringify(base));
   // The default homepage must use the entire available viewport at
@@ -67,38 +70,37 @@ const { pathToFileURL } = require('node:url');
         screen:document.querySelector('.shell').getBoundingClientRect().height
       };
     });
-    if(layout.overflow || layout.panel.width < layout.viewport*.85 ||
+    if(layout.overflow || layout.panel.width < Math.min(layout.viewport*.86,1160)-2 ||
+      Math.abs(layout.panel.left-(layout.viewport-layout.panel.right))>2 ||
       Math.abs(layout.header.left-layout.tabs.left)>1 ||
       Math.abs(layout.tabs.left-layout.panel.left)>1 ||
       Math.abs(layout.header.right-layout.tabs.right)>1 ||
       Math.abs(layout.tabs.right-layout.panel.right)>1 ||
-      (layout.viewport<=720&&layout.setupArt!=='none') ||
-      (layout.viewport>=901&&layout.setupArt==='none') ||
+      layout.setupArt!=='none' ||
       layout.screen<viewport.height-1)
       throw new Error('Viewport-responsive NONO base layout failed: '+JSON.stringify({viewport,...layout}));
   }
   await page.setViewportSize({width:1440,height:900});
-  // Visual composition guard: prevent a tiny text cluster floating in a huge card.
-  const artDirection=await page.evaluate(()=>{
+  // Simple homepage contract: no decorative English kicker, unnecessary text,
+  // or artwork that could be mistaken for the nonogram answer.
+  const simple=await page.evaluate(()=>{
     const panel=document.querySelector('#setup').getBoundingClientRect();
-    const r=selector=>{const a=document.querySelector(selector)?.getBoundingClientRect();return a?{x:a.x,y:a.y,w:a.width,h:a.height}:null};
-    const heading=document.querySelector('#setup-heading');
+    const heading=document.getElementById('setup-heading').getBoundingClientRect();
+    const options=document.getElementById('nono-quick-options').getBoundingClientRect();
+    const start=document.getElementById('play-alone').getBoundingClientRect();
+    const decors=[...document.querySelectorAll('.nono-base-kicker,.nono-base-detail,.nono-base-footer')];
     return {
-      panel:{x:panel.x,y:panel.y,w:panel.width,h:panel.height},
-      kicker:r('.nono-base-kicker'),heading:r('#setup-heading'),detail:r('.nono-base-detail'),
-      choices:r('#nono-quick-options'),start:r('#play-alone'),footer:r('.nono-base-footer'),
-      titleSize:parseFloat(getComputedStyle(heading).fontSize),
-      artImage:getComputedStyle(document.querySelector('#setup'),'::after').backgroundImage
+      panelHeight:panel.height,
+      headingSize:parseFloat(getComputedStyle(document.getElementById('setup-heading')).fontSize),
+      headingY:heading.y,optionsY:options.y,startY:start.y,
+      decors:decors.length,
+      panelArt:getComputedStyle(document.getElementById('setup'),'::after').content
     };
   });
-  const z=artDirection;
-  if(!z.kicker||!z.detail||!z.footer ||
-    z.titleSize<30 || z.heading.y-z.panel.y>z.panel.h*.38 ||
-    z.heading.y<=z.kicker.y || z.detail.y<=z.heading.y ||
-    z.choices.y<=z.detail.y || z.start.y<=z.choices.y ||
-    z.footer.y<=z.start.y || z.choices.x-z.panel.x>z.panel.w*.5 ||
-    !z.artImage.includes('nono-default-atmosphere.svg'))
-    throw new Error('Base-home visual proportions regressed: '+JSON.stringify(artDirection));
+  if(simple.decors!==0 || simple.panelArt!=='none' ||
+     simple.panelHeight>340 || simple.headingSize<18 ||
+     simple.headingY>=simple.optionsY || simple.optionsY>=simple.startY)
+    throw new Error('Simple homepage content-only layout failed: '+JSON.stringify(simple));
   await page.screenshot({path:'test-results/default-home-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   await page.screenshot({path:'test-results/default-home-mobile.png',fullPage:true});
