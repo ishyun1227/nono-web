@@ -159,5 +159,7 @@ new MutationObserver(()=>{
   else nativeStart.textContent='게임 시작 →';
 }).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
 // Existing index.html has already called initHome().
+// Match the approved prototype's default 10×10 / 보통 choice.
+if(on() && picker.value==='heart5')setNativePuzzle('cat10');
 syncPuzzleFromSelection();screen();
 })();
