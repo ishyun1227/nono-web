@@ -21,7 +21,16 @@ const { pathToFileURL } = require('node:url');
       heroHidden:getComputedStyle(document.querySelector('.hero')).display==='none',
       nativePickerHidden:getComputedStyle(document.querySelector('#setup>.controls')).display==='none',
       controls:document.querySelectorAll('#nono-quick-sizes button').length,
-      difficulties:document.querySelectorAll('#nono-quick-difficulties button').length
+      difficulties:document.querySelectorAll('#nono-quick-difficulties button').length,
+      pageBackground:getComputedStyle(document.body).backgroundColor,
+      shellHeight:document.querySelector('.shell').getBoundingClientRect().height,
+      figureArt:getComputedStyle(document.querySelector('#home-view'),'::after').backgroundImage,
+      artVisibility:getComputedStyle(document.querySelector('#home-view'),'::after').display,
+      pageTheme:document.body.dataset.nonoTheme,
+      titleColor:getComputedStyle(document.querySelector('.brand')).color,
+      selectedTabBackground:getComputedStyle(document.querySelector('.mode-card.selected')).backgroundImage,
+      choiceSizeRow:document.querySelector('#nono-quick-sizes').getBoundingClientRect().top,
+      difficultyRow:document.querySelector('#nono-quick-difficulties').getBoundingClientRect().top
     };
   });
   if(!base.heroHidden || !base.nativePickerHidden || base.controls!==6 || base.difficulties!==3 ||
@@ -29,7 +38,11 @@ const { pathToFileURL } = require('node:url');
     Math.abs(base.tabs.x-base.panel.x)>1 ||
     Math.abs(base.header.right-base.tabs.right)>1 ||
     Math.abs(base.tabs.right-base.panel.right)>1 ||
-    base.panel.y<base.tabs.bottom || base.panel.width>520)
+    base.panel.y<base.tabs.bottom || base.panel.width>575 ||
+    base.shellHeight<800 || base.pageTheme!=='neon' ||
+    !base.figureArt.includes('nono-default-atmosphere.svg') ||
+    base.artVisibility==='none' || base.selectedTabBackground==='none' ||
+    Math.abs(base.choiceSizeRow-base.difficultyRow)>2)
     throw new Error('Default launcher side edges / compact spacing broken: '+JSON.stringify(base));
   await page.locator('.mode-card[data-mode="race"]').click();
   if(!await page.locator('#nono-quick-room-options').isVisible() ||
