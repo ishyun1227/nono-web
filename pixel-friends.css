@@ -48,7 +48,7 @@ body[data-nono-theme="neon"] #setup>.nono-friends-card-art{
 }
 body[data-nono-theme="neon"] #setup>.nono-friends-card-art img{
   display:block;width:100%;max-width:560px;height:auto;
-  aspect-ratio:960/156;
+  aspect-ratio:762/135;
   object-fit:contain;flex:none;
   filter:drop-shadow(0 5px 7px #090f2580);
 }
