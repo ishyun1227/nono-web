@@ -106,7 +106,15 @@ const firebaseConfig=window.NONO_FIREBASE_CONFIG||{};
 // Layout-test puzzles use random fill masks to build internally consistent row and column clues.
 // They are not curated images, and their solution does not have to be unique.
 function createSizeTestPuzzle(size) {
-  const mask=Array.from({length:size*size},()=>Math.random()<.33?'1':'0');
+  // Smooth random blobs keep the preview anonymous while avoiding dozens of unreadable clue digits.
+  const blobs=Array.from({length:9},()=>({
+    x:.09+Math.random()*.82,y:.09+Math.random()*.82,
+    rx:.05+Math.random()*.12,ry:.05+Math.random()*.12
+  }));
+  const mask=Array.from({length:size*size},(_,i)=>{
+    const x=(i%size+.5)/size,y=(Math.floor(i/size)+.5)/size;
+    return blobs.some(b=>((x-b.x)/b.rx)**2+((y-b.y)/b.ry)**2<=1)?'1':'0';
+  });
   const rows=Array.from({length:size},(_,r)=>lineHints(mask.slice(r*size,(r+1)*size)));
   const cols=Array.from({length:size},(_,c)=>lineHints(Array.from({length:size},(_,r)=>mask[r*size+c])));
   return {id:'size-test-'+size,name:size+'×'+size+' 크기 테스트',size,rows,cols,sizeTest:true};
