@@ -27,7 +27,7 @@ function difficultyOf(p){
 function availablePuzzles(size,difficulty){
   const mode=activeMode();
   return puzzleCatalog().filter(p=>p.size===Number(size)&&difficultyOf(p)===difficulty&&
-    (mode==='practice'||(p.size!==30 && supportedPuzzleModes.has(mode))));
+    (mode==='practice'||(p.size<30 && supportedPuzzleModes.has(mode))));
 }
 function selectableSizes(){
   return [...new Set([...sizes,...puzzleCatalog().map(p=>p.size)])].sort((a,b)=>a-b);
@@ -103,7 +103,7 @@ function screen(){
   if(!on())return;
   const mode=activeMode();
   if(!availablePuzzles(selectedSize,selectedDifficulty).length){
-    const first=puzzleCatalog().find(p=>p.size!==30||mode==='practice');
+    const first=puzzleCatalog().find(p=>p.size<30||mode==='practice');
     if(first){selectedSize=first.size;selectedDifficulty=difficultyOf(first);setNativePuzzle(first.id);}
   }
   nativeStart.textContent=mode==='record'?'기록 도전 →':'퍼즐 시작 →';
