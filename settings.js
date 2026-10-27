@@ -123,6 +123,11 @@ body[data-error-intensity=weak] .nono-error{outline-width:1px!important}body[dat
 #board > .corner,#board > .col-clues,#board > .row-clues{background-color:var(--nono-clue-bg,#131f37)}
 #board .col-clue{border-right:1px solid #354766}
 #board .row-clue{border-bottom:1px solid #354766}
+/* Individual clue numbers also get subtle dividers, not only row/column boundaries. */
+#board .col-clue{gap:0;padding-bottom:0}
+#board .col-clue > span{display:grid;place-items:center;width:100%;height:19px;border-bottom:1px solid #354766}
+#board .row-clue{gap:0}
+#board .row-clue > span{display:grid;place-items:center;min-width:22px;height:100%;border-left:1px solid #354766}
 #board .col-clue.nono-clue-major{border-right:var(--nono-major,3px) solid #8695d4}
 #board .row-clue.nono-clue-major{border-bottom:var(--nono-major,3px) solid #8695d4}
 #board .nono-alt-hint-target{background:#504785b8!important;outline:2px solid #75dbff;outline-offset:1px;border-radius:4px}
