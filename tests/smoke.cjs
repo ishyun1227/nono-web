@@ -214,10 +214,14 @@ const { pathToFileURL } = require('node:url');
         coordinateCount:document.querySelectorAll('#board .cell[data-row-coordinate]').length,
         oldIndices:document.querySelectorAll('#board .nono-clue-index').length};
     });
+    console.log('Large board fit '+size+'x'+size+': '+JSON.stringify(layout));
     if(layout.board.left<-3||layout.board.top<0||layout.board.right>layout.screen.width+3||
        layout.board.bottom>layout.screen.height+3||layout.card.bottom>layout.screen.height+3||
        layout.scroll.width>layout.screen.width+3||layout.scroll.height>layout.screen.height+3)
       throw new Error('Large '+size+'x'+size+' viewport fit failed: '+JSON.stringify(layout));
+    // The play card itself must use almost the entire viewport width.
+    if(layout.card.left>20||layout.card.right<layout.screen.width-20)
+      throw new Error('Excessive horizontal margins remain on the play card: '+JSON.stringify(layout));
     if(layout.coordinateCount!==size/5||layout.oldIndices!==0)
       throw new Error('Row coordinates should mark the right grid edge: '+JSON.stringify(layout));
     // The board should use the remaining height, not shrink to a tiny postcard.
