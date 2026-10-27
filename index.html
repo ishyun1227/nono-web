@@ -103,11 +103,20 @@
   <script>
 const firebaseConfig=window.NONO_FIREBASE_CONFIG||{};
 // 공개되는 것은 힌트뿐입니다. 정답 비트열은 데이터베이스의 privateAnswers에 보관합니다.
+// Layout-test puzzles use random fill masks to build internally consistent row and column clues.
+// They are not curated images, and their solution does not have to be unique.
+function createSizeTestPuzzle(size) {
+  const mask=Array.from({length:size*size},()=>Math.random()<.33?'1':'0');
+  const rows=Array.from({length:size},(_,r)=>lineHints(mask.slice(r*size,(r+1)*size)));
+  const cols=Array.from({length:size},(_,c)=>lineHints(Array.from({length:size},(_,r)=>mask[r*size+c])));
+  return {id:'size-test-'+size,name:size+'×'+size+' 크기 테스트',size,rows,cols,sizeTest:true};
+}
 const PUZZLES = [
   {id:'heart5',name:'작은 하트',size:5, rows:[[1,1],[5],[5],[3],[1]], cols:[[2], [4], [4], [4], [2]]},
   {id:'cat10',name:'고양이',size:10,rows:[[2, 2], [8], [10], [2, 4, 2], [10], [2, 2, 2], [6], [4], [1, 1], [2, 2]],cols:[[3], [5], [3, 3, 1], [5, 4], [7], [7], [5, 4], [3, 3, 1], [5], [3]]},
   {id:'rocket10',name:'우주선',size:10,rows:[[2], [4], [4], [4], [6], [6], [8], [2, 4, 2], [1, 4, 1], [4]],cols:[[2], [2], [3], [9], [10], [10], [9], [3], [2], [2]]},
-  ...(window.NONO_VOX_PUZZLES||[])
+  ...(window.NONO_VOX_PUZZLES||[]),
+  ...[50,75,100].map(createSizeTestPuzzle)
 ];
 function lineHints(bits) {
   const out=[];let count=0;
@@ -196,7 +205,7 @@ function attachNavigation(){
   $('share-room-side').addEventListener('click',()=>$('copy-room-header').click());
 }
 function initHome(){
-  const options=PUZZLES.map(p=>`<option value="${p.id}">${escapeHTML(p.name)} · ${p.size}×${p.size}</option>`).join('');$('puzzle').innerHTML=options;
+  const options=PUZZLES.map((p,i)=>`<option value="${p.id}">${p.size}×${p.size} · ${p.sizeTest?'크기 테스트':'퍼즐 '+String(i+1).padStart(2,'0')}</option>`).join('');$('puzzle').innerHTML=options;
   $('nickname').value=storage.getItem('nono-nickname')||'';updateProfileLabel();
   document.querySelectorAll('.mode-card').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
   $('puzzle').addEventListener('change',()=>{puzzle=PUZZLES.find(p=>p.id===$('puzzle').value)||PUZZLES[0];refreshHomepageScores();});
@@ -227,7 +236,7 @@ function initHome(){
 function updateToolButtons(){for(const [id,val] of [['tool-fill','1'],['tool-cross','2'],['tool-clear','0']]){$(id).classList.toggle('primary',tool===val);}}
 function showGame(){
   $('home-view').classList.add('hidden');$('game').classList.remove('hidden');
-  $('game-title').textContent=puzzle.name;
+  $('game-title').textContent='노노그램';
   $('game-subtitle').textContent=roomCode?`방 코드 ${roomCode} · ${puzzle.size}×${puzzle.size}`:`${puzzle.size}×${puzzle.size} · 방향키 / Space / X`;
 
 
@@ -250,7 +259,7 @@ async function leaveGame(){
 }
 async function startAlone(){
   if(startingAlone||!['practice','record'].includes(mode))return;
-  if(puzzle.size===30&&mode!=='practice'){toast('30×30 신규 퍼즐은 현재 혼자 풀기에서만 지원해요.');return;}
+  if(puzzle.size>=30&&mode!=='practice'){toast('큰 퍼즐은 현재 혼자 풀기에서만 지원해요.');return;}
   startingAlone=true;$('play-alone').disabled=true;$('restart').disabled=true;
   try{
   roomCode=null;meta=null;clearListeners();board=emptyBoard(puzzle);selected=0;startedAt=Date.now();finishedAt=0;finished=false;finishing=false;changes=0;resetHistory();
@@ -434,7 +443,7 @@ async function quickMatch(){
   }catch(error){firebaseError(error);}
   finally{busyMatch=false;$('quick-match').disabled=false;}
 }
-async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toast('멀티플레이를 사용하려면 먼저 Firebase를 연결해야 해요.');return;}if(!['race','coop'].includes(mode))return false;if(puzzle.size===30){toast('30×30 신규 퍼즐은 현재 혼자 풀기에서만 지원해요.');return false;}const makePublic=typeof options.publicRoom==='boolean'?options.publicRoom:Boolean($('public-room-toggle')?.checked);const autoMatch=options.autoMatch===true;busyRoom=true;try{
+async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toast('멀티플레이를 사용하려면 먼저 Firebase를 연결해야 해요.');return;}if(!['race','coop'].includes(mode))return false;if(puzzle.size>=30){toast('큰 퍼즐은 현재 혼자 풀기에서만 지원해요.');return false;}const makePublic=typeof options.publicRoom==='boolean'?options.publicRoom:Boolean($('public-room-toggle')?.checked);const autoMatch=options.autoMatch===true;busyRoom=true;try{
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='';for(const value of crypto.getRandomValues(new Uint8Array(6)))code+=chars[value%chars.length];
   const metaData={host:currentId(),mode,puzzleId:puzzle.id,size:puzzle.size,status:mode==='race'?'lobby':'playing',createdAt:serverTimestamp(),startedAt:mode==='coop'?serverTimestamp():0};
   const result=await runTransaction(ref(database,`rooms/${code}/meta`),current=>current?undefined:metaData);
@@ -508,7 +517,7 @@ async function connectFirebase(){
 initHome();connectFirebase();
 
 </script>
-<script src="./settings.js?v=1"></script>
+<script src="./settings.js?v=2"></script>
 <script src="./themes.js?v=3"></script>
 <script src="./theme-world-ui.js?v=1"></script>
 <script src="./library-ui.js?v=1"></script>
