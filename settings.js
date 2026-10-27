@@ -298,7 +298,9 @@ $('progress').textContent=hud;$('progress').style.display=prefs.progress==='off'
 $('undo').style.display=prefs.undoButtons?'':'none';$('redo').style.display=prefs.undoButtons?'':'none';
 $('nono-hint-action').style.display=(prefs.hintLine||prefs.hintExplanation||prefs.hintCell)?'':'none';
 const hintGuide=document.querySelector('.board-caption');if(hintGuide)hintGuide.hidden=prefs.guide==='off';
-cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',!!prefs.rowHighlight&&(r===Math.floor(selected/n)||col===selected%n));c.classList.toggle('nono-done-line',!!prefs.completeLines&&(lineSolved('row',r)||lineSolved('col',col)));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<n-1);});
+cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',!!prefs.rowHighlight&&(r===Math.floor(selected/n)||col===selected%n));c.classList.toggle('nono-done-line',!!prefs.completeLines&&(lineSolved('row',r)||lineSolved('col',col)));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<n-1);
+const atEdge=col===n-1&&prefs.lineNumbers&&(r+1)%Math.max(1,Number(prefs.lineInterval)||5)===0;
+if(atEdge)c.dataset.rowCoordinate=String(r+1);else delete c.dataset.rowCoordinate;});
 for(const axis of ['row','col']){const elems=$('board').querySelectorAll(axis==='row'?'#board > .row-clues:not(.nono-extra-row) .row-clue':'#board > .col-clues:not(.nono-extra-col) .col-clue');elems.forEach((el,i)=>{el.querySelectorAll('span').forEach((span,j)=>{const stored=(manualClues[puzzle.id]||{})[axis+':'+i+':'+j];span.classList.toggle('nono-fade-clue',stored===true||(stored!==false&&prefs.autoHintFade&&canFade(axis,i,j)));span.classList.toggle('nono-hint-target',hintMode&&hintAxis===axis&&hintIndex===i&&j===hintNumber);});});}
 const hints='행 '+hintsForLine('row',Math.floor(selected/n)).join(' ')+' · 열 '+hintsForLine('col',selected%n).join(' ');
 $('nono-hud').textContent=hints;
@@ -364,8 +366,8 @@ function updateClueDecor(){
  target.querySelector('.nono-extra-row')?.remove();target.querySelector('.nono-extra-col')?.remove();
  const r=target.querySelector('.row-clues'),c=target.querySelector('.col-clues');
  if(!r||!c)return;
- r.querySelectorAll('.row-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-major',(i+1)%Number(prefs.majorEvery)===0&&i<n-1);el.classList.toggle('nono-clue-index',prefs.lineNumbers&&(i+1)%prefs.lineInterval===0);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
- c.querySelectorAll('.col-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-major',(i+1)%Number(prefs.majorEvery)===0&&i<n-1);el.classList.toggle('nono-clue-index',prefs.lineNumbers&&(i+1)%prefs.lineInterval===0);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
+ r.querySelectorAll('.row-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-major',(i+1)%Number(prefs.majorEvery)===0&&i<n-1);el.classList.toggle('nono-clue-index',false);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
+ c.querySelectorAll('.col-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-major',(i+1)%Number(prefs.majorEvery)===0&&i<n-1);el.classList.toggle('nono-clue-index',false);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
  if(prefs.bothClues){const rc=r.cloneNode(true),cc=c.cloneNode(true);rc.classList.add('nono-extra-row');cc.classList.add('nono-extra-col');target.append(rc,cc);}
   if(altClueSelection){
     const region=altClueSelection.side==='right'?target.querySelector('.nono-extra-row'):r;
@@ -373,7 +375,46 @@ function updateClueDecor(){
     clue?.classList.add('nono-alt-hint-target');
   }
 }
-function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();}
+
+let fitRequest=0;
+function scheduleBoardFit(){
+ if($('game').classList.contains('hidden')||fitRequest)return;
+ fitRequest=requestAnimationFrame(()=>{fitRequest=0;fitBoardToViewport()});
+}
+function fitBoardToViewport(){
+ if($('game').classList.contains('hidden'))return;
+ const grid=$('board'),scroller=document.querySelector('#game .board-scroll'),card=document.querySelector('#game .board-card');
+ if(!grid||!scroller||!card)return;
+ document.body.classList.toggle('nono-fit-playing',puzzle.size>=30);
+ grid.classList.add('nono-board-fit');
+ const n=puzzle.size,rowCount=Math.max(...puzzle.rows.map(a=>a.length)),colCount=Math.max(...puzzle.cols.map(a=>a.length));
+ const font=n>=75?9:n>=30?10:n>=15?11:12;
+ const itemWidth=n>=75?11:n>=30?12:n>=15?15:19;
+ const lineHeight=n>=75?11:n>=30?12:n>=15?14:17;
+ const rowWidth=Math.max(30,rowCount*itemWidth+6);
+ const colHeight=Math.max(28,colCount*lineHeight+6);
+ const style=getComputedStyle(scroller);
+ const padW=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight);
+ const padH=parseFloat(style.paddingTop)+parseFloat(style.paddingBottom);
+ // Remaining controls beneath the board are deducted rather than hidden.
+ const after=Math.max(0,card.getBoundingClientRect().bottom-scroller.getBoundingClientRect().bottom);
+ const before=scroller.getBoundingClientRect().top;
+ const width=Math.max(80,scroller.clientWidth-padW-8);
+ const height=Math.max(80,innerHeight-before-after-padH-12);
+ const sides=prefs.bothClues?2:1;
+ const cap=n<=5?60:n<=10?41:n<=25?34:26;
+ const cell=Math.max(1.2,Math.min(cap,(width-rowWidth*sides-3)/n,(height-colHeight*sides-3)/n));
+ for(const [key,value] of Object.entries({
+   '--cell-size':cell.toFixed(3)+'px',
+   '--nono-fit-item-width':itemWidth+'px',
+   '--nono-fit-line-height':lineHeight+'px',
+   '--nono-fit-font':font+'px',
+   '--nono-fit-row-width':rowWidth+'px',
+   '--nono-fit-col-height':colHeight+'px'
+ }))grid.style.setProperty(key,value,'important');
+ grid.dataset.fitCellSize=cell.toFixed(2);
+}
+function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();}
 function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+n+'</b>';const g=E('div','nono-minimap-grid');g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
 function openOverview(){if($('game').classList.contains('hidden'))return;overviewOpen=true;const modal=$('nono-overview');modal.hidden=false;modal.dataset.position=prefs.overviewPosition;modal.dataset.size=prefs.overviewSize;const n=puzzle.size,filled=board.filter(v=>v==='1').length,black=totalBlack(puzzle),pr=Math.round(filled/Math.max(1,black)*100);$('nono-overview-info').textContent=prefs.overviewInfo==='off'?'':prefs.overviewInfo==='percent'?pr+'%':prefs.overviewInfo==='filled'?filled+'칸':prefs.overviewInfo==='remaining'?Math.max(0,black-filled)+'칸':'진행 '+pr+'% · 칠함 '+filled+'칸 · 남음 '+Math.max(0,black-filled)+'칸';const g=$('nono-overview-grid');g.innerHTML='';g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{g.append(E('i',v==='1'?'is-filled':'',v==='2'?'×':''))});apply();}
 function closeOverview(){overviewOpen=false;$('nono-overview').hidden=true;apply();}
@@ -476,8 +517,8 @@ function setupPointer(){const target=$('board');target.addEventListener('pointer
 const oldPaint=paint;paint=function(index,to,drag){if(drag&&dragStart!==null){const n=puzzle.size;const ar=Math.floor(dragStart/n),ac=dragStart%n,r=Math.floor(index/n),c=index%n;if(!dragAxis){dragAxis=Math.abs(c-ac)>=Math.abs(r-ar)?'row':'col'}if((dragAxis==='row'&&r!==ar)||(dragAxis==='col'&&c!==ac))return;const from=selected;const start=dragAxis==='row'?from%n:Math.floor(from/n),end=dragAxis==='row'?c:r,step=end>=start?1:-1;for(let k=start;k!==end+step;k+=step){const at=dragAxis==='row'?ar*n+k:k*n+ac;if(prefs.dragPolicy==='skip'&&board[at]!=='0'&&at!==dragStart)continue;oldPaint(at,to,true);dragCount++}updateBoard();return;}
 const prev=board[index];oldPaint(index,to,drag);if(board[index]!==prev){lastInput=index;lastInputTime=Date.now();if(prefs.lastInput==='3'||prefs.lastInput==='5')setTimeout(()=>{if(Date.now()-lastInputTime>=Number(prefs.lastInput)*1000)updateBoard()},Number(prefs.lastInput)*1000+50);playSound('input',to);if(prefs.errorMode==='immediate'&&wrongCells().length)notifyWrong('immediate');else scheduleWrong();saveBoard();const cl=$('board').querySelectorAll('.cell')[index];if(cl&&prefs.animation!=='basic'){const style='nono-input-'+prefs.animation;cl.classList.remove(style,'nono-anim-cross','nono-anim-fill');void cl.offsetWidth;cl.classList.add(style,to==='2'?'nono-anim-cross':'nono-anim-fill');}if(prefs.feedback!=='off'&&navigator.vibrate)navigator.vibrate(prefs.feedback==='strong'?45:prefs.feedback==='normal'?25:12)}updateBoard();};
 const oldRender=render;render=function(){oldRender();updateBoard()};
-const oldShow=showGame;showGame=function(){oldShow();cellZoom=41;releaseMove();hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();manualClues[puzzle.id]=saved.manual||{};finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
-const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();saveBoard();closeOverview();return oldLeave()};
+const oldShow=showGame;showGame=function(){oldShow();cellZoom=41;releaseMove();hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();manualClues[puzzle.id]=saved.manual||{};finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
+const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');return oldLeave()};
 const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playSound('finish');setTimeout(()=>openOverview(),300)};
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
 document.addEventListener('click',e=>{if(e.target.closest('#restart')){e.preventDefault();e.stopImmediatePropagation();if(roomCode)return;if(!confirm('퍼즐을 초기화할까요? 현재 진행 상황이 지워집니다.'))return;if(mode==='practice'){dropSave();delete manualClues[puzzle.id];}startAlone().then(saveBoard).catch(firebaseError);}},true);
@@ -513,7 +554,7 @@ function followPointerSelection(event){
   const hud=$('nono-hud');
   if(hud)hud.textContent='행 '+hintsForLine('row',Math.floor(next/n)).join(' ')+' · 열 '+hintsForLine('col',next%n).join(' ');
 }
-mount();setupPointer();
+mount();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
 $('board').addEventListener('pointerover',followPointerSelection);
 window.addEventListener('blur',()=>{altClueSelection=null;releaseMove();});
 $('board').addEventListener('wheel',e=>{if(!prefs.zoomWheel||!e.ctrlKey)return;e.preventDefault();
