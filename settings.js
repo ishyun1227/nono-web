@@ -214,6 +214,52 @@ body.nono-fit-playing #game .rules{margin:4px 0!important}
   font-weight:800;pointer-events:none;text-shadow:0 1px 1px #000
 }
 
+
+/* Playing view: use virtually the whole browser width instead of the old 900px card. */
+body.nono-fit-playing .topbar{
+ height:52px!important;min-height:52px!important;
+ margin-bottom:3px!important;padding-top:0!important;padding-bottom:0!important
+}
+body.nono-fit-playing #game{
+ padding-top:4px!important;width:100%;max-width:none!important
+}
+body.nono-fit-playing #game .game-header{
+ display:flex!important;align-items:center!important;
+ min-height:33px!important;gap:10px!important;
+ margin:0 0 5px!important;padding:0 3px!important;
+}
+body.nono-fit-playing #game .game-header>div:first-child{
+ display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-width:0
+}
+body.nono-fit-playing #game .game-header h1{
+ margin:0!important;font-size:18px!important;line-height:1.3!important
+}
+body.nono-fit-playing #game .game-header .game-crumb{
+ font-size:11px!important;line-height:1.3!important
+}
+body.nono-fit-playing #game .game-header .text-button{font-size:11px!important}
+body.nono-fit-playing #game .game-quick{gap:6px!important}
+body.nono-fit-playing #game .play-area,
+body.nono-fit-playing #game .play-area.has-sidebar{
+ box-sizing:border-box;
+ width:calc(100vw - 28px)!important;
+ max-width:none!important;
+ margin-left:calc(50% - 50vw + 14px)!important;
+ margin-right:0!important;
+}
+body.nono-fit-playing #game .board-card{
+ min-width:0!important;width:100%;
+}
+body.nono-fit-playing #game .board-scroll{justify-content:center!important}
+@media(max-width:640px){
+ body.nono-fit-playing #game .play-area,
+ body.nono-fit-playing #game .play-area.has-sidebar{
+  width:calc(100vw - 12px)!important;
+  margin-left:calc(50% - 50vw + 6px)!important
+ }
+ body.nono-fit-playing #game .game-header .game-crumb{display:none}
+}
+
 /* Make large puzzles the dominant area, not a tiny grid over stacked toolbars. */
 body.nono-fit-playing #game .board-card{display:grid!important;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:3px 8px;padding:7px 10px!important}
 body.nono-fit-playing #game .board-card>:is(.board-top,#nono-hud,#nono-drag-hud,.board-scroll,.board-caption,.bottom-row,.rules){grid-column:1/-1;min-width:0}
