@@ -166,6 +166,70 @@ body[data-error-intensity=weak] .nono-error{outline-width:1px!important}body[dat
 @keyframes nono-pop{from{transform:scale(.72)}to{transform:scale(1)}}@keyframes nono-ink{from{opacity:.45;filter:blur(2px)}to{opacity:1;filter:blur(0)}}@keyframes nono-mech{from{transform:translateY(-2px)}to{transform:none}}
 .nono-settings-btn-dark{background:#212b48!important}#nono-overview[hidden],#nono-minimap[hidden],#nono-hud[hidden],#nono-drag-hud[hidden]{display:none!important}
 @media(max-width:650px){.nono-setting{align-items:flex-start;flex-direction:column;gap:7px}.nono-setting select{max-width:100%}.nono-settings-foot{flex-wrap:wrap}.nono-overview-grid{width:min(86vw,460px)}}
+
+/* Fit entire puzzle and its hints within available browser viewport. */
+body.nono-fit-playing #game{padding-top:6px!important}
+body.nono-fit-playing #game .game-header{margin-bottom:7px!important}
+body.nono-fit-playing #game .board-card{padding:9px!important}
+body.nono-fit-playing #game .board-top{padding-bottom:5px!important}
+body.nono-fit-playing #game .board-scroll{overflow:visible!important;max-width:100%;padding:3px!important;margin:3px 0!important}
+body.nono-fit-playing #game .board-caption{padding:3px 0!important}
+body.nono-fit-playing #game .board-footer{padding-top:5px!important}
+body.nono-fit-playing #game .bottom-row{padding-top:5px!important}
+body.nono-fit-playing #game .board-card .tool-button{min-width:54px;padding:5px 10px}
+body.nono-fit-playing #game .rules{margin:4px 0!important}
+#board.nono-board-fit{max-width:100%;--nono-fit-item-width:12px;--nono-fit-line-height:11px}
+#board.nono-board-fit>.corner{width:var(--nono-fit-row-width)!important;height:var(--nono-fit-col-height)!important}
+#board.nono-board-fit>.row-clues,#board.nono-board-fit>.nono-extra-row{width:var(--nono-fit-row-width)!important}
+#board.nono-board-fit>.col-clues,#board.nono-board-fit>.nono-extra-col{height:var(--nono-fit-col-height)!important}
+#board.nono-board-fit .row-clue{
+  box-sizing:border-box;width:var(--nono-fit-row-width)!important;min-width:var(--nono-fit-row-width)!important;
+  height:var(--cell-size)!important;padding:0 2px!important;gap:0!important;overflow:hidden;
+  font-size:var(--nono-fit-font)!important;line-height:1!important
+}
+#board.nono-board-fit .col-clue{
+  width:var(--cell-size)!important;min-height:var(--nono-fit-col-height)!important;
+  max-height:var(--nono-fit-col-height)!important;gap:0!important;padding:0!important;
+  font-size:var(--nono-fit-font)!important;line-height:1!important;overflow:hidden
+}
+#board.nono-board-fit .row-clue>span{
+  box-sizing:border-box;flex:0 0 var(--nono-fit-item-width);min-width:0!important;height:100%;
+  border-left:1px solid #354766;display:grid;place-items:center
+}
+#board.nono-board-fit .col-clue>span{
+  box-sizing:border-box;flex:0 0 var(--nono-fit-line-height);height:var(--nono-fit-line-height)!important;
+  border-bottom:1px solid #354766;display:grid;place-items:center;width:100%
+}
+#board.nono-board-fit .cell{width:var(--cell-size)!important;height:var(--cell-size)!important;min-width:0!important;
+  font-size:clamp(7px,calc(var(--cell-size)*.65),21px)!important;border-right-width:.65px!important;border-bottom-width:.65px!important}
+#board.nono-board-fit .cell.nono-lines-bold{border-right-width:1.4px!important}
+#board.nono-board-fit .cell.nono-lines-bottom{border-bottom-width:1.4px!important}
+#board .nono-clue-index::before{display:none!important}
+#board .cell[data-row-coordinate]::after{
+  content:attr(data-row-coordinate);position:absolute;right:0;bottom:-2px;z-index:5;
+  color:#a9dfff;background:#13213abf;padding:1px 2px;border-radius:2px;
+  font-size:clamp(7px,calc(var(--cell-size)*.73),10px);line-height:1;
+  font-weight:800;pointer-events:none;text-shadow:0 1px 1px #000
+}
+.nono-visual-help-button{white-space:nowrap;background:#28345d;border:1px solid #8d91ce;color:#fff;
+  border-radius:9px;padding:8px 11px;font-size:12px;font-weight:750;cursor:pointer}
+.nono-guide-overlay{position:fixed;inset:0;z-index:12010;background:#050a18e8;display:grid;place-items:center;padding:14px}
+.nono-guide-dialog{width:min(850px,97vw);max-height:90vh;min-height:0;display:flex;flex-direction:column;
+  background:#111b32;border:1px solid #6376ae;border-radius:16px;color:#eaf0ff;box-shadow:0 24px 80px #000a}
+.nono-guide-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;
+  border-bottom:1px solid #334368}
+.nono-guide-head h3{font-size:17px;margin:0}
+.nono-guide-desc{padding:10px 18px 0;margin:0;font-size:12px;color:#aebcdb}
+.nono-guide-items{padding:14px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
+.nono-guide-item{border:1px solid #38486c;background:#192541;border-radius:12px;padding:12px;min-width:0}
+.nono-guide-item h4{font-size:13px;margin:0 0 4px}
+.nono-guide-item p{font-size:11px;line-height:1.5;color:#b8c5df;margin:0 0 10px}
+.nono-guide-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.nono-guide-sample{border:1px solid #405579;border-radius:8px;background:#0c1730;padding:5px;min-width:0}
+.nono-guide-sample strong{display:block;text-align:center;font-size:10px;margin:0 0 4px;color:#d8ddff}
+.nono-guide-sample svg{display:block;width:100%;height:auto;max-height:100px}
+@media(max-width:530px){.nono-settings-head{gap:8px;padding:12px}.nono-settings-head h2{font-size:16px}
+ .nono-guide-items{grid-template-columns:1fr}.nono-visual-help-button{padding:7px;font-size:11px}}
 `;document.head.append(css);
 const top=document.querySelector('.header-right');const b=E('button','nono-settings-toggle','⚙ 설정');b.id='nono-open-settings';top.insertBefore(b,top.firstChild);b.addEventListener('click',openSettings);
 const bar=E('div','nono-actions');bar.id='nono-actions';bar.innerHTML='<button type="button" id="nono-hint-action">💡 도움 힌트</button><button type="button" id="nono-check-action">✓ 오답 검사</button><span id="nono-hint-status" class="nono-keys-hint" aria-live="polite"></span>';
