@@ -2,6 +2,15 @@ const fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8').replace(/\r\n/g,'\n');
 const context={window:{}};
 vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../puzzles-brainrot.js'),'utf8'),context);
+// Keep the isolated puzzle fixture evaluator in sync with the webpage's
+// generated large-size previews. It still solves only the curated 5/10 grids.
+for(const match of [
+  html.match(/function lineHints\(bits\) \{[\s\S]*?\n\}/),
+  html.match(/function createSizeTestPuzzle\(size\) \{[\s\S]*?\n\}/)
+]){
+  if(!match)throw Error('Missing inline puzzle factory in index.html');
+  vm.runInNewContext(match[0],context);
+}
 const puzzles=vm.runInNewContext(html.match(/const PUZZLES = ([\s\S]*?);\nfunction lineHints/)[1],context);
 function hints(line){const out=[];let n=0;for(const b of line){if(b==='1')n++;else if(n){out.push(n);n=0;}}if(n)out.push(n);return out.length?out:[0];}
 function solve(p){
