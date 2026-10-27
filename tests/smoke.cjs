@@ -37,7 +37,7 @@ const { pathToFileURL } = require('node:url');
       difficultyRow:document.querySelector('#nono-quick-difficulties').getBoundingClientRect().top
     };
   });
-  if(!base.heroHidden || !base.nativePickerHidden || base.controls!==6 || base.difficulties!==3 ||
+  if(!base.heroHidden || !base.nativePickerHidden || base.controls!==9 || base.difficulties!==3 ||
     Math.abs(base.header.x-base.tabs.x)>1 ||
     Math.abs(base.tabs.x-base.panel.x)>1 ||
     Math.abs(base.header.right-base.tabs.right)>1 ||
@@ -153,6 +153,23 @@ const { pathToFileURL } = require('node:url');
   await page.locator('#nono-quick-variants button').nth(2).click();
   if(await page.locator('#puzzle').inputValue()!=='vox_crabino_top')
     throw new Error('30x30 puzzle 03 is not wired to the real puzzle');
+  // All three large layout previews must exist, be selectable, and have coherent clues.
+  for(const size of [50,75,100]){
+    await page.selectOption('#nono-quick-size',String(size));
+    if(await page.locator('#puzzle').inputValue()!=='size-test-'+size)
+      throw new Error('Large layout test size '+size+' cannot be selected');
+    if(await page.locator('#nono-quick-variants button').allTextContents().then(x=>x.join(','))!=='01')
+      throw new Error('Each large size should offer exactly one random test puzzle');
+  }
+  const previewPuzzles=await page.evaluate(()=>[50,75,100].map(size=>{
+    const p=PUZZLES.find(p=>p.id==='size-test-'+size);
+    return p&&{size:p.size,rows:p.rows.length,cols:p.cols.length,
+      rowTotal:p.rows.flat().reduce((a,b)=>a+b,0),
+      colTotal:p.cols.flat().reduce((a,b)=>a+b,0),test:p.sizeTest};
+  }));
+  if(previewPuzzles.some((p,i)=>!p||p.size!==[50,75,100][i]||p.rows!==p.size||
+    p.cols!==p.size||!p.rowTotal||p.rowTotal!==p.colTotal||!p.test))
+    throw new Error('Large random previews have malformed clues: '+JSON.stringify(previewPuzzles));
   await page.selectOption('#nono-quick-size','10');
   await page.selectOption('#nono-quick-difficulty','보통');
   await page.evaluate(()=>{
@@ -298,6 +315,20 @@ const { pathToFileURL } = require('node:url');
   await page.click('#nono-settings-close');
   await page.click('#play-alone');
   await page.locator('#board .cell').first().waitFor();
+  if(await page.locator('.timer-stat').isVisible())throw new Error('Play timer must default to hidden');
+  if((await page.locator('#game-title').innerText()).includes('하트'))
+    throw new Error('Solution subject leaked into game title');
+  await page.locator('#board .cell').nth(1).hover();
+  if(!await page.locator('#board .cell').nth(1).evaluate(el=>el.classList.contains('active')))
+    throw new Error('Mouse hover does not follow the current cell');
+  await page.keyboard.down('Alt');
+  await page.keyboard.press('ArrowLeft');
+  if(await page.locator('#board .nono-alt-hint-target').count()!==1)
+    throw new Error('Alt+Left did not move focus into current row hints');
+  await page.keyboard.up('Alt');
+  if(!await page.locator('#board > .row-clues .row-clue').first().locator('span').last()
+    .evaluate(el=>el.classList.contains('nono-fade-clue')))
+    throw new Error('Releasing Alt did not manually fade the focused clue');
   const premiumBorder=await page.locator('.board-card').evaluate(el=>getComputedStyle(el).borderTopWidth);
   if(parseFloat(premiumBorder)<5)throw new Error('Premium library board frame was not applied to gameplay');
   const illustratedGame=await page.evaluate(()=>{
