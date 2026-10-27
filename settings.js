@@ -213,6 +213,39 @@ body.nono-fit-playing #game .rules{margin:4px 0!important}
   font-size:clamp(7px,calc(var(--cell-size)*.73),10px);line-height:1;
   font-weight:800;pointer-events:none;text-shadow:0 1px 1px #000
 }
+
+/* Make large puzzles the dominant area, not a tiny grid over stacked toolbars. */
+body.nono-fit-playing #game .board-card{display:grid!important;grid-template-columns:minmax(0,1fr) max-content;align-items:center;gap:3px 8px;padding:7px 10px!important}
+body.nono-fit-playing #game .board-card>:is(.board-top,#nono-hud,#nono-drag-hud,.board-scroll,.board-caption,.bottom-row,.rules){grid-column:1/-1;min-width:0}
+body.nono-fit-playing #game .board-top{padding:2px 0 5px!important}
+body.nono-fit-playing #game #nono-hud{padding:4px 6px!important;margin:0!important}
+body.nono-fit-playing #game #nono-drag-hud{padding:3px!important;margin:0!important}
+body.nono-fit-playing #game .board-scroll{width:100%;min-width:0;max-width:100%;padding:2px!important;margin:0!important;overflow:visible!important;justify-content:center!important}
+body.nono-fit-playing #game .board-scroll.nono-zoomed{max-height:var(--nono-visible-board-height,65vh);overflow:auto!important;justify-content:flex-start!important;overscroll-behavior:contain}
+body.nono-fit-playing #game .board-scroll.nono-zoomed #board{max-width:none}
+body.nono-fit-playing #game .board-footer{grid-column:1;display:flex!important;justify-content:flex-end!important;align-items:center!important;gap:5px!important;margin:0!important;padding:4px 0 0!important}
+body.nono-fit-playing #game .board-footer .tool-button{min-width:0!important;min-height:32px!important;padding:5px 8px!important;flex-direction:row!important;gap:5px!important}
+body.nono-fit-playing #game .board-footer .tool-icon{font-size:15px!important}
+body.nono-fit-playing #game #nono-actions{grid-column:2;display:flex!important;align-items:center!important;flex-wrap:nowrap!important;margin:0!important;gap:5px!important;padding:4px 0 0!important}
+body.nono-fit-playing #game #nono-actions button{font-size:11px!important;padding:7px!important}
+body.nono-fit-playing #game #nono-hint-status:empty{display:none}
+body.nono-fit-playing #game .board-caption{margin:0!important;padding:2px 0!important}
+body.nono-fit-playing #game .bottom-row{padding:3px 0 0!important}
+body.nono-fit-playing #game .rules{margin:0!important;padding:3px 0!important}
+.nono-board-zoom{display:inline-flex;align-items:center;gap:5px;margin-left:auto;white-space:nowrap}
+.nono-board-zoom button{min-width:30px;height:30px;padding:4px 7px;border-radius:7px;border:1px solid #52618a;background:#1d2b48;color:#e4edff;cursor:pointer;font:750 13px sans-serif}
+.nono-board-zoom button:hover{background:#34476f}
+.nono-board-zoom button:disabled{opacity:.4;cursor:default}
+.nono-board-zoom button:focus-visible{outline:2px solid #bbaaff;outline-offset:2px}
+.nono-board-zoom #nono-zoom-fit{font-size:11px;min-width:68px}
+.nono-board-zoom #nono-zoom-label{font-size:11px;color:#cbd9fb;min-width:39px;text-align:center}
+@media(max-width:750px){
+ body.nono-fit-playing #game .board-card{display:flex!important;flex-direction:column;align-items:stretch}
+ body.nono-fit-playing #game #nono-actions{justify-content:center!important;flex-wrap:wrap!important}
+ body.nono-fit-playing #game .board-footer{justify-content:center!important}
+ body.nono-fit-playing #game .board-top{flex-wrap:wrap;gap:6px}
+ .nono-board-zoom{gap:3px}
+}
 .nono-visual-help-button{white-space:nowrap;background:#28345d;border:1px solid #8d91ce;color:#fff;
   border-radius:9px;padding:8px 11px;font-size:12px;font-weight:750;cursor:pointer}
 .nono-guide-overlay{position:fixed;inset:0;z-index:12010;background:#050a18e8;display:grid;place-items:center;padding:14px}
@@ -238,6 +271,13 @@ const bar=E('div','nono-actions');bar.id='nono-actions';bar.innerHTML='<button t
 document.querySelector('.board-footer').after(bar);
 document.getElementById('nono-hint-action').onclick=logicHint;
 document.getElementById('nono-check-action').onclick=()=>notifyWrong('direct');
+const zoom=E('div','nono-board-zoom');
+zoom.id='nono-board-zoom';zoom.setAttribute('role','group');zoom.setAttribute('aria-label','퍼즐판 크기 조절');
+zoom.innerHTML='<button type="button" id="nono-zoom-out" aria-label="퍼즐판 축소">−</button><span id="nono-zoom-label" aria-live="polite">맞춤</span><button type="button" id="nono-zoom-in" aria-label="퍼즐판 확대">＋</button><button type="button" id="nono-zoom-fit">화면 맞춤</button>';
+document.querySelector('#game .board-top').append(zoom);
+$('nono-zoom-out').onclick=()=>setBoardZoom(-.1);
+$('nono-zoom-in').onclick=()=>setBoardZoom(.1);
+$('nono-zoom-fit').onclick=()=>{boardZoom=1;scheduleBoardFit()};
 const h=E('div','nono-extra-hud');h.id='nono-hud';document.querySelector('.board-top').after(h);const d=E('div','nono-extra-hud');d.id='nono-drag-hud';d.hidden=true;h.after(d);
 const m=E('div','nono-minimap');m.id='nono-minimap';m.hidden=true;document.body.append(m);
 const o=E('div','nono-overview');o.id='nono-overview';o.hidden=true;o.innerHTML='<div class="nono-overview-card"><div class="nono-options" style="justify-content:space-between"><strong>전체보기 · 현재 입력</strong><button class="nono-modal-btn" id="nono-overview-close">닫기 (Tab)</button></div><p id="nono-overview-info" class="nono-keys-hint"></p><div class="nono-overview-grid" id="nono-overview-grid"></div></div>';document.body.append(o);
@@ -456,7 +496,11 @@ function updateClueDecor(){
   }
 }
 
-let fitRequest=0;
+let fitRequest=0,boardZoom=1;
+function setBoardZoom(change){
+ boardZoom=Math.max(.5,Math.min(2.2,Math.round((boardZoom+change)*10)/10));
+ scheduleBoardFit();
+}
 function scheduleBoardFit(){
  if($('game').classList.contains('hidden')||fitRequest)return;
  fitRequest=requestAnimationFrame(()=>{fitRequest=0;fitBoardToViewport()});
@@ -465,25 +509,30 @@ function fitBoardToViewport(){
  if($('game').classList.contains('hidden'))return;
  const grid=$('board'),scroller=document.querySelector('#game .board-scroll'),card=document.querySelector('#game .board-card');
  if(!grid||!scroller||!card)return;
- document.body.classList.toggle('nono-fit-playing',puzzle.size>=30);
+ const n=puzzle.size,isLarge=n>=30;
+ document.body.classList.toggle('nono-fit-playing',isLarge);
  grid.classList.add('nono-board-fit');
- const n=puzzle.size,rowCount=Math.max(...puzzle.rows.map(a=>a.length)),colCount=Math.max(...puzzle.cols.map(a=>a.length));
+ const rowCount=Math.max(...puzzle.rows.map(a=>a.length)),colCount=Math.max(...puzzle.cols.map(a=>a.length));
  const font=n>=75?9:n>=30?10:n>=15?11:12;
  const itemWidth=n>=75?11:n>=30?12:n>=15?15:19;
  const lineHeight=n>=75?11:n>=30?12:n>=15?14:17;
  const rowWidth=Math.max(30,rowCount*itemWidth+6);
  const colHeight=Math.max(28,colCount*lineHeight+6);
- const style=getComputedStyle(scroller);
- const padW=parseFloat(style.paddingLeft)+parseFloat(style.paddingRight);
- const padH=parseFloat(style.paddingTop)+parseFloat(style.paddingBottom);
- // Remaining controls beneath the board are deducted rather than hidden.
- const after=Math.max(0,card.getBoundingClientRect().bottom-scroller.getBoundingClientRect().bottom);
+ const css=getComputedStyle(scroller);
+ const padW=parseFloat(css.paddingLeft)+parseFloat(css.paddingRight);
+ const padH=parseFloat(css.paddingTop)+parseFloat(css.paddingBottom);
+ // The remaining footer is now a single toolbar, not three stacked rows.
+ const fixedAfter=Math.max(0,card.getBoundingClientRect().bottom-scroller.getBoundingClientRect().bottom);
  const before=scroller.getBoundingClientRect().top;
- const width=Math.max(80,scroller.clientWidth-padW-8);
- const height=Math.max(80,innerHeight-before-after-padH-12);
+ const availableWidth=Math.max(80,scroller.clientWidth-padW-4);
+ const availableHeight=Math.max(80,innerHeight-before-fixedAfter-padH-14);
  const sides=prefs.bothClues?2:1;
  const cap=n<=5?60:n<=10?41:n<=25?34:26;
- const cell=Math.max(1.2,Math.min(cap,(width-rowWidth*sides-3)/n,(height-colHeight*sides-3)/n));
+ const fit=Math.max(1.2,Math.min(cap,(availableWidth-rowWidth*sides-4)/n,(availableHeight-colHeight*sides-4)/n));
+ const cell=fit*boardZoom;
+ const zoomed=isLarge&&boardZoom>1.001;
+ scroller.classList.toggle('nono-zoomed',zoomed);
+ scroller.style.setProperty('--nono-visible-board-height',availableHeight.toFixed(2)+'px');
  for(const [key,value] of Object.entries({
    '--cell-size':cell.toFixed(3)+'px',
    '--nono-fit-item-width':itemWidth+'px',
@@ -493,6 +542,11 @@ function fitBoardToViewport(){
    '--nono-fit-col-height':colHeight+'px'
  }))grid.style.setProperty(key,value,'important');
  grid.dataset.fitCellSize=cell.toFixed(2);
+ grid.dataset.fitMax=fit.toFixed(2);
+ $('nono-zoom-label').textContent=boardZoom===1?'맞춤':Math.round(boardZoom*100)+'%';
+ $('nono-zoom-fit').disabled=boardZoom===1;
+ $('nono-zoom-out').disabled=boardZoom<=.5;
+ $('nono-zoom-in').disabled=boardZoom>=2.2;
 }
 function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();}
 function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+n+'</b>';const g=E('div','nono-minimap-grid');g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
@@ -597,7 +651,7 @@ function setupPointer(){const target=$('board');target.addEventListener('pointer
 const oldPaint=paint;paint=function(index,to,drag){if(drag&&dragStart!==null){const n=puzzle.size;const ar=Math.floor(dragStart/n),ac=dragStart%n,r=Math.floor(index/n),c=index%n;if(!dragAxis){dragAxis=Math.abs(c-ac)>=Math.abs(r-ar)?'row':'col'}if((dragAxis==='row'&&r!==ar)||(dragAxis==='col'&&c!==ac))return;const from=selected;const start=dragAxis==='row'?from%n:Math.floor(from/n),end=dragAxis==='row'?c:r,step=end>=start?1:-1;for(let k=start;k!==end+step;k+=step){const at=dragAxis==='row'?ar*n+k:k*n+ac;if(prefs.dragPolicy==='skip'&&board[at]!=='0'&&at!==dragStart)continue;oldPaint(at,to,true);dragCount++}updateBoard();return;}
 const prev=board[index];oldPaint(index,to,drag);if(board[index]!==prev){lastInput=index;lastInputTime=Date.now();if(prefs.lastInput==='3'||prefs.lastInput==='5')setTimeout(()=>{if(Date.now()-lastInputTime>=Number(prefs.lastInput)*1000)updateBoard()},Number(prefs.lastInput)*1000+50);playSound('input',to);if(prefs.errorMode==='immediate'&&wrongCells().length)notifyWrong('immediate');else scheduleWrong();saveBoard();const cl=$('board').querySelectorAll('.cell')[index];if(cl&&prefs.animation!=='basic'){const style='nono-input-'+prefs.animation;cl.classList.remove(style,'nono-anim-cross','nono-anim-fill');void cl.offsetWidth;cl.classList.add(style,to==='2'?'nono-anim-cross':'nono-anim-fill');}if(prefs.feedback!=='off'&&navigator.vibrate)navigator.vibrate(prefs.feedback==='strong'?45:prefs.feedback==='normal'?25:12)}updateBoard();};
 const oldRender=render;render=function(){oldRender();updateBoard()};
-const oldShow=showGame;showGame=function(){oldShow();cellZoom=41;releaseMove();hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();manualClues[puzzle.id]=saved.manual||{};finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
+const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();manualClues[puzzle.id]=saved.manual||{};finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
 const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');return oldLeave()};
 const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playSound('finish');setTimeout(()=>openOverview(),300)};
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
@@ -638,8 +692,8 @@ mount();setupPointer();window.addEventListener('resize',scheduleBoardFit);new Mu
 $('board').addEventListener('pointerover',followPointerSelection);
 window.addEventListener('blur',()=>{altClueSelection=null;releaseMove();});
 $('board').addEventListener('wheel',e=>{if(!prefs.zoomWheel||!e.ctrlKey)return;e.preventDefault();
- const inc={slow:2,normal:4,fast:7}[prefs.zoomSpeed]||4;
- cellZoom=Math.min(68,Math.max(23,cellZoom+(e.deltaY<0?inc:-inc)));$('board').style.setProperty('--cell-size',cellZoom+'px');
+ const inc={slow:.05,normal:.1,fast:.2}[prefs.zoomSpeed]||.1;
+ setBoardZoom(e.deltaY<0?inc:-inc);
 }, {passive:false});
 apply();
 })();
