@@ -198,6 +198,39 @@ const { pathToFileURL } = require('node:url');
   if(voxelIds.join(',')!=='vox_crabino_front,vox_crabino_side,vox_crabino_top')
     throw new Error('Missing voxel puzzle datasets');
 
+  // The large random previews must show their entire grid and clues without scrolling.
+  for(const size of [50,75,100]){
+    await page.selectOption('#nono-quick-size',String(size));
+    if(await page.locator('#puzzle').inputValue()!=='size-test-'+size)
+      throw new Error('Large layout selector failed for '+size);
+    await page.click('#play-alone');
+    await page.waitForFunction(()=>document.querySelector('#board')?.dataset.fitCellSize);
+    const layout=await page.evaluate(()=>{
+      const rect=e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom}};
+      return {board:rect(document.querySelector('#board')),
+        card:rect(document.querySelector('.board-card')),
+        screen:{width:innerWidth,height:innerHeight},
+        scroll:{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight},
+        coordinateCount:document.querySelectorAll('#board .cell[data-row-coordinate]').length,
+        oldIndices:document.querySelectorAll('#board .nono-clue-index').length};
+    });
+    if(layout.board.left<-3||layout.board.top<0||layout.board.right>layout.screen.width+3||
+       layout.board.bottom>layout.screen.height+3||layout.card.bottom>layout.screen.height+3||
+       layout.scroll.width>layout.screen.width+3||layout.scroll.height>layout.screen.height+3)
+      throw new Error('Large '+size+'x'+size+' viewport fit failed: '+JSON.stringify(layout));
+    if(layout.coordinateCount!==size/5||layout.oldIndices!==0)
+      throw new Error('Row coordinates should mark the right grid edge: '+JSON.stringify(layout));
+    await page.evaluate(()=>leaveGame());
+  }
+  await page.click('#nono-open-settings');
+  await page.getByRole('tab',{name:'보드·화면'}).click();
+  await page.locator('#nono-visual-help').click();
+  if(!await page.locator('#nono-guide-overlay').isVisible()||
+     await page.locator('#nono-guide-overlay svg').count()<8)
+    throw new Error('Settings illustration gallery is missing');
+  await page.locator('#nono-guide-overlay button').first().click();
+  await page.click('#nono-settings-close');
+
   await page.click('#nono-theme-open');
   if (await page.locator('.nono-theme-card').count() !== 10) throw new Error('Ten tiered theme cards not found');
   if(await page.locator('.nono-theme-section').count()!==2)throw new Error('Color/world theme categories missing');
