@@ -220,6 +220,21 @@ const { pathToFileURL } = require('node:url');
       throw new Error('Large '+size+'x'+size+' viewport fit failed: '+JSON.stringify(layout));
     if(layout.coordinateCount!==size/5||layout.oldIndices!==0)
       throw new Error('Row coordinates should mark the right grid edge: '+JSON.stringify(layout));
+    // The board should use the remaining height, not shrink to a tiny postcard.
+    if(size===50 && layout.board.bottom-layout.board.top<390)
+      throw new Error('50x50 board is still too small for a 900px viewport: '+JSON.stringify(layout));
+    const initial=Number(await page.locator('#board').getAttribute('data-fit-cell-size')||
+      await page.locator('#board').getAttribute('data-fit-cell-size'));
+    // Dataset property is also exposed through data-fit-cell-size, and zoom updates on RAF.
+    if(!Number.isFinite(initial)||initial<=0)throw new Error('Missing computed cell size');
+    await page.click('#nono-zoom-out');
+    await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)<previous,initial);
+    await page.click('#nono-zoom-in');
+    await page.waitForFunction(previous=>Math.abs(Number(document.querySelector('#board').dataset.fitCellSize)-previous)<.05,initial);
+    await page.click('#nono-zoom-in');
+    await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)>previous,initial);
+    await page.click('#nono-zoom-fit');
+    await page.waitForFunction(previous=>Math.abs(Number(document.querySelector('#board').dataset.fitCellSize)-previous)<.05,initial);
     await page.evaluate(()=>leaveGame());
   }
   await page.click('#nono-open-settings');
