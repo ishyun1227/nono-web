@@ -170,6 +170,7 @@ body[data-error-intensity=weak] .nono-error{outline-width:1px!important}body[dat
 /* Fit entire puzzle and its hints within available browser viewport. */
 body.nono-fit-playing #game{padding-top:6px!important}
 body.nono-fit-playing footer{display:none!important}
+body.nono-fit-playing .shell{padding-bottom:0!important}
 body.nono-fit-playing #game .game-header{margin-bottom:7px!important}
 body.nono-fit-playing #game .board-card{padding:9px!important}
 body.nono-fit-playing #game .board-top{padding-bottom:5px!important}
