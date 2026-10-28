@@ -133,7 +133,8 @@ function decorateResume(){
     const match=full.match(/^(.*?) · (\d+×\d+)$/);
     const modeName=match?.[1]||full;
     if(match)strong.textContent=match[2];
-    const rate=Number(detail.textContent.match(/진행률 (\d+)%/)?.[1]||0);
+    // Progress may be rendered in Korean or another selected UI language.
+    const rate=Number(detail.textContent.match(/(\d+)%/)?.[1]||0);
     detail.textContent=modeName;
     const track=document.createElement('div');track.className='nono-apple-progress';
     const fill=document.createElement('span');fill.style.width=Math.max(0,Math.min(100,rate))+'%';
