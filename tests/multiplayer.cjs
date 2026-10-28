@@ -139,7 +139,8 @@ async function main(){
   await assertFails(remove(ref(b,'publishedReplays/heart5/alice')));
   await assertSucceeds(remove(ref(a,'publicReplayFeed/heart5/alice')));
   await assertSucceeds(remove(ref(a,'publishedReplays/heart5/alice')));
-  await assertFails(get(ref(b,'publishedReplays/heart5/alice')));
+  const afterRevocation=await assertSucceeds(get(ref(b,'publishedReplays/heart5/alice')));
+  assert.equal(afterRevocation.exists(),false);
   console.log('PASS publisher revocation and protection from outsider deletion');
 
  }finally{await env.cleanup();}
