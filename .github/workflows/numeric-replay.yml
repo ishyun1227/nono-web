@@ -26,6 +26,7 @@ jobs:
           node --check settings.js
           node --check tests/replay.cjs
           node --check tests/multiplayer-replay.cjs
+          node --check tests/browser-replay.cjs
       - name: Numeric replay actions and persistence
         run: |
           node tests/replay.cjs
@@ -43,3 +44,7 @@ jobs:
           grep -q './multiplayer-replay.js' dist/index.html
       - name: Validate Firebase replay permissions in emulator
         run: npm run test:multiplayer
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Browser replay and two-user co-op smoke
+        run: firebase emulators:exec --project demo-nono --only database,auth "node tests/browser-replay.cjs"
