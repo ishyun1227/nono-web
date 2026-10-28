@@ -39,8 +39,9 @@ function save(){try{localStorage.setItem(storageKey,JSON.stringify(state))}catch
 function setValue(key,value){
  if(!(key in defaults()))return;
  state=validate({...state,[key]:value});save();apply();
+ if(key==='mode'||key==='size')window.dispatchEvent(new Event('resize'));
 }
-function reset(){state=defaults();save();apply();refreshCustomSettings()}
+function reset(){state=defaults();save();apply();window.dispatchEvent(new Event('resize'));refreshCustomSettings()}
 const actionGroup=pad.querySelector('.nono-pad-actions'),dpadGroup=pad.querySelector('.nono-dpad');
 const actions=['fill','cross','clear','undo'];
 const positions=['dpad','actions'];
@@ -133,7 +134,7 @@ function finishEdit(keep){
  if(!editing)return;
  if(!keep)state=validate(beforeEdit);
  editing=false;drag=null;beforeEdit=null;
- save();apply();refreshCustomSettings();
+ save();apply();window.dispatchEvent(new Event('resize'));refreshCustomSettings();
  // controller-input.js controls visibility on next state change.
  if($('game')?.classList.contains('hidden'))pad.hidden=true;
 }
