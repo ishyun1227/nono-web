@@ -75,6 +75,43 @@ async function main(){
   await assertFails(get(ref(b,'scores/heart5')));
   const scores=await get(query(ref(b,'scores/heart5'),orderByChild('duration'),limitToFirst(12)));assert(scores.exists());
   console.log('PASS record answer/time validation, score tampering, bounded leaderboard');
+
+  // Replay uploads are immutable, private by default and bounded. Publishing
+  // requires the authoritative finished run, and viewing full moves requires
+  // that the viewer has finished the same puzzle (no spoiler leak).
+  const exampleReplay = JSON.stringify({
+    version:1,id:'test-run-a',puzzleId:'heart5',size:5,mode:'record',
+    initial:'0'.repeat(25),startedAt:initial.startedAt,completedAt:result.finishedAt,
+    actors:[],actions:[]
+  });
+  const privateRow = {
+    uid:'alice',mode:'record',completedAt:result.finishedAt,
+    puzzleId:'heart5',payload:exampleReplay
+  };
+  await assertFails(set(ref(b,'privateReplays/alice/test-run-a'),privateRow));
+  await assertSucceeds(set(ref(a,'privateReplays/alice/test-run-a'),privateRow));
+  await assertFails(set(ref(a,'privateReplays/alice/test-run-a'),privateRow));
+  await assertFails(get(ref(b,'privateReplays/alice/test-run-a')));
+  await assertSucceeds(get(ref(a,'privateReplays/alice/test-run-a')));
+  const publicRow = {uid:'alice',completedAt:result.finishedAt,payload:exampleReplay};
+  await assertFails(set(ref(b,'publishedReplays/heart5/alice'),publicRow));
+  await assertSucceeds(set(ref(a,'publishedReplays/heart5/alice'),publicRow));
+  await assertFails(get(ref(b,'publishedReplays/heart5/alice')));
+  const feedRow = {uid:'alice',name:'Alice',puzzleId:'heart5',size:5,completedAt:result.finishedAt};
+  await assertFails(set(ref(b,'publicReplayFeed/heart5/alice'),feedRow));
+  await assertSucceeds(set(ref(a,'publicReplayFeed/heart5/alice'),feedRow));
+  await assertFails(get(ref(b,'publicReplayFeed/heart5')));
+  await assertFails(get(query(ref(b,'publicReplayFeed/heart5'),orderByChild('completedAt'),limitToLast(6))));
+  await assertSucceeds(get(query(ref(b,'publicReplayFeed/heart5'),orderByChild('completedAt'),limitToLast(5))));
+  await assertFails(set(ref(a,'publicReplayFeed/heart5/alice'),{...feedRow,size:10}));
+  await assertFails(set(ref(a,'publishedReplays/heart5/alice'),{...publicRow,completedAt:result.finishedAt+1}));
+  // A verified completion from another account unlocks replay viewing.
+  const runBob=ref(b,'runs/heart5/bob');
+  await set(runBob,{name:'Bob',startedAt:serverTimestamp(),finishedAt:0,filled:'0'.repeat(25),changes:0});
+  const bobStart=(await get(runBob)).val();
+  await assertSucceeds(set(runBob,{...bobStart,finishedAt:serverTimestamp(),filled:answers.heart5}));
+  await assertSucceeds(get(ref(b,'publishedReplays/heart5/alice')));
+  console.log('PASS private replay ownership, verified publication, bounded public feed, spoiler protection');
  }finally{await env.cleanup();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
