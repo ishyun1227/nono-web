@@ -94,6 +94,24 @@ const rows=[
 ['진행 중','进行中','進行中','En curso','Em andamento','En cours','Läuft','Sedang berlangsung','Đang chơi','กำลังเล่น'],
 ['기본 테마 적용','应用默认主题','套用預設主題','Aplicar tema básico','Aplicar tema padrão','Appliquer le thème de base','Standarddesign anwenden','Terapkan tema bawaan','Dùng giao diện mặc định','ใช้ธีมเริ่มต้น']
 ];
+// Cover the most visible missing lobby, accessibility and store messages natively.
+rows.push(
+['아직 진행 중인 퍼즐이 없어요. 혼자 풀기, 대결, 협동에서 퍼즐을 시작해 보세요.',
+ '暂无未完成的谜题。请从单人、对战或合作模式开始。','目前沒有未完成的謎題。請從單人、對戰或合作模式開始。',
+ 'No hay puzles pendientes. Empieza en solitario, duelo o cooperativo.','Nenhum puzzle pendente. Comece no modo solo, duelo ou cooperativo.',
+ 'Aucune grille en cours. Lancez une partie solo, duel ou coopération.','Keine offenen Rätsel. Starte solo, im Duell oder kooperativ.',
+ 'Belum ada teka-teki yang tertunda. Mulai mode solo, duel, atau bersama.','Chưa có câu đố đang chơi. Hãy bắt đầu chơi đơn, đấu hoặc hợp tác.',
+ 'ไม่มีปริศนาที่ค้างอยู่ เริ่มเล่นคนเดียว แข่ง หรือร่วมมือกันได้เลย'],
+['NONO 홈','NONO 首页','NONO 首頁','Inicio de NONO','Início do NONO','Accueil NONO','NONO-Startseite','Beranda NONO','Trang chủ NONO','หน้าหลัก NONO'],
+['플레이 방식 선택','选择游戏模式','選擇遊戲模式','Elegir modo de juego','Selecionar modo de jogo','Choisir un mode','Spielmodus wählen','Pilih mode bermain','Chọn chế độ chơi','เลือกโหมดเกม'],
+['닉네임 변경','修改昵称','修改暱稱','Cambiar apodo','Alterar apelido','Changer de pseudo','Spitznamen ändern','Ubah nama panggilan','Đổi biệt danh','เปลี่ยนชื่อเล่น'],
+['오늘의 미션과 출석 보상','每日任务与签到奖励','每日任務與簽到獎勵','Misiones y recompensas diarias','Missões e recompensas diárias','Missions et récompenses quotidiennes','Tagesaufgaben und Check-in-Belohnungen','Misi dan hadiah harian','Nhiệm vụ và điểm danh hằng ngày','ภารกิจและรางวัลประจำวัน'],
+['노노그램 설정','数织设置','數織設定','Ajustes de nonogramas','Configurações do nonograma','Paramètres du nonogramme','Nonogramm-Einstellungen','Pengaturan nonogram','Cài đặt nonogram','ตั้งค่าโนโนแกรม'],
+['진행 중','进行中','進行中','En curso','Em andamento','En cours','Läuft','Sedang berlangsung','Đang chơi','กำลังเล่น'],
+['미리보기','预览','預覽','Vista previa','Prévia','Aperçu','Vorschau','Pratinjau','Xem trước','ตัวอย่าง'],
+['현금 충전 준비 중','现金充值暂未开放','現金儲值尚未開放','Recarga de pago próximamente','Recarga em dinheiro em breve','Recharge payante bientôt disponible','Punkteaufladung in Vorbereitung','Isi ulang berbayar segera hadir','Sắp hỗ trợ nạp điểm bằng tiền','เตรียมเปิดให้เติมแต้มด้วยเงินจริง'],
+['프로필','个人资料','個人資料','Perfil','Perfil','Profil','Profil','Profil','Hồ sơ','โปรไฟล์']
+);
 const packs=Object.fromEntries(locales.map((locale,i)=>[locale,{}]));
 for(const row of rows){
  if(row.length!==locales.length+1)throw Error('Translation table row has wrong column count: '+row[0]);
