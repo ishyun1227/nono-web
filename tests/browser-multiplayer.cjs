@@ -63,8 +63,10 @@ async function main(){
   await b.click('[data-mode="race"]');await b.fill('#room-code',race);await b.click('#join-room');await b.locator('#lobby-players').getByText('Alice').waitFor();
   await a.click('#start-race');for(const p of [a,b])await p.waitForFunction(()=>meta?.status==='playing'&&!startingRace&&!settingBoard&&raceStates[currentId()]);
   // A race must resume from its saved personal board in the shared panel below every mode.
-  await a.evaluate(()=>paint(0,'1',true));
-  await a.waitForFunction(()=>board[0]==='1' && raceStates[currentId()]?.board?.[0]==='1');
+  const firstBlack=answers.heart5.indexOf('1');
+  assert(firstBlack>=0,'The test puzzle needs at least one filled cell');
+  await a.evaluate(i=>paint(i,'1',true),firstBlack);
+  await a.waitForFunction(i=>board[i]==='1' && raceStates[currentId()]?.board?.[i]==='1',firstBlack);
   await a.evaluate(()=>leaveGame());
   // The same five-card resume area must remain below the mode-specific setup.
   for(const tab of ['practice','coop','record','race']){
@@ -74,7 +76,7 @@ async function main(){
   await a.locator('#nono-resume-items .nono-resume-card').filter({hasText:'대결'}).first().locator('.nono-resume-continue').click();
   await a.waitForURL(/room=/);
   assert.equal(new URL(a.url()).searchParams.get('room'),race,'Resume must rejoin the original race');
-  await a.waitForFunction(()=>board[0]==='1');
+  await a.waitForFunction(i=>board[i]==='1',firstBlack);
   console.log('PASS persistent below-mode resume panel restores incomplete race state');
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1'&&board[i]!=='1')paint(i,'1',true);},answers.heart5);
   await a.waitForFunction(()=>finished);await b.waitForFunction(()=>Object.values(raceStates).some(s=>s.finishedAt>0));
