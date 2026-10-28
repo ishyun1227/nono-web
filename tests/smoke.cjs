@@ -268,6 +268,62 @@ const { pathToFileURL } = require('node:url');
       await page.locator('#board').getAttribute('data-fit-cell-size'));
     // Dataset property is also exposed through data-fit-cell-size, and zoom updates on RAF.
     if(!Number.isFinite(initial)||initial<=0)throw new Error('Missing computed cell size');
+    // Drag path follows the pointer across rows and reverses when moving backward.
+    if(size===50){
+      const start=20*size+20;
+      const point=async index=>{
+        const rect=await page.locator('#board .cell').nth(index).boundingBox();
+        if(!rect)throw new Error('Missing drag cell '+index);
+        return {x:rect.x+rect.width/2,y:rect.y+rect.height/2};
+      };
+      const a=await point(start),far=await point(start+6),back=await point(start+2),
+        cross=await point(start+2+size);
+      await page.mouse.move(a.x,a.y);
+      const initialState=await page.evaluate(()=>({undo:undoStack.length,values:board.slice()}));
+      await page.mouse.down();
+      await page.mouse.move(far.x,far.y,{steps:10});
+      const extended=await page.evaluate(start=>board.slice(start,start+7),start);
+      if(extended.some(x=>x!=='1'))throw new Error('Drag failed to fill contiguous cells: '+extended.join(''));
+      await page.mouse.move(back.x,back.y,{steps:8});
+      const shortened=await page.evaluate(start=>board.slice(start,start+7),start);
+      if(shortened.slice(0,3).some(x=>x!=='1')||shortened.slice(3).some(x=>x!=='0'))
+        throw new Error('Dragging back did not erase the tail: '+shortened.join(''));
+      await page.mouse.move(cross.x,cross.y,{steps:8});
+      const crossed=await page.evaluate(({start,size})=>board[start+2+size],{start,size});
+      if(crossed!=='1')throw new Error('Drag must cross into the next row');
+      await page.mouse.up();
+      const afterState=await page.evaluate(()=>({undo:undoStack.length,dragging:!!fastDrag}));
+      if(afterState.dragging||afterState.undo!==initialState.undo+1)
+        throw new Error('Drag must commit exactly one history entry');
+      await page.click('#undo');
+      const restored=await page.evaluate(()=>board.slice());
+      if(JSON.stringify(restored)!==JSON.stringify(initialState.values))
+        throw new Error('Undo failed to restore full stroke');
+      await page.locator('#board .cell').nth(start+1).hover();
+      if(!await page.locator('#board .cell').nth(start+1).evaluate(el=>el.classList.contains('active')))
+        throw new Error('Live mouse highlight should follow by default');
+      await page.click('#nono-open-settings');
+      await page.getByRole('tab',{name:'편의성·힌트'}).click();
+      const pref=page.locator('#nono-settings-content input[aria-label="마우스 실시간 선택"]');
+      if(!await pref.isChecked())throw new Error('Mouse-follow preference must be enabled by default');
+      const rows=await page.locator('#nono-settings-content .nono-setting').count();
+      const helps=await page.locator('#nono-settings-content .nono-setting .nono-setting-visual').count();
+      if(rows!==helps)throw new Error('Every setting needs its own illustration button');
+      await page.getByRole('button',{name:'마우스 실시간 선택 이미지로 설명보기'}).click();
+      if(await page.locator('#nono-guide-overlay .nono-guide-item').count()!==1||
+         await page.locator('#nono-guide-overlay svg').count()!==2)
+         throw new Error('Individual explanation should show only the chosen setting');
+      await page.locator('#nono-guide-overlay button').first().click();
+      await pref.uncheck();
+      await page.click('#nono-settings-close');
+      await page.locator('#board .cell').nth(start+2).hover();
+      if(await page.locator('#board .cell').nth(start+2).evaluate(el=>el.classList.contains('active')))
+        throw new Error('Mouse-follow OFF must prevent hover selection');
+      await page.click('#nono-open-settings');
+      await page.getByRole('tab',{name:'편의성·힌트'}).click();
+      await pref.check();
+      await page.click('#nono-settings-close');
+    }
     await page.click('#nono-zoom-out');
     await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)<previous,initial);
     await page.click('#nono-zoom-center');
