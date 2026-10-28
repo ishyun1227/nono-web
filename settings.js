@@ -999,11 +999,11 @@ function fitBoardToViewport(){
  // Use visualViewport when available so browser zoom/resizing is reflected.
  const viewportW=window.visualViewport?.width||window.innerWidth;
  const viewportH=window.visualViewport?.height||window.innerHeight;
- const availW=Math.max(30,viewportW-padW-2);
- // Reserve the bottom mobile control deck when the large board is fitted.
- const reservedControls=document.body.classList.contains('nono-touch-pad-visible')
-   ? (window.matchMedia('(max-height:470px) and (orientation:landscape) and (pointer:coarse)').matches ? 0 : 178)
-   : 0;
+ // A landscape control deck sits to the left, a portrait deck sits below.
+ const touchDock=document.body.classList.contains('nono-touch-pad-visible');
+ const sideDock=touchDock&&window.matchMedia('(max-height:470px) and (orientation:landscape) and (pointer:coarse)').matches;
+ const availW=Math.max(30,viewportW-padW-(sideDock?235:0)-2);
+ const reservedControls=touchDock&&!sideDock?178:0;
  const availH=Math.max(30,viewportH-padH-reservedControls-2);
  const cap=n<=5?60:n<=10?41:n<=25?34:26;
  function dimensions(cell){
