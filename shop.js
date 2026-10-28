@@ -108,11 +108,11 @@ function enhance(modal){
   const result=wallet()?.purchaseTheme?.(product.id);
   if(result?.ok){
    const msg='이 브라우저에서 '+product.label+' 테마 잠금 해제 완료 · -'+display(product.price)+' 체험 P';
-   root.querySelector('.nono-theme-message').textContent=msg;
+   modal.querySelector('.nono-theme-message').textContent=msg;
    refresh();
    themeApi()?.refresh?.();
   }else{
-   root.querySelector('.nono-theme-message').textContent=result?.reason||'포인트를 확인할 수 없어요.';
+   modal.querySelector('.nono-theme-message').textContent=result?.reason||'포인트를 확인할 수 없어요.';
    refresh();
   }
  });
