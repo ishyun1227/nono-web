@@ -1204,7 +1204,7 @@ function startFastDrag(e,index){
  if(history){undoStack.push(snapshot);if(undoStack.length>150)undoStack.shift();redoStack=[];}
  const n=puzzle.size,rect=$('board').querySelector('.cells').getBoundingClientRect();
  fastDrag={id:e.pointerId,cells,initial:original,target:value,
-  start:index,axis:null,end:index%n,row:Math.floor(index/n),col:index%n,
+  start:index,axis:null,end:index%n,row:Math.floor(index/n),col:index%n,replayChanges:[],
   startX:e.clientX,startY:e.clientY,originX:e.clientX,originY:e.clientY,
   rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},
   touched:new Set(),filled:original.filter(v=>v==='1').length,
@@ -1221,7 +1221,7 @@ function setFastDragValue(index,value){
  const prev=board[index];if(prev===value)return;
  if(prev==='1')d.filled--;
  if(value==='1')d.filled++;
- board[index]=value;d.touched.add(index);
+ board[index]=value;d.touched.add(index);d.replayChanges.push([index,Number(prev),Number(value)]);
  const cell=d.cells[index];if(cell){
   cell.classList.toggle('filled',value==='1');
   cell.classList.toggle('cross',value==='2');
@@ -1314,6 +1314,8 @@ function endFastDrag(e){
  try{if($('board').hasPointerCapture(d.id))$('board').releasePointerCapture(d.id);}catch{}
  let modified=0;for(const index of d.touched)if(board[index]!==d.initial[index])modified++;
  if(!modified&&d.history)undoStack.pop();
+ // Replay captures all intermediate cells, including drag reversals.
+ if(d.replayChanges.length)window.dispatchEvent(new CustomEvent('nono:replay-stroke',{detail:{changes:d.replayChanges,at:Date.now()}}));
  if(modified){
   changes+=modified;
   lastInput=selected;lastInputTime=Date.now();
