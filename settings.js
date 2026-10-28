@@ -811,7 +811,7 @@ function updateClueDecor(){
 let fitRequest=0,boardZoom=1;
 function setBoardZoom(delta){
  // The largest permitted size is the fully visible one: no hidden cells or internal scroll.
- boardZoom=Math.max(.4,Math.min(1,Math.round((boardZoom+delta)*10)/10));
+ boardZoom=Math.max(.4,Math.min(3,Math.round((boardZoom+delta)*10)/10));
  scheduleBoardFit();
 }
 function centerBoard(){
@@ -876,7 +876,7 @@ function fitBoardToViewport(){
  $('nono-zoom-label').textContent=boardZoom===1?'맞춤':Math.round(boardZoom*100)+'%';
  $('nono-zoom-fit').disabled=false;
  $('nono-zoom-out').disabled=boardZoom<=.4;
- $('nono-zoom-in').disabled=boardZoom>=1;
+ $('nono-zoom-in').disabled=boardZoom>=3;
  if(isLarge)centerBoard();
 }
 function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();}
@@ -1012,15 +1012,23 @@ function startFastDrag(e,index){
  if(mode==='race'&&(startingRace||meta?.status!=='playing'))return;
  const cells=$('board').querySelector('.cells')?.children;
  if(!cells)return;
- const old=board.slice(),to=e.button===2?'2':tool;
- const value=(old[index]===to&&to!=='0')?'0':to;
- const snapshot={board:old.slice(),changes,selected};
+ const original=board.slice(),to=e.button===2?'2':tool;
+ const value=original[index]===to&&to!=='0'?'0':to;
+ const snapshot={board:original.slice(),changes,selected};
  const history=['practice','record'].includes(mode);
  if(history){undoStack.push(snapshot);if(undoStack.length>150)undoStack.shift();redoStack=[];}
- fastDrag={id:e.pointerId,cells,initial:old,target:value,trail:[],positions:new Map(),
-  touched:new Set(),filled:old.filter(v=>v==='1').length,history,initialSelected:snapshot.selected};
- pointerDown=false;dragCount=0;lastInput=-1;
- appendFastDrag(index);
+ const n=puzzle.size,rect=$('board').querySelector('.cells').getBoundingClientRect();
+ fastDrag={id:e.pointerId,cells,initial:original,target:value,
+  start:index,axis:null,end:index%n,row:Math.floor(index/n),col:index%n,
+  startX:e.clientX,startY:e.clientY,
+  rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},
+  touched:new Set(),filled:original.filter(v=>v==='1').length,
+  history,count:1,initialSelected:snapshot.selected};
+ pointerDown=false;dragCount=1;lastInput=-1;
+ setFastDragValue(index,value);
+ updateLiveSelection(index,cells);
+ syncFastDragProgress();
+ try{$('board').setPointerCapture(e.pointerId);}catch{}
 }
 function setFastDragValue(index,value){
  const d=fastDrag;if(!d)return;
@@ -1036,7 +1044,7 @@ function setFastDragValue(index,value){
 }
 function syncFastDragProgress(){
  const d=fastDrag;if(!d)return;
- dragCount=d.trail.length;
+ dragCount=d.count;
  const nBlack=Math.max(1,totalBlack(puzzle));
  const percent=Math.min(100,Math.round(d.filled/nBlack));
  const display=prefs.progress==='off'?'':prefs.progress==='percent'?percent+'%':
@@ -1045,45 +1053,45 @@ function syncFastDragProgress(){
  const hud=$('nono-drag-hud');
  if(hud){hud.textContent='드래그 '+dragCount+'칸';hud.hidden=!prefs.dragHud;}
 }
-function appendFastDrag(index){
- const d=fastDrag;if(!d)return;
- const existing=d.positions.get(index);
- if(existing!==undefined){
-  while(d.trail.length>existing+1){
-   const removed=d.trail.pop();d.positions.delete(removed);
-   setFastDragValue(removed,d.initial[removed]);
-  }
- }else{
-  d.positions.set(index,d.trail.length);d.trail.push(index);
-  if(prefs.dragPolicy!=='skip'||d.initial[index]==='0'||index===d.trail[0])
-   setFastDragValue(index,d.target);
+function updateFastDragEndpoint(nextCoord){
+ const d=fastDrag;if(!d||!d.axis)return;
+ const n=puzzle.size,start=d.axis==='row'?d.col:d.row,previous=d.end;
+ const lo=Math.min(start,nextCoord),hi=Math.max(start,nextCoord);
+ const oldLo=Math.min(start,previous),oldHi=Math.max(start,previous);
+ for(let coord=Math.min(lo,oldLo);coord<=Math.max(hi,oldHi);coord++){
+  const at=d.axis==='row'?d.row*n+coord:coord*n+d.col;
+  const inStroke=coord>=lo&&coord<=hi;
+  const value=inStroke&&(prefs.dragPolicy!=='skip'||d.initial[at]==='0'||at===d.start)?
+   d.target:d.initial[at];
+  setFastDragValue(at,value);
  }
- updateLiveSelection(index,d.cells);
+ d.end=nextCoord;d.count=Math.abs(nextCoord-start)+1;
+ const current=d.axis==='row'?d.row*n+nextCoord:nextCoord*n+d.col;
+ updateLiveSelection(current,d.cells);
  syncFastDragProgress();
 }
 function moveFastDrag(e){
  const d=fastDrag;if(!d||e.pointerId!==d.id)return;
  if(e.pointerType==='mouse'&&!(e.buttons&3)){endFastDrag();return;}
- const element=document.elementFromPoint(e.clientX,e.clientY);
- const target=element?.closest?.('#board .cell');
- if(!target)return;
- const next=Number(target.dataset.index),n=puzzle.size;
- if(!Number.isInteger(next)||next<0||next>=n*n)return;
- const last=d.trail[d.trail.length-1];if(next===last)return;
- // Walk a segment so fast cursor movement cannot skip intermediate cells.
- let x=last%n,y=Math.floor(last/n),tx=next%n,ty=Math.floor(next/n);
- const dx=Math.abs(tx-x),dy=Math.abs(ty-y),sx=x<tx?1:-1,sy=y<ty?1:-1;
- let error=dx-dy;
- for(let i=0;i<n*2&&!(x===tx&&y===ty);i++){
-  const e2=2*error;
-  if(e2>-dy){error-=dy;x+=sx;}
-  if(e2<dx){error+=dx;y+=sy;}
-  appendFastDrag(y*n+x);
+ const n=puzzle.size,dx=e.clientX-d.startX,dy=e.clientY-d.startY;
+ if(!d.axis){
+  const threshold=Math.max(2,Math.min(7,d.rect.width/n*.36));
+  if(Math.max(Math.abs(dx),Math.abs(dy))<threshold)return;
+  d.axis=Math.abs(dx)>=Math.abs(dy)?'row':'col';
+  d.end=d.axis==='row'?d.col:d.row;
  }
+ // The pointer may leave the original row/column and even the board.
+ // Only its projection onto the locked axis matters.
+ const raw=d.axis==='row'?
+  (e.clientX-d.rect.left)/(d.rect.width/n):
+  (e.clientY-d.rect.top)/(d.rect.height/n);
+ const end=Math.max(0,Math.min(n-1,Math.floor(raw)));
+ if(end!==d.end)updateFastDragEndpoint(end);
 }
 function endFastDrag(e){
  const d=fastDrag;if(!d||e&&e.pointerId!==d.id)return;
  fastDrag=null;pointerDown=false;dragCount=0;
+ try{if($('board').hasPointerCapture(d.id))$('board').releasePointerCapture(d.id);}catch{}
  let modified=0;for(const index of d.touched)if(board[index]!==d.initial[index])modified++;
  if(!modified&&d.history)undoStack.pop();
  if(modified){
@@ -1144,7 +1152,7 @@ function followPointerSelection(event){
  updateLiveSelection(next,cells);
 }
 mount();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
-$('board').addEventListener('pointerover',followPointerSelection);
+$('board').addEventListener('pointermove',followPointerSelection,{passive:true});
 window.addEventListener('blur',()=>{altClueSelection=null;releaseMove();});
 $('board').addEventListener('wheel',e=>{if(!prefs.zoomWheel||!e.ctrlKey)return;e.preventDefault();
  const inc={slow:.05,normal:.1,fast:.2}[prefs.zoomSpeed]||.1;
