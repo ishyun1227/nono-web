@@ -37,7 +37,9 @@ const {pathToFileURL}=require('node:url');
    rewardEnabled:!document.querySelector('button[data-mission="puzzle"]').disabled};
  });
  if(!win.finished||!win.done||!win.rewardEnabled)throw Error('Native verified puzzle completion did not unlock mission: '+JSON.stringify(win));
+ page.once('dialog',dialog=>dialog.accept());
  await page.locator('#leave-game').click();
+ await page.locator('#nono-daily-hub').waitFor({state:'visible'});
  await page.locator('button[data-mission="puzzle"]').click();
  const verify=await page.evaluate(()=>{
   const api=window.NONO_DAILY_REWARDS;
