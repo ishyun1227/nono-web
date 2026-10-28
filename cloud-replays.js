@@ -142,16 +142,24 @@
   }
   async function setPublicEnabled(value){
     if(!ready())throw new Error('로그인 연결 후 설정할 수 있어요.');
-    storage.setItem(PUBLIC_PREF+currentId(),value?'true':'false');
-    UI.setPublicPreference?.(Boolean(value));
-    if(value){await syncLocal();return;}
-    // Revocation: remove from discovery first, then full public replay.
-    for(const puzzleId of eligible){
-      try{await remove(ref(database,'publicReplayFeed/'+puzzleId+'/'+currentId()));}
-      catch(error){console.warn('공개 목록 철회 실패',error);}
-      try{await remove(ref(database,'publishedReplays/'+puzzleId+'/'+currentId()));}
-      catch(error){console.warn('공개 리플레이 철회 실패',error);}
+    if(value){
+      storage.setItem(PUBLIC_PREF+currentId(),'true');
+      UI.setPublicPreference?.(true);
+      await syncLocal();
+      return;
     }
+    // Remove existing public entries before marking the local preference private.
+    // Never report a successful privacy change when revocation failed.
+    for(const puzzleId of eligible){
+      const index='publicReplayFeed/'+puzzleId+'/'+currentId();
+      const replay='publishedReplays/'+puzzleId+'/'+currentId();
+      for(const path of [index,replay]){
+        const snapshot=await get(ref(database,path));
+        if(snapshot.exists())await remove(ref(database,path));
+      }
+    }
+    storage.setItem(PUBLIC_PREF+currentId(),'false');
+    UI.setPublicPreference?.(false);
   }
   function onAuth() {
     if (!ready()) return;
