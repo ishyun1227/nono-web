@@ -407,6 +407,124 @@ body.nono-fit-playing #game .bottom-row #restart{padding:6px 8px!important;font-
  body.nono-fit-playing #game #nono-hud{display:none!important}
 }
 
+
+/* FULL VIEWPORT LARGE PUZZLES: chrome is floated at the sides of the entire board,
+   not stacked above/below it. Zero reserved vertical whitespace. */
+body.nono-fit-playing #game .board-card{
+ position:fixed!important;inset:0!important;box-sizing:border-box!important;
+ width:100vw!important;height:100dvh!important;max-height:none!important;
+ padding:0!important;margin:0!important;gap:0!important;
+ display:block!important;border:0!important;border-radius:0!important;
+ overflow:hidden!important;z-index:5!important
+}
+body.nono-fit-playing #game .board-scroll,
+body.nono-fit-playing #game .board-scroll.nono-zoomed{
+ position:absolute!important;inset:0!important;box-sizing:border-box!important;
+ width:100%!important;height:100%!important;min-height:100%!important;
+ max-height:100%!important;flex:none!important;overflow:hidden!important;
+ padding:0!important;margin:0!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ background:transparent!important
+}
+body.nono-fit-playing .topbar{
+ position:fixed!important;top:0!important;left:0!important;right:0!important;
+ transform:none!important;width:100vw!important;max-width:none!important;
+ height:42px!important;min-height:0!important;margin:0!important;
+ padding:0 9px!important;border:0!important;background:transparent!important;
+ z-index:12!important;pointer-events:none!important
+}
+body.nono-fit-playing .topbar>*{pointer-events:auto!important}
+body.nono-fit-playing #game .game-header{
+ position:fixed!important;top:43px!important;left:8px!important;right:8px!important;
+ transform:none!important;width:calc(100vw - 16px)!important;
+ height:32px!important;min-height:0!important;max-width:none!important;
+ margin:0!important;padding:0!important;background:transparent!important;
+ border:0!important;z-index:12!important;pointer-events:none!important
+}
+body.nono-fit-playing #game .game-header :is(button,a){pointer-events:auto!important}
+body.nono-fit-playing #game .board-top{
+ position:fixed!important;inset:0!important;height:0!important;min-height:0!important;
+ max-height:0!important;padding:0!important;margin:0!important;
+ border:0!important;display:block!important;z-index:11!important;
+ background:transparent!important;pointer-events:none!important
+}
+body.nono-fit-playing #game .board-top :is(.mini-stat,.timer-stat){
+ position:fixed!important;top:88px!important;left:8px!important;
+ padding:5px 7px!important;margin:0!important;
+ background:#17223bdb!important;border-radius:7px!important;
+ max-width:200px!important;pointer-events:none!important
+}
+body.nono-fit-playing #game .board-top .timer-stat{top:118px!important}
+body.nono-fit-playing #game #nono-board-zoom{
+ position:fixed!important;top:86px!important;right:8px!important;
+ margin:0!important;padding:0!important;z-index:12!important;
+ display:flex!important;flex-direction:column!important;
+ align-items:stretch!important;gap:4px!important;
+ pointer-events:auto!important
+}
+body.nono-fit-playing #game #nono-board-zoom button,
+body.nono-fit-playing #game #nono-board-zoom span{
+ min-width:82px!important;min-height:26px!important;
+ box-sizing:border-box!important;padding:4px!important;text-align:center!important;
+ background:#182745e8!important
+}
+body.nono-fit-playing #game #nono-hud{
+ position:fixed!important;top:154px!important;left:8px!important;right:auto!important;
+ width:min(215px,17vw)!important;max-width:215px!important;min-width:0!important;
+ margin:0!important;padding:5px!important;z-index:11!important;
+ font-size:10px!important;white-space:normal!important;overflow:hidden!important;
+ pointer-events:none!important
+}
+body.nono-fit-playing #game #nono-drag-hud{
+ position:fixed!important;top:205px!important;left:8px!important;right:auto!important;
+ max-width:min(220px,18vw)!important;z-index:11!important
+}
+body.nono-fit-playing #game .board-footer{
+ position:fixed!important;top:235px!important;bottom:auto!important;
+ left:8px!important;right:auto!important;width:auto!important;
+ display:flex!important;flex-direction:column!important;
+ align-items:stretch!important;gap:4px!important;border:0!important;
+ padding:0!important;margin:0!important;z-index:11!important
+}
+body.nono-fit-playing #game .board-footer .tool-button{
+ min-width:92px!important;min-height:28px!important;max-height:34px!important;
+ padding:3px 7px!important;flex-direction:row!important;
+ background:#1a2947e9!important
+}
+body.nono-fit-playing #game #nono-actions{
+ position:fixed!important;top:310px!important;bottom:auto!important;
+ right:8px!important;left:auto!important;width:auto!important;
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;
+ padding:0!important;margin:0!important;gap:5px!important;
+ background:transparent!important;z-index:11!important
+}
+body.nono-fit-playing #game #nono-actions button{
+ padding:6px!important;background:#1c2b4bea!important
+}
+body.nono-fit-playing #game .bottom-row{
+ position:fixed!important;top:auto!important;bottom:6px!important;
+ left:8px!important;right:auto!important;transform:none!important;
+ width:auto!important;margin:0!important;padding:0!important;z-index:11!important
+}
+body.nono-fit-playing #game .bottom-row #restart{
+ padding:5px 7px!important;background:#192744df!important;border-radius:6px!important
+}
+body.nono-fit-playing #game .board-caption,
+body.nono-fit-playing #game .rules{display:none!important}
+@media(max-width:900px){
+ body.nono-fit-playing #game .board-footer{
+  top:auto!important;bottom:5px!important;left:4px!important;
+  flex-direction:row!important;gap:2px!important
+ }
+ body.nono-fit-playing #game .board-footer .tool-button{
+  min-width:0!important;padding:2px 4px!important;font-size:9px!important
+ }
+ body.nono-fit-playing #game #nono-actions{top:auto!important;bottom:38px!important;right:4px!important}
+ body.nono-fit-playing #game #nono-board-zoom{top:66px!important;right:4px!important}
+ body.nono-fit-playing #game .bottom-row{display:none!important}
+ body.nono-fit-playing #game #nono-hud{display:none!important}
+}
+
 .nono-visual-help-button{white-space:nowrap;background:#28345d;border:1px solid #8d91ce;color:#fff;
   border-radius:9px;padding:8px 11px;font-size:12px;font-weight:750;cursor:pointer}
 .nono-guide-overlay{position:fixed;inset:0;z-index:12010;background:#050a18e8;display:grid;place-items:center;padding:14px}
@@ -687,10 +805,12 @@ function fitBoardToViewport(){
  const digits=String(maxNumber).length,sides=prefs.bothClues?2:1;
  const css=getComputedStyle(area),padW=parseFloat(css.paddingLeft)+parseFloat(css.paddingRight);
  const padH=parseFloat(css.paddingTop)+parseFloat(css.paddingBottom);
- const areaRect=area.getBoundingClientRect(),cardRect=card.getBoundingClientRect();
- const after=Math.max(0,cardRect.bottom-areaRect.bottom);
- const availW=Math.max(30,area.clientWidth-padW-4);
- const availH=Math.max(30,innerHeight-areaRect.top-after-padH-7);
+ // Fullscreen board gets 100% of the viewport; toolbars float in the side gutters.
+ // Use visualViewport when available so browser zoom/resizing is reflected.
+ const viewportW=window.visualViewport?.width||window.innerWidth;
+ const viewportH=window.visualViewport?.height||window.innerHeight;
+ const availW=Math.max(30,viewportW-padW-2);
+ const availH=Math.max(30,viewportH-padH-2);
  const cap=n<=5?60:n<=10?41:n<=25?34:26;
  function dimensions(cell){
   const font=Math.max(2.8,Math.min(14,cell*.69));
