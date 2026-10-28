@@ -285,7 +285,8 @@
           },
           "$other": {
             ".validate": false
-          }
+          },
+          ".read": "auth != null && auth.uid == $uid"
         }
       }
     }
