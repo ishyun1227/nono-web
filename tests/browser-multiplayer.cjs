@@ -39,6 +39,15 @@ async function main(){
   for(const p of [a,b])await p.waitForFunction(()=>board[0]==='1'&&board[1]==='1');
   await a.screenshot({path:'test-results/coop-desktop.png'});
   console.log('PASS two independent browsers: invitation, cooperative concurrent input');
+  await a.evaluate(()=>leaveGame());
+  const listedAfterHostLeave=await a.evaluate(async code=>(await get(ref(database,'publicRooms/'+code))).exists(),coop);
+  assert.equal(listedAfterHostLeave,true,'Public shared puzzle must survive its host leaving');
+  await a.reload();
+  await a.locator('#nono-resume-overlay').waitFor({state:'visible'});
+  await a.locator('#nono-resume-list .nono-resume-item').first().click();
+  await a.waitForURL(/room=/);
+  await a.waitForFunction(()=>board[0]==='1'&&board[1]==='1');
+  console.log('PASS public listing survives host departure and saved cooperation resumes after page reload');
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)paint(i,answer[i]==='1'?'1':'0',true);},answers.heart5);
   for(const p of [a,b])await p.waitForFunction(()=>finished&&finishedAt>0);
   const coopFinish=await b.evaluate(()=>{tick();return {at:finishedAt,label:document.querySelector('#timer').textContent};});

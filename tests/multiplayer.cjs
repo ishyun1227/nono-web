@@ -16,6 +16,10 @@ async function main(){
   const publicMeta=(await get(ref(a,'rooms/ABCDEF/meta'))).val();
   const listing={host:'alice',name:'Alice',mode:'coop',puzzleId:'heart5',createdAt:publicMeta.createdAt};
   await assertSucceeds(set(ref(a,'publicRooms/ABCDEF'),listing));
+  // Public cooperation is discoverable even when the host has left the active player list.
+  await assertSucceeds(remove(ref(a,'rooms/ABCDEF/players/0')));
+  await assertSucceeds(get(ref(b,'publicRooms/ABCDEF')));
+  await join(a,'ABCDEF','0','alice');
   await assertFails(get(ref(b,'publicRooms')));
   await assertFails(get(query(ref(b,'publicRooms'),orderByChild('createdAt'),limitToLast(31))));
   const listed=await assertSucceeds(get(query(ref(b,'publicRooms'),orderByChild('createdAt'),limitToLast(30))));
@@ -28,12 +32,24 @@ async function main(){
   await assertFails(set(ref(outsider,'rooms/ABCDEF/board'),'0'.repeat(25)));
   await assertFails(set(ref(b,'rooms/ABCDEF/players/0'),{uid:'bob',name:'hijack',joinedAt:serverTimestamp()}));
   await join(db('c'),'ABCDEF','2','c');await join(db('d'),'ABCDEF','3','d');
+  // Existing numerical co-op slots remain compatible; new joins use UID keys without an artificial cap.
   await assertFails(join(outsider,'ABCDEF','4','eve'));
+  await assertSucceeds(join(db('e'),'ABCDEF','e','e'));
+  await assertSucceeds(join(db('f'),'ABCDEF','f','f'));
+  await assertSucceeds(join(a,'ABCDEF','alice','alice'));
+  await assertSucceeds(set(ref(a,'userRooms/alice/ABCDEF'),true));
+  await assertFails(set(ref(b,'userRooms/alice/ABCDEF'),true));
+  await assertFails(set(ref(outsider,'userRooms/eve/ABCDEF'),true));
   await set(ref(a,'rooms/ABCDEF/board'),'0'.repeat(25));
+  await assertSucceeds(get(ref(db('e'),'rooms/ABCDEF/board')));
+  await assertSucceeds(remove(ref(a,'rooms/ABCDEF/players/alice')));
+  // A former participant may still read the shared saved board via their private membership index.
+  await assertSucceeds(get(ref(a,'rooms/ABCDEF/board')));
+  await assertFails(set(ref(a,'userRooms/alice/UNKNOW'),true));
   await Promise.all([[a,0],[b,1]].map(([d,i])=>runTransaction(ref(d,'rooms/ABCDEF/board'),v=>{v=v||'0'.repeat(25);return v.slice(0,i)+'1'+v.slice(i+1);}))); 
   assert.equal((await get(ref(a,'rooms/ABCDEF/board'))).val().slice(0,2),'11');
   await assertFails(set(ref(a,'rooms/ABCDEF/board'),'bad'));
-  console.log('PASS cooperation concurrency, membership, capacity, board validation');
+  console.log('PASS cooperation concurrency, unlimited UID membership, private saved-room index, board validation');
   await set(ref(a,'rooms/GHJKLM/meta'),meta('race'));await join(a,'GHJKLM','0','alice');await join(b,'GHJKLM','1','bob');
   const race=(await get(ref(a,'rooms/GHJKLM/meta'))).val();
   await assertFails(set(ref(b,'rooms/GHJKLM/meta'),{...race,status:'playing',startedAt:serverTimestamp()}));
