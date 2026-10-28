@@ -393,48 +393,50 @@ body[data-nono-theme="neon"] :is(button,input,select,summary,a):focus-visible{
   }
 }
 
-/* Resume cards belong to the existing launcher; they never preview an answer. */
-#nono-resume[hidden],#nono-resume-overlay[hidden]{display:none!important}
-#nono-resume{
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-  width:100%;min-width:0;padding:14px 0 0;margin:1px 0 0;
-  border-top:1px solid rgba(150,164,191,.25);background:none;box-shadow:none;
+/* A full fifth home tab for up to five saved solo, race and co-op boards. */
+body .mode-select{grid-template-columns:repeat(5,minmax(0,1fr))}
+body .mode-select .mode-card{min-width:0}
+body.nono-resume-open #setup{display:none!important}
+#nono-resume-view[hidden]{display:none!important}
+#nono-resume-view{
+  display:flex;flex-direction:column;gap:13px;
+  width:100%;padding:20px clamp(15px,2.3vw,26px);
+  min-height:190px;border:1px solid #344761;border-radius:12px;
+  background:#192337;color:#f5f7fd;box-shadow:none;
 }
-#nono-resume .nono-resume-info{display:flex;flex-direction:column;gap:4px;min-width:0}
-#nono-resume .nono-resume-info strong{font-size:14px;color:inherit}
-#nono-resume .nono-resume-info span{font-size:12px;color:#aebdd4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#nono-resume-button{flex-shrink:0;min-height:36px;padding:7px 13px;font-size:12px}
-body[data-nono-theme="neon"] #setup>#nono-resume{
-  grid-column:1/-1;grid-row:5;z-index:2;
+.nono-resume-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.nono-resume-heading h2{font-size:19px;margin:0 0 5px;color:inherit}
+.nono-resume-heading p{font-size:12px;color:#b4c2d9;margin:0}
+#nono-resume-total{font-size:12px;color:#bad1e5;white-space:nowrap;font-variant-numeric:tabular-nums}
+.nono-resume-summary{display:flex;gap:7px;flex-wrap:wrap}
+.nono-resume-summary span{padding:6px 9px;background:#24344c;border:1px solid #3c506a;border-radius:7px;color:#d3dfed;font-size:12px}
+.nono-resume-items{display:grid;gap:7px}
+.nono-resume-card{display:flex;align-items:center;gap:12px;min-width:0;padding:10px 12px;border:1px solid #334760;border-radius:9px;background:#142035}
+.nono-resume-symbol{width:34px;height:34px;flex-shrink:0;display:grid;place-items:center;border-radius:8px;background:#293955;color:#83ded5;font-size:19px}
+.nono-resume-card-copy{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0}
+.nono-resume-card-copy strong{font-size:13px;color:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nono-resume-card-copy span{font-size:11px;color:#b8c8df;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nono-resume-continue{min-height:34px;flex-shrink:0;padding:7px 13px;font-size:12px}
+.nono-resume-empty{margin:6px 0;padding:19px 12px;color:#c1cee1;text-align:center;font-size:13px;line-height:1.6}
+body[data-nono-theme="pastel"] #nono-resume-view{background:#fffefa;color:#233248;border-color:#cad4df}
+body[data-nono-theme="pastel"] .nono-resume-heading p,
+body[data-nono-theme="pastel"] .nono-resume-card-copy span,
+body[data-nono-theme="pastel"] #nono-resume-total{color:#54667c}
+body[data-nono-theme="pastel"] .nono-resume-summary span,
+body[data-nono-theme="pastel"] .nono-resume-card{background:#f4f6f8;color:#233248;border-color:#d3dbe4}
+@media(max-width:1000px){
+  body .mode-select{grid-template-columns:repeat(5,minmax(0,1fr))}
+  body .mode-select .mode-card{gap:7px;padding:9px 7px;min-height:55px}
+  body .mode-select .mode-card .mode-icon{font-size:19px;width:30px;height:30px}
+  body .mode-select .mode-card .mode-text small{display:none}
 }
-body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))>#nono-resume{
-  grid-column:auto;grid-row:auto;
-}
-#nono-resume-overlay{
-  position:fixed;inset:0;z-index:12040;display:grid;place-items:center;
-  padding:16px;background:rgba(5,11,24,.78);
-}
-#nono-resume-dialog{
-  width:min(460px,100%);max-height:min(86vh,670px);
-  overflow:auto;border:1px solid #546783;border-radius:14px;
-  padding:22px;background:#172238;color:#f4f7ff;
-  box-shadow:0 24px 70px #0009;
-}
-#nono-resume-dialog h2{font-size:20px;line-height:1.3;margin:0 0 7px;color:inherit}
-#nono-resume-dialog p{margin:0 0 16px;font-size:12px;line-height:1.5;color:#b6c5dc}
-#nono-resume-list{display:grid;gap:7px;margin-bottom:15px}
-#nono-resume-list .nono-resume-item{
-  display:flex;flex-direction:column;align-items:flex-start;gap:5px;
-  width:100%;padding:12px 13px;text-align:left;
-  border:1px solid #3d4f6b;border-radius:9px;background:#1d2d46;color:#fff;
-}
-#nono-resume-list .nono-resume-item:hover,
-#nono-resume-list .nono-resume-item:focus-visible{border-color:#79d9d2;background:#233a50}
-#nono-resume-list .nono-resume-item strong{font-size:13px}
-#nono-resume-list .nono-resume-item span{font-size:11px;color:#b7c8df}
-#nono-resume-stay{width:100%;font-size:13px}
 @media(max-width:660px){
-  #nono-resume{flex-wrap:wrap;gap:9px}
-  #nono-resume-button{width:100%}
-  #nono-resume-dialog{padding:17px}
+  body .mode-select{grid-template-columns:repeat(5,minmax(0,1fr));gap:3px}
+  body .mode-select .mode-card{justify-content:center;padding:7px 3px;min-height:39px;text-align:center}
+  body .mode-select .mode-card .mode-icon{display:none}
+  body .mode-select .mode-card .mode-text strong{font-size:10px;line-height:1.15;white-space:normal;word-break:keep-all}
+  #nono-resume-view{padding:14px 11px}
+  .nono-resume-card{gap:7px;padding:9px 8px}
+  .nono-resume-symbol{width:28px;height:28px;font-size:16px}
+  .nono-resume-continue{min-height:30px;padding:6px 9px}
 }
