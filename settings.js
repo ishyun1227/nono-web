@@ -1125,7 +1125,7 @@ function startFastDrag(e,index){
  const n=puzzle.size,rect=$('board').querySelector('.cells').getBoundingClientRect();
  fastDrag={id:e.pointerId,cells,initial:original,target:value,
   start:index,axis:null,end:index%n,row:Math.floor(index/n),col:index%n,
-  startX:e.clientX,startY:e.clientY,
+  startX:e.clientX,startY:e.clientY,originX:e.clientX,originY:e.clientY,
   rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},
   touched:new Set(),filled:original.filter(v=>v==='1').length,
   history,count:1,hasExtended:false,initialSelected:snapshot.selected};
@@ -1193,11 +1193,14 @@ function moveFastDrag(e){
  const end=Math.max(0,Math.min(n-1,Math.floor(raw)));
  if(end!==d.end){
   updateFastDragEndpoint(end);
-  if(end===(d.axis==='row'?d.col:d.row)&&d.hasExtended){
-   // Returning to the original cell releases the axis lock without ending the drag.
-   // The next intentional movement may establish a new row or column direction.
+  const originCoord=d.axis==='row'?d.col:d.row;
+  const nearOrigin=Math.abs(e.clientX-d.originX)<=d.rect.width/n*.55 &&
+   Math.abs(e.clientY-d.originY)<=d.rect.height/n*.55;
+  if(end===originCoord&&d.hasExtended&&nearOrigin){
+   // Release axis lock only when the actual pointer returns to the starting CELL,
+   // not merely when it shares that column/row far outside the original line.
    d.axis=null;d.startX=e.clientX;d.startY=e.clientY;d.hasExtended=false;
-  }else if(end!==(d.axis==='row'?d.col:d.row))d.hasExtended=true;
+  }else if(end!==originCoord)d.hasExtended=true;
  }
 }
 function endFastDrag(e){
