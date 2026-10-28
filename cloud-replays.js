@@ -94,7 +94,7 @@
       // Only the verified finisher of the same puzzle may view the full moves.
       const path = 'publishedReplays/' + item.puzzleId + '/' + item.uid;
       try {
-        const myFinish = (await get(ref(database,'runs/' + item.puzzleId + '/' + currentUser.uid + '/finishedAt'))).val();
+        const myFinish = (await get(ref(database,'scores/' + item.puzzleId + '/' + currentUser.uid + '/finishedAt'))).val();
         if (!myFinish || myFinish <= 0) return {...item,locked:true};
         const result = (await get(ref(database,path))).val();
         if (!result || result.completedAt !== item.completedAt) return {...item,locked:true};
