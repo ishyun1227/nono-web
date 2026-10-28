@@ -407,6 +407,17 @@ const { pathToFileURL } = require('node:url');
         },path);
         if(await page.locator('#nono-guide-overlay .nono-guide-item').count()!==1)
           throw new Error('Guide must only show requested option '+label);
+        const modalFit=await page.evaluate(()=>{
+          const overlay=document.getElementById('nono-guide-overlay');
+          const dialog=overlay.querySelector('.nono-guide-dialog').getBoundingClientRect();
+          const image=overlay.querySelector('.nono-guide-approved-image').getBoundingClientRect();
+          return {dialogHeight:dialog.height,imageHeight:image.height,
+            viewportHeight:innerHeight,cardTitles:overlay.querySelectorAll('.nono-guide-item h4,.nono-guide-item p,.nono-guide-desc').length,
+            imageBottom:image.bottom,dialogBottom:dialog.bottom};
+        });
+        if(modalFit.cardTitles!==0||modalFit.dialogHeight>modalFit.viewportHeight*.93||
+          modalFit.imageBottom>modalFit.dialogBottom+2)
+          throw new Error('Image help must avoid duplicated text and fit within dialog: '+JSON.stringify({label,modalFit}));
         await page.locator('#nono-guide-overlay button').first().click();
       }
 
