@@ -199,6 +199,34 @@ const worldAndMisc=[
  ['퍼즐 완성!','Puzzle complete!'],
  ['퍼즐을 골라 바로 시작해 보세요.','Choose a puzzle and start playing.']
 ];
-const dict={};for(const [a,b] of [...rows,...worldAndMisc])dict[a]=b;
+
+const auditedEnglish=[
+ ['아직 진행 중인 퍼즐이 없어요. 혼자 풀기, 대결, 협동에서 퍼즐을 시작해 보세요.','No unfinished puzzles. Start a solo, versus, or co-op puzzle.'],
+ ['NONO 홈','NONO home'],['플레이 방식 선택','Select play mode'],
+ ['닉네임 변경','Change nickname'],['오늘의 미션과 출석 보상','Daily missions and check-in rewards'],
+ ['노노그램 설정','Nonogram settings'],['프로필','profile'],
+ ['위로 이동','Move up'],['아래로 이동','Move down'],['왼쪽 이동','Move left'],['오른쪽 이동','Move right'],
+ ['칸 칠하기','Fill cell'],['칸 지우기','Erase cell'],['되돌리기','Undo'],['다시 실행','Redo'],
+ ['힌트 선택 모드','Clue selection mode'],['전체보기','Overview'],
+ ['칠하기 도구','Fill tool'],['X 도구','X tool'],['+ 키','+ key'],
+ ['이미지로 설명보기','View illustrated example'],
+ ['도움 힌트 사용음','Hint sound'],
+ ['▦ HUD 편집 · 위치/크기/배경','▦ Edit HUD · position / size / background'],
+ ['모바일 화면의 방향 패드와 동작 버튼을 원하는 스타일로 조정할 수 있어요.','Customize the direction pad and action buttons on mobile.'],
+ ['이동 방식','Movement style'],
+ ['고정형은 십자키, 플로팅형은 손가락이 닿는 위치에 조이스틱이 나타납니다.','Fixed mode uses a D-pad; floating mode displays a joystick at your touch position.'],
+ ['투명도','Opacity'],['배경과 버튼의 표시 농도','Opacity of the pad and buttons'],
+ ['크기','Size'],['방향 패드 및 동작 버튼 전체 크기','Size of the D-pad and action buttons'],
+ ['✥ 버튼 위치 조절','✥ Adjust button positions'],
+ ['조작 패드 초기화','Reset control pad'],
+ ['위치 편집 중에는 방향 패드의 ✥ 이동 손잡이와 개별 동작 버튼을 드래그할 수 있습니다. 설정은 이 브라우저에 저장됩니다.','In edit mode, drag the ✥ handle and individual action buttons to reposition them. Settings are saved in this browser.'],
+ ['레이아웃은 유지 · 0 ~ 500 P','Same layout · 0–500 P'],
+ ['배경·메뉴·카드·게임판 전면 재설계 · 2,500 ~ 6,500 P','Complete redesign of background, menus, cards and board · 2,500–6,500 P'],
+ ['기본 테마는 무료로 계속 사용할 수 있어요.','The default theme is always free.'],
+ ['진행 중','In progress'],
+ ['미리보기','Preview'],
+ ['현금 충전 준비 중','Cash top-up coming soon']
+];
+const dict={};for(const [a,b] of [...rows,...worldAndMisc,...auditedEnglish])dict[a]=b;
 window.NONO_EN_EXTRA=Object.freeze(dict);
 })();
