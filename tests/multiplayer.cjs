@@ -110,6 +110,15 @@ async function main(){
   await set(runBob,{name:'Bob',startedAt:serverTimestamp(),finishedAt:0,filled:'0'.repeat(25),changes:0});
   const bobStart=(await get(runBob)).val();
   await assertSucceeds(set(runBob,{...bobStart,finishedAt:serverTimestamp(),filled:answers.heart5}));
+  // A completed run alone does not unlock replay until the durable verified
+  // best-score marker is written. This marker survives starting a new run.
+  await assertFails(get(ref(b,'publishedReplays/heart5/alice')));
+  const bobComplete=(await get(runBob)).val();
+  const bobScore={name:bobComplete.name,startedAt:bobComplete.startedAt,
+    finishedAt:bobComplete.finishedAt,duration:bobComplete.finishedAt-bobComplete.startedAt,changes:0};
+  await assertSucceeds(set(ref(b,'scores/heart5/bob'),bobScore));
+  await assertSucceeds(get(ref(b,'publishedReplays/heart5/alice')));
+  await assertSucceeds(set(runBob,{name:'Bob',startedAt:serverTimestamp(),finishedAt:0,filled:'0'.repeat(25),changes:0}));
   await assertSucceeds(get(ref(b,'publishedReplays/heart5/alice')));
   console.log('PASS private replay ownership, verified publication, bounded public feed, spoiler protection');
  }finally{await env.cleanup();}
