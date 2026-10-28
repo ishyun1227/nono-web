@@ -38,7 +38,7 @@ window.NONO_INPUT_CUSTOM=api;
 function save(){try{localStorage.setItem(storageKey,JSON.stringify(state))}catch(_){}}
 function setValue(key,value){
  if(!(key in defaults()))return;
- state=validate({...state,[key]:value});save();apply();refreshCustomSettings();
+ state=validate({...state,[key]:value});save();apply();
 }
 function reset(){state=defaults();save();apply();refreshCustomSettings()}
 const actionGroup=pad.querySelector('.nono-pad-actions'),dpadGroup=pad.querySelector('.nono-dpad');
@@ -79,14 +79,14 @@ function apply(){
  editbar.hidden=!editing;
  zone.style.setProperty('--zone-x',state.dpad.x*100+'vw');
  zone.style.setProperty('--zone-y',state.dpad.y*100+'dvh');
- window.dispatchEvent(new Event('resize'));
+ // Changes to on-screen controls do not require recalculating the board on each drag.
 }
 function nativeSend(name,down){
  const codes={up:['ArrowUp','ArrowUp'],down:['ArrowDown','ArrowDown'],
  left:['ArrowLeft','ArrowLeft'],right:['ArrowRight','ArrowRight']};
  const code=codes[name];if(!code)return;
  const game=$('game'),lobby=$('lobby');
- if(game?.classList.contains('hidden')||!lobby?.classList.contains('hidden')||$('nono-settings-overlay'))return;
+ if(down&&(game?.classList.contains('hidden')||!lobby?.classList.contains('hidden')||$('nono-settings-overlay')))return;
  document.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',
   {bubbles:true,cancelable:true,key:code[0],code:code[1]}));
 }
@@ -124,7 +124,7 @@ function floatEnd(e){
 }
 for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,floatEnd);
 function beginEdit(){
- if(!matchMedia('(pointer:coarse)').matches)return false;
+ if(!matchMedia('(pointer:coarse)').matches||$('game')?.classList.contains('hidden'))return false;
  beforeEdit=clone(state);editing=true;
  pad.classList.remove('hidden');pad.hidden=false;
  editbar.hidden=false;apply();return true;
