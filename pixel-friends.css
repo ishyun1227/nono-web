@@ -393,13 +393,12 @@ body[data-nono-theme="neon"] :is(button,input,select,summary,a):focus-visible{
   }
 }
 
-/* A full fifth home tab for up to five saved solo, race and co-op boards. */
-body .mode-select{grid-template-columns:repeat(5,minmax(0,1fr))}
+/* Shared resume panel below the existing four tabs and their mode-specific settings. */
+body .mode-select{grid-template-columns:repeat(4,minmax(0,1fr))}
 body .mode-select .mode-card{min-width:0}
-body.nono-resume-open #setup{display:none!important}
 #nono-resume-view[hidden]{display:none!important}
 #nono-resume-view{
-  display:flex;flex-direction:column;gap:13px;
+  display:flex;flex-direction:column;gap:13px;margin-top:12px;
   width:100%;padding:20px clamp(15px,2.3vw,26px);
   min-height:190px;border:1px solid #344761;border-radius:12px;
   background:#192337;color:#f5f7fd;box-shadow:none;
@@ -425,13 +424,13 @@ body[data-nono-theme="pastel"] #nono-resume-total{color:#54667c}
 body[data-nono-theme="pastel"] .nono-resume-summary span,
 body[data-nono-theme="pastel"] .nono-resume-card{background:#f4f6f8;color:#233248;border-color:#d3dbe4}
 @media(max-width:1000px){
-  body .mode-select{grid-template-columns:repeat(5,minmax(0,1fr))}
+  body .mode-select{grid-template-columns:repeat(4,minmax(0,1fr))}
   body .mode-select .mode-card{gap:7px;padding:9px 7px;min-height:55px}
   body .mode-select .mode-card .mode-icon{font-size:19px;width:30px;height:30px}
   body .mode-select .mode-card .mode-text small{display:none}
 }
 @media(max-width:660px){
-  body .mode-select{grid-template-columns:repeat(5,minmax(0,1fr));gap:3px}
+  body .mode-select{grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
   body .mode-select .mode-card{justify-content:center;padding:7px 3px;min-height:39px;text-align:center}
   body .mode-select .mode-card .mode-icon{display:none}
   body .mode-select .mode-card .mode-text strong{font-size:10px;line-height:1.15;white-space:normal;word-break:keep-all}
