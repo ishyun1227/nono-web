@@ -32,6 +32,7 @@ jobs:
           node --check locale-packs.js
           node --check locale-en-extra.js
           node --check tests/locale.cjs
+          node --check tests/i18n-audit.cjs
           node --check settings.js
           node --check themes.js
           node --check daily-rewards.js
@@ -40,6 +41,8 @@ jobs:
           node --check tests/daily-rewards.cjs
       - name: Verify language switching and persistence
         run: node tests/locale.cjs
+      - name: Audit translated UI coverage
+        run: node tests/i18n-audit.cjs
       - name: Verify unified shop and browser theme unlocks
         run: node tests/shop.cjs
       - name: Verify daily missions and check-in
