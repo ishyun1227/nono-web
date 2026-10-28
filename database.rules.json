@@ -40,7 +40,7 @@
         "players": {
           ".read": "auth != null",
           "$slot": {
-            ".write": "auth != null && ($slot == '0' || $slot == '1' || $slot == '2' || $slot == '3') && ((!newData.exists() && data.child('uid').val() == auth.uid) || (newData.child('uid').val() == auth.uid && (!data.exists() || data.child('uid').val() == auth.uid) && root.child('rooms').child($room).child('meta').exists() && (root.child('rooms').child($room).child('meta/mode').val() == 'coop' || root.child('rooms').child($room).child('meta/status').val() == 'lobby' || root.child('rooms').child($room).child('states').child(auth.uid).exists())))",
+            ".write": "auth != null && ((root.child('rooms').child($room).child('meta/mode').val() == 'coop' && ($slot == auth.uid || ($slot == '0' || $slot == '1' || $slot == '2' || $slot == '3'))) || (root.child('rooms').child($room).child('meta/mode').val() == 'race' && ($slot == '0' || $slot == '1' || $slot == '2' || $slot == '3'))) && ((!newData.exists() && data.child('uid').val() == auth.uid) || (newData.child('uid').val() == auth.uid && (!data.exists() || data.child('uid').val() == auth.uid) && root.child('rooms').child($room).child('meta').exists() && (root.child('rooms').child($room).child('meta/mode').val() == 'coop' || root.child('rooms').child($room).child('meta/status').val() == 'lobby' || root.child('rooms').child($room).child('states').child(auth.uid).exists())))",
             ".validate": "newData.hasChildren(['uid','name','joinedAt'])",
             "name": {
               ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 18"
@@ -57,8 +57,8 @@
           }
         },
         "board": {
-          ".read": "auth != null && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)",
-          ".write": "auth != null && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid) && root.child('rooms').child($room).child('meta/mode').val() == 'coop'",
+          ".read": "auth != null && (((root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)) || root.child('rooms').child($room).child('players').child(auth.uid).child('uid').val() == auth.uid || root.child('publicRooms').child($room).exists() || root.child('userRooms').child(auth.uid).child($room).val() == true)",
+          ".write": "auth != null && (((root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)) || root.child('rooms').child($room).child('players').child(auth.uid).child('uid').val() == auth.uid) && root.child('rooms').child($room).child('meta/mode').val() == 'coop'",
           ".validate": "newData.isString() && newData.val().matches(/^[012]+$/) && newData.val().length == root.child('rooms').child($room).child('meta/size').val() * root.child('rooms').child($room).child('meta/size').val()"
         },
         "states": {
@@ -169,6 +169,15 @@
         },
         "$other": {
           ".validate": false
+        }
+      }
+    },
+    "userRooms": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        "$room": {
+          ".write": "auth != null && auth.uid == $uid && (!newData.exists() || (root.child('rooms').child($room).child('meta/mode').val() == 'coop' && root.child('rooms').child($room).child('players').child($uid).child('uid').val() == auth.uid))",
+          ".validate": "newData.val() == true"
         }
       }
     }
