@@ -191,7 +191,7 @@ const patterns=[
 ];
 const attrNames=['aria-label','title','placeholder'];
 const originals=new WeakMap(),attrOriginals=new WeakMap();
-function languageChoice(){try{const v=localStorage.getItem(KEY);return v==='auto'||SUPPORTED.includes(v)?v:'auto';}catch{return 'auto';}}
+function languageChoice(){try{const v=localStorage.getItem(KEY);return v==='auto'||SUPPORTED.includes(v)?v:'ko';}catch{return 'auto';}}
 let choice=languageChoice();
 function effective(v=choice){
  if(v!=='auto')return SUPPORTED.includes(v)?v:'ko';
