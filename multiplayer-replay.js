@@ -79,6 +79,7 @@
       uid:event.uid,cell:change[0],before:change[1],after:change[2],ms:event.ms,
       at:event.at, mode:event.mode
     });
+    if(!coop)steps.sort((a,b)=>a.ms-b.ms||a.at-b.at);
     const max=coop ? Math.max(1,steps.length):Math.max(1,...steps.map(s=>s.ms));
     let position=0,origin=performance.now(),raf=0,issues=0,frame=0;
     function reset(){
@@ -122,6 +123,7 @@
       const snapshot=await get(ref(database,'rooms/'+code+'/replayEvents'));
       if(code!==roomCode)return;
       const users=Object.values(players||{}).filter(p=>p?.uid).map(p=>({uid:p.uid,name:p.name||'플레이어'}));
+      for(const uid of Object.keys(snapshot.val()||{}))if(!users.some(p=>p.uid===uid))users.push({uid,name:'이전 참가자'});
       if(kind==='race' && raceStates){
         for(const uid of Object.keys(raceStates)){
           if(!users.some(x=>x.uid===uid))users.push({uid,name:'참여자'});
