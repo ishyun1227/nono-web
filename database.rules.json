@@ -242,7 +242,7 @@
       "$puzzle": {
         "$uid": {
           ".read": "auth != null && (auth.uid == $uid || root.child('scores').child($puzzle).child(auth.uid).child('finishedAt').val() > 0)",
-          ".write": "auth != null && auth.uid == $uid && root.child('runs').child($puzzle).child($uid).child('finishedAt').val() > 0 && newData.exists() && (!data.exists() || newData.child('completedAt').val() > data.child('completedAt').val())",
+          ".write": "auth != null && auth.uid == $uid && ((!newData.exists() && data.exists()) || (newData.exists() && (auth != null && auth.uid == $uid && root.child('runs').child($puzzle).child($uid).child('finishedAt').val() > 0 && newData.exists() && (!data.exists() || newData.child('completedAt').val() > data.child('completedAt').val()))))",
           ".validate": "newData.hasChildren(['uid','completedAt','payload'])",
           "uid": {
             ".validate": "newData.isString() && newData.val() == auth.uid"
@@ -266,7 +266,7 @@
           "completedAt"
         ],
         "$uid": {
-          ".write": "auth != null && auth.uid == $uid && newData.exists() && root.child('runs').child($puzzle).child($uid).child('finishedAt').val() > 0 && root.child('publishedReplays').child($puzzle).child($uid).child('completedAt').val() == newData.child('completedAt').val() && (!data.exists() || newData.child('completedAt').val() > data.child('completedAt').val())",
+          ".write": "auth != null && auth.uid == $uid && ((!newData.exists() && data.exists()) || (newData.exists() && (auth != null && auth.uid == $uid && newData.exists() && root.child('runs').child($puzzle).child($uid).child('finishedAt').val() > 0 && root.child('publishedReplays').child($puzzle).child($uid).child('completedAt').val() == newData.child('completedAt').val() && (!data.exists() || newData.child('completedAt').val() > data.child('completedAt').val()))))",
           ".validate": "newData.hasChildren(['uid','name','puzzleId','size','completedAt'])",
           "uid": {
             ".validate": "newData.isString() && newData.val() == auth.uid"
