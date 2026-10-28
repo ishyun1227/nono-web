@@ -4,7 +4,7 @@
 const KEY='nono-web-preferences-v1',SAVE='nono-web-puzzle-v1:';
 const device=/Mobi|Android|iPad/i.test(navigator.userAgent)?'touch':'desktop';
 const defaults={move:'arrows',quick:'Shift',altClueQuickFade:true,repeat:'normal',repeatWait:'normal',wrap:true,
- rowHighlight:true,pointerFollow:true,hintHud:true,dragHud:true,autoHintFade:true,completeLines:true,
+ rowHighlight:true,pointerFollow:true,hintHud:true,dragHud:true,filledRunCount:false,filledRunThreshold:10,autoHintFade:true,completeLines:true,
  undoButtons:true,guide:'start',progress:'both',lastInput:'always',color:'#77d5fb',
  gridWidth:'normal',majorStrength:'normal',majorEvery:'5',bothClues:false,showTimer:false,lineNumbers:true,lineInterval:5,pinnedClues:false,minimap:false,
  overviewSize:'normal',overviewPosition:'center',overviewInfo:'percent',
@@ -35,6 +35,8 @@ const schema=[
  ['completeLines','완료된 행·열 표시','bool',null,'완전히 해결된 줄의 배경을 은은하게 흐림'],
  ['hintHud','현재 행·열 숫자 HUD','bool',null,'선택한 칸의 행/열 힌트를 작은 안내창에 표시'],
  ['dragHud','드래그 칸 수 HUD','bool',null,'연속 입력한 칸 수 표시'],
+ ['filledRunCount','연속 색칠 칸 수 표시','bool',null,'설정한 개수를 넘는 연속 검은 칸 구간에 숫자로 길이를 표시합니다. 가로와 세로 구간 모두 적용합니다.'],
+ ['filledRunThreshold','연속 칸 숫자 표시 기준','range',[2,100,1],'연속 검은 칸이 이 개수를 초과하면 숫자를 표시합니다.'],
  ['undoButtons','Undo / Redo 버튼','bool',null,'화면 버튼만 감추며 단축키는 유지'],
  ['progress','진행도 표시 형식','choice',['off:꺼짐','percent:퍼센트','cells:완료 칸 수','both:둘 다'],'게임 진행도 정보를 선택'],
  ['lastInput','내 최근 입력 강조','choice',['off:꺼짐','3:3초','5:5초','always:계속'],'가장 최근에 입력한 칸을 강조'],
@@ -596,6 +598,9 @@ body.nono-fit-playing #game .board-scroll #board{max-width:none!important}
 }
 #board .cells .cell.active{position:relative;z-index:3!important}
 
+#board .cells .nono-run-labels{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:visible}
+#board .cells .nono-run-number{position:absolute;display:block;transform:translate(-50%,-50%);box-sizing:border-box;min-width:0;padding:0 1px;border-radius:2px;background:#10172dcf;color:#fff;font-weight:800;line-height:1.02;text-align:center;font-variant-numeric:tabular-nums;white-space:nowrap;text-shadow:0 1px #060d16}
+#board .cells .nono-run-number[data-axis=col]{color:#b7eaff;background:#112e40c9}
 .nono-visual-help-button{white-space:nowrap;background:#28345d;border:1px solid #8d91ce;color:#fff;
   border-radius:9px;padding:8px 11px;font-size:12px;font-weight:750;cursor:pointer}
 .nono-guide-overlay{position:fixed;inset:0;z-index:12010;background:#050a18e8;display:grid;place-items:center;padding:14px}
@@ -799,6 +804,7 @@ $('nono-hud').style.position=prefs.pinnedClues?'sticky':'';$('nono-hud').style.t
 for(const key of ['hints','drag','progress'])applyHudConfig(key);
 updateClueDecor();
 updateHighlightOverlay(selected);
+renderFilledRunCounts();
 drawMinimap();
 }
 
@@ -847,6 +853,37 @@ function beginHudEdit(){
  }
  updateBoard();sync();
 }
+function renderFilledRunCounts(){
+ const cells=$('board').querySelector('.cells');
+ if(!cells)return;
+ let layer=cells.querySelector('.nono-run-labels');
+ if(!prefs.filledRunCount){layer?.remove();return;}
+ if(!layer){layer=E('div','nono-run-labels');layer.setAttribute('aria-hidden','true');cells.append(layer);}
+ layer.replaceChildren();
+ const n=puzzle.size,threshold=Math.max(1,Number(prefs.filledRunThreshold)||10);
+ const cellPx=parseFloat($('board').dataset.fitCellSize)||parseFloat($('board').style.getPropertyValue('--cell-size'))||41;
+ const font=Math.max(4,Math.min(14,cellPx*.72));
+ const add=(axis,line,start,length)=>{
+  if(length<=threshold)return;
+  const half=start+(length-1)/2;
+  const x=axis==='row'?half+.5:line+.5,y=axis==='row'?line+.5:half+.5;
+  const label=E('span','nono-run-number',String(length));
+  label.dataset.axis=axis;label.style.left=(x*cellPx).toFixed(2)+'px';
+  label.style.top=((y+(axis==='row'?.15:-.17))*cellPx).toFixed(2)+'px';
+  label.style.fontSize=font.toFixed(1)+'px';
+  layer.append(label);
+ };
+ for(const axis of ['row','col'])for(let line=0;line<n;line++){
+  let begin=-1;
+  for(let i=0;i<=n;i++){
+   const at=axis==='row'?line*n+i:i*n+line;
+   const painted=i<n&&board[at]==='1';
+   if(painted&&begin<0)begin=i;
+   if(!painted&&begin>=0){add(axis,line,begin,i-begin);begin=-1;}
+  }
+ }
+}
+
 function updateClueDecor(){
  const target=$('board'),n=puzzle.size;
  target.classList.toggle('nono-both',!!prefs.bothClues);
@@ -940,6 +977,7 @@ function fitBoardToViewport(){
  grid.dataset.fitCellSize=cell.toFixed(2);
  grid.dataset.fitMax=fit.toFixed(2);
  updateHighlightOverlay(selected);
+ renderFilledRunCounts();
  $('nono-zoom-label').textContent=boardZoom===1?'맞춤':Math.round(boardZoom*100)+'%';
  $('nono-zoom-fit').disabled=false;
  $('nono-zoom-out').disabled=boardZoom<=.4;
