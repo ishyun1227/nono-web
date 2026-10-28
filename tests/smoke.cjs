@@ -48,7 +48,7 @@ const { pathToFileURL } = require('node:url');
       difficultyRow:document.querySelector('#nono-quick-difficulties').getBoundingClientRect().top
     };
   });
-  if(!base.heroHidden || !base.nativePickerHidden || base.controls!==9 || base.difficulties!==3 ||
+  if(!base.heroHidden || !base.nativePickerHidden || base.controls!==9 || base.difficulties!==4 ||
     Math.abs(base.header.x-base.tabs.x)>1 ||
     Math.abs(base.tabs.x-base.panel.x)>1 ||
     Math.abs(base.header.right-base.tabs.right)>1 ||
