@@ -1000,7 +1000,11 @@ function fitBoardToViewport(){
  const viewportW=window.visualViewport?.width||window.innerWidth;
  const viewportH=window.visualViewport?.height||window.innerHeight;
  const availW=Math.max(30,viewportW-padW-2);
- const availH=Math.max(30,viewportH-padH-2);
+ // Reserve the bottom mobile control deck when the large board is fitted.
+ const reservedControls=document.body.classList.contains('nono-touch-pad-visible')
+   ? (window.matchMedia('(max-height:470px) and (orientation:landscape) and (pointer:coarse)').matches ? 0 : 178)
+   : 0;
+ const availH=Math.max(30,viewportH-padH-reservedControls-2);
  const cap=n<=5?60:n<=10?41:n<=25?34:26;
  function dimensions(cell){
   const font=Math.max(2.8,Math.min(14,cell*.69));
