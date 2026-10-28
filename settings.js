@@ -1003,7 +1003,18 @@ function fitBoardToViewport(){
  const touchDock=document.body.classList.contains('nono-touch-pad-visible');
  const sideDock=touchDock&&window.matchMedia('(max-height:470px) and (orientation:landscape) and (pointer:coarse)').matches;
  const availW=Math.max(30,viewportW-padW-(sideDock?235:0)-2);
- const reservedControls=touchDock&&!sideDock?178:0;
+ let reservedControls=touchDock&&!sideDock?178:0;
+ if(reservedControls){
+  const controls=['#nono-mobile-pad .nono-dpad','#nono-mobile-pad .nono-pad-actions','#nono-floating-zone']
+    .map(selector=>document.querySelector(selector))
+    .filter(el=>el&&getComputedStyle(el).display!=='none');
+  for(const el of controls){
+    const top=el.getBoundingClientRect().top;
+    if(Number.isFinite(top))reservedControls=Math.max(reservedControls,Math.ceil(viewportH-top+5));
+  }
+  reservedControls=Math.min(Math.max(0,viewportH-120),reservedControls);
+ }
+ document.documentElement.style.setProperty('--nono-mobile-pad-reserve',reservedControls+'px');
  const availH=Math.max(30,viewportH-padH-reservedControls-2);
  const cap=n<=5?60:n<=10?41:n<=25?34:26;
  function dimensions(cell){
