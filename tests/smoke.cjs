@@ -222,7 +222,12 @@ const { pathToFileURL } = require('node:url');
         topbar:rect(topbar),header:rect(gameHeader),
         toolbars:['#nono-board-zoom','.board-footer','#nono-actions'].map(selector=>rect(document.querySelector('#game '+selector))),
         screen:{width:innerWidth,height:innerHeight},
-        scroll:{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight},
+        scroll:{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight,
+          htmlX:getComputedStyle(document.documentElement).overflowX,
+          htmlY:getComputedStyle(document.documentElement).overflowY,
+          bodyX:getComputedStyle(document.body).overflowX,
+          bodyY:getComputedStyle(document.body).overflowY,
+          scrollX:window.scrollX,scrollY:window.scrollY},
         areaScroll:{width:boardArea.scrollWidth,clientWidth:boardArea.clientWidth,
           height:boardArea.scrollHeight,clientHeight:boardArea.clientHeight,
           overflowX:getComputedStyle(boardArea).overflowX,overflowY:getComputedStyle(boardArea).overflowY},
@@ -231,6 +236,10 @@ const { pathToFileURL } = require('node:url');
         oldIndices:document.querySelectorAll('#board .nono-clue-index').length};
     });
     console.log('Large board fit '+size+'x'+size+': '+JSON.stringify(layout));
+    if(layout.scroll.htmlX!=='hidden'||layout.scroll.htmlY!=='hidden'||
+       layout.scroll.bodyX!=='hidden'||layout.scroll.bodyY!=='hidden'||
+       layout.scroll.scrollX!==0||layout.scroll.scrollY!==0)
+      throw new Error('At screen fit both document scroll axes must be disabled: '+JSON.stringify(layout.scroll));
     if(layout.board.left<-3||layout.board.top<0||layout.board.right>layout.screen.width+3||
        layout.board.bottom>layout.screen.height+3||layout.card.bottom>layout.screen.height+3||
        layout.scroll.width>layout.screen.width+3||layout.scroll.height>layout.screen.height+3)
@@ -371,7 +380,17 @@ const { pathToFileURL } = require('node:url');
       const runThreshold=page.locator('#nono-settings-content input[aria-label="연속 칸 숫자 표시 기준"]');
       if(await runToggle.isChecked()||!(await runThreshold.count()))
         throw new Error('Continuous painted-run length feature should default to OFF with a numeric threshold');
-      await runToggle.check();await page.click('#nono-settings-close');
+      const mergedRow=page.locator('#nono-settings-content .nono-setting-run');
+      if(await mergedRow.count()!==1||
+         await mergedRow.locator('input[type=checkbox]').count()!==1||
+         await mergedRow.locator('input[type=range]').count()!==1||
+         await mergedRow.locator('.nono-setting-visual').count()!==1||
+         await page.getByText('연속 칸 숫자 표시 기준',{exact:true}).count()!==0)
+        throw new Error('Count toggle and threshold must share one settings row');
+      if(!await runThreshold.isDisabled())throw new Error('Threshold should be disabled when run labels are off');
+      await runToggle.check();
+      if(await runThreshold.isDisabled())throw new Error('Threshold must be active after enabling run labels');
+      await page.click('#nono-settings-close');
       await page.evaluate(start=>{
         for(let i=0;i<12;i++)board[i]='1';
         render();
@@ -422,19 +441,32 @@ const { pathToFileURL } = require('node:url');
       return {scrollLeft:area.scrollLeft,scrollTop:area.scrollTop,
         overflowX:getComputedStyle(area).overflowX,
         overflowY:getComputedStyle(area).overflowY,
+        htmlX:getComputedStyle(document.documentElement).overflowX,
+        htmlY:getComputedStyle(document.documentElement).overflowY,
+        bodyX:getComputedStyle(document.body).overflowX,
+        bodyY:getComputedStyle(document.body).overflowY,
+        pageWidth:document.documentElement.scrollWidth,
+        pageHeight:document.documentElement.scrollHeight,
+        viewportW:innerWidth,viewportH:innerHeight,
         centered:Math.abs((board.left+board.right)/2-(host.left+host.right)/2)<4};
     });
     if(!afterFit.centered||afterFit.scrollTop!==0||afterFit.scrollLeft!==0||
-       afterFit.overflowX!=='hidden'||afterFit.overflowY!=='hidden')
+       afterFit.overflowX!=='hidden'||afterFit.overflowY!=='hidden'||
+       afterFit.htmlX!=='hidden'||afterFit.htmlY!=='hidden'||
+       afterFit.bodyX!=='hidden'||afterFit.bodyY!=='hidden'||
+       afterFit.pageWidth>afterFit.viewportW+2||afterFit.pageHeight>afterFit.viewportH+2)
       throw new Error('Screen fit must restore size and center with no scroll: '+JSON.stringify(afterFit));
     await page.evaluate(()=>leaveGame());
   }
   await page.click('#nono-open-settings');
   await page.getByRole('tab',{name:'보드·화면'}).click();
-  await page.locator('#nono-visual-help').click();
+  if(await page.locator('#nono-visual-help').count()!==0)
+    throw new Error('Global image explanation button must be absent');
+  await page.getByRole('button',{name:'일반 격자선 두께 이미지로 설명보기'}).click();
   if(!await page.locator('#nono-guide-overlay').isVisible()||
-     await page.locator('#nono-guide-overlay svg').count()<8)
-    throw new Error('Settings illustration gallery is missing');
+     await page.locator('#nono-guide-overlay .nono-guide-item').count()!==1||
+     await page.locator('#nono-guide-overlay svg').count()!==2)
+    throw new Error('Per-setting illustrated explanation must remain available');
   await page.locator('#nono-guide-overlay button').first().click();
   await page.click('#nono-settings-close');
 
