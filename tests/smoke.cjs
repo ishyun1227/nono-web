@@ -268,7 +268,8 @@ const { pathToFileURL } = require('node:url');
       await page.locator('#board').getAttribute('data-fit-cell-size'));
     // Dataset property is also exposed through data-fit-cell-size, and zoom updates on RAF.
     if(!Number.isFinite(initial)||initial<=0)throw new Error('Missing computed cell size');
-    // Drag path follows the pointer across rows and reverses when moving backward.
+    // The first intentional direction locks the drag to one row or column.
+    // Moving outside the starting line/board projects the pointer onto that axis.
     if(size===50){
       const start=20*size+20;
       const point=async index=>{
@@ -276,61 +277,100 @@ const { pathToFileURL } = require('node:url');
         if(!rect)throw new Error('Missing drag cell '+index);
         return {x:rect.x+rect.width/2,y:rect.y+rect.height/2};
       };
-      const a=await point(start),far=await point(start+6),back=await point(start+2),
-        cross=await point(start+2+size);
-      await page.mouse.move(a.x,a.y);
+      const origin=await point(start),far=await point(start+6),
+        back=await point(start+2),down=await point(start+size*6);
+      await page.mouse.move(origin.x,origin.y);
       const initialState=await page.evaluate(()=>({undo:undoStack.length,values:board.slice()}));
       await page.mouse.down();
-      await page.mouse.move(far.x,far.y,{steps:10});
-      const extended=await page.evaluate(start=>board.slice(start,start+7),start);
-      if(extended.some(x=>x!=='1'))throw new Error('Drag failed to fill contiguous cells: '+extended.join(''));
-      await page.mouse.move(back.x,back.y,{steps:8});
-      const shortened=await page.evaluate(start=>board.slice(start,start+7),start);
-      if(shortened.slice(0,3).some(x=>x!=='1')||shortened.slice(3).some(x=>x!=='0'))
-        throw new Error('Dragging back did not erase the tail: '+shortened.join(''));
-      await page.mouse.move(cross.x,cross.y,{steps:8});
-      const crossed=await page.evaluate(({start,size})=>board[start+2+size],{start,size});
-      if(crossed!=='1')throw new Error('Drag must cross into the next row');
+      await page.mouse.move(far.x,far.y,{steps:5});
+      let values=await page.evaluate(start=>board.slice(start,start+7),start);
+      if(values.some(v=>v!=='1'))throw new Error('One-row drag did not fill its straight segment: '+values.join(''));
+      // Leave the row: the selected horizontal segment must still respond to x.
+      await page.mouse.move(far.x+35,down.y,{steps:4});
+      const offLine=await page.evaluate(({start,size})=>({
+        sameRow:board.slice(start,start+9),nextRow:board[start+size+6]}),{start,size});
+      if(offLine.sameRow.some(v=>v!=='1')||offLine.nextRow!=='0')
+        throw new Error('Drag changed another row or failed when pointer left its row: '+JSON.stringify(offLine));
+      // Leaving the *entire board* still updates/clamps to its last column.
+      const bounds=await page.locator('#board .cells').boundingBox();
+      await page.mouse.move(bounds.x+bounds.width+45,down.y,{steps:2});
+      const lastColumn=await page.evaluate(({start,size})=>board[start-start%size+size-1],{start,size});
+      if(lastColumn!=='1')throw new Error('Dragging past the board right edge did not reach the last column');
+      await page.mouse.move(back.x,down.y,{steps:4});
+      values=await page.evaluate(start=>board.slice(start,start+9),start);
+      if(values.slice(0,3).some(v=>v!=='1')||values.slice(3).some(v=>v!=='0'))
+        throw new Error('Backward drag did not shrink its single row: '+values.join(''));
       await page.mouse.up();
       const afterState=await page.evaluate(()=>({undo:undoStack.length,dragging:!document.getElementById('nono-drag-hud').hidden}));
       if(afterState.dragging||afterState.undo!==initialState.undo+1)
-        throw new Error('Drag must commit exactly one history entry: '+JSON.stringify({initialState:{undo:initialState.undo},afterState}));
+        throw new Error('Row stroke must commit one undo entry: '+JSON.stringify({initial:initialState.undo,after:afterState}));
       await page.click('#undo');
-      const restored=await page.evaluate(()=>board.slice());
+      let restored=await page.evaluate(()=>board.slice());
       if(JSON.stringify(restored)!==JSON.stringify(initialState.values))
-        throw new Error('Undo failed to restore full stroke');
-      await page.locator('#board .cell').nth(start+1).hover();
-      if(!await page.locator('#board .cell').nth(start+1).evaluate(el=>el.classList.contains('active')))
-        throw new Error('Live mouse highlight should follow by default');
+        throw new Error('Undo failed to restore a full row stroke');
+      // A fresh vertical stroke remains in its original column while pointer is off-column.
+      await page.mouse.move(origin.x,origin.y);
+      await page.mouse.down();
+      const chooseVertical=await point(start+size*2);
+      await page.mouse.move(chooseVertical.x,chooseVertical.y,{steps:3});
+      await page.mouse.move(bounds.x-45,down.y,{steps:3});
+      const vertical=await page.evaluate(({start,size})=>({
+        inColumn:Array.from({length:7},(_,i)=>board[start+i*size]),
+        adjacent:board[start+size*6-1]}),{start,size});
+      if(vertical.inColumn.some(v=>v!=='1')||vertical.adjacent!=='0')
+        throw new Error('Vertical drag failed to stay in one column outside that column: '+JSON.stringify(vertical));
+      await page.mouse.up();
+      await page.click('#undo');
+      restored=await page.evaluate(()=>board.slice());
+      if(JSON.stringify(restored)!==JSON.stringify(initialState.values))
+        throw new Error('Undo failed to restore a vertical stroke');
+      // Jump the hover directly across the board in a single pointermove.
+      await page.mouse.move(origin.x,origin.y,{steps:1});
+      const destination=await point(33*size+38);
+      await page.mouse.move(destination.x,destination.y,{steps:1});
+      const cursor=await page.evaluate(({start,dest})=>({
+        current:document.querySelectorAll('#board .cell')[dest].classList.contains('active'),
+        former:document.querySelectorAll('#board .cell')[start].classList.contains('active'),
+        selected}),{start,dest:33*size+38});
+      if(!cursor.current||cursor.former||cursor.selected!==33*size+38)
+        throw new Error('Hover should immediately jump to the actual mouse cell: '+JSON.stringify(cursor));
       await page.click('#nono-open-settings');
       await page.getByRole('tab',{name:'편의성·힌트'}).click();
       const pref=page.locator('#nono-settings-content input[aria-label="마우스 실시간 선택"]');
-      if(!await pref.isChecked())throw new Error('Mouse-follow preference must be enabled by default');
+      if(!await pref.isChecked())throw new Error('Mouse-follow preference must default to ON');
       const rows=await page.locator('#nono-settings-content .nono-setting').count();
       const helps=await page.locator('#nono-settings-content .nono-setting .nono-setting-visual').count();
-      if(rows!==helps)throw new Error('Every setting needs its own illustration button');
+      if(rows!==helps)throw new Error('Each setting needs an individual illustration button');
       await page.getByRole('button',{name:'마우스 실시간 선택 이미지로 설명보기'}).click();
       if(await page.locator('#nono-guide-overlay .nono-guide-item').count()!==1||
          await page.locator('#nono-guide-overlay svg').count()!==2)
-         throw new Error('Individual explanation should show only the chosen setting');
+        throw new Error('Individual explanation should focus on only that option');
       await page.locator('#nono-guide-overlay button').first().click();
-      await pref.uncheck();
-      await page.click('#nono-settings-close');
-      await page.locator('#board .cell').nth(start+2).hover();
-      if(await page.locator('#board .cell').nth(start+2).evaluate(el=>el.classList.contains('active')))
-        throw new Error('Mouse-follow OFF must prevent hover selection');
+      await pref.uncheck();await page.click('#nono-settings-close');
+      const oldSelected=await page.evaluate(()=>selected);
+      await page.mouse.move(origin.x,origin.y,{steps:1});
+      if(await page.evaluate(()=>selected)!==oldSelected)
+        throw new Error('Mouse-follow OFF must prevent cursor selection');
       await page.click('#nono-open-settings');
       await page.getByRole('tab',{name:'편의성·힌트'}).click();
-      await pref.check();
-      await page.click('#nono-settings-close');
+      await pref.check();await page.click('#nono-settings-close');
     }
     await page.click('#nono-zoom-out');
     await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)<previous,initial);
     await page.click('#nono-zoom-center');
     await page.click('#nono-zoom-in');
     await page.waitForFunction(previous=>Math.abs(Number(document.querySelector('#board').dataset.fitCellSize)-previous)<.05,initial);
-    if(!await page.locator('#nono-zoom-in').isDisabled())
-      throw new Error('Zoom-in must stop at largest fully visible size');
+    if(await page.locator('#nono-zoom-in').isDisabled())
+      throw new Error('Zoom-in must remain available beyond full-screen fit');
+    await page.click('#nono-zoom-in');
+    await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)>previous,initial);
+    const extraZoom=await page.evaluate(()=>({
+      cell:Number(document.querySelector('#board').dataset.fitCellSize),
+      overflowX:getComputedStyle(document.querySelector('#game .board-scroll')).overflowX,
+      overflowY:getComputedStyle(document.querySelector('#game .board-scroll')).overflowY,
+      label:document.querySelector('#nono-zoom-label').textContent}));
+    if(extraZoom.cell<=initial||extraZoom.overflowX!=='hidden'||extraZoom.overflowY!=='hidden')
+      throw new Error('Beyond-fit zoom must enlarge while preserving no-scroll mode: '+JSON.stringify(extraZoom));
     await page.click('#nono-zoom-out');
     await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)<previous,initial);
     await page.click('#nono-zoom-fit');
