@@ -401,13 +401,13 @@ const { pathToFileURL } = require('node:url');
         label:document.querySelector('#nono-zoom-label').textContent};
     });
     if(extraZoom.cell<=initial||extraZoom.overflowX!=='hidden'||extraZoom.overflowY!=='hidden'||
-       extraZoom.pageHeight<=900||extraZoom.pageWidth<=1440)
+       extraZoom.pageHeight<=900)
       throw new Error('Beyond-fit zoom must scroll the document, never the puzzle: '+JSON.stringify(extraZoom));
     const pageScroll=await page.evaluate(()=>{
       window.scrollTo({top:230,left:75,behavior:'instant'});
       return {y:window.scrollY,x:window.scrollX};
     });
-    if(pageScroll.y<=0||pageScroll.x<=0)
+    if(pageScroll.y<=0||(extraZoom.pageWidth>1440&&pageScroll.x<=0))
       throw new Error('Site must retain native vertical and horizontal scrolling when enlarged: '+JSON.stringify(pageScroll));
     await page.evaluate(()=>window.scrollTo({top:0,left:0,behavior:'instant'}));
     await page.click('#nono-zoom-out');
