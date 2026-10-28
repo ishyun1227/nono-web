@@ -210,7 +210,7 @@
     const own = API.recentCompleted(local, 5);
     const seen = new Set();
     const runs = [
-      ...remoteRows.map(row=>({remote:true,row,at:row.completedAt,unique:'public:'+row.puzzleId+':'+row.uid})),
+      ...remoteRows.map(row=>({remote:true,row,at:row.completedAt,unique:row.replay?.id || 'public:'+row.puzzleId+':'+row.uid})),
       ...accountRows.map(run=>({run,at:run.completedAt,unique:run.id})),
       ...own.map(run=>({run,at:run.completedAt,unique:run.id}))
     ].sort((a,b)=>b.at-a.at).filter(item=>{
