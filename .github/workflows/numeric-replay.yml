@@ -47,4 +47,4 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Browser replay and two-user co-op smoke
-        run: firebase emulators:exec --project demo-nono --only database,auth "node tests/browser-replay.cjs"
+        run: npx firebase emulators:exec --project demo-nono --only database,auth "node tests/browser-replay.cjs"
