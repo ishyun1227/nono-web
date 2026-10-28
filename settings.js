@@ -1322,7 +1322,7 @@ function endFastDrag(e){
   playSound('input',d.target);
   saveBoard();
   const solved=isSolved(board,puzzle);
-  if(mode==='race')queueRaceState(solved);
+  if(mode==='race')queueRaceState(solved,d.replayChanges);
   else if(solved)finishLocal();
   if(mode==='practice')renderLive();
   if(prefs.errorMode==='immediate')notifyWrong('immediate');
