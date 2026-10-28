@@ -107,3 +107,288 @@ body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))>.nono-frie
  body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden)){gap:10px;padding:13px 12px}
  body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden))>.nono-friends-card-art img{max-height:72px}
 }
+
+/* Gestalt UI polish — reversible visual-only overrides (2026-10-28). */
+/* The default world keeps its artwork and its original click/selection flow.
+   Use one accent for active decisions, restrained surfaces, and a clear game focal point. */
+body[data-nono-theme="neon"]{
+  --nono-base-content:1240px;
+  --nono-ui-accent:#80e2d8;
+  --nono-ui-ink:#132635;
+  --nono-ui-line:#34445e;
+}
+body[data-nono-theme="neon"] .topbar{
+  height:64px;
+  margin-bottom:16px;
+}
+body[data-nono-theme="neon"] .mode-select{
+  gap:3px;
+  margin-bottom:12px;
+  padding:3px;
+  background:#171f31;
+  border-color:#2e3b50;
+  border-radius:10px;
+}
+body[data-nono-theme="neon"] .mode-select .mode-card{
+  min-height:40px;
+  height:40px;
+  border-radius:7px;
+  color:#c9d4e9;
+  font-weight:700;
+  transition:background-color .15s ease,color .15s ease;
+}
+body[data-nono-theme="neon"] .mode-select .mode-card.selected,
+body[data-nono-theme="neon"] .mode-select .mode-card.selected:hover{
+  color:var(--nono-ui-ink);
+  background:var(--nono-ui-accent);
+  border-color:transparent;
+}
+body[data-nono-theme="neon"] .mode-select .mode-card:hover:not(.selected){
+  background:#29354b;
+  color:#fff;
+}
+body[data-nono-theme="neon"] #setup{
+  grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);
+  column-gap:clamp(14px,2.5vw,32px);
+  row-gap:12px;
+  min-height:0;
+  padding:clamp(17px,2.2vw,26px);
+  border:1px solid #303e53;
+  border-radius:12px;
+  background:#192337;
+  box-shadow:none;
+}
+body[data-nono-theme="neon"] #setup::before{
+  content:none!important;
+  display:none!important;
+}
+body[data-nono-theme="neon"] #setup .setup-description{
+  min-height:0;
+}
+body[data-nono-theme="neon"] #setup .setup-description h3{
+  font-size:19px;
+  line-height:1.35;
+  letter-spacing:-.025em;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-setup{
+  gap:9px;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-label{
+  color:#cad6ea;
+  font-size:12px;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-choice{
+  min-height:32px;
+  padding:6px 9px;
+  border-color:var(--nono-ui-line);
+  background:#131d30;
+  color:#dbe5f5;
+  font-size:12px;
+}
+body[data-nono-theme="neon"] #setup .nono-quick-choice[aria-pressed="true"]{
+  color:var(--nono-ui-ink);
+  background:var(--nono-ui-accent);
+  border-color:var(--nono-ui-accent);
+}
+body[data-nono-theme="neon"] #setup .nono-quick-choice:hover:not([aria-pressed="true"]):not(:disabled){
+  color:#fff;
+  background:#293953;
+}
+body[data-nono-theme="neon"] #setup .setup-actions #play-alone,
+body[data-nono-theme="neon"] #setup .nono-quick-room-action,
+body[data-nono-theme="neon"] #public-lobby #quick-match{
+  background:var(--nono-ui-accent);
+  color:var(--nono-ui-ink);
+  border-color:var(--nono-ui-accent);
+  box-shadow:none;
+}
+body[data-nono-theme="neon"] #setup .setup-actions #play-alone{
+  min-height:39px;
+  padding:9px 17px;
+  font-size:13px;
+}
+body[data-nono-theme="neon"] #setup>.nono-friends-card-art{
+  align-self:center;
+}
+body[data-nono-theme="neon"] #setup>.nono-friends-card-art img{
+  max-width:520px;
+  filter:drop-shadow(0 5px 8px #0a12234d);
+}
+/* In multiplayer, the setup itself is the grouping surface.
+   Avoid placing a second framed card inside it. */
+body[data-nono-theme="neon"] #setup:has(> #public-lobby:not(.hidden)){
+  background:#192337;
+  border-color:#303e53;
+}
+body[data-nono-theme="neon"] #setup #public-lobby{
+  margin-top:3px;
+  padding:14px 0 0;
+  border:0;
+  border-top:1px solid #344258;
+  border-radius:0;
+  background:transparent;
+}
+body[data-nono-theme="neon"] #public-lobby #quick-match{
+  width:max-content;
+  min-width:180px;
+  max-width:100%;
+  align-self:flex-start;
+  border-radius:8px;
+}
+body[data-nono-theme="neon"] #public-lobby .public-room-item{
+  padding:10px 4px;
+  border:0;
+  border-bottom:1px solid #344258;
+  border-radius:0;
+  background:transparent;
+}
+body[data-nono-theme="neon"] #public-lobby .public-room-item:hover{
+  background:#ffffff08;
+}
+body[data-nono-theme="neon"] #public-lobby .public-lobby-footer{
+  border-top:1px solid #344258;
+}
+/* During play, remove visual competition without touching cell dimensions,
+   overflow logic, pointer events, highlighting, or screen-fit behavior. */
+body[data-nono-theme="neon"] #game .game-header{
+  margin-bottom:12px;
+}
+body[data-nono-theme="neon"] #game .game-header h1{
+  font-size:23px;
+  letter-spacing:-.035em;
+}
+body[data-nono-theme="neon"] #game .game-mode-badge{
+  padding:6px 10px;
+  color:#cce9e6;
+  border-color:#365b61;
+  background:#19333d;
+}
+body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .board-card{
+  padding:15px clamp(10px,2vw,20px) 14px;
+  background:#141f32;
+  border:1px solid #334257;
+  border-radius:12px;
+  box-shadow:none;
+}
+body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .board-top{
+  padding-bottom:10px;
+  border-bottom-color:#334257;
+}
+body[data-nono-theme="neon"] #game .timer-stat{
+  gap:6px;
+  font-size:21px;
+}
+body[data-nono-theme="neon"] #game .timer-stat>span:first-child{
+  color:#9baac4;
+  font-size:21px;
+}
+body[data-nono-theme="neon"] #game .mini-stat{
+  color:#b6c4da;
+}
+body[data-nono-theme="neon"] #game .mini-stat strong{
+  color:#edf9f6;
+  font-size:16px;
+}
+body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .board-caption{
+  padding:6px 0 11px;
+  font-size:11px;
+  color:#a8b9d3;
+}
+body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .board-footer{
+  gap:7px;
+  padding-top:11px;
+  border-top-color:#334257;
+}
+body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .tool-button{
+  flex:0 1 auto;
+  flex-direction:row;
+  gap:7px;
+  min-width:85px;
+  min-height:42px;
+  padding:8px 12px;
+  border:1px solid #41516c;
+  border-radius:8px;
+  background:#1d2b43;
+  color:#e0e9fa;
+  box-shadow:none;
+}
+body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .tool-button.primary{
+  color:var(--nono-ui-ink);
+  background:var(--nono-ui-accent);
+  border-color:var(--nono-ui-accent);
+}
+body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .tool-icon{
+  font-size:19px;
+}
+body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .tool-button strong{
+  font-size:12px;
+}
+body[data-nono-theme="neon"] #game .lobby,
+body[data-nono-theme="neon"] #game .players-card{
+  border-color:#334257;
+  background:#192337;
+  box-shadow:none;
+}
+body[data-nono-theme="neon"] :is(button,input,select,summary,a):focus-visible{
+  outline:2px solid var(--nono-ui-accent);
+  outline-offset:2px;
+}
+@media(max-width:1020px){
+  body[data-nono-theme="neon"] #setup{
+    grid-template-columns:minmax(0,1fr);
+  }
+  body[data-nono-theme="neon"] #setup>.nono-friends-card-art img{
+    max-height:90px;
+  }
+}
+@media(max-width:660px){
+  body[data-nono-theme="neon"] .topbar{
+    height:61px;
+    margin-bottom:12px;
+  }
+  body[data-nono-theme="neon"] .mode-select{
+    margin-bottom:10px;
+  }
+  body[data-nono-theme="neon"] .mode-select .mode-card{
+    min-height:38px;
+    height:38px;
+    font-size:13px;
+  }
+  body[data-nono-theme="neon"] #setup{
+    padding:16px 13px;
+    gap:12px;
+  }
+  body[data-nono-theme="neon"] #setup .nono-quick-choice{
+    min-height:32px;
+    padding:6px 7px;
+    font-size:11px;
+  }
+  body[data-nono-theme="neon"] #setup>.nono-friends-card-art img{
+    max-height:76px;
+  }
+  body[data-nono-theme="neon"] #public-lobby #quick-match{
+    width:100%;
+  }
+  body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .board-footer{
+    gap:5px;
+  }
+  body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .tool-button{
+    flex:1 1 0;
+    flex-direction:column;
+    gap:3px;
+    min-width:0;
+    min-height:44px;
+    padding:6px 2px;
+  }
+  body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .tool-icon{
+    font-size:18px;
+  }
+  body[data-nono-theme="neon"]:not(.nono-fit-playing) #game .tool-button strong{
+    font-size:10px;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body[data-nono-theme="neon"] .mode-select .mode-card{
+    transition:none;
+  }
+}
