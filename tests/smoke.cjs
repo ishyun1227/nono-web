@@ -292,7 +292,7 @@ const { pathToFileURL } = require('node:url');
       const crossed=await page.evaluate(({start,size})=>board[start+2+size],{start,size});
       if(crossed!=='1')throw new Error('Drag must cross into the next row');
       await page.mouse.up();
-      const afterState=await page.evaluate(()=>({undo:undoStack.length,dragging:!!fastDrag}));
+      const afterState=await page.evaluate(()=>({undo:undoStack.length,dragging:!document.getElementById('nono-drag-hud').hidden}));
       if(afterState.dragging||afterState.undo!==initialState.undo+1)
         throw new Error('Drag must commit exactly one history entry');
       await page.click('#undo');
