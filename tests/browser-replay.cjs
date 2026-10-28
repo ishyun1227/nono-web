@@ -36,6 +36,17 @@ async function main(){
    select.dispatchEvent(new Event('change',{bubbles:true}));await startAlone();
    for(let i=0;i<expected.length;i++)if(expected[i]==='1')paint(i,'1',true);
   },answers.heart5);
+  const diagnostic=await pages[0].evaluate(()=>{
+    const stored=window.NONO_REPLAY?.recentCompleted(storage,5)||[];
+    return {
+      activeMode:mode,selected:puzzle?.id,boardSize:board.length,
+      finished,completedAt:finishedAt,prefix:board.join('').slice(0,50),
+      actualExpected:PUZZLES.find(p=>p.id===puzzle?.id)?.rows,
+      saved:stored.length,replayCount:stored[0]?.actions?.length,
+      cardCount:document.querySelectorAll('.nono-replay-card').length
+    };
+  });
+  console.log('REPLAY SOLO DIAGNOSTIC',JSON.stringify(diagnostic),'page errors',errors);
   await pages[0].waitForSelector('.nono-replay-card');
   const state=await pages[0].evaluate(()=>{
    const r=window.NONO_REPLAY.recentCompleted(storage,5)[0];
