@@ -1,0 +1,31 @@
+name: NONO numeric replay validation
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check replay and game integration syntax
+        run: |
+          node --check numeric-replay.js
+          node --check replay-client.js
+          node --check cloud-replays.js
+          node --check settings.js
+          node --check tests/replay.cjs
+      - name: Numeric replay actions and persistence
+        run: node tests/replay.cjs
+      - name: Ensure replay assets are in deploy build
+        run: |
+          node tools/build.cjs
+          test -s dist/numeric-replay.js
+          test -s dist/replay-client.js
+          test -s dist/cloud-replays.js
+          grep -q './numeric-replay.js' dist/index.html
+          grep -q './replay-client.js' dist/index.html
+          grep -q './cloud-replays.js' dist/index.html
