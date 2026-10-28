@@ -253,6 +253,18 @@ function translateDynamic(original,locale){
      (m[1]==='PC'?'PC':locale==='ja'?'タッチ':locale.startsWith('zh')?'触屏':'Touch')+' '+t('프로필');
  if((m=/^(\d+)칸 초과$/.exec(original)))
    return (locale==='ja'?m[1]+'マス超':locale.startsWith('zh')?'超过'+m[1]+'格':'Over '+m[1]+' cells');
+ if((m=/^(\d+×\d+) · 퍼즐 (\d+)$/.exec(original)))
+   return m[1]+' · '+t('퍼즐')+' '+m[2];
+ if((m=/^(\d+×\d+) · 크기 테스트$/.exec(original)))
+   return m[1]+' · '+t('크기 테스트');
+ if((m=/^퍼즐 선택: (.+)$/.exec(original)))
+   return t('퍼즐 선택:')+' '+t(m[1]);
+ if((m=/^(\d+)행 (\d+)열$/.exec(original)))
+   return locale==='ja'?m[1]+'行 '+m[2]+'列':locale.startsWith('zh')?'第'+m[1]+'行第'+m[2]+'列':t('행')+' '+m[1]+', '+t('열')+' '+m[2];
+ if((m=/^행 (.+) · 열 (.+)$/.exec(original)))
+   return t('행')+' '+m[1]+' · '+t('열')+' '+m[2];
+ if((m=/^(\d+×\d+) · 방향키 \/ Space \/ X$/.exec(original)))
+   return m[1]+' · '+t('방향키')+' / Space / X';
  return null;
 }
 const attrNames=['aria-label','title','placeholder'];
