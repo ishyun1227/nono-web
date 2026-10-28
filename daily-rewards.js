@@ -2,6 +2,7 @@
 (()=>{'use strict';
 const KEY='nono-daily-preview-v1';
 const REWARDS=[20,30,40,50,60,70,100];
+const THEME_PRICES=Object.freeze({aurora:300,pastel:450,retro:400,forest:500,arcade:2500,library:3500,enchanted:4500,cosmos:5500,terminal:6500});
 const MISSIONS=[
  {id:'puzzle',event:'puzzle-complete',icon:'🧩',name:'퍼즐 1회 완료하기',info:'정답을 완성하면 달성',points:50},
  {id:'race',event:'race-action',icon:'🏁',name:'대결 1회 참여하기',info:'진행 중인 대결에서 칸 입력',points:50},
@@ -15,7 +16,7 @@ const dayKey=(ms=Date.now())=>{
  return [v('year'),v('month'),v('day')].join('-');
 };
 const priorDay=day=>new Date(Date.parse(day+'T00:00:00Z')-86400000).toISOString().slice(0,10);
-const blank=()=>({points:0,streak:0,lastAttendance:'',days:{}});
+const blank=()=>({points:0,streak:0,lastAttendance:'',days:{},ownedThemes:[]});
 function load(){
  try{
   const raw=JSON.parse(localStorage.getItem(KEY)||'null');
@@ -27,7 +28,8 @@ function load(){
    days[d]={attendance:item.attendance===true,missions};
   }
   return {points:safe(raw.points),streak:safe(raw.streak,9999),
-   lastAttendance:/^\d{4}-\d{2}-\d{2}$/.test(raw.lastAttendance||'')?raw.lastAttendance:'',days};
+   lastAttendance:/^\d{4}-\d{2}-\d{2}$/.test(raw.lastAttendance||'')?raw.lastAttendance:'',days,
+   ownedThemes:Array.isArray(raw.ownedThemes)?[...new Set(raw.ownedThemes.filter(id=>typeof id==='string'&&Object.prototype.hasOwnProperty.call(THEME_PRICES,id)))]:[]};
  }catch(_){return blank();}
 }
 let state=load(),renderedDay='';
@@ -43,7 +45,7 @@ root.innerHTML=[
  '<p id="nono-attendance-lead" class="nono-attendance-lead"></p>',
  '<div id="nono-attendance-days" class="nono-attendance-days" aria-label="7일 출석 보상"></div>',
  '<button id="nono-attendance-claim" class="nono-attendance-claim" type="button">오늘 출석 보상 받기</button>',
- '<p class="nono-daily-note">체험 포인트는 이 브라우저에만 저장돼요. 아직 상점에서 사용할 수 없어요.</p></section>'
+ '<p class="nono-daily-note">포인트는 이 브라우저의 테마 상점 체험에 사용할 수 있어요. 현금 충전·기기 간 동기화는 아직 지원되지 않아요.</p></section>'
 ].join('');
 const el=id=>root.querySelector('#'+id);
 function todayState(day){
@@ -111,6 +113,19 @@ function claimMission(id){
  entry.claimed=true;state.points=Math.min(9999999,state.points+m.points);
  save();render();notice('미션 보상 +'+m.points+' 체험 P');return true;
 }
+function purchaseTheme(id){
+  if(typeof id!=='string'||!Object.prototype.hasOwnProperty.call(THEME_PRICES,id))
+    return {ok:false,reason:'상품 정보가 올바르지 않아요.'};
+  state=load();
+  if(state.ownedThemes.includes(id))return {ok:false,reason:'이미 이 브라우저에서 해제한 테마예요.'};
+  const price=THEME_PRICES[id];
+  if(state.points<price)return {ok:false,reason:'체험 포인트가 부족해요.'};
+  state.points-=price;
+  state.ownedThemes.push(id);
+  save();render();
+  window.dispatchEvent(new CustomEvent('nono:wallet-change',{detail:{id,points:state.points}}));
+  return {ok:true,id,points:state.points,price};
+}
 function onActivity(event){
  const id=MISSIONS.find(m=>m.event===event.detail?.kind)?.id;if(!id)return;
  state=load();const data=todayState(dayKey());
@@ -122,7 +137,7 @@ el('nono-mission-list').addEventListener('click',e=>{
 });
 el('nono-attendance-claim').addEventListener('click',claimAttendance);
 window.addEventListener('nono:activity',onActivity);
-window.addEventListener('storage',e=>{if(e.key===KEY){state=load();render();}});
+window.addEventListener('storage',e=>{if(e.key===KEY){state=load();render();window.dispatchEvent(new Event('nono:wallet-change'));}});
 function dock(){
  const theme=document.body.dataset.nonoTheme;
  const target=theme==='enchanted'?$('#fg-home'):theme==='terminal'?$('#terminal-experience'):$('#home-view');
@@ -136,7 +151,9 @@ window.addEventListener('focus',()=>{state=load();dock();render();});
 setInterval(()=>{if(dayKey()!==renderedDay){state=load();render();}},60000);
 window.NONO_DAILY_REWARDS=Object.freeze({
  getSnapshot:()=>JSON.parse(JSON.stringify({day:dayKey(),...state})),
- claimAttendance,claimMission,refresh:()=>{state=load();dock();render();}
+ claimAttendance,claimMission,purchaseTheme,
+  refresh:()=>{state=load();dock();render();},
+  ownsTheme:id=>id==='neon'||state.ownedThemes.includes(id)
 });
 dock();render();
 })();
