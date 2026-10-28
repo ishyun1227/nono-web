@@ -29,6 +29,8 @@ jobs:
       - name: Check JavaScript syntax
         run: |
           node --check locale.js
+          node --check locale-packs.js
+          node --check locale-en-extra.js
           node --check tests/locale.cjs
           node --check settings.js
           node --check themes.js
