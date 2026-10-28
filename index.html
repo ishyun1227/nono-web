@@ -159,7 +159,7 @@ function emptyBoard(p){return Array(p.size*p.size).fill('0');}
 function elapsedFormat(ms){const total=Math.max(0,Math.floor(ms/1000));return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;}
 
 // Firebase가 설정된 경우에만 SDK를 가져옵니다. 별도 설정 없이도 로컬 체험이 가능합니다.
-let initializeApp,getAuth,signInAnonymously,getDatabase,ref,get,set,remove,onValue,onDisconnect,runTransaction,serverTimestamp,query,orderByChild,limitToFirst,limitToLast;
+let initializeApp,getAuth,signInAnonymously,getDatabase,ref,get,set,remove,onValue,onDisconnect,runTransaction,serverTimestamp,query,orderByChild,limitToFirst,limitToLast,push;
 
 // Browsers that restrict storage on local file URLs can still run the single-file demo.
 const storage=(()=>{try{const s=window.localStorage;const key='nono-storage-check';s.setItem(key,'1');s.removeItem(key);return s;}catch{return{getItem:()=>null,setItem:()=>{},removeItem:()=>{}};}})();
@@ -371,15 +371,23 @@ function paint(index,to,drag){
   const prev=board[index];const next=drag?to:(prev===to&&to!=='0'?'0':to);if(prev===next)return;
   if(mode==='coop'){
     if(!onlineReady()||!roomCode)return;
-    const activeRoom=roomCode;
-    runTransaction(ref(database,`rooms/${roomCode}/board`),current=>{const old=(typeof current==='string'&&current.length===puzzle.size*puzzle.size)?current:'0'.repeat(puzzle.size*puzzle.size);return old.slice(0,index)+next+old.slice(index+1);}).then(result=>{if(result.committed&&roomCode===activeRoom){contributedCoopRooms.add(activeRoom);emitDailyActivity('coop-action');if(finished)emitDailyActivity('puzzle-complete');}}).catch(firebaseError);
+    const activeRoom=roomCode, actor=currentId(), origin=meta?.startedAt||serverNow();let previousServer=null;
+    runTransaction(ref(database,`rooms/${activeRoom}/board`),current=>{
+      const old=(typeof current==='string'&&current.length===puzzle.size*puzzle.size)?current:'0'.repeat(puzzle.size*puzzle.size);
+      previousServer=old[index];
+      if(previousServer===next)return undefined;
+      return old.slice(0,index)+next+old.slice(index+1);
+    }).then(result=>{if(result.committed&&roomCode===activeRoom){
+      window.dispatchEvent(new CustomEvent('nono:coop-committed',{detail:{mode:'coop',room:activeRoom,actor,startedAt:origin,at:serverNow(),changes:[[index,Number(previousServer),Number(next)]]}}));
+      contributedCoopRooms.add(activeRoom);emitDailyActivity('coop-action');if(finished)emitDailyActivity('puzzle-complete');
+    }}).catch(firebaseError);
     return;
   }
   if(mode==='practice'||mode==='record'){undoStack.push({board:board.slice(),changes,selected});if(undoStack.length>150)undoStack.shift();redoStack=[];}
   if(prev!=='0')changes++;
   board[index]=next;selected=index;render();
   const solved=isSolved(board,puzzle);
-  if(mode==='race')queueRaceState(solved);
+  if(mode==='race')queueRaceState(solved,[[index,Number(prev),Number(next)]]);
   else if(solved)finishLocal();
   if(mode==='practice')renderLive();
 }
@@ -563,13 +571,16 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
 async function ensureRaceState(){if(!meta||meta.status!=='playing'||!roomCode)return;const path=`rooms/${roomCode}/states/${currentId()}`,start=meta.startedAt,blank='0'.repeat(puzzle.size*puzzle.size);if(settingBoard)return;settingBoard=true;try{await runTransaction(ref(database,path),current=>current?undefined:{board:blank,filled:blank,startedAt:start,finishedAt:0});}finally{settingBoard=false;}}
 async function startRace(){if(!roomCode||!meta||meta.host!==currentId()||startingRace)return;if(Object.keys(players).length<2){toast('대결은 최소 2명부터 시작할 수 있어요.');return;}startingRace=true;try{await set(ref(database,`rooms/${roomCode}/meta`),{...meta,status:'playing',startedAt:serverTimestamp()});meta=(await get(ref(database,`rooms/${roomCode}/meta`))).val();if(publicHosted){await removePublicListing(roomCode);publicHosted=false;}await ensureRaceState();}catch(e){firebaseError(e);}finally{startingRace=false;}}
 let pendingRaceWrites=0;
-function queueRaceState(solved){
+function queueRaceState(solved,changesForReplay){
   const code=roomCode,uid=currentId(),snapshot=board.join(''),start=meta?.startedAt;
   if(!code||!start)return;
   pendingRaceWrites++;if(solved)finishing=true;
   raceQueue=raceQueue.then(async()=>{
     const path=`rooms/${code}/states/${uid}`;
     await set(ref(database,path),{board:snapshot,filled:filledMask(snapshot.split('')),startedAt:start,finishedAt:solved?serverTimestamp():0});
+    if(Array.isArray(changesForReplay)&&changesForReplay.length){
+      window.dispatchEvent(new CustomEvent('nono:race-committed',{detail:{mode:'race',room:code,actor:uid,startedAt:start,at:serverNow(),changes:changesForReplay}}));
+    }
     if(roomCode===code)emitDailyActivity('race-action');
     if(solved&&roomCode===code){const state=(await get(ref(database,path))).val();finishedAt=state.finishedAt;finished=true;render();emitDailyActivity('puzzle-complete');toast('대결 퍼즐 완성!');}
   }).catch(firebaseError).finally(()=>{pendingRaceWrites--;if(solved)finishing=false;});
@@ -583,7 +594,7 @@ async function connectFirebase(){
       import('https://www.gstatic.com/firebasejs/11.10.0/firebase-database.js')
     ]);
     ({initializeApp}=firebaseApp);({getAuth,signInAnonymously}=firebaseAuth);
-    ({getDatabase,ref,get,set,remove,onValue,onDisconnect,runTransaction,serverTimestamp,query,orderByChild,limitToFirst,limitToLast}=firebaseDatabase);
+    ({getDatabase,ref,get,set,remove,onValue,onDisconnect,runTransaction,serverTimestamp,query,orderByChild,limitToFirst,limitToLast,push}=firebaseDatabase);
     const app=initializeApp(firebaseConfig),auth=getAuth(app);database=getDatabase(app);if(window.NONO_FIREBASE_EMULATORS&&['localhost','127.0.0.1'].includes(location.hostname)){firebaseAuth.connectAuthEmulator(auth,'http://127.0.0.1:9099',{disableWarnings:true});firebaseDatabase.connectDatabaseEmulator(database,'127.0.0.1',9000);}onValue(ref(database,'.info/serverTimeOffset'),s=>{serverOffset=s.val()||0;});onValue(ref(database,'.info/connected'),s=>{if(currentUser)$('connection').textContent=s.val()?'● 온라인 연결':'연결 끊김 · 재연결 중';if(s.val()&&roomCode){const p=ref(database,`rooms/${roomCode}/players/${mySlot}`);onDisconnect(p).remove().then(()=>get(p).then(s=>s.exists()?undefined:set(p,{uid:currentId(),name:nickname(),joinedAt:serverTimestamp()}))).catch(firebaseError);}});const credential=await signInAnonymously(auth);currentUser=credential.user;$('connection').textContent='● 온라인 연결';refreshHomepageScores();watchPublicLobby();const params=new URL(location.href).searchParams;const code=params.get('room');if(code)await enterRoom(code.toUpperCase());resumeHub.watch();window.dispatchEvent(new CustomEvent('nono:online-ready'));}
   catch(e){$('connection').textContent='연결 실패 · 오프라인';firebaseError(e);}
 }
@@ -718,6 +729,7 @@ initHome();resumeHub=installResume();connectFirebase();
 <script src="./numeric-replay.js?v=1"></script>
 <script src="./replay-client.js?v=1"></script>
 <script src="./cloud-replays.js?v=1"></script>
+<script src="./multiplayer-replay.js?v=1"></script>
 <script src="./themes.js?v=3"></script>
 <script src="./theme-world-ui.js?v=1"></script>
 <script src="./library-ui.js?v=1"></script>
