@@ -248,9 +248,13 @@ const { pathToFileURL } = require('node:url');
       throw new Error('Puzzle board has internal scroll or hidden content: '+JSON.stringify(layout));
     if(layout.coordinateCount!==size/5||layout.oldIndices!==0)
       throw new Error('Row coordinates should mark the right grid edge: '+JSON.stringify(layout));
-    // The board should use the remaining height, not shrink to a tiny postcard.
-    if(size===50 && layout.board.bottom-layout.board.top<390)
-      throw new Error('50x50 board is still too small for a 900px viewport: '+JSON.stringify(layout));
+    // Screen fit must visibly prioritize the puzzle. The previous implementation
+    // passed despite a ~590px board on a 900px screen, so reject that regression.
+    const fittedHeight=layout.board.bottom-layout.board.top;
+    if(fittedHeight<layout.screen.height*.74)
+      throw new Error(size+'x'+size+' does not maximize the available screen height: '+JSON.stringify(layout));
+    if(layout.areaScroll.clientHeight<layout.screen.height*.72)
+      throw new Error('Puzzle region still loses excessive height to toolbars: '+JSON.stringify(layout));
     const initial=Number(await page.locator('#board').getAttribute('data-fit-cell-size')||
       await page.locator('#board').getAttribute('data-fit-cell-size'));
     // Dataset property is also exposed through data-fit-cell-size, and zoom updates on RAF.
