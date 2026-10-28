@@ -220,6 +220,7 @@ const { pathToFileURL } = require('node:url');
       return {board:rect(boardElement),
         card:rect(document.querySelector('.board-card')),
         topbar:rect(topbar),header:rect(gameHeader),
+        toolbars:['#nono-board-zoom','.board-footer','#nono-actions'].map(selector=>rect(document.querySelector('#game '+selector))),
         screen:{width:innerWidth,height:innerHeight},
         scroll:{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight},
         areaScroll:{width:boardArea.scrollWidth,clientWidth:boardArea.clientWidth,
@@ -251,8 +252,16 @@ const { pathToFileURL } = require('node:url');
     // Screen fit must visibly prioritize the puzzle. The previous implementation
     // passed despite a ~590px board on a 900px screen, so reject that regression.
     const fittedHeight=layout.board.bottom-layout.board.top;
-    if(fittedHeight<layout.screen.height*.74)
-      throw new Error(size+'x'+size+' does not maximize the available screen height: '+JSON.stringify(layout));
+    if(fittedHeight<layout.screen.height*.96 ||
+       layout.board.top>layout.screen.height*.025 ||
+       layout.board.bottom<layout.screen.height*.975)
+      throw new Error(size+'x'+size+' must reach both viewport edges without vertical blank bands: '+JSON.stringify(layout));
+    for(const toolbar of layout.toolbars){
+      const overlapW=Math.min(layout.board.right,toolbar.right)-Math.max(layout.board.left,toolbar.left);
+      const overlapH=Math.min(layout.board.bottom,toolbar.bottom)-Math.max(layout.board.top,toolbar.top);
+      if(overlapW>1&&overlapH>1)
+        throw new Error('Floating controls must not cover puzzle or clues: '+JSON.stringify({size,toolbar,board:layout.board}));
+    }
     if(layout.areaScroll.clientHeight<layout.screen.height*.72)
       throw new Error('Puzzle region still loses excessive height to toolbars: '+JSON.stringify(layout));
     const initial=Number(await page.locator('#board').getAttribute('data-fit-cell-size')||
