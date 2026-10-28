@@ -136,8 +136,10 @@ const title=$('game-title');
 if(title){
   const hideAnswer=()=>{
     if(!on()||$('game').classList.contains('hidden'))return;
-    const solved=/완성|성공|축하/.test($('board-status')?.textContent||'');
-    if(!solved&&title.textContent!=='숨겨진 그림')title.textContent='숨겨진 그림';
+    // The puzzle engine owns completion state; never parse translated status text.
+    const solved=typeof finished==='boolean'&&finished;
+    const hiddenTitle=window.NONO_I18N?.translate?.('숨겨진 그림')||'숨겨진 그림';
+    if(!solved&&title.textContent!==hiddenTitle)title.textContent=hiddenTitle;
   };
   new MutationObserver(hideAnswer).observe(title,{childList:true,characterData:true,subtree:true});
   new MutationObserver(hideAnswer).observe($('game'),{attributes:true,attributeFilter:['class']});
