@@ -207,10 +207,25 @@ const { pathToFileURL } = require('node:url');
     await page.waitForFunction(()=>document.querySelector('#board')?.dataset.fitCellSize);
     const layout=await page.evaluate(()=>{
       const rect=e=>{const r=e.getBoundingClientRect();return {left:r.left,right:r.right,top:r.top,bottom:r.bottom}};
-      return {board:rect(document.querySelector('#board')),
+      const boardElement=document.querySelector('#board');
+      const boardArea=document.querySelector('#game .board-scroll');
+      const topbar=document.querySelector('.topbar'),gameHeader=document.querySelector('#game .game-header');
+      const hints=[...boardElement.querySelectorAll('.row-clue span,.col-clue span')];
+      const clipped=hints.filter(el=>{
+        const span=el.getBoundingClientRect(),cell=el.closest('.row-clue,.col-clue').getBoundingClientRect();
+        return span.width<2||span.height<2||span.left<cell.left-1||
+          span.right>cell.right+1||span.top<cell.top-1||span.bottom>cell.bottom+1||
+          el.scrollWidth>el.clientWidth+2||el.scrollHeight>el.clientHeight+2;
+      }).length;
+      return {board:rect(boardElement),
         card:rect(document.querySelector('.board-card')),
+        topbar:rect(topbar),header:rect(gameHeader),
         screen:{width:innerWidth,height:innerHeight},
         scroll:{width:document.documentElement.scrollWidth,height:document.documentElement.scrollHeight},
+        areaScroll:{width:boardArea.scrollWidth,clientWidth:boardArea.clientWidth,
+          height:boardArea.scrollHeight,clientHeight:boardArea.clientHeight,
+          overflowX:getComputedStyle(boardArea).overflowX,overflowY:getComputedStyle(boardArea).overflowY},
+        hintCount:hints.length,clippedHintCount:clipped,
         coordinateCount:document.querySelectorAll('#board .cell[data-row-coordinate]').length,
         oldIndices:document.querySelectorAll('#board .nono-clue-index').length};
     });
@@ -222,6 +237,15 @@ const { pathToFileURL } = require('node:url');
     // The play card itself must use almost the entire viewport width.
     if(layout.card.left>20||layout.card.right<layout.screen.width-20)
       throw new Error('Excessive horizontal margins remain on the play card: '+JSON.stringify(layout));
+    if(layout.topbar.left>20||layout.topbar.right<layout.screen.width-20||
+       layout.header.left>20||layout.header.right<layout.screen.width-20)
+      throw new Error('Navigation/header should span the play card width: '+JSON.stringify(layout));
+    if(layout.hintCount===0||layout.clippedHintCount>0)
+      throw new Error('Clue numbers missing or clipped at '+size+': '+JSON.stringify(layout));
+    if(layout.areaScroll.overflowX!=='hidden'||layout.areaScroll.overflowY!=='hidden'||
+       layout.areaScroll.width>layout.areaScroll.clientWidth+3||
+       layout.areaScroll.height>layout.areaScroll.clientHeight+3)
+      throw new Error('Puzzle board has internal scroll or hidden content: '+JSON.stringify(layout));
     if(layout.coordinateCount!==size/5||layout.oldIndices!==0)
       throw new Error('Row coordinates should mark the right grid edge: '+JSON.stringify(layout));
     // The board should use the remaining height, not shrink to a tiny postcard.
@@ -233,12 +257,27 @@ const { pathToFileURL } = require('node:url');
     if(!Number.isFinite(initial)||initial<=0)throw new Error('Missing computed cell size');
     await page.click('#nono-zoom-out');
     await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)<previous,initial);
+    await page.click('#nono-zoom-center');
     await page.click('#nono-zoom-in');
     await page.waitForFunction(previous=>Math.abs(Number(document.querySelector('#board').dataset.fitCellSize)-previous)<.05,initial);
-    await page.click('#nono-zoom-in');
-    await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)>previous,initial);
+    if(!await page.locator('#nono-zoom-in').isDisabled())
+      throw new Error('Zoom-in must stop at largest fully visible size');
+    await page.click('#nono-zoom-out');
+    await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)<previous,initial);
     await page.click('#nono-zoom-fit');
     await page.waitForFunction(previous=>Math.abs(Number(document.querySelector('#board').dataset.fitCellSize)-previous)<.05,initial);
+    const afterFit=await page.evaluate(()=>{
+      const area=document.querySelector('#game .board-scroll');
+      const board=document.querySelector('#board').getBoundingClientRect();
+      const host=area.getBoundingClientRect();
+      return {scrollLeft:area.scrollLeft,scrollTop:area.scrollTop,
+        overflowX:getComputedStyle(area).overflowX,
+        overflowY:getComputedStyle(area).overflowY,
+        centered:Math.abs((board.left+board.right)/2-(host.left+host.right)/2)<4};
+    });
+    if(!afterFit.centered||afterFit.scrollTop!==0||afterFit.scrollLeft!==0||
+       afterFit.overflowX!=='hidden'||afterFit.overflowY!=='hidden')
+      throw new Error('Screen fit must restore size and center with no scroll: '+JSON.stringify(afterFit));
     await page.evaluate(()=>leaveGame());
   }
   await page.click('#nono-open-settings');
