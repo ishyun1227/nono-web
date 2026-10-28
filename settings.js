@@ -1019,7 +1019,7 @@ function startFastDrag(e,index){
  if(history){undoStack.push(snapshot);if(undoStack.length>150)undoStack.shift();redoStack=[];}
  fastDrag={id:e.pointerId,cells,initial:old,target:value,trail:[],positions:new Map(),
   touched:new Set(),filled:old.filter(v=>v==='1').length,history,initialSelected:snapshot.selected};
- pointerDown=true;dragCount=0;lastInput=-1;
+ pointerDown=false;dragCount=0;lastInput=-1;
  appendFastDrag(index);
 }
 function setFastDragValue(index,value){
@@ -1102,6 +1102,8 @@ function endFastDrag(e){
 }
 function setupPointer(){
  const target=$('board');
+ // Suppress the legacy per-cell pointerenter renderer during the optimized stroke.
+ target.addEventListener('pointerenter',e=>{if(fastDrag)e.stopImmediatePropagation();},true);
  target.addEventListener('pointerdown',e=>{
   const cell=e.target.closest('.cell');if(!cell||!cell.closest('#board'))return;
   if(e.button!==0&&e.button!==2)return;
