@@ -365,7 +365,7 @@ function paint(index,to,drag){
   if(mode==='coop'){
     if(!onlineReady()||!roomCode)return;
     const activeRoom=roomCode;
-    runTransaction(ref(database,`rooms/${roomCode}/board`),current=>{const old=(typeof current==='string'&&current.length===puzzle.size*puzzle.size)?current:'0'.repeat(puzzle.size*puzzle.size);return old.slice(0,index)+next+old.slice(index+1);}).then(result=>{if(result.committed&&roomCode===activeRoom){contributedCoopRooms.add(activeRoom);emitDailyActivity('coop-action');}}).catch(firebaseError);
+    runTransaction(ref(database,`rooms/${roomCode}/board`),current=>{const old=(typeof current==='string'&&current.length===puzzle.size*puzzle.size)?current:'0'.repeat(puzzle.size*puzzle.size);return old.slice(0,index)+next+old.slice(index+1);}).then(result=>{if(result.committed&&roomCode===activeRoom){contributedCoopRooms.add(activeRoom);emitDailyActivity('coop-action');if(finished)emitDailyActivity('puzzle-complete');}}).catch(firebaseError);
     return;
   }
   if(mode==='practice'||mode==='record'){undoStack.push({board:board.slice(),changes,selected});if(undoStack.length>150)undoStack.shift();redoStack=[];}
