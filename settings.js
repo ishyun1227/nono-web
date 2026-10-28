@@ -1089,7 +1089,7 @@ function startFastDrag(e,index){
   startX:e.clientX,startY:e.clientY,
   rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},
   touched:new Set(),filled:original.filter(v=>v==='1').length,
-  history,count:1,initialSelected:snapshot.selected};
+  history,count:1,hasExtended:false,initialSelected:snapshot.selected};
  pointerDown=false;dragCount=1;lastInput=-1;
  setFastDragValue(index,value);
  updateLiveSelection(index,cells);
@@ -1152,7 +1152,14 @@ function moveFastDrag(e){
   (e.clientX-d.rect.left)/(d.rect.width/n):
   (e.clientY-d.rect.top)/(d.rect.height/n);
  const end=Math.max(0,Math.min(n-1,Math.floor(raw)));
- if(end!==d.end)updateFastDragEndpoint(end);
+ if(end!==d.end){
+  updateFastDragEndpoint(end);
+  if(end===(d.axis==='row'?d.col:d.row)&&d.hasExtended){
+   // Returning to the original cell releases the axis lock without ending the drag.
+   // The next intentional movement may establish a new row or column direction.
+   d.axis=null;d.startX=e.clientX;d.startY=e.clientY;d.hasExtended=false;
+  }else if(end!==(d.axis==='row'?d.col:d.row))d.hasExtended=true;
+ }
 }
 function endFastDrag(e){
  const d=fastDrag;if(!d||e&&e.pointerId!==d.id)return;
