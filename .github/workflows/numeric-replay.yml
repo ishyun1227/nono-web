@@ -22,6 +22,7 @@ jobs:
           node --check numeric-replay.js
           node --check replay-client.js
           node --check cloud-replays.js
+          node --check multiplayer-replay.js
           node --check settings.js
           node --check tests/replay.cjs
       - name: Numeric replay actions and persistence
@@ -32,8 +33,10 @@ jobs:
           test -s dist/numeric-replay.js
           test -s dist/replay-client.js
           test -s dist/cloud-replays.js
+          test -s dist/multiplayer-replay.js
           grep -q './numeric-replay.js' dist/index.html
           grep -q './replay-client.js' dist/index.html
           grep -q './cloud-replays.js' dist/index.html
+          grep -q './multiplayer-replay.js' dist/index.html
       - name: Validate Firebase replay permissions in emulator
         run: npm run test:multiplayer
