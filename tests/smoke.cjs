@@ -372,6 +372,7 @@ const { pathToFileURL } = require('node:url');
     if(extraZoom.cell<=initial||extraZoom.overflowX!=='hidden'||extraZoom.overflowY!=='hidden')
       throw new Error('Beyond-fit zoom must enlarge while preserving no-scroll mode: '+JSON.stringify(extraZoom));
     await page.click('#nono-zoom-out');
+    await page.click('#nono-zoom-out');
     await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)<previous,initial);
     await page.click('#nono-zoom-fit');
     await page.waitForFunction(previous=>Math.abs(Number(document.querySelector('#board').dataset.fitCellSize)-previous)<.05,initial);
