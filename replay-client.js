@@ -7,6 +7,27 @@
   const API = window.NONO_REPLAY;
   if (!API) return;
   const local = storage; // Use the main app's safe storage adapter.
+  // New replay UI is translated independently so it does not stay Korean
+  // when the user chooses a language whose dictionary predates this feature.
+  const words = {
+    recent:['최근 플레이','Recent plays','最近のプレイ'],
+    help:['완료한 퍼즐의 움직이는 기록 · 미완료 퍼즐은 스포일러 방지를 위해 잠길 수 있어요.','Animated completed solves · unsolved puzzles stay locked to avoid spoilers.','完成したパズルのリプレイ · 未クリアのパズルはネタバレ防止のためロックされます。'],
+    empty:['완료한 퍼즐이 없어요. 퍼즐을 완료하면 리플레이가 나타나요.','No completed puzzles yet. Finish one to see its replay.','クリアしたパズルがありません。クリアするとリプレイが表示されます。'],
+    solo:['혼자 풀기','Solo','ひとりで'],
+    record:['기록 경쟁','Time trial','タイムアタック'],
+    full:['전체 풀이','Full solve','全プレイ'],
+    partial:['중간부터 기록','Partial replay','途中からのリプレイ'],
+    public:['공개 리플레이','Public replay','公開リプレイ'],
+    locked:['완료 후 리플레이 공개','Unlock after completion','クリア後にリプレイを公開'],
+    replay:['풀이 리플레이','Solve replay','プレイリプレイ'],
+    close:['닫기','Close','閉じる']
+  };
+  const t = key => {
+    const l=document.documentElement.lang||'ko';
+    const idx=l.startsWith('ko')?0:l.startsWith('ja')?2:1;
+    return (words[key]||[])[idx]||key;
+  };
+  const date = ms=>new Date(ms).toLocaleDateString(document.documentElement.lang||'ko-KR');
   let session = null, saveTimer = 0, warned = false;
   const getBoard = () => board.join('');
   const isSolo = () => (mode === 'practice' || mode === 'record') && !roomCode;
@@ -132,7 +153,7 @@
   document.head.appendChild(css);
   const panel = document.createElement('section');
   panel.className = 'nono-replay-recent';
-  panel.innerHTML = '<h2>최근 플레이</h2><p class="nono-replay-help">이 기기에서 완료한 퍼즐 · 다른 플레이어의 공개 기록은 준비 중이에요.</p><div class="nono-replay-items"></div>';
+  panel.innerHTML = '<h2></h2><p class="nono-replay-help"></p><div class="nono-replay-items"></div>';
   const anchor = root.querySelector('#nono-resume-section, .nono-resume-section');
   if (anchor?.parentNode) anchor.after(panel);
   else root.appendChild(panel);
@@ -189,9 +210,9 @@
     const head = document.createElement('div');
     head.className = 'nono-replay-dialog-head';
     const title = document.createElement('strong');
-    title.textContent = (/[12]/.test(replay.initial) ? '중간부터 저장된 리플레이' : '풀이 리플레이') + ' · ' + replay.size + '×' + replay.size;
+    title.textContent = t(/[12]/.test(replay.initial)?'partial':'replay') + ' · ' + replay.size + '×' + replay.size;
     const close = document.createElement('button');
-    close.type = 'button'; close.textContent = '닫기';
+    close.type = 'button'; close.textContent = t('close');
     head.append(title, close); dialog.appendChild(head);
     const canvas = document.createElement('canvas'); canvas.className = 'nono-replay-large';
     canvas.setAttribute('aria-label','퍼즐 풀이 리플레이'); dialog.appendChild(canvas);
@@ -205,6 +226,8 @@
   }
   function renderRecent() {
     if (!list) return;
+    panel.querySelector('h2').textContent=t('recent');
+    panel.querySelector('.nono-replay-help').textContent=t('help');
     stopAnimations.forEach(stop=>stop()); stopAnimations = [];
     list.replaceChildren();
     const own = API.recentCompleted(local, 5);
@@ -219,7 +242,7 @@
     }).slice(0,5);
     if (!runs.length) {
       const empty = document.createElement('p');empty.className = 'nono-replay-help';
-      empty.textContent = '아직 완료한 퍼즐이 없어요. 퍼즐을 완성하면 여기에 움직이는 기록이 나타나요.';
+      empty.textContent = t('empty');
       list.appendChild(empty); return;
     }
     for (const item of runs) {
@@ -230,11 +253,11 @@
       const info = document.createElement('span');
       const name = document.createElement('strong');
       name.textContent = item.remote ? (item.row.name + ' · ' + item.row.size + '×' + item.row.size) :
-        (run.size + '×' + run.size + ' · ' + (run.mode==='practice'?'혼자 풀기':'기록 경쟁'));
+        (run.size + '×' + run.size + ' · ' + t(run.mode==='practice'?'solo':'record'));
       const detail = document.createElement('small');
       detail.textContent = item.remote ?
-        (item.row.locked ? '완료한 뒤 리플레이 공개 · ' : '공개 리플레이 · ') + new Date(item.row.completedAt).toLocaleDateString('ko-KR') :
-        (/[12]/.test(run.initial) ? '중간부터 기록 · ' : '전체 풀이 · ') + new Date(run.completedAt).toLocaleDateString('ko-KR');
+        (item.row.locked ? t('locked') : t('public')) + ' · ' + date(item.row.completedAt) :
+        t(/[12]/.test(run.initial)?'partial':'full') + ' · ' + date(run.completedAt);
       info.append(name,detail);button.append(canvas,info);
       if (run) {
         button.addEventListener('click',()=>showDetail(run));
@@ -250,5 +273,6 @@
       list.appendChild(button);
     }
   }
+  window.addEventListener('nono:languagechange',renderRecent);
   renderRecent();
 })();
