@@ -17,7 +17,7 @@ const { pathToFileURL } = require('node:url');
       throw new Error('Malformed deployed guide SVG: '+name);
   }
   const builtHtml=fs.readFileSync(path.resolve(__dirname,'..','dist','index.html'),'utf8');
-  if(!/settings\\.js\\?v=[a-f0-9]{12}/.test(builtHtml))
+  if(!/settings\.js\?v=[a-f0-9]{12}/.test(builtHtml))
     throw new Error('Built settings script reference has no fresh hash, browser may show stale diagrams');
   await page.goto(pathToFileURL(path.resolve(__dirname, '..', 'dist','index.html')).href);
   await page.locator('#nono-open-settings').waitFor();
