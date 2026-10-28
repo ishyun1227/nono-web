@@ -1,10 +1,25 @@
 const fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'..'),output=path.join(root,'dist');
 fs.mkdirSync(output,{recursive:true});
-for(const name of ['index.html','puzzles-brainrot.js','voxel-test-preview.js','settings.js','firebase-config.js','themes.css','themes.js','premium-themes.css','theme-extras.css','library-precision.css','theme-world-ui.js','library-ui.js','forest-world.css','forest-world.js','assets/forest-world.svg','terminal-world.css','terminal-world.js','assets/terminal-wallpaper.svg','default-home.css','default-home.js','public-lobby.css','pixel-friends.css','assets/friends-parade.svg','assets/library-scene.svg','assets/library-world.svg','assets/library-mode-practice.svg','assets/library-mode-race.svg','assets/library-mode-coop.svg','assets/library-mode-record.svg','assets/arcade-scene.svg','assets/enchanted-scene.svg','assets/cosmos-scene.svg']){
+for(const name of ['index.html','puzzles-brainrot.js','voxel-test-preview.js','settings.js','firebase-config.js','themes.css','themes.js','premium-themes.css','theme-extras.css','library-precision.css','theme-world-ui.js','library-ui.js','forest-world.css','forest-world.js','assets/forest-world.svg','terminal-world.css','terminal-world.js','assets/terminal-wallpaper.svg','default-home.css','default-home.js','public-lobby.css','pixel-friends.css','assets/friends-parade.svg','assets/library-scene.svg','assets/library-world.svg','assets/library-mode-practice.svg','assets/library-mode-race.svg','assets/library-mode-coop.svg','assets/library-mode-record.svg','assets/arcade-scene.svg','assets/enchanted-scene.svg','assets/cosmos-scene.svg','assets/setting-guides/row-highlight.svg','assets/setting-guides/pointer-follow.svg','assets/setting-guides/hint-hud.svg','assets/setting-guides/filled-run.svg','assets/setting-guides/drag-hud.svg']){
   const target=path.join(output,name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(root,name),target);
 }
 
+// The live Worker serves only ./dist, not the repository root.
+// Every approved settings picture must be copied into dist.
+for(const name of ['row-highlight','pointer-follow','hint-hud','filled-run','drag-hud']){
+  const file=path.join(output,'assets/setting-guides',name+'.svg');
+  if(!fs.existsSync(file)||fs.statSync(file).size<100)
+    throw Error('Settings guide missing from deploy output: '+name);
+}
+// Fingerprint settings.js on every build to prevent the browser from
+// retaining the old generated fallback diagrams after a successful deploy.
+const crypto=require('node:crypto');
+const settingsHash=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'settings.js'))).digest('hex').slice(0,12);
+const builtIndex=path.join(output,'index.html');
+const builtHtml=fs.readFileSync(builtIndex,'utf8');
+if(!/\.\/settings\.js\?v=[^"' ]+/.test(builtHtml))throw Error('Settings script reference missing');
+fs.writeFileSync(builtIndex,builtHtml.replace(/\.\/settings\.js\?v=[^"' ]+/g,'./settings.js?v='+settingsHash));
 // Generate polished non-clickable decorations from the reference character strip.
 // The old heavily thresholded SVG removed dark eye outlines and damaged the faces.
 const zlib=require('node:zlib');
