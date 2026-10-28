@@ -292,6 +292,59 @@ body.nono-fit-playing #game .rules{margin:0!important;padding:3px 0!important}
  body.nono-fit-playing #game .board-top{flex-wrap:wrap;gap:6px}
  .nono-board-zoom{gap:3px}
 }
+
+/* The complete puzzle, including every hint number, takes precedence over chrome. */
+body.nono-fit-playing{overflow:hidden!important}
+body.nono-fit-playing .shell{min-height:0!important;padding-bottom:0!important}
+body.nono-fit-playing #game .board-scroll,body.nono-fit-playing #game .board-scroll.nono-zoomed{
+ box-sizing:border-box!important;width:100%!important;height:var(--nono-fit-scroller-height,auto)!important;
+ max-height:var(--nono-fit-scroller-height,none)!important;
+ overflow:hidden!important;overflow-x:hidden!important;overflow-y:hidden!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ padding:1px!important;margin:0!important
+}
+body.nono-fit-playing #board.nono-board-fit{
+ width:max-content!important;min-width:0!important;max-width:none!important;margin:auto!important;
+ grid-template-columns:var(--nono-fit-row-width) var(--nono-fit-grid-width)!important;
+ grid-template-rows:var(--nono-fit-col-height) var(--nono-fit-grid-width)!important
+}
+body.nono-fit-playing #board.nono-board-fit.nono-both{
+ grid-template-columns:var(--nono-fit-row-width) var(--nono-fit-grid-width) var(--nono-fit-row-width)!important;
+ grid-template-rows:var(--nono-fit-col-height) var(--nono-fit-grid-width) var(--nono-fit-col-height)!important
+}
+#board.nono-board-fit .row-clues{
+ height:var(--nono-fit-grid-width)!important;align-self:start;
+ grid-template-rows:repeat(var(--nono-fit-size),var(--cell-size))!important
+}
+#board.nono-board-fit .col-clues{height:var(--nono-fit-col-height)!important;align-items:end}
+#board.nono-board-fit .row-clue,#board.nono-board-fit .col-clue{
+ overflow:visible!important;text-overflow:clip!important;
+ font-size:var(--nono-fit-font)!important;letter-spacing:-.025em!important;
+ font-variant-numeric:tabular-nums!important;line-height:1!important
+}
+#board.nono-board-fit .row-clue>span,#board.nono-board-fit .col-clue>span{
+ box-sizing:border-box!important;overflow:visible!important;white-space:nowrap!important;
+ min-width:0!important;font-size:inherit!important;line-height:1!important;
+ text-align:center!important
+}
+#board.nono-board-fit .row-clue>span{
+ flex:0 0 var(--nono-fit-item-width)!important;width:var(--nono-fit-item-width)!important;
+ height:100%!important;padding:0!important;border-left-width:.5px!important
+}
+#board.nono-board-fit .col-clue>span{
+ flex:0 0 var(--nono-fit-line-height)!important;width:100%!important;
+ height:var(--nono-fit-line-height)!important;padding:0!important;border-bottom-width:.5px!important
+}
+body.nono-fit-playing .topbar,body.nono-fit-playing #game .game-header{
+ box-sizing:border-box!important;position:relative!important;left:50%!important;
+ transform:translateX(-50%)!important;width:calc(100vw - 28px)!important;
+ max-width:none!important;margin-left:0!important;margin-right:0!important
+}
+#nono-zoom-center{font-size:11px!important}
+@media(max-width:640px){
+ body.nono-fit-playing .topbar,body.nono-fit-playing #game .game-header{width:calc(100vw - 12px)!important}
+}
+
 .nono-visual-help-button{white-space:nowrap;background:#28345d;border:1px solid #8d91ce;color:#fff;
   border-radius:9px;padding:8px 11px;font-size:12px;font-weight:750;cursor:pointer}
 .nono-guide-overlay{position:fixed;inset:0;z-index:12010;background:#050a18e8;display:grid;place-items:center;padding:14px}
