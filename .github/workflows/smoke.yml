@@ -31,7 +31,11 @@ jobs:
           node --check settings.js
           node --check themes.js
           node --check daily-rewards.js
+          node --check shop.js
+          node --check tests/shop.cjs
           node --check tests/daily-rewards.cjs
+      - name: Verify unified shop and browser theme unlocks
+        run: node tests/shop.cjs
       - name: Verify daily missions and check-in
         run: node tests/daily-rewards.cjs
       - name: Verify completed VOX preview mode
