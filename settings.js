@@ -88,6 +88,7 @@ let prefs=Object.assign({},defaults,profiles[device]||{});
 // Remove obsolete graphics/performance preferences saved by earlier builds.
 for(const key of ['quality','shadow','highlightQuality','lod','autoQuality','autoThreshold'])delete prefs[key];
 const manualClues={};let overviewOpen=false,hintMode=false,altClueSelection=null,hintIndex=0,hintAxis='row',hintNumber=0,hintStage=0,lastInput=-1,lastInputTime=0,errorAt=0,errorFor='',dragStart=null,dragAxis='',dragBaseline=0,keyboardDrag=null,dragCount=0,autofollow=false,autoTimer=null,overviewZoom=1,helpTarget=-1,helpLine=null,settingsOpen=false;
+let fastDrag=null;
 let soundContext=null,toolAction='1',cellZoom=41,hudEdit=false,hudSelected='hints';
 function E(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!==undefined)e.textContent=txt;return e;}
 function persist(){profiles[device]=Object.assign({},prefs);try{localStorage.setItem(KEY,JSON.stringify(profiles))}catch{}}
@@ -963,8 +964,149 @@ function endKeyboard(e){
  }
  if(e.code===moveHeld)releaseMove();if(!keyboardDrag)return;if((keyboardDrag.to==='1'&&matches('fill',e))||(keyboardDrag.to==='2'&&matches('cross',e))||(keyboardDrag.to==='0'&&matches('clear',e))){squashHistory(keyboardDrag.first);keyboardDrag=null;dragCount=0;render();}}
 function squashHistory(first){if(!['practice','record'].includes(mode)||undoStack.length<=first+1)return;undoStack.splice(first+1,undoStack.length-first-1)}
-function setupPointer(){const target=$('board');target.addEventListener('pointerdown',e=>{if(!e.target.closest('.cell'))return;const index=Number(e.target.closest('.cell').dataset.index);dragStart=index;dragAxis='';dragBaseline=undoStack.length;dragCount=1},true);document.addEventListener('pointerup',()=>{if(dragStart!==null){squashHistory(dragBaseline);dragStart=null;dragAxis='';dragCount=0;render()}},true)}
-const oldPaint=paint;paint=function(index,to,drag){if(drag&&dragStart!==null){const n=puzzle.size;const ar=Math.floor(dragStart/n),ac=dragStart%n,r=Math.floor(index/n),c=index%n;if(!dragAxis){dragAxis=Math.abs(c-ac)>=Math.abs(r-ar)?'row':'col'}if((dragAxis==='row'&&r!==ar)||(dragAxis==='col'&&c!==ac))return;const from=selected;const start=dragAxis==='row'?from%n:Math.floor(from/n),end=dragAxis==='row'?c:r,step=end>=start?1:-1;for(let k=start;k!==end+step;k+=step){const at=dragAxis==='row'?ar*n+k:k*n+ac;if(prefs.dragPolicy==='skip'&&board[at]!=='0'&&at!==dragStart)continue;oldPaint(at,to,true);dragCount++}updateBoard();return;}
+
+/* High-performance stroke handling. The original per-cell render() and updateBoard()
+   crossed 10,000 cells on every mouse event. Here a stroke updates only changed DOM
+   cells and selected lines, then commits one undo snapshot + one full render on release.
+   The path is freeform: it is not locked to the first row or column. */
+function updateLiveSelection(next,cells){
+ const n=puzzle.size,previous=selected;
+ if(next===previous)return;
+ const oldRow=Math.floor(previous/n),oldCol=previous%n;
+ const newRow=Math.floor(next/n),newCol=next%n;
+ cells[previous]?.classList.remove('active');
+ cells[previous]?.setAttribute('aria-selected','false');
+ if(prefs.rowHighlight){
+  for(let i=0;i<n;i++){
+   cells[oldRow*n+i]?.classList.remove('nono-selected-row');
+   cells[i*n+oldCol]?.classList.remove('nono-selected-row');
+  }
+  for(let i=0;i<n;i++){
+   cells[newRow*n+i]?.classList.add('nono-selected-row');
+   cells[i*n+newCol]?.classList.add('nono-selected-row');
+  }
+ }
+ selected=next;
+ cells[next]?.classList.add('active');
+ cells[next]?.setAttribute('aria-selected','true');
+ const hud=$('nono-hud');
+ if(hud)hud.textContent='행 '+hintsForLine('row',newRow).join(' ')+' · 열 '+hintsForLine('col',newCol).join(' ');
+}
+function startFastDrag(e,index){
+ if(fastDrag||startingAlone||finished||finishing||!board||
+  $('game').classList.contains('hidden')||$('play-area').classList.contains('hidden'))return;
+ if(mode==='race'&&(startingRace||meta?.status!=='playing'))return;
+ const cells=$('board').querySelector('.cells')?.children;
+ if(!cells)return;
+ const old=board.slice(),to=e.button===2?'2':tool;
+ const value=(old[index]===to&&to!=='0')?'0':to;
+ const snapshot={board:old.slice(),changes,selected};
+ const history=['practice','record'].includes(mode);
+ if(history){undoStack.push(snapshot);if(undoStack.length>150)undoStack.shift();redoStack=[];}
+ fastDrag={id:e.pointerId,cells,initial:old,target:value,trail:[],positions:new Map(),
+  touched:new Set(),filled:old.filter(v=>v==='1').length,history,initialSelected:snapshot.selected};
+ pointerDown=true;dragCount=0;lastInput=-1;
+ appendFastDrag(index);
+}
+function setFastDragValue(index,value){
+ const d=fastDrag;if(!d)return;
+ const prev=board[index];if(prev===value)return;
+ if(prev==='1')d.filled--;
+ if(value==='1')d.filled++;
+ board[index]=value;d.touched.add(index);
+ const cell=d.cells[index];if(cell){
+  cell.classList.toggle('filled',value==='1');
+  cell.classList.toggle('cross',value==='2');
+  cell.textContent=value==='2'?'×':'';
+ }
+}
+function syncFastDragProgress(){
+ const d=fastDrag;if(!d)return;
+ dragCount=d.trail.length;
+ const nBlack=Math.max(1,totalBlack(puzzle));
+ const percent=Math.min(100,Math.round(d.filled/nBlack));
+ const display=prefs.progress==='off'?'':prefs.progress==='percent'?percent+'%':
+  prefs.progress==='cells'?d.filled+'/'+nBlack:percent+'% · '+d.filled+'/'+nBlack;
+ $('progress').textContent=display;
+ const hud=$('nono-drag-hud');
+ if(hud){hud.textContent='드래그 '+dragCount+'칸';hud.hidden=!prefs.dragHud;}
+}
+function appendFastDrag(index){
+ const d=fastDrag;if(!d)return;
+ const existing=d.positions.get(index);
+ if(existing!==undefined){
+  while(d.trail.length>existing+1){
+   const removed=d.trail.pop();d.positions.delete(removed);
+   setFastDragValue(removed,d.initial[removed]);
+  }
+ }else{
+  d.positions.set(index,d.trail.length);d.trail.push(index);
+  if(prefs.dragPolicy!=='skip'||d.initial[index]==='0'||index===d.trail[0])
+   setFastDragValue(index,d.target);
+ }
+ updateLiveSelection(index,d.cells);
+ syncFastDragProgress();
+}
+function moveFastDrag(e){
+ const d=fastDrag;if(!d||e.pointerId!==d.id)return;
+ if(e.pointerType==='mouse'&&!(e.buttons&3)){endFastDrag();return;}
+ const element=document.elementFromPoint(e.clientX,e.clientY);
+ const target=element?.closest?.('#board .cell');
+ if(!target)return;
+ const next=Number(target.dataset.index),n=puzzle.size;
+ if(!Number.isInteger(next)||next<0||next>=n*n)return;
+ const last=d.trail[d.trail.length-1];if(next===last)return;
+ // Walk a segment so fast cursor movement cannot skip intermediate cells.
+ let x=last%n,y=Math.floor(last/n),tx=next%n,ty=Math.floor(next/n);
+ const dx=Math.abs(tx-x),dy=Math.abs(ty-y),sx=x<tx?1:-1,sy=y<ty?1:-1;
+ let error=dx-dy;
+ for(let i=0;i<n*2&&!(x===tx&&y===ty);i++){
+  const e2=2*error;
+  if(e2>-dy){error-=dy;x+=sx;}
+  if(e2<dx){error+=dx;y+=sy;}
+  appendFastDrag(y*n+x);
+ }
+}
+function endFastDrag(e){
+ const d=fastDrag;if(!d||e&&e.pointerId!==d.id)return;
+ fastDrag=null;pointerDown=false;dragCount=0;
+ let modified=0;for(const index of d.touched)if(board[index]!==d.initial[index])modified++;
+ if(!modified&&d.history)undoStack.pop();
+ if(modified){
+  changes+=modified;
+  lastInput=selected;lastInputTime=Date.now();
+  playSound('input',d.target);
+  saveBoard();
+  const solved=isSolved(board,puzzle);
+  if(mode==='race')queueRaceState(solved);
+  else if(solved)finishLocal();
+  if(mode==='practice')renderLive();
+  if(prefs.errorMode==='immediate')notifyWrong('immediate');
+  else scheduleWrong();
+ }
+ render();
+}
+function setupPointer(){
+ const target=$('board');
+ target.addEventListener('pointerdown',e=>{
+  const cell=e.target.closest('.cell');if(!cell||!cell.closest('#board'))return;
+  if(e.button!==0&&e.button!==2)return;
+  const index=Number(cell.dataset.index);
+  // Cooperative boards keep their existing Firebase transaction semantics.
+  if(mode==='coop'){dragStart=index;dragAxis='';dragBaseline=undoStack.length;dragCount=1;return;}
+  if(finished||finishing||startingAlone||startingRace&&mode==='race')return;
+  e.preventDefault();e.stopImmediatePropagation();
+  startFastDrag(e,index);
+ },true);
+ document.addEventListener('pointermove',moveFastDrag,true);
+ const end=e=>{if(fastDrag){endFastDrag(e);return;}
+  if(dragStart!==null){squashHistory(dragBaseline);dragStart=null;dragAxis='';dragCount=0;render();}
+ };
+ document.addEventListener('pointerup',end,true);
+ document.addEventListener('pointercancel',end,true);
+ window.addEventListener('blur',()=>{if(fastDrag)endFastDrag();});
+}
+const oldPaint=paint;paint=function(index,to,drag){if(drag&&dragStart!==null){if(mode==='coop'){oldPaint(index,to,true);return;}const n=puzzle.size;const ar=Math.floor(dragStart/n),ac=dragStart%n,r=Math.floor(index/n),c=index%n;if(!dragAxis){dragAxis=Math.abs(c-ac)>=Math.abs(r-ar)?'row':'col'}if((dragAxis==='row'&&r!==ar)||(dragAxis==='col'&&c!==ac))return;const from=selected;const start=dragAxis==='row'?from%n:Math.floor(from/n),end=dragAxis==='row'?c:r,step=end>=start?1:-1;for(let k=start;k!==end+step;k+=step){const at=dragAxis==='row'?ar*n+k:k*n+ac;if(prefs.dragPolicy==='skip'&&board[at]!=='0'&&at!==dragStart)continue;oldPaint(at,to,true);dragCount++}updateBoard();return;}
 const prev=board[index];oldPaint(index,to,drag);if(board[index]!==prev){lastInput=index;lastInputTime=Date.now();if(prefs.lastInput==='3'||prefs.lastInput==='5')setTimeout(()=>{if(Date.now()-lastInputTime>=Number(prefs.lastInput)*1000)updateBoard()},Number(prefs.lastInput)*1000+50);playSound('input',to);if(prefs.errorMode==='immediate'&&wrongCells().length)notifyWrong('immediate');else scheduleWrong();saveBoard();const cl=$('board').querySelectorAll('.cell')[index];if(cl&&prefs.animation!=='basic'){const style='nono-input-'+prefs.animation;cl.classList.remove(style,'nono-anim-cross','nono-anim-fill');void cl.offsetWidth;cl.classList.add(style,to==='2'?'nono-anim-cross':'nono-anim-fill');}if(prefs.feedback!=='off'&&navigator.vibrate)navigator.vibrate(prefs.feedback==='strong'?45:prefs.feedback==='normal'?25:12)}updateBoard();};
 const oldRender=render;render=function(){oldRender();updateBoard()};
 const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();manualClues[puzzle.id]=saved.manual||{};finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
@@ -978,31 +1120,12 @@ const oldCheck=checkBoard;checkBoard=function(){notifyWrong('direct')};
 // Pointer hover updates only the selection and intersecting rows/columns.
 // Avoid full re-render on each hover: a 100×100 board has 10,000 cells.
 function followPointerSelection(event){
-  if(!prefs.pointerFollow||pointerDown||dragStart!==null||fastDrag||hintMode||overviewOpen||hudEdit)return;
-  const cell=event.target.closest('.cell');
-  if(!cell||!cell.closest('#board'))return;
-  const next=Number(cell.dataset.index),prev=selected,n=puzzle.size;
-  if(!Number.isInteger(next)||next<0||next>=n*n||next===prev)return;
-  const buttons=$('board').querySelector('.cells')?.children;
-  if(!buttons)return;
-  selected=next;
-  buttons[prev]?.classList.remove('active');
-  buttons[prev]?.setAttribute('aria-selected','false');
-  buttons[next]?.classList.add('active');
-  buttons[next]?.setAttribute('aria-selected','true');
-  if(prefs.rowHighlight){
-    const oldRow=Math.floor(prev/n),oldCol=prev%n,newRow=Math.floor(next/n),newCol=next%n;
-    for(let j=0;j<n;j++){
-      buttons[oldRow*n+j]?.classList.remove('nono-selected-row');
-      buttons[j*n+oldCol]?.classList.remove('nono-selected-row');
-    }
-    for(let j=0;j<n;j++){
-      buttons[newRow*n+j]?.classList.add('nono-selected-row');
-      buttons[j*n+newCol]?.classList.add('nono-selected-row');
-    }
-  }
-  const hud=$('nono-hud');
-  if(hud)hud.textContent='행 '+hintsForLine('row',Math.floor(next/n)).join(' ')+' · 열 '+hintsForLine('col',next%n).join(' ');
+ if(!prefs.pointerFollow||pointerDown||dragStart!==null||fastDrag||hintMode||overviewOpen||hudEdit)return;
+ const cell=event.target.closest('.cell');
+ if(!cell||!cell.closest('#board'))return;
+ const next=Number(cell.dataset.index),cells=$('board').querySelector('.cells')?.children;
+ if(!cells||!Number.isInteger(next)||next<0||next>=puzzle.size*puzzle.size)return;
+ updateLiveSelection(next,cells);
 }
 mount();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
 $('board').addEventListener('pointerover',followPointerSelection);
