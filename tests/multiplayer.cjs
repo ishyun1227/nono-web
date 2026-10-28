@@ -49,6 +49,15 @@ async function main(){
   await Promise.all([[a,0],[b,1]].map(([d,i])=>runTransaction(ref(d,'rooms/ABCDEF/board'),v=>{v=v||'0'.repeat(25);return v.slice(0,i)+'1'+v.slice(i+1);}))); 
   assert.equal((await get(ref(a,'rooms/ABCDEF/board'))).val().slice(0,2),'11');
   await assertFails(set(ref(a,'rooms/ABCDEF/board'),'bad'));
+  // Cooperative events are account-authored numeric deltas, not public solutions.
+  const coopEvent={actor:'alice',mode:'coop',elapsedMs:123,cells:'[[0,0,1]]',at:serverTimestamp()};
+  const coopPath=ref(a,'rooms/ABCDEF/replayEvents/alice/entry1');
+  await assertSucceeds(set(coopPath,coopEvent));
+  await assertFails(set(coopPath,coopEvent));
+  await assertFails(set(ref(b,'rooms/ABCDEF/replayEvents/alice/entry2'),coopEvent));
+  await assertFails(set(ref(a,'rooms/ABCDEF/replayEvents/alice/entryBad'),{...coopEvent,cells:'untrusted'}));
+  await assertFails(get(ref(outsider,'rooms/ABCDEF/replayEvents')));
+  await assertSucceeds(get(ref(b,'rooms/ABCDEF/replayEvents')));
   console.log('PASS cooperation concurrency, unlimited UID membership, private saved-room index, board validation');
   await set(ref(a,'rooms/GHJKLM/meta'),meta('race'));await join(a,'GHJKLM','0','alice');await join(b,'GHJKLM','1','bob');
   const race=(await get(ref(a,'rooms/GHJKLM/meta'))).val();
@@ -58,6 +67,11 @@ async function main(){
   const startedAt=(await get(ref(a,'rooms/GHJKLM/meta/startedAt'))).val();
   const state={board:'0'.repeat(25),filled:'0'.repeat(25),startedAt,finishedAt:0};
   await set(ref(a,'rooms/GHJKLM/states/alice'),state);
+  const raceEvent={actor:'alice',mode:'race',elapsedMs:400,cells:'[[1,0,1],[2,0,1]]',at:serverTimestamp()};
+  await assertSucceeds(set(ref(a,'rooms/GHJKLM/replayEvents/alice/stroke1'),raceEvent));
+  await assertFails(set(ref(b,'rooms/GHJKLM/replayEvents/alice/stroke2'),raceEvent));
+  await assertFails(get(ref(outsider,'rooms/GHJKLM/replayEvents')));
+  await assertSucceeds(get(ref(a,'rooms/GHJKLM/replayEvents')));
   await assertFails(set(ref(b,'rooms/GHJKLM/states/alice'),state));
   await assertFails(set(ref(a,'rooms/GHJKLM/states/alice'),{...state,finishedAt:serverTimestamp()}));
   await set(ref(a,'rooms/GHJKLM/states/alice'),{...state,board:answers.heart5,filled:answers.heart5,finishedAt:serverTimestamp()});
