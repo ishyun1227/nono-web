@@ -869,7 +869,7 @@ drawMinimap();
 }
 
 
-function getHudConfig(key){return (prefs.hudLayouts&&prefs.hudLayouts[key])||{}}
+function getHudConfig(key){const config=(prefs.hudLayouts&&prefs.hudLayouts[key])||{};return key==='drag'?{...config,show:!!prefs.dragHud}:config}
 function hudElement(key){return key==='hints'?$('nono-hud'):key==='drag'?$('nono-drag-hud'):$('progress').parentElement}
 function applyHudConfig(key){
  const e=hudElement(key),c=getHudConfig(key);if(!e)return;
@@ -880,6 +880,7 @@ function applyHudConfig(key){
  else if(key==='progress')e.style.display='';
 }
 function saveHudField(key,field,value){
+ if(key==='drag'&&field==='show')prefs.dragHud=!!value;
  prefs.hudLayouts=prefs.hudLayouts||{};
  prefs.hudLayouts[key]=Object.assign({},prefs.hudLayouts[key]||{});
  prefs.hudLayouts[key][field]=value;persist();updateBoard();
