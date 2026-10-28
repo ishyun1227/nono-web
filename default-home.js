@@ -11,7 +11,7 @@ const on=()=>document.body.dataset.nonoTheme==='neon';
 const activeMode=()=>modeButtons.find(b=>b.classList.contains('selected'))?.dataset.mode||'practice';
 const MODE_NAMES={practice:'혼자 풀기',race:'대결 로비',coop:'협동 로비',record:'기록'};
 const sizes=[5,10,15,20,25,30];
-const difficulties=['쉬움','보통','어려움'];
+const difficulties=['쉬움','보통','어려움','전문가'];
 // Classifications already used by the existing launcher. New puzzles without
 // explicit metadata remain '미지정' rather than being assigned a made-up level.
 const legacyDifficulty={
