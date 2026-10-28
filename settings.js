@@ -636,6 +636,8 @@ body.nono-fit-playing #game .board-scroll #board{max-width:none!important}
 .nono-guide-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .nono-guide-sample{border:1px solid #405579;border-radius:8px;background:#0c1730;padding:5px;min-width:0}
 .nono-guide-sample strong{display:block;text-align:center;font-size:10px;margin:0 0 4px;color:#d8ddff}
+.nono-guide-approved-image{display:block;width:100%;max-width:100%;height:auto;object-fit:contain;border:1px solid #52628e;border-radius:10px;background:#0e1a30;image-rendering:auto}
+.nono-guide-item:has(.nono-guide-approved-image){grid-column:1/-1}
 .nono-guide-sample svg{display:block;width:100%;height:auto;max-height:100px}
 @media(max-width:530px){.nono-settings-head{gap:8px;padding:12px}.nono-settings-head h2{font-size:16px}
  .nono-guide-items{grid-template-columns:1fr}.nono-visual-help-button{padding:7px;font-size:11px}}
@@ -747,6 +749,12 @@ function guideIllustration(key,enabled){
  }
  return '<svg viewBox="0 0 175 100" role="img" aria-label="노노그램 기능 적용 예시">'+base+body+'</svg>';
 }
+const approvedGuideImage={
+ rowHighlight:'./assets/setting-guides/row-highlight.svg',
+ pointerFollow:'./assets/setting-guides/pointer-follow.svg',
+ hintHud:'./assets/setting-guides/hint-hud.svg',
+ filledRunCount:'./assets/setting-guides/filled-run.svg'
+};
 function openVisualGuides(focusKey){
  const existing=$('nono-guide-overlay');if(existing){existing.remove();return;}
  const tab=Number(document.querySelector('.nono-settings-tabs .is-active')?.dataset.tab||0);
@@ -763,6 +771,17 @@ function openVisualGuides(focusKey){
  for(const info of list){
   const card=E('article','nono-guide-item');
   card.append(E('h4',null,info.label),E('p',null,info.help));
+  const imagePath=approvedGuideImage[info.key];
+  if(imagePath){
+   const picture=E('img','nono-guide-approved-image');
+   picture.src=imagePath;
+   picture.alt=info.label+' 끄기와 켜기 비교 이미지';
+   picture.loading='eager';
+   picture.decoding='async';
+   card.append(picture);
+   area.append(card);
+   continue;
+  }
   const pair=E('div','nono-guide-pair');
   for(const isActive of [false,true]){
    const preview=E('div','nono-guide-sample');
