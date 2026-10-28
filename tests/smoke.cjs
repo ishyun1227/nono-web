@@ -300,6 +300,19 @@ const { pathToFileURL } = require('node:url');
       values=await page.evaluate(start=>board.slice(start,start+9),start);
       if(values.slice(0,3).some(v=>v!=='1')||values.slice(3).some(v=>v!=='0'))
         throw new Error('Backward drag did not shrink its single row: '+values.join(''));
+      // Backtrack completely to the first cell, then switch to vertical
+      // without releasing the mouse button.
+      await page.mouse.move(origin.x,down.y,{steps:4});
+      const atStart=await page.evaluate(start=>board.slice(start,start+9),start);
+      if(atStart[0]!=='1'||atStart.slice(1).some(v=>v!=='0'))
+        throw new Error('Returning to origin must clear previous horizontal stroke: '+atStart.join(''));
+      await page.mouse.move(origin.x,origin.y,{steps:3});
+      await page.mouse.move(origin.x,down.y,{steps:4});
+      const changedAxis=await page.evaluate(({start,size})=>({
+        vertical:Array.from({length:7},(_,i)=>board[start+i*size]),
+        horizontal:board[start+2]}),{start,size});
+      if(changedAxis.vertical.some(v=>v!=='1')||changedAxis.horizontal!=='0')
+        throw new Error('Returning to start did not unlock row to column switch: '+JSON.stringify(changedAxis));
       await page.mouse.up();
       const afterState=await page.evaluate(()=>({undo:undoStack.length,dragging:!document.getElementById('nono-drag-hud').hidden}));
       if(afterState.dragging||afterState.undo!==initialState.undo+1)
@@ -353,7 +366,22 @@ const { pathToFileURL } = require('node:url');
         throw new Error('Mouse-follow OFF must prevent cursor selection');
       await page.click('#nono-open-settings');
       await page.getByRole('tab',{name:'편의성·힌트'}).click();
-      await pref.check();await page.click('#nono-settings-close');
+      await pref.check();
+      const runToggle=page.locator('#nono-settings-content input[aria-label="연속 색칠 칸 수 표시"]');
+      const runThreshold=page.locator('#nono-settings-content input[aria-label="연속 칸 숫자 표시 기준"]');
+      if(await runToggle.isChecked()||!(await runThreshold.count()))
+        throw new Error('Continuous painted-run length feature should default to OFF with a numeric threshold');
+      await runToggle.check();await page.click('#nono-settings-close');
+      await page.evaluate(start=>{
+        for(let i=0;i<12;i++)board[i]='1';
+        render();
+      },start);
+      const runLabels=await page.locator('#board .nono-run-number').allTextContents();
+      if(!runLabels.includes('12'))throw new Error('Run-count label did not appear beyond threshold: '+JSON.stringify(runLabels));
+      await page.evaluate(()=>{for(let i=0;i<12;i++)board[i]='0';render();});
+      await page.click('#nono-open-settings');
+      await page.getByRole('tab',{name:'편의성·힌트'}).click();
+      await runToggle.uncheck();await page.click('#nono-settings-close');
     }
     await page.click('#nono-zoom-out');
     await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)<previous,initial);
@@ -364,13 +392,24 @@ const { pathToFileURL } = require('node:url');
       throw new Error('Zoom-in must remain available beyond full-screen fit');
     await page.click('#nono-zoom-in');
     await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)>previous,initial);
-    const extraZoom=await page.evaluate(()=>({
-      cell:Number(document.querySelector('#board').dataset.fitCellSize),
-      overflowX:getComputedStyle(document.querySelector('#game .board-scroll')).overflowX,
-      overflowY:getComputedStyle(document.querySelector('#game .board-scroll')).overflowY,
-      label:document.querySelector('#nono-zoom-label').textContent}));
-    if(extraZoom.cell<=initial||extraZoom.overflowX!=='hidden'||extraZoom.overflowY!=='hidden')
-      throw new Error('Beyond-fit zoom must enlarge while preserving no-scroll mode: '+JSON.stringify(extraZoom));
+    const extraZoom=await page.evaluate(()=>{
+      const area=document.querySelector('#game .board-scroll');
+      return {
+        cell:Number(document.querySelector('#board').dataset.fitCellSize),
+        overflowX:getComputedStyle(area).overflowX,overflowY:getComputedStyle(area).overflowY,
+        pageWidth:document.documentElement.scrollWidth,pageHeight:document.documentElement.scrollHeight,
+        label:document.querySelector('#nono-zoom-label').textContent};
+    });
+    if(extraZoom.cell<=initial||extraZoom.overflowX!=='hidden'||extraZoom.overflowY!=='hidden'||
+       extraZoom.pageHeight<=900||extraZoom.pageWidth<=1440)
+      throw new Error('Beyond-fit zoom must scroll the document, never the puzzle: '+JSON.stringify(extraZoom));
+    const pageScroll=await page.evaluate(()=>{
+      window.scrollTo({top:230,left:75,behavior:'instant'});
+      return {y:window.scrollY,x:window.scrollX};
+    });
+    if(pageScroll.y<=0||pageScroll.x<=0)
+      throw new Error('Site must retain native vertical and horizontal scrolling when enlarged: '+JSON.stringify(pageScroll));
+    await page.evaluate(()=>window.scrollTo({top:0,left:0,behavior:'instant'}));
     await page.click('#nono-zoom-out');
     await page.click('#nono-zoom-out');
     await page.waitForFunction(previous=>Number(document.querySelector('#board').dataset.fitCellSize)<previous,initial);
