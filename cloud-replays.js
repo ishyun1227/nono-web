@@ -11,6 +11,8 @@
   if (!API || !UI) return;
   const eligible = new Set(['heart5', 'cat10', 'rocket10']);
   const MAX_JSON = 300000;
+  const PUBLIC_PREF='nono-replay-public-consent-v1:';
+  const isPublicAllowed=()=>ready() && storage.getItem(PUBLIC_PREF + currentId())==='true';
   const live = [];
   const uploaded = new Set();
   let token = 0, online = false, feed = [];
@@ -34,7 +36,6 @@
     // In this stage only completed single-player runs are safely publishable.
     if (run.mode !== 'practice' && run.mode !== 'record') return;
     const marker = uid + ':' + run.id;
-    if (uploaded.has(marker)) return;
     const privatePath='privateReplays/' + uid + '/' + run.id;
     // Avoid a denied write on every reconnect; records are immutable.
     try {
@@ -57,7 +58,7 @@
         console.warn('리플레이 클라우드 저장 실패',error); return;
       }
     }
-    if (run.mode !== 'record' || !eligible.has(run.puzzleId) || !/^0+$/.test(run.initial)) return;
+    if (!isPublicAllowed() || run.mode !== 'record' || !eligible.has(run.puzzleId) || !/^0+$/.test(run.initial)) return;
     try {
       const s = (await get(ref(database,'runs/' + run.puzzleId + '/' + uid))).val();
       // A verified completion is required; do not publish stale/fake or aborted runs.
@@ -139,14 +140,29 @@
       },error=>console.warn('공개 리플레이 피드 읽기 실패',error)));
     }
   }
+  async function setPublicEnabled(value){
+    if(!ready())throw new Error('로그인 연결 후 설정할 수 있어요.');
+    storage.setItem(PUBLIC_PREF+currentId(),value?'true':'false');
+    UI.setPublicPreference?.(Boolean(value));
+    if(value){await syncLocal();return;}
+    // Revocation: remove from discovery first, then full public replay.
+    for(const puzzleId of eligible){
+      try{await remove(ref(database,'publicReplayFeed/'+puzzleId+'/'+currentId()));}
+      catch(error){console.warn('공개 목록 철회 실패',error);}
+      try{await remove(ref(database,'publishedReplays/'+puzzleId+'/'+currentId()));}
+      catch(error){console.warn('공개 리플레이 철회 실패',error);}
+    }
+  }
   function onAuth() {
     if (!ready()) return;
+    UI.setPublicPreference?.(isPublicAllowed());
     if (!online) watchFeed();
     syncLocal().catch(e=>console.warn('리플레이 백업 재시도 필요',e));
   }
   window.NONO_REPLAY_CLOUD = {
     publish: run => upload(run),
-    refresh: () => refreshFeed()
+    refresh: () => refreshFeed(),
+    setPublicEnabled
   };
   window.addEventListener('nono:online-ready',onAuth);
   window.addEventListener('pagehide',stop);
