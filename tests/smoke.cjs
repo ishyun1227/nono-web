@@ -411,12 +411,18 @@ const { pathToFileURL } = require('node:url');
           const overlay=document.getElementById('nono-guide-overlay');
           const dialog=overlay.querySelector('.nono-guide-dialog').getBoundingClientRect();
           const image=overlay.querySelector('.nono-guide-approved-image').getBoundingClientRect();
+          const dialogElement=overlay.querySelector('.nono-guide-dialog');
+          const style=getComputedStyle(dialogElement);
           return {dialogHeight:dialog.height,imageHeight:image.height,
-            viewportHeight:innerHeight,cardTitles:overlay.querySelectorAll('.nono-guide-item h4,.nono-guide-item p,.nono-guide-desc').length,
-            imageBottom:image.bottom,dialogBottom:dialog.bottom};
+            viewportHeight:innerHeight,cardTitles:overlay.querySelectorAll('.nono-guide-item h4,.nono-guide-item p,.nono-guide-desc,.nono-guide-head h3').length,
+            imageBottom:image.bottom,dialogBottom:dialog.bottom,
+            borderWidth:style.borderTopWidth,boxShadow:style.boxShadow,
+            background:style.backgroundColor,closeLabel:overlay.querySelector('.nono-guide-head button')?.getAttribute('aria-label')};
         });
         if(modalFit.cardTitles!==0||modalFit.dialogHeight>modalFit.viewportHeight*.93||
-          modalFit.imageBottom>modalFit.dialogBottom+2)
+          modalFit.imageBottom>modalFit.dialogBottom+2||
+          modalFit.borderWidth!=='0px'||modalFit.boxShadow!=='none'||
+          modalFit.background!=='rgba(0, 0, 0, 0)'||modalFit.closeLabel!=='닫기')
           throw new Error('Image help must avoid duplicated text and fit within dialog: '+JSON.stringify({label,modalFit}));
         await page.locator('#nono-guide-overlay button').first().click();
       }
