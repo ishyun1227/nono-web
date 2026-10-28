@@ -30,6 +30,10 @@ jobs:
         run: |
           node --check settings.js
           node --check themes.js
+          node --check daily-rewards.js
+          node --check tests/daily-rewards.cjs
+      - name: Verify daily missions and check-in
+        run: node tests/daily-rewards.cjs
       - name: Verify completed VOX preview mode
         run: node tests/voxel-preview.cjs
       - name: Run browser test
