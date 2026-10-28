@@ -161,7 +161,7 @@ let board=emptyBoard(puzzle),selected=0,tool='1',startedAt=0,finishedAt=0,finish
 let unsubscribe=[],pointerDown=false,dragTool='1',busyRoom=false,settingBoard=false,startingRace=false,startingAlone=false;
 let undoStack=[],redoStack=[],homeRankUnsub=null;
 let serverOffset=0,raceQueue=Promise.resolve(),mySlot=null;
-let publicRooms={},publicCounts={},publicRoomUnsub=null,publicCountUnsubs=new Map(),publicHosted=false,autoStartMatch=false,busyMatch=false,publicRoomError=null;
+let publicRooms={},publicCounts={},publicSolved={},publicRoomUnsub=null,publicCountUnsubs=new Map(),publicBoardUnsubs=new Map(),publicHosted=false,autoStartMatch=false,busyMatch=false,publicRoomError=null;
 const serverNow=()=>Date.now()+serverOffset;
 const topScores=id=>query(ref(database,`scores/${id}`),orderByChild("duration"),limitToFirst(12));
 let globalTimer=setInterval(tick,300);
@@ -259,11 +259,11 @@ function showGame(){
   window.scrollTo({top:0,behavior:'instant'});
 }
 async function leaveGame(){
-  clearListeners();const oldRoom=roomCode,oldSlot=mySlot,wasPublicHost=publicHosted&&meta?.host===currentId();publicHosted=false;autoStartMatch=false;roomCode=null;mySlot=null;meta=null;players={};raceStates={};roomBoard=null;finished=false;finishing=false;
+  clearListeners();const oldRoom=roomCode,oldSlot=mySlot,metaModeBeforeLeave=meta?.mode,wasPublicHost=publicHosted&&meta?.host===currentId();publicHosted=false;autoStartMatch=false;roomCode=null;mySlot=null;meta=null;players={};raceStates={};roomBoard=null;finished=false;finishing=false;
   const url=new URL(location.href);url.searchParams.delete('room');history.replaceState({},'',url);
   $('game').classList.add('hidden');$('home-view').classList.remove('hidden');refreshHomepageScores();window.scrollTo({top:0,behavior:'instant'});
   if(oldRoom&&onlineReady()){try{const presence=ref(database,`rooms/${oldRoom}/players/${oldSlot}`);await onDisconnect(presence).cancel();await remove(presence);}catch(e){console.warn('퇴장 정리 실패',e);}}
-  if(wasPublicHost)await removePublicListing(oldRoom);
+  if(wasPublicHost&&metaModeBeforeLeave==='race')await removePublicListing(oldRoom);
 }
 async function startAlone(){
   if(startingAlone||!['practice','record'].includes(mode))return;
@@ -391,12 +391,12 @@ function renderPublicLobby(){
   }
   const entries=Object.entries(publicRooms)
     .filter(([code,item])=>/^[A-HJ-NP-Z2-9]{6}$/.test(code)&&item&&item.mode===mode&&
-      PUZZLES.some(p=>p.id===item.puzzleId)&&item.host!==currentId()&&publicCounts[code]!==4)
+      PUZZLES.some(p=>p.id===item.puzzleId)&&item.host!==currentId()&&(item.mode==='coop'||publicCounts[code]!==4)&&!publicSolved[code])
     .sort((a,b)=>b[1].createdAt-a[1].createdAt).slice(0,12);
   message.textContent=entries.length?'참여 가능한 '+(mode==='race'?'대결':'협동')+' 방 '+entries.length+'개':'공개 방이 없어요. 빠른 매칭으로 첫 방을 열어보세요.';
   list.innerHTML=entries.map(([code,item])=>{
     const p=PUZZLES.find(p=>p.id===item.puzzleId),count=publicCounts[code];
-    const amount=Number.isInteger(count)?count+'/4':'인원 확인 중';
+    const amount=Number.isInteger(count)?(item.mode==='coop'?'현재 '+count+'명':count+'/4'):'인원 확인 중';
     return '<div class="public-room-item"><div class="public-room-info"><strong>'+
       escapeHTML(item.name||'플레이어')+'의 방</strong><small>'+escapeHTML(p.size+'×'+p.size+' · '+({heart5:'쉬움',cat10:'보통',rocket10:'어려움'}[p.id]||'미지정')+' · '+amount)+
       '</small></div><button type="button" data-room-code="'+code+'" class="button outline">참가</button></div>';
@@ -410,12 +410,12 @@ function watchPublicLobby(){
     const items=Object.entries(snapshot.val()||{}).filter(([code,room])=>
       /^[A-HJ-NP-Z2-9]{6}$/.test(code)&&room&&
       (room.mode==='race'||room.mode==='coop')&&
-      Number.isFinite(room.createdAt)&&room.createdAt>serverNow()-7200000)
+      Number.isFinite(room.createdAt)&&(room.mode==='coop'||room.createdAt>serverNow()-7200000))
       .sort((a,b)=>b[1].createdAt-a[1].createdAt).slice(0,20);
     publicRooms=Object.fromEntries(items);
     const wanted=new Set(items.map(([code])=>code));
     for(const [code,stop] of publicCountUnsubs){
-      if(!wanted.has(code)){stop();publicCountUnsubs.delete(code);delete publicCounts[code];}
+      if(!wanted.has(code)){stop();publicCountUnsubs.delete(code);delete publicCounts[code];const stopBoard=publicBoardUnsubs.get(code);if(stopBoard){stopBoard();publicBoardUnsubs.delete(code);}delete publicSolved[code];}
     }
     for(const [code] of items){
       if(publicCountUnsubs.has(code))continue;
@@ -424,6 +424,15 @@ function watchPublicLobby(){
         renderPublicLobby();
       },error=>console.warn('공개 방 인원 확인 실패',error));
       publicCountUnsubs.set(code,stop);
+    }
+    for(const [code,item] of items){
+      if(item.mode!=='coop'||publicBoardUnsubs.has(code))continue;
+      const stop=onValue(ref(database,'rooms/'+code+'/board'),snapshot=>{
+        const p=PUZZLES.find(value=>value.id===item.puzzleId),value=snapshot.val();
+        publicSolved[code]=Boolean(p&&typeof value==='string'&&value.length===p.size*p.size&&isSolved(value.split(''),p));
+        renderPublicLobby();
+      },error=>console.warn('공개 협동방 진행 상태 조회 실패',error));
+      publicBoardUnsubs.set(code,stop);
     }
     renderPublicLobby();
   },error=>{publicRoomError=error;console.error('공개 로비 조회 실패',error);publicRooms={};renderPublicLobby();});
@@ -443,7 +452,7 @@ async function quickMatch(){
   try{
     const matches=Object.entries(publicRooms)
       .filter(([code,item])=>item.mode===mode&&item.puzzleId===puzzle.id&&
-        item.host!==currentId()&&publicCounts[code]!==4)
+        item.host!==currentId()&&(item.mode==='coop'||publicCounts[code]!==4)&&!publicSolved[code])
       .sort((a,b)=>a[1].createdAt-b[1].createdAt);
     for(const [code] of matches){if(await enterRoom(code))return;}
     const created=await createRoom({publicRoom:true,autoMatch:true});
@@ -463,7 +472,7 @@ async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toas
       const info=(await get(ref(database,'rooms/'+code+'/meta'))).val();
       const listing=ref(database,'publicRooms/'+code);
       await set(listing,{host:currentId(),name:nickname(),mode:info.mode,puzzleId:info.puzzleId,createdAt:info.createdAt});
-      await onDisconnect(listing).remove();
+      if(mode==='race')await onDisconnect(listing).remove();
       publicHosted=true;
     }catch(error){console.warn('공개 방 게시 실패',error);toast('방은 만들었지만 공개 목록 등록에 실패했어요. Firebase 규칙을 확인하세요.');}
   }
@@ -478,7 +487,12 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
     if(roomCode&&roomCode!==code)await leaveGame();
     const members=(await get(ref(database,`rooms/${code}/players`))).val()||{};
     const existing=Object.keys(members).find(slot=>members[slot]?.uid===currentId());
-    let claimed=existing;
+    let claimed=info.mode==='coop'?currentId():existing;
+    if(info.mode==='coop'){
+      const target=ref(database,`rooms/${code}/players/${claimed}`);
+      const admission=await runTransaction(target,current=>current?.uid===currentId()?current:current?undefined:{uid:currentId(),name:nickname(),joinedAt:serverTimestamp()});
+      if(!admission.committed){toast('협동 방에 참가할 수 없어요.');return false;}
+    }
     if(claimed===undefined){
       for(const slot of ['0','1','2','3']){
         if(members[slot])continue;
@@ -488,6 +502,9 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
     }
     if(claimed===undefined){toast('방이 가득 찼거나 이미 시작된 대결이에요.');return;}
     mySlot=claimed;await onDisconnect(ref(database,`rooms/${code}/players/${mySlot}`)).remove();
+    if(info.mode==='coop'){
+      set(ref(database,`userRooms/${currentId()}/${code}`),true).catch(error=>console.warn('협동 저장 목록 등록 실패: Firebase 규칙을 확인하세요',error));
+    }
     clearListeners();roomCode=code;mode=info.mode;puzzle=p;meta=info;board=emptyBoard(p);startedAt=info.startedAt||0;finishedAt=0;finished=false;selected=0;changes=0;finishing=false;raceStates={};$('puzzle').value=puzzle.id;setMode(mode);showGame();
     const url=new URL(location.href);url.searchParams.set('room',code);history.replaceState({},'',url);
     unsubscribe.push(onValue(ref(database,`rooms/${code}/meta`),s=>{meta=s.val();if(!meta)return;if(meta.mode==='race'){const lobby=meta.status==='lobby';$('lobby').classList.toggle('hidden',!lobby);$('play-area').classList.toggle('hidden',lobby);$('lobby-code').textContent=`방 코드 ${code}`;$('start-race').classList.toggle('hidden',currentId()!==meta.host);if(!lobby&&!startingRace)ensureRaceState().catch(firebaseError);}else{$('lobby').classList.add('hidden');$('play-area').classList.remove('hidden');}tick();},firebaseError));
