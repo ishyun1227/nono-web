@@ -8,7 +8,18 @@ const { pathToFileURL } = require('node:url');
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.route('**/firebase-config.js', route => route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
-  await page.goto(pathToFileURL(path.resolve(__dirname, '..', 'index.html')).href);
+  // Test the exact built directory deployed to Cloudflare, not repository-root files.
+  for(const name of ['row-highlight','pointer-follow','hint-hud','filled-run','drag-hud']){
+    const picture=path.resolve(__dirname,'..','dist','assets','setting-guides',name+'.svg');
+    if(!fs.existsSync(picture))throw new Error('Missing approved guide in deploy bundle: '+name);
+    const data=fs.readFileSync(picture,'utf8');
+    if(!data.includes('<svg')||!data.includes('</svg>')||data.length<200)
+      throw new Error('Malformed deployed guide SVG: '+name);
+  }
+  const builtHtml=fs.readFileSync(path.resolve(__dirname,'..','dist','index.html'),'utf8');
+  if(!/settings\\.js\\?v=[a-f0-9]{12}/.test(builtHtml))
+    throw new Error('Built settings script reference has no fresh hash, browser may show stale diagrams');
+  await page.goto(pathToFileURL(path.resolve(__dirname, '..', 'dist','index.html')).href);
   await page.locator('#nono-open-settings').waitFor();
 
   await page.locator('#nono-theme-open').waitFor();
@@ -384,7 +395,8 @@ const { pathToFileURL } = require('node:url');
         ['현재 행·열 강조','row-highlight.svg'],
         ['마우스 실시간 선택','pointer-follow.svg'],
         ['현재 행·열 숫자 HUD','hint-hud.svg'],
-        ['연속 색칠 칸 수 표시','filled-run.svg']
+        ['연속 색칠 칸 수 표시','filled-run.svg'],
+        ['드래그 칸 수 HUD','drag-hud.svg']
       ]){
         await page.getByRole('button',{name:label+' 이미지로 설명보기'}).click();
         const img=page.locator('#nono-guide-overlay img.nono-guide-approved-image');
@@ -397,10 +409,7 @@ const { pathToFileURL } = require('node:url');
           throw new Error('Guide must only show requested option '+label);
         await page.locator('#nono-guide-overlay button').first().click();
       }
-      await page.getByRole('button',{name:'드래그 칸 수 HUD 이미지로 설명보기'}).click();
-      if(await page.locator('#nono-guide-overlay img.nono-guide-approved-image').count()!==0)
-        throw new Error('Unapproved drag HUD image must not be installed');
-      await page.locator('#nono-guide-overlay button').first().click();
+
       await pref.uncheck();await page.click('#nono-settings-close');
       const oldSelected=await page.evaluate(()=>selected);
       await page.mouse.move(origin.x,origin.y,{steps:1});
