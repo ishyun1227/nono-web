@@ -13,7 +13,7 @@ const sizeGroups=[
   {name:'큼',min:21,max:34},
   {name:'거대',min:35,max:Infinity}
 ];
-const difficulties=['쉬움','보통','어려움'];
+const difficulties=['쉬움','보통','어려움','전문가'];
 const legacy={heart5:'쉬움',cat10:'보통',rocket10:'어려움',
   vox_crabino_front:'보통',vox_crabino_side:'보통',vox_crabino_top:'보통'};
 const difficultyOf=p=>difficulties.includes(p.difficulty||legacy[p.id])?(p.difficulty||legacy[p.id]):null;
