@@ -74,6 +74,10 @@ async function main(){
    const snapshot=await get(ref(database,'rooms/'+roomCode+'/replayEvents'));
    return Object.values(snapshot.val()||{}).flatMap(x=>Object.values(x||{})).map(x=>({actor:x.actor,mode:x.mode,cells:x.cells}));
   });
+  const peers=await Promise.all(pages.map(page=>page.evaluate(()=>({
+    uid:currentId(),mode,roomCode,players:Object.keys(players||{}),finished,board:board.join('').slice(0,12)
+  }))));
+  console.log('REPLAY COOP DIAGNOSTIC',JSON.stringify({room,peers,events,errors}));
   assert.equal(new Set(events.map(x=>x.actor)).size,2);
   assert(events.every(x=>x.mode==='coop'&&/^\[\[/.test(x.cells)));
   assert.equal(errors.length,0,errors.join('; '));
