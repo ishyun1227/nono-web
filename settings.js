@@ -624,10 +624,11 @@ body.nono-fit-playing #game .board-scroll #board{max-width:none!important}
   border-radius:9px;padding:8px 11px;font-size:12px;font-weight:750;cursor:pointer}
 .nono-guide-overlay{position:fixed;inset:0;z-index:12010;background:#050a18e8;display:grid;place-items:center;padding:14px}
 .nono-guide-dialog{width:min(850px,97vw);max-height:90vh;min-height:0;display:flex;flex-direction:column;
-  background:#111b32;border:1px solid #6376ae;border-radius:16px;color:#eaf0ff;box-shadow:0 24px 80px #000a}
-.nono-guide-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 18px;
-  border-bottom:1px solid #334368}
-.nono-guide-head h3{font-size:17px;margin:0}
+  background:transparent;border:0;border-radius:0;color:#eaf0ff;box-shadow:none}
+.nono-guide-head{display:flex;justify-content:flex-end;align-items:center;gap:0;padding:0 12px 8px;
+  border:0;background:transparent}
+.nono-guide-head .nono-modal-btn{border-radius:50%;min-width:32px;width:32px;height:32px;padding:0;font-size:24px;
+  background:#263452d9;border:1px solid #647ba6;color:#fff;line-height:1;cursor:pointer}
 .nono-guide-desc{padding:10px 18px 0;margin:0;font-size:12px;color:#aebcdb}
 .nono-guide-items{padding:14px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:10px}
 .nono-guide-item{border:1px solid #38486c;background:#192541;border-radius:12px;padding:12px;min-width:0}
@@ -764,9 +765,9 @@ function openVisualGuides(focusKey){
  const tab=Number(document.querySelector('.nono-settings-tabs .is-active')?.dataset.tab||0);
  const pane=E('div','nono-guide-overlay');pane.id='nono-guide-overlay';
  const dialog=E('section','nono-guide-dialog');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');
- const header=E('div','nono-guide-head'),title=E('h3',null,'이미지 설명');
- const close=E('button','nono-modal-btn','닫기');close.type='button';close.onclick=()=>pane.remove();
- header.append(title,close);dialog.append(header);
+ const header=E('div','nono-guide-head');
+ const close=E('button','nono-modal-btn','×');close.type='button';close.setAttribute('aria-label','닫기');close.onclick=()=>pane.remove();
+ header.append(close);dialog.append(header);
  const area=E('div','nono-guide-items');
  let list=schema[tab][1].map(([key,label,type,options,help])=>({key,label,type,options,help}));
  if(tab===0)for(const action of Object.keys(standardKeys))list.push({key:'keyboard-'+action,label:shortcutNames[action],type:'choice',help:'선택한 키를 눌러 단축키를 지정하며 기존 퍼즐 그림과 답은 바뀌지 않습니다.'});
