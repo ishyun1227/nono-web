@@ -291,7 +291,21 @@ const { pathToFileURL } = require('node:url');
       await page.mouse.move(origin.x,origin.y);
       const initialState=await page.evaluate(()=>({undo:undoStack.length,values:board.slice()}));
       await page.mouse.down();
+      const hudOnPress=await page.locator('#nono-drag-hud').evaluate(el=>({
+        hidden:el.hidden,active:el.classList.contains('nono-drag-active'),text:el.textContent,
+        display:getComputedStyle(el).display,rect:el.getBoundingClientRect().toJSON()
+      }));
+      if(hudOnPress.hidden||!hudOnPress.active||!hudOnPress.text.includes('1칸')||hudOnPress.display==='none')
+        throw new Error('Drag count HUD must show as soon as mouse is pressed: '+JSON.stringify(hudOnPress));
       await page.mouse.move(far.x,far.y,{steps:5});
+      const hudDuring=await page.locator('#nono-drag-hud').evaluate(el=>({
+        hidden:el.hidden,active:el.classList.contains('nono-drag-active'),text:el.textContent,
+        left:el.getBoundingClientRect().left,top:el.getBoundingClientRect().top,
+        display:getComputedStyle(el).display
+      }));
+      if(hudDuring.hidden||!hudDuring.active||!hudDuring.text.includes('7칸')||
+        hudDuring.display==='none'||hudDuring.left<0||hudDuring.top<0)
+        throw new Error('Drag count HUD must update and remain visible near mouse: '+JSON.stringify(hudDuring));
       let values=await page.evaluate(start=>board.slice(start,start+7),start);
       if(values.some(v=>v!=='1'))throw new Error('One-row drag did not fill its straight segment: '+values.join(''));
       // Leave the row: the selected horizontal segment must still respond to x.
@@ -323,6 +337,9 @@ const { pathToFileURL } = require('node:url');
       if(changedAxis.vertical.some(v=>v!=='1')||changedAxis.horizontal!=='0')
         throw new Error('Returning to start did not unlock row to column switch: '+JSON.stringify(changedAxis));
       await page.mouse.up();
+      const ended=await page.locator('#nono-drag-hud').evaluate(el=>({
+        hidden:el.hidden,active:el.classList.contains('nono-drag-active')}));
+      if(!ended.hidden||ended.active)throw new Error('HUD must disappear after stroke: '+JSON.stringify(ended));
       const afterState=await page.evaluate(()=>({undo:undoStack.length,dragging:!document.getElementById('nono-drag-hud').hidden}));
       if(afterState.dragging||afterState.undo!==initialState.undo+1)
         throw new Error('Row stroke must commit one undo entry: '+JSON.stringify({initial:initialState.undo,after:afterState}));
