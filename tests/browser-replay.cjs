@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');
 const {initializeTestEnvironment}=require('@firebase/rules-unit-testing');
-const {ref,set}=require('firebase/database');
+const {ref,set,get}=require('firebase/database');
 const {answers}=require('./puzzles.cjs');
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 async function main(){
@@ -64,16 +64,19 @@ async function main(){
   const room=await pages[0].evaluate(()=>roomCode);
   assert.match(room,/^[A-HJ-NP-Z2-9]{6}$/);
   await pages[1].evaluate(async code=>await enterRoom(code),room);
+  const readRoom=async path=>env.withSecurityRulesDisabled(async context=>
+    (await get(ref(context.database(),'rooms/'+room+'/'+path))).val());
   await pages[0].evaluate(()=>paint(1,'1',true));
+  // Wait for the first server transaction before the second user edits.
+  await pages[1].waitForFunction(()=>board[1]==='1',{timeout:15000});
   await pages[1].evaluate(()=>paint(2,'1',true));
-  await pages[0].waitForFunction(async()=> {
-   const snapshot=await get(ref(database,'rooms/'+roomCode+'/replayEvents'));
-   return Object.values(snapshot.val()||{}).flatMap(x=>Object.values(x||{})).length>=2;
-  },null,{timeout:20000});
-  const events=await pages[0].evaluate(async()=>{
-   const snapshot=await get(ref(database,'rooms/'+roomCode+'/replayEvents'));
-   return Object.values(snapshot.val()||{}).flatMap(x=>Object.values(x||{})).map(x=>({actor:x.actor,mode:x.mode,cells:x.cells}));
-  });
+  let events=[];
+  for(let attempt=0;attempt<100;attempt++){
+    const raw=(await readRoom('replayEvents'))||{};
+    events=Object.values(raw).flatMap(x=>Object.values(x||{})).map(x=>({actor:x.actor,mode:x.mode,cells:x.cells}));
+    if(new Set(events.map(x=>x.actor)).size>=2)break;
+    await new Promise(resolve=>setTimeout(resolve,100));
+  }
   const peers=await Promise.all(pages.map(page=>page.evaluate(()=>({
     uid:currentId(),mode,roomCode,players:Object.keys(players||{}),finished,board:board.join('').slice(0,12)
   }))));
