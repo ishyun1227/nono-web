@@ -16,7 +16,13 @@ const themes=[
 ];
 const byId=Object.fromEntries(themes.map(t=>[t.id,t]));
 const savedTrial=(()=>{
-  try{return sessionStorage.getItem(TRIAL_KEY)}catch{return null}
+  try{
+    const trial=sessionStorage.getItem(TRIAL_KEY);
+    if(byId[trial])return trial;
+    const chosen=localStorage.getItem('nono-theme-owned-selection-v1');
+    const wallet=JSON.parse(localStorage.getItem('nono-daily-preview-v1')||'null');
+    return chosen==='neon'||(Array.isArray(wallet?.ownedThemes)&&wallet.ownedThemes.includes(chosen))?chosen:null;
+  }catch{return null}
 })();
 let activeTheme=byId[savedTrial]?savedTrial:'neon'; // Session trial is not a purchase and grants no ownership or server privileges.
 let modal=null,selection=activeTheme,previousTheme=activeTheme;
@@ -59,13 +65,15 @@ function showMessage(){
   modal.querySelectorAll('.nono-theme-card').forEach(btn=>{
     const selected=btn.dataset.themeId===selection;
     btn.setAttribute('aria-pressed',String(selected));
-    btn.querySelector('.nono-theme-price').textContent=btn.dataset.themeId===activeTheme?'사용 중':btn.dataset.themeId==='neon'?'기본 무료':byId[btn.dataset.themeId].price.toLocaleString()+' P 예정';
+    btn.querySelector('.nono-theme-price').textContent=btn.dataset.themeId==='neon'?'기본 무료':
+      window.NONO_DAILY_REWARDS?.ownsTheme?.(btn.dataset.themeId)?'보유 중':byId[btn.dataset.themeId].price.toLocaleString()+' P';
   });
   modal.querySelector('.nono-theme-message').textContent=t.id==='neon'
     ?'기본 테마는 무료로 계속 사용할 수 있어요.'
-    :t.label+' '+(t.tier==='world'?'월드 테마':'색상 테마')+' 미리보기 · 포인트 구매는 아직 연결되지 않았습니다. 무료 체험은 현재 탭에서만 유지됩니다.';
+    :t.label+' '+(t.tier==='world'?'월드 테마':'색상 테마')+' 미리보기 · 이 기기의 출석/미션 체험 포인트로 테마를 잠금 해제할 수 있어요.';
   const action=modal.querySelector('.nono-theme-use');
-  action.textContent=selection===activeTheme?'선택한 테마 사용 중':t.id==='neon'?'기본 테마 적용':'무료 체험 적용';
+  action.textContent=selection===activeTheme?'선택한 테마 사용 중':t.id==='neon'?'기본 테마 적용':window.NONO_DAILY_REWARDS?.ownsTheme?.(selection)?'보유 테마 적용':'무료 체험 적용';
+  window.NONO_SHOP?.refresh?.();
 }
 function chooseTheme(id){
   selection=applyTheme(id);
@@ -75,7 +83,12 @@ function closeTheme(keepPreview){
   if(!modal)return;
   if(keepPreview){
     activeTheme=selection;
-    try{if(activeTheme==='neon')sessionStorage.removeItem(TRIAL_KEY);else sessionStorage.setItem(TRIAL_KEY,activeTheme)}catch{}
+    try{
+      if(activeTheme==='neon')sessionStorage.removeItem(TRIAL_KEY);
+      else sessionStorage.setItem(TRIAL_KEY,activeTheme);
+      if(activeTheme==='neon'||window.NONO_DAILY_REWARDS?.ownsTheme?.(activeTheme))
+        localStorage.setItem('nono-theme-owned-selection-v1',activeTheme);
+    }catch{}
   }else applyTheme(previousTheme);
   modal.remove();modal=null;
   document.removeEventListener('keydown',onKey,true);
@@ -84,8 +97,8 @@ function closeTheme(keepPreview){
 function onKey(e){if(e.key==='Escape'){e.preventDefault();closeTheme(false)}}
 const openButton=document.createElement('button');
 openButton.type='button';openButton.id='nono-theme-open';openButton.className='nono-theme-open';
-openButton.textContent='🎨 테마';
-openButton.title='사이트 전체 테마 미리보기';
+openButton.textContent='🛍 상점';
+openButton.title='테마, 포인트 충전, 프리미엄 상점';
 openButton.setAttribute('aria-haspopup','dialog');
 function openTheme(){
   if(modal)return;
@@ -93,11 +106,11 @@ function openTheme(){
   modal=document.createElement('div');modal.className='nono-theme-overlay';modal.id='nono-theme-overlay';
   const panel=document.createElement('section');
   panel.className='nono-theme-dialog';panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');panel.setAttribute('aria-labelledby','nono-theme-title');
-  panel.innerHTML='<div class="nono-theme-head"><div><h2 class="nono-theme-title" id="nono-theme-title">🎨 NONO 테마 상점</h2><p class="nono-theme-subtitle">색상 테마는 저렴하게, 월드 테마는 완전히 다른 사이트 분위기로!<br>지금은 가격만 표시하며 모두 무료 미리보기로 체험할 수 있습니다.</p></div><button type="button" class="nono-theme-close" id="nono-theme-close">닫기</button></div><div class="nono-theme-groups" id="nono-theme-groups"></div><div class="nono-theme-foot"><p class="nono-theme-message" id="nono-theme-message"></p><button type="button" class="nono-theme-use" id="nono-theme-use">적용</button></div>';
+  panel.innerHTML='<div class="nono-theme-head"><div><h2 class="nono-theme-title" id="nono-theme-title">🛍 NONO 상점</h2><p class="nono-theme-subtitle">테마 구매 · 포인트 충전 · 광고 제거 프리미엄<br>보상 포인트 구매는 현재 브라우저 체험용이며, 현금 결제는 서버 연동 전입니다.</p></div><button type="button" class="nono-theme-close" id="nono-theme-close">닫기</button></div><div class="nono-theme-groups" id="nono-theme-groups"></div><div class="nono-theme-foot"><p class="nono-theme-message" id="nono-theme-message"></p><button type="button" class="nono-theme-use" id="nono-theme-use">적용</button></div>';
   const groups=panel.querySelector('#nono-theme-groups'),lists={};
   for(const [tier,title,info] of [
-    ['color','🎨 색상 테마','레이아웃은 유지 · 0 ~ 500 P 예정'],
-    ['world','✨ 프리미엄 테마','배경·메뉴·카드·게임판 전면 재설계 · 2,500 ~ 6,500 P 예정']
+    ['color','🎨 색상 테마','레이아웃은 유지 · 0 ~ 500 P'],
+    ['world','✨ 프리미엄 테마','배경·메뉴·카드·게임판 전면 재설계 · 2,500 ~ 6,500 P']
   ]){
     const section=document.createElement('section');section.className='nono-theme-section';
     const heading=document.createElement('div');heading.className='nono-theme-section-heading';
@@ -126,11 +139,14 @@ function openTheme(){
   panel.querySelector('#nono-theme-use').addEventListener('click',()=>closeTheme(true));
   document.addEventListener('keydown',onKey,true);
   showMessage();
+  window.NONO_SHOP?.enhance?.(modal);
   panel.querySelector('#nono-theme-close').focus();
 }
 openButton.addEventListener('click',openTheme);
 const header=document.querySelector('.header-right');
 if(header)header.insertBefore(openButton,document.getElementById('nono-open-settings')||header.firstChild);
 applyTheme(activeTheme);
-window.NONO_THEMES={open:openTheme,get current(){return activeTheme},list:themes.map(({id,label,price,tier})=>({id,label,price,tier}))};
+window.NONO_THEMES={open:openTheme,get current(){return activeTheme},get selected(){return selection},
+ refresh:showMessage,
+ list:themes.map(({id,label,price,tier})=>({id,label,price,tier}))};
 })();
