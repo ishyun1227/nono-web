@@ -548,6 +548,7 @@ body.nono-fit-playing #game .rules{display:none!important}
 /* Native PAGE scrolling is allowed; the puzzle container itself never scrolls.
    Zooming past fit enlarges document dimensions so no puzzle content is inaccessible. */
 html:has(body.nono-fit-playing){overflow-x:auto!important;overflow-y:auto!important}
+body.nono-fit-playing #game{padding-top:0!important;margin-top:0!important}
 body.nono-fit-playing{overflow-x:auto!important;overflow-y:auto!important}
 body.nono-fit-playing #game{
  position:relative!important;
@@ -951,8 +952,8 @@ function fitBoardToViewport(){
  const fit=Math.max(.5,low),cell=fit*boardZoom,d=dimensions(cell);
  const renderedWidth=n*cell+d.rowWidth*sides+8;
  const renderedHeight=n*cell+d.colHeight*sides+8;
- const pageWidth=Math.ceil(Math.max(viewportW,renderedWidth+4));
- const pageHeight=Math.ceil(Math.max(viewportH,renderedHeight+4));
+ const pageWidth=boardZoom<=1?Math.ceil(viewportW):Math.ceil(Math.max(viewportW,renderedWidth+4));
+ const pageHeight=boardZoom<=1?Math.ceil(viewportH):Math.ceil(Math.max(viewportH,renderedHeight+4));
  // Scroll the DOCUMENT, never the puzzle container.
  // Keep fit centered and allow extra-zoom content to extend the document.
  if(isLarge){
