@@ -1,0 +1,39 @@
+/* NONO unified store. Controls never initiate an unverified real-money payment. */
+.nono-shop-nav{display:flex;gap:7px;flex-shrink:0;padding:0 24px 10px;border-bottom:1px solid var(--theme-line,#3a4a68)}
+.nono-shop-nav button{flex:1 1 0;min-width:0;border:1px solid var(--theme-line,#3a4a68);background:var(--theme-panel,#202e4b);border-radius:9px;padding:11px 9px;color:var(--theme-text,#fff);font-size:13px;font-weight:800;cursor:pointer}
+.nono-shop-nav button[aria-selected="true"]{background:var(--theme-accent,#7665ed);color:#fff;border-color:var(--theme-accent,#7665ed)}
+.nono-shop-wallet{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 24px;background:var(--theme-panel,#1b2944);border-bottom:1px solid var(--theme-line,#3a4a68)}
+.nono-shop-wallet strong{color:var(--theme-text,#fff);font-size:13px}
+.nono-shop-wallet small{font-size:11px;color:var(--theme-muted,#adc0de)}
+.nono-shop-panel{min-height:180px;padding:25px 24px 28px;overflow:auto}
+.nono-shop-panel h3{font-size:21px;margin:0 0 8px}
+.nono-shop-panel p{font-size:13px;line-height:1.6;color:var(--theme-muted,#b9c8e3);margin:0 0 15px}
+.nono-shop-packs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.nono-shop-pack{border:1px solid var(--theme-line,#4d597b);border-radius:12px;padding:18px 12px;background:var(--theme-panel,#223251);display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+.nono-shop-pack strong{font-size:20px}
+.nono-shop-pack small,.nono-shop-pack span{font-size:12px;color:var(--theme-muted,#c9d2e5)}
+.nono-shop-pack button,.nono-shop-premium-buy{border:0;border-radius:8px;padding:10px 12px;background:#4d6989;color:#fff;font-size:12px;font-weight:750;width:100%}
+.nono-shop-pack button:disabled,.nono-shop-premium-buy:disabled{cursor:not-allowed;opacity:.75}
+.nono-shop-warning{margin-top:17px!important;font-size:12px!important;color:var(--theme-muted,#bac5db)!important}
+.nono-shop-premium-card{display:flex;gap:17px;align-items:flex-start;padding:22px;border:1px solid #c0a273;border-radius:13px;background:linear-gradient(135deg,#443421,#202c43)}
+.nono-shop-crown{font-size:34px}
+.nono-shop-premium-card h3{color:#ffe6a5}
+.nono-shop-premium-card p{color:#eff0ee!important}
+.nono-shop-premium-card small{color:#f1dba9}
+.nono-shop-premium-buy{max-width:330px;margin-top:16px}
+.nono-shop-local-notice{padding:0 24px 16px;font-size:12px;line-height:1.6;color:var(--theme-muted,#bac5db);margin:0}
+.nono-shop-buy-theme{padding:11px 15px;border-radius:9px;font-size:12px;font-weight:800;background:#ffd978;border:1px solid #e9b959;color:#34302d;cursor:pointer;white-space:nowrap}
+.nono-shop-buy-theme:disabled{background:var(--theme-panel,#34415e);color:var(--theme-muted,#bbc9d5);border-color:var(--theme-line,#5a607b);cursor:default}
+.nono-theme-groups{overflow-y:auto;min-height:0}
+.nono-theme-section{margin-bottom:16px}
+.nono-theme-section-heading{display:flex;gap:9px;align-items:center;justify-content:space-between;margin:6px 24px}
+.nono-theme-section-heading h3{margin:0;font-size:16px}
+.nono-theme-section-heading small{font-size:11px;color:var(--theme-muted,#bdc7dd)}
+.nono-theme-section .nono-theme-list{padding-bottom:10px}
+.nono-theme-dialog .nono-shop-panel[hidden],.nono-theme-dialog .nono-theme-groups[hidden],.nono-theme-dialog .nono-theme-foot[hidden],.nono-theme-dialog .nono-shop-local-notice[hidden]{display:none!important}
+body[data-nono-theme="pastel"] .nono-shop-premium-card{background:#fff1d9}
+body[data-nono-theme="pastel"] .nono-shop-premium-card h3{color:#7b4e1a}
+body[data-nono-theme="pastel"] .nono-shop-premium-card p{color:#4e4751!important}
+body[data-nono-theme="pastel"] .nono-shop-premium-card small{color:#85682e}
+@media(max-width:650px){.nono-shop-nav{padding:0 13px 9px;gap:4px}.nono-shop-nav button{font-size:11px;padding:10px 4px}.nono-shop-wallet{padding:9px 14px}.nono-shop-panel{padding:17px 14px}.nono-shop-packs{grid-template-columns:1fr}.nono-shop-pack{padding:13px 15px}.nono-theme-section-heading{margin:6px 15px}.nono-shop-local-notice{padding:0 15px 12px}.nono-theme-foot{flex-wrap:wrap}.nono-shop-buy-theme{flex:1 1 auto;white-space:normal}}
+@media(prefers-reduced-motion:reduce){.nono-theme-dialog *{transition:none!important}}
