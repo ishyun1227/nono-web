@@ -152,3 +152,14 @@
   body.nono-fit-playing.nono-touch-pad-visible #game .board-footer{bottom:5px!important}
   body.nono-fit-playing.nono-touch-pad-visible #game #nono-actions{bottom:38px!important}
 }
+
+
+#nono-gamepad-status[hidden]{display:none!important}
+#nono-gamepad-status{
+  position:fixed;z-index:160;right:14px;bottom:16px;
+  padding:9px 14px;border-radius:16px;
+  color:#e9fff7;background:#17283ded;border:1px solid #66cabc;
+  box-shadow:0 8px 24px #0a18335c;
+  font:700 12px/1.3 Inter,Pretendard,"Noto Sans KR",sans-serif;
+  pointer-events:none;
+}
