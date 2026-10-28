@@ -28,6 +28,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Check JavaScript syntax
         run: |
+          node --check locale.js
           node --check settings.js
           node --check themes.js
           node --check daily-rewards.js
