@@ -753,7 +753,8 @@ const approvedGuideImage={
  rowHighlight:'./assets/setting-guides/row-highlight.svg',
  pointerFollow:'./assets/setting-guides/pointer-follow.svg',
  hintHud:'./assets/setting-guides/hint-hud.svg',
- filledRunCount:'./assets/setting-guides/filled-run.svg'
+ filledRunCount:'./assets/setting-guides/filled-run.svg',
+ dragHud:'./assets/setting-guides/drag-hud.svg'
 };
 function openVisualGuides(focusKey){
  const existing=$('nono-guide-overlay');if(existing){existing.remove();return;}
@@ -763,7 +764,7 @@ function openVisualGuides(focusKey){
  const header=E('div','nono-guide-head'),title=E('h3',null,(typeof focusKey==='string'?'개별 설정':'전체 설정')+' · 이미지로 설명보기');
  const close=E('button','nono-modal-btn','닫기');close.type='button';close.onclick=()=>pane.remove();
  header.append(title,close);dialog.append(header);
- dialog.append(E('p','nono-guide-desc','각 항목을 바꾸면 무엇이 달라지는지 보여주는 도식 예시입니다. 실제 퍼즐 캡처나 정답 미리보기가 아닙니다.'));
+ dialog.append(E('p','nono-guide-desc','설정을 켰을 때와 껐을 때의 차이를 그림으로 보여줍니다. 실제 정답을 미리 공개하지 않습니다.'));
  const area=E('div','nono-guide-items');
  let list=schema[tab][1].map(([key,label,type,options,help])=>({key,label,type,options,help}));
  if(tab===0)for(const action of Object.keys(standardKeys))list.push({key:'keyboard-'+action,label:shortcutNames[action],type:'choice',help:'선택한 키를 눌러 단축키를 지정하며 기존 퍼즐 그림과 답은 바뀌지 않습니다.'});
