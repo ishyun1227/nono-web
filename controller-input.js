@@ -73,24 +73,27 @@ function readGamepad(){
 }
 function poll(){
  const gp=readGamepad(),ok=Boolean(gp);
+ const custom=window.NONO_INPUT_CUSTOM?.settings;
+ const mapping=custom?.mapping||{fill:0,cross:1,clear:2,undo:4,redo:5};
  if(connected!==ok){
   connected=ok;
   const status=$('nono-pad-connection');if(status)status.textContent=ok?'🎮 게임패드 연결됨':'방향키 · 칸 입력';
   document.body.classList.toggle('nono-gamepad-connected',ok);
   indicator.hidden=!ok||!active()||mq.matches;
  }
- if(!gp||!active()){releasePhysical();return;}
+ if(!gp||!active()||custom?.controllerEnabled===false){releasePhysical();return;}
  const down=i=>Boolean(gp.buttons[i]?.pressed||gp.buttons[i]?.value>.55);
  const x=gp.axes[0]||0,y=gp.axes[1]||0;
- const stickX=Math.abs(x)>.55?(x>0?'right':'left'):null;
- const stickY=Math.abs(y)>.55?(y>0?'down':'up'):null;
+ const deadzone=(custom?.deadzone||55)/100;
+ const stickX=custom?.stick!==false&&Math.abs(x)>deadzone?(x>0?'right':'left'):null;
+ const stickY=custom?.stick!==false&&Math.abs(y)>deadzone?(y>0?'down':'up'):null;
  const direction=down(12)?'up':down(13)?'down':down(14)?'left':down(15)?'right':
    Math.abs(x)>Math.abs(y)?stickX:(stickY||stickX);
  const current=new Set();
  if(direction)current.add(direction);
- if(down(1))current.add('cross');else if(down(2))current.add('clear');else if(down(0))current.add('fill');
- if(down(3)||down(4))current.add('undo');
- if(down(5))current.add('redo');
+ if(down(mapping.cross))current.add('cross');else if(down(mapping.clear))current.add('clear');else if(down(mapping.fill))current.add('fill');
+ if(down(mapping.undo))current.add('undo');
+ if(down(mapping.redo))current.add('redo');
  for(const name of [...physical])if(!current.has(name)){emit(name,false);physical.delete(name);}
  for(const name of current)if(!physical.has(name)){emit(name,true);physical.add(name);}
 }
