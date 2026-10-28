@@ -135,6 +135,13 @@ async function main(){
   await assertSucceeds(set(runBob,{name:'Bob',startedAt:serverTimestamp(),finishedAt:0,filled:'0'.repeat(25),changes:0}));
   await assertSucceeds(get(ref(b,'publishedReplays/heart5/alice')));
   console.log('PASS private replay ownership, verified publication, bounded public feed, spoiler protection');
+  await assertFails(remove(ref(b,'publicReplayFeed/heart5/alice')));
+  await assertFails(remove(ref(b,'publishedReplays/heart5/alice')));
+  await assertSucceeds(remove(ref(a,'publicReplayFeed/heart5/alice')));
+  await assertSucceeds(remove(ref(a,'publishedReplays/heart5/alice')));
+  await assertFails(get(ref(b,'publishedReplays/heart5/alice')));
+  console.log('PASS publisher revocation and protection from outsider deletion');
+
  }finally{await env.cleanup();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
