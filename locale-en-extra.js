@@ -227,6 +227,21 @@ const auditedEnglish=[
  ['미리보기','Preview'],
  ['현금 충전 준비 중','Cash top-up coming soon']
 ];
-const dict={};for(const [a,b] of [...rows,...worldAndMisc,...auditedEnglish])dict[a]=b;
+
+const gameplayAndWorld=[
+ ['맞춤','Fit'],['가운데 두기','Center board'],['화면 맞춤','Fit to screen'],
+ ['💡 도움 힌트','💡 Hint'],['✓ 오답 검사','✓ Check mistakes'],
+ ['퍼즐 플레이','Puzzle game'],['노노그램 퍼즐판','Nonogram board'],
+ ['퍼즐판 크기 조절','Board zoom controls'],['노노그램 퍼즐','Nonogram puzzle'],
+ ['행','Row'],['열','Column'],
+ ['저장된 퍼즐을 이어서 시작했어요.','Resumed your saved puzzle.'],
+ ['✦ 숲속 퍼즐 시작하기','✦ Start forest puzzle'],
+ ['✧ 나만의 속도로 즐기는 노노그램','✧ Nonograms at your own pace'],
+ ['✦ 칸을 채우면 숨겨진 그림이 나타나요.','✦ Fill cells to reveal the hidden picture.'],
+ ['오프라인 체험','Offline preview'],['터미널 빠른 실행','Terminal shortcuts'],
+ ['크기 테스트','Size test'],
+ ['퍼즐 선택:','Select puzzle:']
+];
+const dict={};for(const [a,b] of [...rows,...worldAndMisc,...auditedEnglish,...gameplayAndWorld])dict[a]=b;
 window.NONO_EN_EXTRA=Object.freeze(dict);
 })();
