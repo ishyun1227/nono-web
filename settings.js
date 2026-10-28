@@ -36,7 +36,6 @@ const schema=[
  ['hintHud','현재 행·열 숫자 HUD','bool',null,'선택한 칸의 행/열 힌트를 작은 안내창에 표시'],
  ['dragHud','드래그 칸 수 HUD','bool',null,'연속 입력한 칸 수 표시'],
  ['filledRunCount','연속 색칠 칸 수 표시','bool',null,'설정한 개수를 넘는 연속 검은 칸 구간에 숫자로 길이를 표시합니다. 가로와 세로 구간 모두 적용합니다.'],
- ['filledRunThreshold','연속 칸 숫자 표시 기준','range',[2,100,1],'연속 검은 칸이 이 개수를 초과하면 숫자를 표시합니다.'],
  ['undoButtons','Undo / Redo 버튼','bool',null,'화면 버튼만 감추며 단축키는 유지'],
  ['progress','진행도 표시 형식','choice',['off:꺼짐','percent:퍼센트','cells:완료 칸 수','both:둘 다'],'게임 진행도 정보를 선택'],
  ['lastInput','내 최근 입력 강조','choice',['off:꺼짐','3:3초','5:5초','always:계속'],'가장 최근에 입력한 칸을 강조'],
@@ -548,6 +547,14 @@ body.nono-fit-playing #game .rules{display:none!important}
 /* Native PAGE scrolling is allowed; the puzzle container itself never scrolls.
    Zooming past fit enlarges document dimensions so no puzzle content is inaccessible. */
 html:has(body.nono-fit-playing){overflow-x:auto!important;overflow-y:auto!important}
+html:has(body.nono-fit-playing:not(.nono-zoom-exceeded)){overflow-x:hidden!important;overflow-y:hidden!important}
+body.nono-fit-playing:not(.nono-zoom-exceeded){overflow-x:hidden!important;overflow-y:hidden!important}
+.nono-setting-run .nono-run-controls{display:flex;align-items:center;gap:10px;flex:0 1 auto;min-width:0}
+.nono-setting-run .nono-run-controls input[type="checkbox"]{flex:0 0 20px}
+.nono-setting-run .nono-run-controls input[type="range"]{width:clamp(95px,14vw,180px);max-width:100%;min-width:45px}
+.nono-setting-run .nono-run-controls output{white-space:nowrap;min-width:65px;text-align:right}
+@media(max-width:650px){.nono-setting-run .nono-run-controls{width:100%;max-width:100%}
+ .nono-setting-run .nono-run-controls input[type="range"]{flex:1}}
 body.nono-fit-playing #game{padding-top:0!important;margin-top:0!important}
 body.nono-fit-playing{overflow-x:auto!important;overflow-y:auto!important}
 body.nono-fit-playing #game{
@@ -643,7 +650,29 @@ document.addEventListener('click',e=>{if(e.target.closest('button')&&e.target.id
 document.addEventListener('mouseover',e=>{if(e.target.closest('button'))playSound('hover')});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)saveBoard()});window.addEventListener('pagehide',saveBoard);
 }
-function drawSettings(){const body=document.querySelector('#nono-settings-content');if(!body)return;const tab=Number(document.querySelector('.nono-settings-tabs .is-active')?.dataset.tab||0);body.innerHTML='';for(const [key,label,type,choices,help] of schema[tab][1]){const row=E('div','nono-setting'),l=E('label',null,label),sub=E('small',null,help);l.title=help;l.append(sub);row.append(l);let input;if(type==='color'){input=E('input');input.type='color';input.value=String(prefs[key]);input.oninput=()=>setPref(key,input.value,true);}else if(type==='bool'){input=E('input');input.type='checkbox';input.checked=!!prefs[key];input.onchange=()=>setPref(key,input.checked);}else if(type==='choice'){input=E('select');for(const item of choices){const p=String(item).split(':');const op=E('option',null,p.length>1?p.slice(1).join(':'):p[0]);op.value=p[0];input.append(op);}input.value=String(prefs[key]);input.onchange=()=>setPref(key,input.value);}else{input=E('input');input.type='range';input.min=choices[0];input.max=choices[1];input.step=choices[2];input.value=prefs[key];let val=E('span','nono-keys-hint',String(input.value));input.oninput=()=>{val.textContent=input.value;setPref(key,Number(input.value),true);};row.append(val);}input.setAttribute('aria-label',label);row.append(input);const illustration=E('button','nono-setting-visual','🖼 설명');illustration.type='button';illustration.setAttribute('aria-label',label+' 이미지로 설명보기');illustration.onclick=()=>openVisualGuides(key);row.append(illustration);body.append(row);}
+function drawSettings(){const body=document.querySelector('#nono-settings-content');if(!body)return;const tab=Number(document.querySelector('.nono-settings-tabs .is-active')?.dataset.tab||0);body.innerHTML='';for(const [key,label,type,choices,help] of schema[tab][1]){
+ const row=E('div','nono-setting'),l=E('label',null,label),sub=E('small',null,help);
+ l.title=help;l.append(sub);row.append(l);
+ if(key==='filledRunCount'){
+  row.classList.add('nono-setting-run');
+  const controls=E('div','nono-run-controls');
+  const enabled=E('input');enabled.type='checkbox';enabled.checked=!!prefs.filledRunCount;
+  enabled.setAttribute('aria-label','연속 색칠 칸 수 표시');
+  enabled.onchange=()=>{setPref('filledRunCount',enabled.checked,true);limit.disabled=!enabled.checked;};
+  const slider=E('input');slider.type='range';slider.min=2;slider.max=100;slider.step=1;
+  slider.value=String(prefs.filledRunThreshold);slider.disabled=!prefs.filledRunCount;
+  slider.setAttribute('aria-label','연속 칸 숫자 표시 기준');
+  const value=E('output','nono-keys-hint',slider.value+'칸 초과');value.htmlFor='nono-run-threshold';
+  slider.id='nono-run-threshold';
+  const limit=slider;
+  slider.oninput=()=>{value.textContent=slider.value+'칸 초과';setPref('filledRunThreshold',Number(slider.value),true);};
+  controls.append(enabled,slider,value);row.append(controls);
+  const illustration=E('button','nono-setting-visual','🖼 설명');
+  illustration.type='button';illustration.setAttribute('aria-label',label+' 이미지로 설명보기');
+  illustration.onclick=()=>openVisualGuides(key);row.append(illustration);body.append(row);
+  continue;
+ }
+ let input;if(type==='color'){input=E('input');input.type='color';input.value=String(prefs[key]);input.oninput=()=>setPref(key,input.value,true);}else if(type==='bool'){input=E('input');input.type='checkbox';input.checked=!!prefs[key];input.onchange=()=>setPref(key,input.checked);}else if(type==='choice'){input=E('select');for(const item of choices){const p=String(item).split(':');const op=E('option',null,p.length>1?p.slice(1).join(':'):p[0]);op.value=p[0];input.append(op);}input.value=String(prefs[key]);input.onchange=()=>setPref(key,input.value);}else{input=E('input');input.type='range';input.min=choices[0];input.max=choices[1];input.step=choices[2];input.value=prefs[key];let val=E('span','nono-keys-hint',String(input.value));input.oninput=()=>{val.textContent=input.value;setPref(key,Number(input.value),true);};row.append(val);}input.setAttribute('aria-label',label);row.append(input);const illustration=E('button','nono-setting-visual','🖼 설명');illustration.type='button';illustration.setAttribute('aria-label',label+' 이미지로 설명보기');illustration.onclick=()=>openVisualGuides(key);row.append(illustration);body.append(row);}
 if(tab===0){
  const panel=E('div');panel.innerHTML='<h3 style="font-size:15px;margin-top:18px">키 설정 · 기본키 / 보조키</h3><p class="nono-keys-hint">키를 클릭한 뒤 새 키를 누르세요. 다른 기능과 중복되면 경고만 표시합니다. Escape는 취소합니다.</p>';
  const grid=E('div');for(const action of Object.keys(standardKeys)){const row=E('div','nono-setting');row.append(E('label',null,shortcutNames[action]));shortcut(action).forEach((code,slot)=>{const b=E('button','nono-modal-btn',code?displayKey(code):'+ 키');b.onclick=()=>editBinding(action,slot,b);row.append(b)});const illustration=E('button','nono-setting-visual','🖼 설명');illustration.type='button';illustration.setAttribute('aria-label',shortcutNames[action]+' 이미지로 설명보기');illustration.onclick=()=>openVisualGuides('keyboard-'+action);row.append(illustration);grid.append(row)}panel.append(grid);body.append(panel);
@@ -744,9 +773,9 @@ function openVisualGuides(focusKey){
  close.focus();
 }
 
-function openSettings(){if(settingsOpen)return;settingsOpen=true;const overlay=E('div','nono-settings-overlay');overlay.id='nono-settings-overlay';overlay.innerHTML='<div class="nono-settings" role="dialog" aria-modal="true" aria-label="노노그램 설정"><div class="nono-settings-head"><div><h2>⚙ 노노그램 설정</h2><small>변경 즉시 적용 · 장치별 브라우저 저장 · '+(device==='touch'?'터치':'PC')+' 프로필</small></div><button class="nono-visual-help-button" type="button" id="nono-visual-help">🖼 이미지로 설명보기</button><button class="nono-modal-btn" id="nono-settings-close">닫기</button></div><div class="nono-settings-tabs"></div><div class="nono-settings-content" id="nono-settings-content"></div><div class="nono-settings-foot"><span>※ (시험/보류) 옵션은 사용하면서 평가할 기능입니다.</span><button class="nono-modal-btn" id="nono-settings-default">현재 장치 설정 초기화</button></div></div>';document.body.append(overlay);
+function openSettings(){if(settingsOpen)return;settingsOpen=true;const overlay=E('div','nono-settings-overlay');overlay.id='nono-settings-overlay';overlay.innerHTML='<div class="nono-settings" role="dialog" aria-modal="true" aria-label="노노그램 설정"><div class="nono-settings-head"><div><h2>⚙ 노노그램 설정</h2><small>변경 즉시 적용 · 장치별 브라우저 저장 · '+(device==='touch'?'터치':'PC')+' 프로필</small></div><button class="nono-modal-btn" id="nono-settings-close">닫기</button></div><div class="nono-settings-tabs"></div><div class="nono-settings-content" id="nono-settings-content"></div><div class="nono-settings-foot"><span>※ (시험/보류) 옵션은 사용하면서 평가할 기능입니다.</span><button class="nono-modal-btn" id="nono-settings-default">현재 장치 설정 초기화</button></div></div>';document.body.append(overlay);
 const tabs=overlay.querySelector('.nono-settings-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','설정 분류');schema.forEach(([title],i)=>{const b=E('button',i===0?'is-active':'',title);b.type='button';b.setAttribute('role','tab');b.setAttribute('aria-selected',String(i===0));b.dataset.tab=i;b.onclick=()=>{const prev=tabs.querySelector('.is-active');if(prev){prev.classList.remove('is-active');prev.setAttribute('aria-selected','false')}b.classList.add('is-active');b.setAttribute('aria-selected','true');b.scrollIntoView({block:'nearest',inline:'nearest'});drawSettings()};tabs.append(b)});
-overlay.querySelector('#nono-visual-help').onclick=()=>openVisualGuides();overlay.querySelector('#nono-settings-close').onclick=closeSettings;overlay.querySelector('#nono-settings-default').onclick=()=>{if(confirm('현재 장치의 설정을 기본값으로 되돌릴까요?')){prefs=Object.assign({},defaults);persist();apply();drawSettings();}};
+overlay.querySelector('#nono-settings-close').onclick=closeSettings;overlay.querySelector('#nono-settings-default').onclick=()=>{if(confirm('현재 장치의 설정을 기본값으로 되돌릴까요?')){prefs=Object.assign({},defaults);persist();apply();drawSettings();}};
 overlay.addEventListener('click',e=>{if(e.target===overlay)closeSettings()});drawSettings();}
 function closeSettings(){settingsOpen=false;document.getElementById('nono-settings-overlay')?.remove();}
 
@@ -923,6 +952,7 @@ function fitBoardToViewport(){
  if(!grid||!area||!card)return;
  const n=puzzle.size,isLarge=n>=30;
  document.body.classList.toggle('nono-fit-playing',isLarge);
+ document.body.classList.toggle('nono-zoom-exceeded',isLarge&&boardZoom>1.000001);
  grid.classList.add('nono-board-fit');
  const maxRow=Math.max(1,...puzzle.rows.map(a=>a.length));
  const maxCol=Math.max(1,...puzzle.cols.map(a=>a.length));
