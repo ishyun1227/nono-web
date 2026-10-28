@@ -224,3 +224,19 @@
  }
  #nono-mobile-pad .nono-pad-actions button small{font-size:9px!important}
 }
+
+
+/* Keep the actual fitted board outside the customized control footprint. */
+@media(max-width:900px) and (pointer:coarse) and (min-height:471px){
+ body.nono-fit-playing.nono-touch-pad-visible #game .board-scroll,
+ body.nono-fit-playing.nono-touch-pad-visible #game .board-scroll.nono-zoomed{
+   bottom:var(--nono-mobile-pad-reserve,178px)!important;
+   height:auto!important;min-height:0!important;max-height:none!important;
+ }
+ body.nono-fit-playing.nono-touch-pad-visible #game .board-footer{
+   bottom:var(--nono-mobile-pad-reserve,178px)!important;
+ }
+ body.nono-fit-playing.nono-touch-pad-visible #game #nono-actions{
+   bottom:calc(var(--nono-mobile-pad-reserve,178px) + 34px)!important;
+ }
+}
