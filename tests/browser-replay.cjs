@@ -47,7 +47,7 @@ async function main(){
     };
   });
   console.log('REPLAY SOLO DIAGNOSTIC',JSON.stringify(diagnostic),'page errors',errors);
-  await pages[0].waitForSelector('.nono-replay-card');
+  await pages[0].waitForSelector('.nono-replay-card',{state:'attached'}); // Home stays hidden while a puzzle is open.
   const state=await pages[0].evaluate(()=>{
    const r=window.NONO_REPLAY.recentCompleted(storage,5)[0];
    return {mode:r?.mode,count:r?.actions.length,finished:r?.completedAt,end:r&&window.NONO_REPLAY.boardAtEnd(r),canvas:!!document.querySelector('.nono-replay-card canvas')};
