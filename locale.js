@@ -1,9 +1,9 @@
 /* NONO language selector: local UI translation, never modifies puzzle rules or server messages.
- * Original Korean copy remains authoritative; unsupported strings fall back to Korean.
+ * Original Korean copy remains authoritative; missing new-language entries fall back to English when available.
  */
 (()=>{'use strict';
 const KEY='nono-language-v1';
-const SUPPORTED=['ko','en','ja'];
+const SUPPORTED=['ko','en','ja','zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
 const LEXICON=[
  // Main navigation and lobby
  ['⚙ 설정','⚙ Settings','⚙ 設定'],
@@ -170,6 +170,7 @@ const LEXICON=[
 ];
 const map={en:new Map(),ja:new Map()};
 for(const [ko,en,ja] of LEXICON){map.en.set(ko,en);map.ja.set(ko,ja);}
+for(const locale of SUPPORTED.filter(l=>!['ko','en','ja'].includes(l))){map[locale]=new Map(Object.entries(window.NONO_LOCALE_PACKS?.[locale]||{}));}
 const patterns=[
  [/^(\d+)\s*\/\s*(\d+)\s*달성$/,(m,a,b,l)=>l==='en'?a+' / '+b+' completed':a+' / '+b+' 達成'],
  [/^(\d+)일차(?: ✨)?$/,(m,n,l)=>l==='en'?'Day '+n:'第'+n+'日'],
@@ -191,19 +192,27 @@ const patterns=[
 ];
 const attrNames=['aria-label','title','placeholder'];
 const originals=new WeakMap(),attrOriginals=new WeakMap();
-function languageChoice(){try{const v=localStorage.getItem(KEY);return v==='auto'||SUPPORTED.includes(v)?v:'ko';}catch{return 'auto';}}
+function languageChoice(){try{const v=localStorage.getItem(KEY);return v==='auto'||SUPPORTED.includes(v)?v:'ko';}catch{return 'ko';}}
 let choice=languageChoice();
 function effective(v=choice){
  if(v!=='auto')return SUPPORTED.includes(v)?v:'ko';
- const detected=(navigator.languages||[navigator.language||'ko']).map(s=>String(s||'').toLowerCase().split('-')[0]).find(v=>SUPPORTED.includes(v));
+ const normalize=s=>{
+  const code=String(s||'').toLowerCase();
+  if(code.startsWith('zh'))return /(^zh-(tw|hk|mo)|-hant)/.test(code)?'zh-TW':'zh-CN';
+  if(code.startsWith('pt'))return 'pt-BR';
+  return code.split('-')[0];
+ };
+ const detected=(navigator.languages?.length?navigator.languages:[navigator.language||'ko']).map(normalize).find(v=>SUPPORTED.includes(v));
  return detected||'ko';
 }
 let active=effective();
 function translate(original,locale){
  if(locale==='ko')return original;
- if(map[locale].has(original))return map[locale].get(original);
- for(const [re,fn] of patterns){const match=original.match(re);if(match)return fn(...match,locale);}
- return original;
+ if(map[locale]?.has(original))return map[locale].get(original);
+ // Dynamic count/reward texts use English if the selected locale lacks a grammar template.
+ for(const [re,fn] of patterns){const match=original.match(re);if(match)return fn(...match,locale==='ja'?'ja':'en');}
+ // English text is a deliberate, explicit fallback, not an accidental Korean screen.
+ return map.en.get(original)||original;
 }
 function convertText(node){
  if(!node||node.nodeType!==Node.TEXT_NODE)return;
@@ -264,7 +273,7 @@ function renderSelector(){
   label=document.createElement('label');label.id='nono-language-control';label.className='nono-language-control';
   const caption=document.createElement('span');caption.textContent='🌐 언어 / Language';
   const select=document.createElement('select');select.id='nono-language-select';select.setAttribute('aria-label','언어 선택');
-  for(const [value,name] of [['auto','자동 · Browser'],['ko','한국어'],['en','English'],['ja','日本語']]){
+  for(const [value,name] of [['auto','자동 · Browser'],...(window.NONO_LOCALE_OPTIONS||[['ko','한국어'],['en','English'],['ja','日本語']])]){
    const option=document.createElement('option');option.value=value;option.textContent=name;option.dataset.localeOption='1';select.append(option);
   }
   select.addEventListener('change',()=>setLanguage(select.value));
@@ -278,7 +287,7 @@ function setLanguage(next){
  choice=next;active=effective();
  try{localStorage.setItem(KEY,next);}catch(_){}
  document.documentElement.lang=active;document.documentElement.dataset.nonoLang=active;
- document.title=active==='en'?'NONO — Nonogram':active==='ja'?'NONO — ノノグラム':'NONO — 노노그램';
+ document.title=active==='ko'?'NONO — 노노그램':active==='ja'?'NONO — ノノグラム':'NONO — Nonogram';
  renderSelector();queue(document.body);
  window.dispatchEvent(new CustomEvent('nono:languagechange',{detail:{choice,locale:active}}));
  return true;
@@ -300,7 +309,7 @@ window.addEventListener('storage',e=>{
  if(e.key===KEY){choice=languageChoice();setLanguage(choice);}
 });
 document.documentElement.lang=active;document.documentElement.dataset.nonoLang=active;
-document.title=active==='en'?'NONO — Nonogram':active==='ja'?'NONO — ノノグラム':'NONO — 노노그램';
+document.title=active==='ko'?'NONO — 노노그램':active==='ja'?'NONO — ノノグラム':'NONO — Nonogram';
 window.NONO_I18N={setLanguage,get locale(){return active;},get choice(){return choice;},translate:message=>translate(message,active),refresh:()=>queue(document.body)};
 queue(document.body);
 })();
