@@ -87,7 +87,7 @@ async function main(){
   await a.waitForFunction(prior=>!startingAlone&&startedAt!==prior,firstRun);
   const runTimes=await a.evaluate(async()=>({local:startedAt,server:(await get(ref(database,`runs/${puzzle.id}/${currentId()}`))).val().startedAt}));
   assert.equal(runTimes.local,runTimes.server,'Restart must establish a fresh server-timed record run');
-  await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1')paint(i,'1',true);},answers.heart5);
+  await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1'&&board[i]!=='1')paint(i,'1',true);},answers.heart5);
   await a.waitForFunction(()=>finished);await a.locator('#live-results').getByText('1위 Alice').waitFor();
   await a.setViewportSize({width:390,height:844});await a.screenshot({path:'test-results/record-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);console.log('PASS online record saved, leaderboard and mobile view, no page errors');
