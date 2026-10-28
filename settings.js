@@ -157,6 +157,17 @@ body[data-error-intensity=weak] .nono-error{outline-width:1px!important}body[dat
 #board .nono-extra-row .row-clue.nono-fade-clue,#board .nono-extra-col .col-clue.nono-fade-clue{opacity:.3}
 
 #nono-drag-hud{width:max-content;min-width:110px;margin-left:auto;margin-right:auto}
+#nono-drag-hud.nono-drag-active{
+ display:flex!important;position:fixed!important;z-index:120!important;
+ left:var(--drag-live-x,12px)!important;top:var(--drag-live-y,12px)!important;
+ width:max-content!important;min-width:62px!important;max-width:180px!important;
+ padding:7px 12px!important;pointer-events:none!important;
+ border:1px solid #9389ff!important;border-radius:20px!important;
+ background:#18264df5!important;color:#f5f3ff!important;
+ font-weight:800!important;font-variant-numeric:tabular-nums!important;
+ box-shadow:0 4px 20px #050d23ac!important;
+}
+#nono-drag-hud.nono-drag-active[hidden]{display:none!important}
 .nono-hud-target{outline:2px dashed #78d9ff!important;cursor:move!important;touch-action:none;z-index:10050!important}
 .nono-hud-target[data-selected=true]{outline-color:#fab5ff!important;box-shadow:0 0 0 4px #a974fc66!important}
 .nono-hud-editor{position:fixed;z-index:10060;left:50%;transform:translateX(-50%);bottom:16px;background:#0c162af5;border:1px solid #546f9d;border-radius:14px;padding:12px;display:flex;gap:9px;align-items:center;flex-wrap:wrap;max-width:95vw;justify-content:center;box-shadow:0 12px 40px #000a}
@@ -1163,6 +1174,7 @@ function startFastDrag(e,index){
  setFastDragValue(index,value);
  updateLiveSelection(index,cells);
  syncFastDragProgress();
+ setLiveDragHudPosition(e);
  try{$('board').setPointerCapture(e.pointerId);}catch{}
 }
 function setFastDragValue(index,value){
@@ -1177,6 +1189,19 @@ function setFastDragValue(index,value){
   cell.textContent=value==='2'?'×':'';
  }
 }
+function setLiveDragHudPosition(event){
+ const hud=$('nono-drag-hud');
+ if(!hud||!event)return;
+ const stored=getHudConfig('drag');
+ if(stored.x!=null&&stored.y!=null){
+  hud.style.setProperty('--drag-live-x',Math.max(0,Math.min(innerWidth-70,Number(stored.x)))+'px');
+  hud.style.setProperty('--drag-live-y',Math.max(0,Math.min(innerHeight-42,Number(stored.y)))+'px');
+  return;
+ }
+ // Floating label tracks the actual pointer rather than staying behind the side controls.
+ hud.style.setProperty('--drag-live-x',Math.round(Math.min(innerWidth-90,Math.max(8,event.clientX+19)))+'px');
+ hud.style.setProperty('--drag-live-y',Math.round(Math.min(innerHeight-40,Math.max(8,event.clientY-43)))+'px');
+}
 function syncFastDragProgress(){
  const d=fastDrag;if(!d)return;
  dragCount=d.count;
@@ -1186,7 +1211,13 @@ function syncFastDragProgress(){
   prefs.progress==='cells'?d.filled+'/'+nBlack:percent+'% · '+d.filled+'/'+nBlack;
  $('progress').textContent=display;
  const hud=$('nono-drag-hud');
- if(hud){hud.textContent='드래그 '+dragCount+'칸';hud.hidden=!prefs.dragHud;}
+ if(hud){
+  const allow=!!prefs.dragHud&&getHudConfig('drag').show!==false;
+  hud.textContent=dragCount+'칸';
+  hud.hidden=!allow;
+  hud.classList.toggle('nono-drag-active',allow);
+  hud.setAttribute('aria-label','드래그한 칸 '+dragCount+'개');
+}
 }
 function updateFastDragEndpoint(nextCoord){
  const d=fastDrag;if(!d||!d.axis)return;
@@ -1207,6 +1238,7 @@ function updateFastDragEndpoint(nextCoord){
 }
 function moveFastDrag(e){
  const d=fastDrag;if(!d||e.pointerId!==d.id)return;
+ setLiveDragHudPosition(e);
  if(e.pointerType==='mouse'&&!(e.buttons&3)){endFastDrag();return;}
  const n=puzzle.size,dx=e.clientX-d.startX,dy=e.clientY-d.startY;
  if(!d.axis){
@@ -1238,6 +1270,8 @@ function moveFastDrag(e){
 function endFastDrag(e){
  const d=fastDrag;if(!d||e&&e.pointerId!==d.id)return;
  fastDrag=null;pointerDown=false;dragCount=0;
+ const dragHud=$('nono-drag-hud');
+ if(dragHud){dragHud.hidden=true;dragHud.classList.remove('nono-drag-active');}
  try{if($('board').hasPointerCapture(d.id))$('board').releasePointerCapture(d.id);}catch{}
  let modified=0;for(const index of d.touched)if(board[index]!==d.initial[index])modified++;
  if(!modified&&d.history)undoStack.pop();
