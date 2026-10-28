@@ -39,7 +39,7 @@ const {pathToFileURL}=require('node:url');
    });
    results.push({name,left});
  };
- for(const lang of ['en','ja','zh-CN','es']){
+ for(const lang of ['en','ja','zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th']){
    await page.evaluate(code=>window.NONO_I18N.setLanguage(code),lang);
    await audit(lang+':home');
    await page.locator('#nono-open-settings').click();
@@ -54,6 +54,26 @@ const {pathToFileURL}=require('node:url');
      await page.locator('#nono-shop-tab-'+id).click();await audit(lang+':shop-'+id);
    }
    await page.locator('#nono-theme-close').click();
+   if(['en','ja','zh-CN','es'].includes(lang)){
+     for(const theme of ['enchanted','terminal']){
+       await page.evaluate(id=>{
+         document.body.dataset.nonoTheme=id;
+         document.documentElement.dataset.nonoTheme=id;
+       },theme);
+       await audit(lang+':world-'+theme);
+     }
+     await page.evaluate(()=>{
+       document.body.dataset.nonoTheme='neon';
+       document.documentElement.dataset.nonoTheme='neon';
+       const picker=document.querySelector('#puzzle');
+       picker.value='heart5';picker.dispatchEvent(new Event('change',{bubbles:true}));
+     });
+     await page.locator('#play-alone').click();
+     await page.locator('#board .cell').first().waitFor();
+     await audit(lang+':play');
+     page.once('dialog',dialog=>dialog.accept());
+     await page.locator('#leave-game').click();
+   }
  }
  for(const item of results)console.log('I18N_AUDIT '+JSON.stringify(item));
  console.log('I18N_AUDIT totals '+results.map(r=>r.name+':'+r.left.length).join(' '));
