@@ -26,6 +26,7 @@
 <link rel="stylesheet" href="./apple-home.css?v=1" />
 <link rel="stylesheet" href="./controller-input.css?v=1" />
 <link rel="stylesheet" href="./controller-customization.css?v=1" />
+<link rel="stylesheet" href="./daily-rewards.css?v=1" />
 </head>
 <body data-nono-theme="neon">
   <script>
@@ -156,6 +157,8 @@ let initializeApp,getAuth,signInAnonymously,getDatabase,ref,get,set,remove,onVal
 // Browsers that restrict storage on local file URLs can still run the single-file demo.
 const storage=(()=>{try{const s=window.localStorage;const key='nono-storage-check';s.setItem(key,'1');s.removeItem(key);return s;}catch{return{getItem:()=>null,setItem:()=>{},removeItem:()=>{}};}})();
 const $=id=>document.getElementById(id);
+const contributedCoopRooms=new Set();
+function emitDailyActivity(kind){window.dispatchEvent(new CustomEvent('nono:activity',{detail:{kind}}));}
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const modes={practice:['혼자 풀기','퍼즐을 골라 바로 시작해 보세요.'],race:['실시간 대결','방을 만들고 2~4명이 함께 시작합니다.'],coop:['실시간 협동','초대 링크로 같은 판을 함께 풀어 보세요.'],record:['기록 경쟁','퍼즐별 최단 시간에 도전합니다.']};
 const onlineReady=()=>Boolean(database&&currentUser);
@@ -361,7 +364,8 @@ function paint(index,to,drag){
   const prev=board[index];const next=drag?to:(prev===to&&to!=='0'?'0':to);if(prev===next)return;
   if(mode==='coop'){
     if(!onlineReady()||!roomCode)return;
-    runTransaction(ref(database,`rooms/${roomCode}/board`),current=>{const old=(typeof current==='string'&&current.length===puzzle.size*puzzle.size)?current:'0'.repeat(puzzle.size*puzzle.size);return old.slice(0,index)+next+old.slice(index+1);}).catch(firebaseError);
+    const activeRoom=roomCode;
+    runTransaction(ref(database,`rooms/${roomCode}/board`),current=>{const old=(typeof current==='string'&&current.length===puzzle.size*puzzle.size)?current:'0'.repeat(puzzle.size*puzzle.size);return old.slice(0,index)+next+old.slice(index+1);}).then(result=>{if(result.committed&&roomCode===activeRoom){contributedCoopRooms.add(activeRoom);emitDailyActivity('coop-action');}}).catch(firebaseError);
     return;
   }
   if(mode==='practice'||mode==='record'){undoStack.push({board:board.slice(),changes,selected});if(undoStack.length>150)undoStack.shift();redoStack=[];}
@@ -373,10 +377,10 @@ function paint(index,to,drag){
   if(mode==='practice')renderLive();
 }
 function tick(){if($('game').classList.contains('hidden'))return;let start=mode==='race'?meta?.startedAt:startedAt;let end=finishedAt||(onlineReady()?serverNow():Date.now());$('timer').textContent=elapsedFormat(start?end-start:0);}
-function finishLocal(){if(finishing||finished)return;if(mode==='record'&&onlineReady()){finishRecord();return;}finishedAt=Date.now();finished=true;render();toast('퍼즐 완성!');if(mode==='record'){const key=`nono-records-${puzzle.id}`,scores=JSON.parse(storage.getItem(key)||'[]'),duration=finishedAt-startedAt;scores.push({name:nickname(),duration,changes,finishedAt});storage.setItem(key,JSON.stringify(scores.sort((a,b)=>a.duration-b.duration).slice(0,50)));refreshHomepageScores();}renderLive();}
+function finishLocal(){if(finishing||finished)return;if(mode==='record'&&onlineReady()){finishRecord();return;}finishedAt=Date.now();finished=true;render();emitDailyActivity('puzzle-complete');toast('퍼즐 완성!');if(mode==='record'){const key=`nono-records-${puzzle.id}`,scores=JSON.parse(storage.getItem(key)||'[]'),duration=finishedAt-startedAt;scores.push({name:nickname(),duration,changes,finishedAt});storage.setItem(key,JSON.stringify(scores.sort((a,b)=>a.duration-b.duration).slice(0,50)));refreshHomepageScores();}renderLive();}
 async function finishRecord(){if(finishing)return;finishing=true;try{
   const path=`runs/${puzzle.id}/${currentId()}`;await set(ref(database,path),{name:nickname(),startedAt,finishedAt:serverTimestamp(),filled:filledMask(board),changes});
-  const data=(await get(ref(database,path))).val();finishedAt=data.finishedAt;finished=true;const duration=data.finishedAt-data.startedAt;
+  const data=(await get(ref(database,path))).val();finishedAt=data.finishedAt;finished=true;emitDailyActivity('puzzle-complete');const duration=data.finishedAt-data.startedAt;
   const scoreRef=ref(database,`scores/${puzzle.id}/${currentId()}`);
   await runTransaction(scoreRef,prior=>!prior||duration<prior.duration?{name:data.name,startedAt:data.startedAt,finishedAt:data.finishedAt,duration,changes:data.changes}:undefined);
   toast('기록을 저장했어요!');render();refreshHomepageScores();
@@ -546,7 +550,7 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
       saveRaceResume(code,puzzle.id,finished,percent);
       render();
     }renderLive();},firebaseError));
-    if(mode==='coop')unsubscribe.push(onValue(ref(database,`rooms/${code}/board`),s=>{const value=s.val();if(typeof value==='string'&&value.length===puzzle.size*puzzle.size){roomBoard=value;board=value.split('');const wasFinished=finished;finished=isSolved(board,puzzle);finishedAt=finished?(finishedAt||serverNow()):0;if(finished&&!wasFinished){toast('협동 퍼즐 완성!');if(publicHosted&&meta?.host===currentId()){removePublicListing(roomCode);publicHosted=false;}}render();tick();}renderLive();},firebaseError));
+    if(mode==='coop')unsubscribe.push(onValue(ref(database,`rooms/${code}/board`),s=>{const value=s.val();if(typeof value==='string'&&value.length===puzzle.size*puzzle.size){roomBoard=value;board=value.split('');const wasFinished=finished;finished=isSolved(board,puzzle);finishedAt=finished?(finishedAt||serverNow()):0;if(finished&&!wasFinished){toast('협동 퍼즐 완성!');if(contributedCoopRooms.has(code))emitDailyActivity('puzzle-complete');if(publicHosted&&meta?.host===currentId()){removePublicListing(roomCode);publicHosted=false;}}render();tick();}renderLive();},firebaseError));
     return roomCode===code;
   }catch(e){firebaseError(e);return false;}}
 async function ensureRaceState(){if(!meta||meta.status!=='playing'||!roomCode)return;const path=`rooms/${roomCode}/states/${currentId()}`,start=meta.startedAt,blank='0'.repeat(puzzle.size*puzzle.size);if(settingBoard)return;settingBoard=true;try{await runTransaction(ref(database,path),current=>current?undefined:{board:blank,filled:blank,startedAt:start,finishedAt:0});}finally{settingBoard=false;}}
@@ -559,7 +563,8 @@ function queueRaceState(solved){
   raceQueue=raceQueue.then(async()=>{
     const path=`rooms/${code}/states/${uid}`;
     await set(ref(database,path),{board:snapshot,filled:filledMask(snapshot.split('')),startedAt:start,finishedAt:solved?serverTimestamp():0});
-    if(solved&&roomCode===code){const state=(await get(ref(database,path))).val();finishedAt=state.finishedAt;finished=true;render();toast('대결 퍼즐 완성!');}
+    if(roomCode===code)emitDailyActivity('race-action');
+    if(solved&&roomCode===code){const state=(await get(ref(database,path))).val();finishedAt=state.finishedAt;finished=true;render();emitDailyActivity('puzzle-complete');toast('대결 퍼즐 완성!');}
   }).catch(firebaseError).finally(()=>{pendingRaceWrites--;if(solved)finishing=false;});
 }
 async function connectFirebase(){
@@ -709,6 +714,7 @@ initHome();resumeHub=installResume();connectFirebase();
 <script src="./apple-home.js?v=1"></script>
 <script src="./controller-input.js?v=2"></script>
 <script src="./controller-customization.js?v=1"></script>
+<script src="./daily-rewards.js?v=1"></script>
 <script>
 /* Optional developer preview, never downloaded during ordinary play. */
 if(new URLSearchParams(location.search).get('test')==='1'){
