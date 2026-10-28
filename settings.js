@@ -1191,16 +1191,18 @@ function moveFastDrag(e){
   (e.clientX-d.rect.left)/(d.rect.width/n):
   (e.clientY-d.rect.top)/(d.rect.height/n);
  const end=Math.max(0,Math.min(n-1,Math.floor(raw)));
+ const originCoord=d.axis==='row'?d.col:d.row;
  if(end!==d.end){
   updateFastDragEndpoint(end);
-  const originCoord=d.axis==='row'?d.col:d.row;
-  const nearOrigin=Math.abs(e.clientX-d.originX)<=d.rect.width/n*.55 &&
-   Math.abs(e.clientY-d.originY)<=d.rect.height/n*.55;
-  if(end===originCoord&&d.hasExtended&&nearOrigin){
-   // Release axis lock only when the actual pointer returns to the starting CELL,
-   // not merely when it shares that column/row far outside the original line.
-   d.axis=null;d.startX=e.clientX;d.startY=e.clientY;d.hasExtended=false;
-  }else if(end!==originCoord)d.hasExtended=true;
+  if(end!==originCoord)d.hasExtended=true;
+ }
+ const nearOrigin=Math.abs(e.clientX-d.originX)<=d.rect.width/n*.55 &&
+  Math.abs(e.clientY-d.originY)<=d.rect.height/n*.55;
+ // The pointer may have reached the original column while still far from the
+ // starting CELL. Release the lock when it later physically enters that cell.
+ // Check on EVERY move, including moves where the projected endpoint is unchanged.
+ if(end===originCoord&&d.hasExtended&&nearOrigin){
+  d.axis=null;d.startX=e.clientX;d.startY=e.clientY;d.hasExtended=false;
  }
 }
 function endFastDrag(e){
