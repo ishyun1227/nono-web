@@ -43,8 +43,12 @@ async function main(){
   const listedAfterHostLeave=await a.evaluate(async code=>(await get(ref(database,'publicRooms/'+code))).exists(),coop);
   assert.equal(listedAfterHostLeave,true,'Public shared puzzle must survive its host leaving');
   await a.reload();
-  await a.locator('#nono-resume-overlay').waitFor({state:'visible'});
-  await a.locator('#nono-resume-list .nono-resume-item').first().click();
+  await a.locator('#nono-resume-view').waitFor({state:'visible'});
+  for(const mode of ['practice','coop','record','race']){
+    await a.click('[data-mode="'+mode+'"]');
+    if(!await a.locator('#nono-resume-view').isVisible())throw new Error('Resume panel hidden in '+mode+' mode');
+  }
+  await a.locator('#nono-resume-items .nono-resume-card').filter({hasText:'협동'}).first().locator('.nono-resume-continue').click();
   await a.waitForURL(/room=/);
   await a.waitForFunction(()=>board[0]==='1'&&board[1]==='1');
   console.log('PASS public listing survives host departure and saved cooperation resumes after page reload');
@@ -58,7 +62,23 @@ async function main(){
   await a.click('[data-mode="race"]');await a.click('#create-room');await a.waitForURL(/room=/);const race=new URL(a.url()).searchParams.get('room');
   await b.click('[data-mode="race"]');await b.fill('#room-code',race);await b.click('#join-room');await b.locator('#lobby-players').getByText('Alice').waitFor();
   await a.click('#start-race');for(const p of [a,b])await p.waitForFunction(()=>meta?.status==='playing'&&!startingRace&&!settingBoard&&raceStates[currentId()]);
-  await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1')paint(i,'1',true);},answers.heart5);
+  // A race must resume from its saved personal board in the shared panel below every mode.
+  const firstBlack=answers.heart5.indexOf('1');
+  assert(firstBlack>=0,'The test puzzle needs at least one filled cell');
+  await a.evaluate(i=>paint(i,'1',true),firstBlack);
+  await a.waitForFunction(i=>board[i]==='1' && raceStates[currentId()]?.board?.[i]==='1',firstBlack);
+  await a.evaluate(()=>leaveGame());
+  // The same five-card resume area must remain below the mode-specific setup.
+  for(const tab of ['practice','coop','record','race']){
+    await a.click('[data-mode="'+tab+'"]');
+    if(!await a.locator('#nono-resume-view').isVisible())throw new Error('Missing persistent resume in '+tab);
+  }
+  await a.locator('#nono-resume-items .nono-resume-card').filter({hasText:'대결'}).first().locator('.nono-resume-continue').click();
+  await a.waitForURL(/room=/);
+  assert.equal(new URL(a.url()).searchParams.get('room'),race,'Resume must rejoin the original race');
+  await a.waitForFunction(i=>board[i]==='1',firstBlack);
+  console.log('PASS persistent below-mode resume panel restores incomplete race state');
+  await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1'&&board[i]!=='1')paint(i,'1',true);},answers.heart5);
   await a.waitForFunction(()=>finished);await b.waitForFunction(()=>Object.values(raceStates).some(s=>s.finishedAt>0));
   await b.screenshot({path:'test-results/race-desktop.png'});
   console.log('PASS synchronized race start, rapid input, completion and opponent results');

@@ -61,6 +61,43 @@ const { pathToFileURL } = require('node:url');
     base.originalArt!=='none' || base.selectedTabColor==='rgba(0, 0, 0, 0)' ||
     Math.abs(base.choiceSizeRow-base.difficultyRow)>2)
     throw new Error('Default launcher side edges / compact spacing broken: '+JSON.stringify(base));
+  // The resume section is a persistent shared area below the setup for every mode.
+  if(await page.locator('.mode-card').count()!==4 ||
+      await page.locator('#nono-resume-tab').count()!==0 ||
+      !await page.locator('#nono-resume-view').isVisible())
+    throw new Error('Resume must be below all four original tabs, not a fifth tab');
+  const emptyCount=await page.locator('#nono-resume-items .nono-resume-card').count();
+  if(emptyCount!==0)throw new Error('New visitor should start with an empty resume list');
+  // Populate six eligible saves and ensure only the newest five display without previewing solutions.
+  const cap=await page.evaluate(()=>{
+    const available=PUZZLES.filter(p=>!p.sizeTest).slice(0,6);
+    if(available.length<6)return {skipped:true};
+    const ids=[];
+    for(let i=0;i<available.length;i++){
+      const p=available[i],value='1'+'0'.repeat(p.size*p.size-1);
+      localStorage.setItem('nono-web-puzzle-v1:'+p.id,JSON.stringify({board:value,startedAt:1000,finishedAt:0,selected:0,savedAt:1000+i*1000}));
+      ids.push(p.id);
+    }
+    resumeHub.render();
+    return {skipped:false,ids,rendered:document.querySelectorAll('#nono-resume-items .nono-resume-card').length};
+  });
+  if(!cap.skipped&&cap.rendered!==5)throw new Error('Resume must show at most five unfinished puzzles');
+  for(const choice of ['practice','race','coop','record']){
+    await page.locator('.mode-card[data-mode="'+choice+'"]').click();
+    if(!await page.locator('#nono-resume-view').isVisible() ||
+        await page.locator('#nono-resume-items .nono-resume-card').count()>5)
+      throw new Error('Resume panel missing or exceeding five entries in '+choice);
+    const layout=await page.evaluate(()=>{
+      const setup=document.getElementById('setup').getBoundingClientRect(),resume=document.getElementById('nono-resume-view').getBoundingClientRect();
+      return {below:resume.top>=setup.bottom,visible:resume.width>0,overflow:document.documentElement.scrollWidth>innerWidth+2};
+    });
+    if(!layout.below||!layout.visible||layout.overflow)throw new Error('Resume must appear below the active setup: '+JSON.stringify(layout));
+  }
+  await page.evaluate(()=>{
+    for(const p of PUZZLES)localStorage.removeItem('nono-web-puzzle-v1:'+p.id);
+    resumeHub.render();
+  });
+  await page.locator('.mode-card[data-mode="practice"]').click();
   // The default homepage must use the entire available viewport at
   // common desktop, tablet and phone sizes -- no fixed 570px strip.
   for(const viewport of [

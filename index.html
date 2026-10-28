@@ -22,7 +22,7 @@
 <link rel="stylesheet" href="./terminal-world.css?v=1" />
 <link rel="stylesheet" href="./default-home.css?v=2" />
 <link rel="stylesheet" href="./public-lobby.css?v=2" />
-<link rel="stylesheet" href="./pixel-friends.css?v=4" />
+<link rel="stylesheet" href="./pixel-friends.css?v=5" />
 </head>
 <body data-nono-theme="neon">
   <script>
@@ -156,12 +156,36 @@ const $=id=>document.getElementById(id);
 const escapeHTML=s=>String(s).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
 const modes={practice:['혼자 풀기','퍼즐을 골라 바로 시작해 보세요.'],race:['실시간 대결','방을 만들고 2~4명이 함께 시작합니다.'],coop:['실시간 협동','초대 링크로 같은 판을 함께 풀어 보세요.'],record:['기록 경쟁','퍼즐별 최단 시간에 도전합니다.']};
 const onlineReady=()=>Boolean(database&&currentUser);
+let resumeHub=null;
 let database=null,currentUser=null,mode='practice',puzzle=PUZZLES[0],roomCode=null,meta=null,players={},raceStates={},roomBoard=null;
 let board=emptyBoard(puzzle),selected=0,tool='1',startedAt=0,finishedAt=0,finished=false,changes=0,finishing=false;
 let unsubscribe=[],pointerDown=false,dragTool='1',busyRoom=false,settingBoard=false,startingRace=false,startingAlone=false;
 let undoStack=[],redoStack=[],homeRankUnsub=null;
 let serverOffset=0,raceQueue=Promise.resolve(),mySlot=null;
 let publicRooms={},publicCounts={},publicSolved={},publicRoomUnsub=null,publicCountUnsubs=new Map(),publicBoardUnsubs=new Map(),publicHosted=false,autoStartMatch=false,busyMatch=false,publicRoomError=null;
+const raceSaveKey=()=> 'nono-race-resume-v2:'+currentId();
+function raceSaves(){
+  try{const list=JSON.parse(storage.getItem(raceSaveKey())||'[]');return Array.isArray(list)?list.filter(item=>item&&/^[A-HJ-NP-Z2-9]{6}$/.test(item.code)).slice(0,40):[];}catch{return [];}
+}
+function saveRaceResume(code,puzzleId,finished=false,progress=null){
+  if(!onlineReady()||!code)return;
+  let list=raceSaves().filter(item=>item.code!==code);
+  if(!finished){
+    const previous=raceSaves().find(item=>item.code===code);
+    list.unshift({code,puzzleId,time:Date.now(),progress:progress===null?(previous?.progress||0):progress});
+  }
+  storage.setItem(raceSaveKey(),JSON.stringify(list.slice(0,40)));
+}
+function noteRoomVisit(code){
+  if(!onlineReady()||!code)return;
+  const key='nono-room-visited-v1:'+currentId();
+  try{
+    const times=JSON.parse(storage.getItem(key)||'{}');
+    times[code]=Date.now();
+    const ordered=Object.entries(times).sort((a,b)=>b[1]-a[1]).slice(0,100);
+    storage.setItem(key,JSON.stringify(Object.fromEntries(ordered)));
+  }catch(error){console.warn('방 방문 시각 저장 실패',error);}
+}
 const serverNow=()=>Date.now()+serverOffset;
 const topScores=id=>query(ref(database,`scores/${id}`),orderByChild("duration"),limitToFirst(12));
 let globalTimer=setInterval(tick,300);
@@ -173,9 +197,9 @@ function clearListeners(){unsubscribe.forEach(fn=>fn());unsubscribe=[];}
 function firebaseError(e){console.error(e);toast(e?.code==='PERMISSION_DENIED'||e?.code==='permission-denied'?'권한이 거부됐어요. Firebase 규칙과 방 상태를 확인하세요.':`문제가 발생했어요: ${e.message||String(e)}`);}
 function setMode(next){
   mode=next;
-  document.querySelectorAll('.mode-card').forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
+  document.querySelectorAll('.mode-card[data-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
   $('setup-heading').textContent=modes[mode][0];$('setup-description').textContent=modes[mode][1];
-  document.querySelectorAll('.mode-card').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
+  document.querySelectorAll('.mode-card[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
   $('room-controls').classList.toggle('hidden',!['race','coop'].includes(mode));
   $('play-alone').classList.toggle('hidden',['race','coop'].includes(mode));
   $('quick-match').textContent=mode==='race'?'⚡ 빠른 대결':mode==='coop'?'⚡ 빠른 협동':'⚡ 빠른 매칭';
@@ -215,7 +239,7 @@ function attachNavigation(){
 function initHome(){
   const options=PUZZLES.map((p,i)=>`<option value="${p.id}">${p.size}×${p.size} · ${p.sizeTest?'크기 테스트':'퍼즐 '+String(i+1).padStart(2,'0')}</option>`).join('');$('puzzle').innerHTML=options;
   $('nickname').value=storage.getItem('nono-nickname')||'';updateProfileLabel();
-  document.querySelectorAll('.mode-card').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+  document.querySelectorAll('.mode-card[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
   $('puzzle').addEventListener('change',()=>{puzzle=PUZZLES.find(p=>p.id===$('puzzle').value)||PUZZLES[0];refreshHomepageScores();});
   $('nickname').addEventListener('input',()=>{storage.setItem('nono-nickname',nickname());updateProfileLabel();});
   $('create-room').addEventListener('click',createRoom);
@@ -262,7 +286,7 @@ async function leaveGame(){
   clearListeners();const oldRoom=roomCode,oldSlot=mySlot,metaModeBeforeLeave=meta?.mode,wasPublicHost=publicHosted&&meta?.host===currentId();publicHosted=false;autoStartMatch=false;roomCode=null;mySlot=null;meta=null;players={};raceStates={};roomBoard=null;finished=false;finishing=false;
   const url=new URL(location.href);url.searchParams.delete('room');history.replaceState({},'',url);
   $('game').classList.add('hidden');$('home-view').classList.remove('hidden');refreshHomepageScores();window.scrollTo({top:0,behavior:'instant'});
-  resume.refresh();
+  resumeHub?.refresh();
   if(oldRoom&&onlineReady()){try{const presence=ref(database,`rooms/${oldRoom}/players/${oldSlot}`);await onDisconnect(presence).cancel();await remove(presence);}catch(e){console.warn('퇴장 정리 실패',e);}}
   if(wasPublicHost&&metaModeBeforeLeave==='race')await removePublicListing(oldRoom);
 }
@@ -506,11 +530,19 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
     if(info.mode==='coop'){
       set(ref(database,`userRooms/${currentId()}/${code}`),true).catch(error=>console.warn('협동 저장 목록 등록 실패: Firebase 규칙을 확인하세요',error));
     }
+    noteRoomVisit(code);
+    if(info.mode==='race')saveRaceResume(code,info.puzzleId,false);
     clearListeners();roomCode=code;mode=info.mode;puzzle=p;meta=info;board=emptyBoard(p);startedAt=info.startedAt||0;finishedAt=0;finished=false;selected=0;changes=0;finishing=false;raceStates={};$('puzzle').value=puzzle.id;setMode(mode);showGame();
     const url=new URL(location.href);url.searchParams.set('room',code);history.replaceState({},'',url);
     unsubscribe.push(onValue(ref(database,`rooms/${code}/meta`),s=>{meta=s.val();if(!meta)return;if(meta.mode==='race'){const lobby=meta.status==='lobby';$('lobby').classList.toggle('hidden',!lobby);$('play-area').classList.toggle('hidden',lobby);$('lobby-code').textContent=`방 코드 ${code}`;$('start-race').classList.toggle('hidden',currentId()!==meta.host);if(!lobby&&!startingRace)ensureRaceState().catch(firebaseError);}else{$('lobby').classList.add('hidden');$('play-area').classList.remove('hidden');}tick();},firebaseError));
     unsubscribe.push(onValue(ref(database,`rooms/${code}/players`),s=>{players=Object.fromEntries(Object.entries(s.val()||{}).filter(([,p])=>p));$('lobby-players').innerHTML=`<div class="lobby-list">${Object.values(players).map(p=>`<span class="player-pill">${escapeHTML(p.name)}</span>`).join('')}</div>`;renderLive();if(autoStartMatch&&mode==='race'&&meta?.status==='lobby'&&meta.host===currentId()&&Object.keys(players).length>=2){autoStartMatch=false;startRace();}},firebaseError));
-    if(mode==='race')unsubscribe.push(onValue(ref(database,`rooms/${code}/states`),s=>{raceStates=s.val()||{};const own=raceStates[currentId()];if(own?.board){if(!pendingRaceWrites)board=own.board.split('');finishedAt=own.finishedAt||0;finished=finishedAt>0;render();}renderLive();},firebaseError));
+    if(mode==='race')unsubscribe.push(onValue(ref(database,`rooms/${code}/states`),s=>{raceStates=s.val()||{};const own=raceStates[currentId()];if(own?.board){
+      if(!pendingRaceWrites)board=own.board.split('');
+      finishedAt=own.finishedAt||0;finished=finishedAt>0;
+      const percent=Math.min(100,Math.round((board.filter(v=>v==='1').length/Math.max(1,totalBlack(puzzle)))*100));
+      saveRaceResume(code,puzzle.id,finished,percent);
+      render();
+    }renderLive();},firebaseError));
     if(mode==='coop')unsubscribe.push(onValue(ref(database,`rooms/${code}/board`),s=>{const value=s.val();if(typeof value==='string'&&value.length===puzzle.size*puzzle.size){roomBoard=value;board=value.split('');const wasFinished=finished;finished=isSolved(board,puzzle);finishedAt=finished?(finishedAt||serverNow()):0;if(finished&&!wasFinished){toast('협동 퍼즐 완성!');if(publicHosted&&meta?.host===currentId()){removePublicListing(roomCode);publicHosted=false;}}render();tick();}renderLive();},firebaseError));
     return roomCode===code;
   }catch(e){firebaseError(e);return false;}}
@@ -537,108 +569,131 @@ async function connectFirebase(){
     ]);
     ({initializeApp}=firebaseApp);({getAuth,signInAnonymously}=firebaseAuth);
     ({getDatabase,ref,get,set,remove,onValue,onDisconnect,runTransaction,serverTimestamp,query,orderByChild,limitToFirst,limitToLast}=firebaseDatabase);
-    const app=initializeApp(firebaseConfig),auth=getAuth(app);database=getDatabase(app);if(window.NONO_FIREBASE_EMULATORS&&['localhost','127.0.0.1'].includes(location.hostname)){firebaseAuth.connectAuthEmulator(auth,'http://127.0.0.1:9099',{disableWarnings:true});firebaseDatabase.connectDatabaseEmulator(database,'127.0.0.1',9000);}onValue(ref(database,'.info/serverTimeOffset'),s=>{serverOffset=s.val()||0;});onValue(ref(database,'.info/connected'),s=>{if(currentUser)$('connection').textContent=s.val()?'● 온라인 연결':'연결 끊김 · 재연결 중';if(s.val()&&roomCode){const p=ref(database,`rooms/${roomCode}/players/${mySlot}`);onDisconnect(p).remove().then(()=>get(p).then(s=>s.exists()?undefined:set(p,{uid:currentId(),name:nickname(),joinedAt:serverTimestamp()}))).catch(firebaseError);}});const credential=await signInAnonymously(auth);currentUser=credential.user;$('connection').textContent='● 온라인 연결';refreshHomepageScores();watchPublicLobby();const params=new URL(location.href).searchParams;const code=params.get('room');if(code)await enterRoom(code.toUpperCase());resume.watch();}
+    const app=initializeApp(firebaseConfig),auth=getAuth(app);database=getDatabase(app);if(window.NONO_FIREBASE_EMULATORS&&['localhost','127.0.0.1'].includes(location.hostname)){firebaseAuth.connectAuthEmulator(auth,'http://127.0.0.1:9099',{disableWarnings:true});firebaseDatabase.connectDatabaseEmulator(database,'127.0.0.1',9000);}onValue(ref(database,'.info/serverTimeOffset'),s=>{serverOffset=s.val()||0;});onValue(ref(database,'.info/connected'),s=>{if(currentUser)$('connection').textContent=s.val()?'● 온라인 연결':'연결 끊김 · 재연결 중';if(s.val()&&roomCode){const p=ref(database,`rooms/${roomCode}/players/${mySlot}`);onDisconnect(p).remove().then(()=>get(p).then(s=>s.exists()?undefined:set(p,{uid:currentId(),name:nickname(),joinedAt:serverTimestamp()}))).catch(firebaseError);}});const credential=await signInAnonymously(auth);currentUser=credential.user;$('connection').textContent='● 온라인 연결';refreshHomepageScores();watchPublicLobby();const params=new URL(location.href).searchParams;const code=params.get('room');if(code)await enterRoom(code.toUpperCase());resumeHub.watch();}
   catch(e){$('connection').textContent='연결 실패 · 오프라인';firebaseError(e);}
 }
 function installResume(){
   const setup=document.getElementById('setup');
-  if(!setup)return {watch(){}};
-  const panel=document.createElement('section');
-  panel.id='nono-resume';panel.hidden=true;
-  panel.innerHTML='<div class="nono-resume-info"><strong>이어서 풀기</strong><span id="nono-resume-summary"></span></div><button type="button" id="nono-resume-button" class="button outline">이어하기</button>';
-  setup.append(panel);
-  const overlay=document.createElement('div');
-  overlay.id='nono-resume-overlay';overlay.hidden=true;
-  overlay.innerHTML='<div id="nono-resume-dialog" role="dialog" aria-modal="true" aria-labelledby="nono-resume-heading"><h2 id="nono-resume-heading">진행 중인 퍼즐이 있어요</h2><p>이전 퍼즐의 최신 상태로 이어서 시작할 수 있어요.</p><div id="nono-resume-list"></div><button type="button" id="nono-resume-stay" class="button outline">로비에 있기</button></div>';
-  document.body.append(overlay);
-  let shared=[],stop=null,prompted=false;
-  const solo=()=>{
-    const arr=[];
+  if(!setup)return {watch(){},refresh(){}};
+  const view=document.createElement('section');
+  view.id='nono-resume-view';view.className='card';
+  view.innerHTML=[
+    '<div class="nono-resume-heading"><div><h2>이어서 풀기</h2><p>혼자 풀기 · 대결 · 협동의 진행 중 퍼즐</p></div><span id="nono-resume-total"></span></div>',
+    '<div class="nono-resume-summary" aria-label="모드별 진행 중 퍼즐">',
+    '<span id="nono-resume-solo-count">혼자 풀기 0</span>',
+    '<span id="nono-resume-race-count">대결 0</span>',
+    '<span id="nono-resume-coop-count">협동 0</span></div>',
+    '<div id="nono-resume-items" class="nono-resume-items" aria-live="polite"></div>'
+  ].join('');
+  setup.after(view);
+  let shared=[],stop=null,epoch=0;
+  const puzzleOf=id=>PUZZLES.find(item=>item.id===id);
+  const progressFor=(value,p)=>{
+    if(!p||typeof value!=='string')return 0;
+    return Math.min(100,Math.round((value.split('1').length-1)/Math.max(1,totalBlack(p))*100));
+  };
+  function solo(){
+    const list=[];
     for(const p of PUZZLES){
       if(p.sizeTest)continue;
       try{
-        const v=JSON.parse(localStorage.getItem('nono-web-puzzle-v1:'+p.id)||'null');
-        if(!v||typeof v.board!=='string'||!/^[012]+$/.test(v.board)||v.board.length!==p.size*p.size||v.finishedAt||!/[12]/.test(v.board)||isSolved(v.board.split(''),p))continue;
-        arr.push({type:'solo',id:p.id,text:p.size+'×'+p.size+' · 혼자 풀기',time:Number(v.savedAt)||0});
+        const saved=JSON.parse(storage.getItem('nono-web-puzzle-v1:'+p.id)||'null');
+        if(!saved||typeof saved.board!=='string'||!/^[012]+$/.test(saved.board)||saved.board.length!==p.size*p.size||saved.finishedAt||!/[12]/.test(saved.board)||isSolved(saved.board.split(''),p))continue;
+        list.push({kind:'solo',id:p.id,p,size:p.size,code:null,time:Number(saved.savedAt)||0,progress:progressFor(saved.board,p)});
       }catch(_){}
     }
-    return arr;
-  };
-  const choices=()=>[...shared,...solo()].sort((a,b)=>b.time-a.time);
-  const close=()=>{overlay.hidden=true;};
-  async function resumeItem(item){
-    close();
-    if(item.type==='coop'){await enterRoom(item.code);return;}
-    const select=document.getElementById('puzzle');
-    if(!select||!Array.from(select.options).some(o=>o.value===item.id))return;
-    setMode('practice');
-    select.value=item.id;select.dispatchEvent(new Event('change',{bubbles:true}));
-    await startAlone(); // The existing settings.js showGame wrapper restores this saved board.
+    return list;
   }
-  function open(){
-    const list=choices();if(!list.length)return;
-    const target=document.getElementById('nono-resume-list');target.replaceChildren();
-    for(const item of list){
-      const button=document.createElement('button');
-      button.type='button';button.className='nono-resume-item';
-      const title=document.createElement('strong');title.textContent=item.text;
-      const subtitle=document.createElement('span');subtitle.textContent=item.type==='coop'?'공유 퍼즐방 · '+item.code:'자동 저장된 퍼즐';
-      button.append(title,subtitle);
-      button.addEventListener('click',()=>resumeItem(item));
-      target.append(button);
-    }
-    overlay.hidden=false;document.getElementById('nono-resume-stay').focus();
+  const visitTime=()=>{
+    try{return JSON.parse(storage.getItem('nono-room-visited-v1:'+currentId())||'{}')||{};}catch{return {};}
+  };
+  function choices(){
+    const visit=visitTime(),races=raceSaves().map(item=>{
+      const p=puzzleOf(item.puzzleId);
+      return p&&Number.isFinite(item.time)?{kind:'race',code:item.code,id:p.id,p,size:p.size,time:Math.max(Number(visit[item.code])||0,item.time),progress:Number(item.progress)||0}:null;
+    }).filter(Boolean);
+    return [...solo(),...shared,...races].sort((a,b)=>b.time-a.time).slice(0,5);
   }
   function render(){
     const list=choices();
-    panel.hidden=!list.length;
-    if(!list.length){close();return;}
-    document.getElementById('nono-resume-summary').textContent=list.length===1?list[0].text:'진행 중인 퍼즐 '+list.length+'개';
-    document.getElementById('nono-resume-button').textContent=list.length===1?'이어하기':'내 퍼즐 보기';
+    for(const [id,kind,label] of [['nono-resume-solo-count','solo','혼자 풀기'],['nono-resume-race-count','race','대결'],['nono-resume-coop-count','coop','협동']]){
+      document.getElementById(id).textContent=label+' '+list.filter(item=>item.kind===kind).length;
+    }
+    document.getElementById('nono-resume-total').textContent=list.length+' / 5';
+    const target=document.getElementById('nono-resume-items');target.replaceChildren();
+    if(!list.length){
+      const empty=document.createElement('p');empty.className='nono-resume-empty';
+      empty.textContent='아직 진행 중인 퍼즐이 없어요. 혼자 풀기, 대결, 협동에서 퍼즐을 시작해 보세요.';
+      target.append(empty);return;
+    }
+    for(const item of list){
+      const card=document.createElement('div');card.className='nono-resume-card';
+      const modeLabel={solo:'혼자 풀기',race:'대결',coop:'협동'}[item.kind];
+      const icon=document.createElement('span');icon.className='nono-resume-symbol';icon.textContent=item.kind==='solo'?'▦':item.kind==='race'?'⚔':'♧';
+      const info=document.createElement('div');info.className='nono-resume-card-copy';
+      const title=document.createElement('strong');title.textContent=modeLabel+' · '+item.size+'×'+item.size;
+      const detail=document.createElement('span');detail.textContent=(item.code?'방 코드 '+item.code+' · ':'')+'진행률 '+item.progress+'%';
+      info.append(title,detail);
+      const button=document.createElement('button');button.type='button';button.className='button outline nono-resume-continue';
+      button.textContent='이어하기';
+      button.addEventListener('click',()=>continueItem(item));
+      card.append(icon,info,button);target.append(card);
+    }
   }
-  document.getElementById('nono-resume-button').addEventListener('click',()=>{const list=choices();if(list.length===1)resumeItem(list[0]);else open();});
-  document.getElementById('nono-resume-stay').addEventListener('click',close);
-  overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!overlay.hidden)close();});
-  window.addEventListener('focus',render);
-  function watch(){
-    if(!onlineReady()||stop)return;
-    stop=onValue(ref(database,`userRooms/${currentId()}`),async snapshot=>{
-      const codes=Object.keys(snapshot.val()||{}).filter(code=>/^[A-HJ-NP-Z2-9]{6}$/.test(code));
-      const list=await Promise.all(codes.map(async code=>{
-        try{
-          const [m,b]=await Promise.all([get(ref(database,`rooms/${code}/meta`)),get(ref(database,`rooms/${code}/board`))]);
-          const info=m.val(),p=PUZZLES.find(x=>x.id===info?.puzzleId),value=b.val();
-          if(!p||info.mode!=='coop'||typeof value!=='string'||value.length!==p.size*p.size||isSolved(value.split(''),p))return null;
-          return {type:'coop',code,text:p.size+'×'+p.size+' · 함께 풀기',time:Number(info.createdAt)||0};
-        }catch(error){console.warn('내 퍼즐 읽기 실패',code,error);return null;}
-      }));
-      shared=list.filter(Boolean);render();
-      if(!prompted&&shared.length&&!roomCode&&!new URL(location.href).searchParams.has('room')&&document.getElementById('game').classList.contains('hidden')){
-        prompted=true;open();
-      }
-    },error=>console.warn('내 퍼즐 목록 읽기 실패: Firebase 규칙 확인',error));
+  async function continueItem(item){
+    if(item.kind==='solo'){
+      const select=document.getElementById('puzzle');
+      if(!select||!Array.from(select.options).some(option=>option.value===item.id))return;
+      setMode('practice');select.value=item.id;
+      select.dispatchEvent(new Event('change',{bubbles:true}));
+      await startAlone(); // The existing settings.js wrapper restores saved solo progress.
+      return;
+    }
+    const code=item.code;
+    await enterRoom(code);
+    if(roomCode!==code){await refresh();}
+  }
+  async function fetchShared(codes,request){
+    const visits=visitTime();
+    const rows=await Promise.all(codes.map(async code=>{
+      try{
+        const snap=await get(ref(database,`rooms/${code}/meta`));
+        const info=snap.val(),p=puzzleOf(info?.puzzleId);
+        if(!p||info.mode!=='coop')return null;
+        const boardSnap=await get(ref(database,`rooms/${code}/board`)),value=boardSnap.val();
+        if(typeof value!=='string'||value.length!==p.size*p.size||isSolved(value.split(''),p))return null;
+        return {kind:'coop',code,id:p.id,p,size:p.size,time:Number(visits[code])||Number(info.createdAt)||0,progress:progressFor(value,p)};
+      }catch(error){console.warn('협동 퍼즐 불러오기 실패',code,error);return null;}
+    }));
+    if(request!==epoch)return;
+    shared=rows.filter(Boolean);render();
   }
   async function refresh(){
-    if(!onlineReady())return render();
+    if(!onlineReady()){render();return;}
+    const request=++epoch;
     try{
-      const current=(await get(ref(database,`userRooms/${currentId()}`))).val()||{};
-      const rows=await Promise.all(Object.keys(current).filter(code=>/^[A-HJ-NP-Z2-9]{6}$/.test(code)).map(async code=>{
+      const ids=(await get(ref(database,`userRooms/${currentId()}`))).val()||{};
+      await fetchShared(Object.keys(ids).filter(code=>/^[A-HJ-NP-Z2-9]{6}$/.test(code)),request);
+      const saved=raceSaves();
+      await Promise.all(saved.map(async item=>{
         try{
-          const [m,b]=await Promise.all([get(ref(database,`rooms/${code}/meta`)),get(ref(database,`rooms/${code}/board`))]);
-          const info=m.val(),p=PUZZLES.find(x=>x.id===info?.puzzleId),value=b.val();
-          return p&&info.mode==='coop'&&typeof value==='string'&&value.length===p.size*p.size&&!isSolved(value.split(''),p)
-            ?{type:'coop',code,text:p.size+'×'+p.size+' · 함께 풀기',time:Number(info.createdAt)||0}:null;
-        }catch(_){return null;}
+          const info=(await get(ref(database,`rooms/${item.code}/meta`))).val();
+          if(!info||info.mode!=='race'||info.puzzleId!==item.puzzleId)saveRaceResume(item.code,item.puzzleId,true);
+        }catch(error){console.warn('대결방 상태 확인 실패',item.code,error);}
       }));
-      shared=rows.filter(Boolean);
-    }catch(error){console.warn('이어하기 새로고침 실패',error);}
-    render();
+    }catch(error){console.warn('이어서 풀기 목록 조회 실패',error);}
+    if(request===epoch)render();
   }
+  function watch(){
+    if(!onlineReady()||stop)return;
+    stop=onValue(ref(database,`userRooms/${currentId()}`),()=>{refresh().catch(console.warn);},
+      error=>console.warn('내 퍼즐 목록 접근 실패: Firebase 규칙 확인',error));
+  }
+  window.addEventListener('focus',()=>{refresh().catch(console.warn);});
   render();
-  return {watch,render,refresh};
+  return {watch,refresh,render};
 }
-initHome();const resume=installResume();connectFirebase();
+initHome();resumeHub=installResume();connectFirebase();
 
 </script>
 <script src="./settings.js?v=2"></script>
