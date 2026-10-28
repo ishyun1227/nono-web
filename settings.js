@@ -345,6 +345,68 @@ body.nono-fit-playing .topbar,body.nono-fit-playing #game .game-header{
  body.nono-fit-playing .topbar,body.nono-fit-playing #game .game-header{width:calc(100vw - 12px)!important}
 }
 
+
+/* True puzzle-first fit: page chrome no longer consumes most of the viewport. */
+body.nono-fit-playing #game .board-card{
+ position:fixed!important;top:var(--nono-board-card-top,96px)!important;
+ bottom:6px!important;left:14px!important;right:14px!important;
+ width:auto!important;height:auto!important;max-height:none!important;
+ padding:6px 9px 45px!important;
+ display:flex!important;flex-direction:column!important;align-items:stretch!important;
+ gap:2px!important;overflow:hidden!important;z-index:5!important
+}
+body.nono-fit-playing #game .board-top{
+ flex:0 0 auto!important;min-height:32px!important;max-height:40px!important
+}
+body.nono-fit-playing #game #nono-hud{
+ position:absolute!important;z-index:3!important;
+ top:9px!important;left:25%!important;width:40%!important;
+ padding:5px 7px!important;margin:0!important;
+ pointer-events:none!important;overflow:hidden!important;
+ font-size:10px!important;white-space:nowrap!important;text-overflow:ellipsis!important
+}
+body.nono-fit-playing #game #nono-drag-hud{
+ position:absolute!important;z-index:4!important;top:43px!important;
+ right:12px!important;padding:4px 7px!important;margin:0!important;
+ pointer-events:none!important
+}
+body.nono-fit-playing #game .board-scroll,
+body.nono-fit-playing #game .board-scroll.nono-zoomed{
+ flex:1 1 0!important;min-height:0!important;max-height:none!important;
+ height:auto!important;margin:0!important;padding:0!important;
+ overflow:hidden!important;align-items:center!important;justify-content:center!important
+}
+body.nono-fit-playing #game .board-caption{display:none!important}
+body.nono-fit-playing #game .board-footer{
+ position:absolute!important;bottom:6px!important;left:10px!important;right:auto!important;
+ width:auto!important;min-height:32px!important;flex:none!important;
+ padding:0!important;margin:0!important;border:0!important;
+ display:flex!important;align-items:center!important;gap:4px!important
+}
+body.nono-fit-playing #game #nono-actions{
+ position:absolute!important;bottom:6px!important;right:9px!important;left:auto!important;
+ width:auto!important;flex:none!important;padding:0!important;margin:0!important;
+ display:flex!important;gap:4px!important;align-items:center!important
+}
+body.nono-fit-playing #game .bottom-row{
+ position:absolute!important;bottom:7px!important;left:50%!important;
+ transform:translateX(-50%)!important;display:flex!important;
+ padding:0!important;margin:0!important;z-index:3!important;align-items:center!important
+}
+body.nono-fit-playing #game .bottom-row .control-summary{display:none!important}
+body.nono-fit-playing #game .rules{display:none!important}
+body.nono-fit-playing #game .bottom-row #restart{padding:6px 8px!important;font-size:11px!important}
+@media(max-width:900px){
+ body.nono-fit-playing #game .board-card{
+  left:6px!important;right:6px!important;
+  padding-bottom:76px!important
+ }
+ body.nono-fit-playing #game .bottom-row{bottom:42px!important}
+ body.nono-fit-playing #game .board-footer{bottom:5px!important}
+ body.nono-fit-playing #game #nono-actions{bottom:41px!important}
+ body.nono-fit-playing #game #nono-hud{display:none!important}
+}
+
 .nono-visual-help-button{white-space:nowrap;background:#28345d;border:1px solid #8d91ce;color:#fff;
   border-radius:9px;padding:8px 11px;font-size:12px;font-weight:750;cursor:pointer}
 .nono-guide-overlay{position:fixed;inset:0;z-index:12010;background:#050a18e8;display:grid;place-items:center;padding:14px}
