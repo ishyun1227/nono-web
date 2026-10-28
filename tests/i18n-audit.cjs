@@ -75,7 +75,9 @@ const {pathToFileURL}=require('node:url');
      await page.locator('#leave-game').click();
    }
  }
- for(const item of results)console.log('I18N_AUDIT '+JSON.stringify(item));
- console.log('I18N_AUDIT totals '+results.map(r=>r.name+':'+r.left.length).join(' '));
+ const untranslated=results.filter(item=>item.left.length);
+ for(const item of untranslated)console.log('I18N_AUDIT '+JSON.stringify(item));
+ console.log('I18N_AUDIT checked '+results.length+' screens, untranslated screens '+untranslated.length);
+ if(untranslated.length)throw Error('Untranslated visible UI strings: '+JSON.stringify(untranslated.slice(0,8)));
  await browser.close();
 })().catch(e=>{console.error(e);process.exit(1)});
