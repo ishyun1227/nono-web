@@ -18,7 +18,7 @@ const legacy={heart5:'쉬움',cat10:'보통',rocket10:'어려움',
   vox_crabino_front:'보통',vox_crabino_side:'보통',vox_crabino_top:'보통'};
 const difficultyOf=p=>difficulties.includes(p.difficulty||legacy[p.id])?(p.difficulty||legacy[p.id]):null;
 const catalog=()=>typeof PUZZLES!=='undefined'?PUZZLES.filter(p=>p&&p.id&&!p.sizeTest&&Number.isInteger(p.size)&&difficultyOf(p)):[];
-const supportsMode=p=>['practice','record'].includes(mode())||p.size<30;
+const supportsMode=p=>mode()==='practice'||p.size<30;
 const inGroup=p=>p.size>=sizeGroups[state.group].min&&p.size<=sizeGroups[state.group].max;
 const eligible=p=>inGroup(p)&&difficultyOf(p)===state.level&&supportsMode(p);
 const state={group:0,level:'보통'};
