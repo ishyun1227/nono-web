@@ -596,9 +596,16 @@ function updateClueDecor(){
 }
 
 let fitRequest=0,boardZoom=1;
-function setBoardZoom(change){
- boardZoom=Math.max(.5,Math.min(2.2,Math.round((boardZoom+change)*10)/10));
+function setBoardZoom(delta){
+ // The largest permitted size is the fully visible one: no hidden cells or internal scroll.
+ boardZoom=Math.max(.4,Math.min(1,Math.round((boardZoom+delta)*10)/10));
  scheduleBoardFit();
+}
+function centerBoard(){
+ const area=document.querySelector('#game .board-scroll'),grid=$('board');
+ if(!area||!grid||$('game').classList.contains('hidden'))return;
+ area.scrollLeft=0;area.scrollTop=0;grid.style.margin='auto';
+ window.scrollTo({left:0,top:0,behavior:'instant'});
 }
 function scheduleBoardFit(){
  if($('game').classList.contains('hidden')||fitRequest)return;
@@ -606,46 +613,56 @@ function scheduleBoardFit(){
 }
 function fitBoardToViewport(){
  if($('game').classList.contains('hidden'))return;
- const grid=$('board'),scroller=document.querySelector('#game .board-scroll'),card=document.querySelector('#game .board-card');
- if(!grid||!scroller||!card)return;
+ const grid=$('board'),area=document.querySelector('#game .board-scroll'),card=document.querySelector('#game .board-card');
+ if(!grid||!area||!card)return;
  const n=puzzle.size,isLarge=n>=30;
  document.body.classList.toggle('nono-fit-playing',isLarge);
  grid.classList.add('nono-board-fit');
- const rowCount=Math.max(...puzzle.rows.map(a=>a.length)),colCount=Math.max(...puzzle.cols.map(a=>a.length));
- const font=n>=75?9:n>=30?10:n>=15?11:12;
- const itemWidth=n>=75?11:n>=30?12:n>=15?15:19;
- const lineHeight=n>=75?11:n>=30?12:n>=15?14:17;
- const rowWidth=Math.max(30,rowCount*itemWidth+6);
- const colHeight=Math.max(28,colCount*lineHeight+6);
- const css=getComputedStyle(scroller);
- const padW=parseFloat(css.paddingLeft)+parseFloat(css.paddingRight);
+ const maxRow=Math.max(1,...puzzle.rows.map(a=>a.length));
+ const maxCol=Math.max(1,...puzzle.cols.map(a=>a.length));
+ const maxNumber=Math.max(1,...puzzle.rows.flat(),...puzzle.cols.flat());
+ const digits=String(maxNumber).length,sides=prefs.bothClues?2:1;
+ const css=getComputedStyle(area),padW=parseFloat(css.paddingLeft)+parseFloat(css.paddingRight);
  const padH=parseFloat(css.paddingTop)+parseFloat(css.paddingBottom);
- // The remaining footer is now a single toolbar, not three stacked rows.
- const fixedAfter=Math.max(0,card.getBoundingClientRect().bottom-scroller.getBoundingClientRect().bottom);
- const before=scroller.getBoundingClientRect().top;
- const availableWidth=Math.max(80,scroller.clientWidth-padW-4);
- const availableHeight=Math.max(80,innerHeight-before-fixedAfter-padH-14);
- const sides=prefs.bothClues?2:1;
+ const areaRect=area.getBoundingClientRect(),cardRect=card.getBoundingClientRect();
+ const after=Math.max(0,cardRect.bottom-areaRect.bottom);
+ const availW=Math.max(30,area.clientWidth-padW-4);
+ const availH=Math.max(30,innerHeight-areaRect.top-after-padH-7);
  const cap=n<=5?60:n<=10?41:n<=25?34:26;
- const fit=Math.max(1.2,Math.min(cap,(availableWidth-rowWidth*sides-4)/n,(availableHeight-colHeight*sides-4)/n));
- const cell=fit*boardZoom;
- const zoomed=isLarge&&boardZoom>1.001;
- scroller.classList.toggle('nono-zoomed',zoomed);
- scroller.style.setProperty('--nono-visible-board-height',availableHeight.toFixed(2)+'px');
- for(const [key,value] of Object.entries({
-   '--cell-size':cell.toFixed(3)+'px',
-   '--nono-fit-item-width':itemWidth+'px',
-   '--nono-fit-line-height':lineHeight+'px',
-   '--nono-fit-font':font+'px',
-   '--nono-fit-row-width':rowWidth+'px',
-   '--nono-fit-col-height':colHeight+'px'
- }))grid.style.setProperty(key,value,'important');
+ function dimensions(cell){
+  const font=Math.max(2.8,Math.min(14,cell*.69));
+  const slotWidth=Math.max(3.5,Math.min(24,font*(digits===3?1.95:digits===2?1.38:1.05)+1));
+  const slotHeight=Math.max(3.5,Math.min(22,cell*.90,font+1));
+  return {font,slotWidth,slotHeight,rowWidth:maxRow*slotWidth+10,colHeight:maxCol*slotHeight+10};
+ }
+ let low=.5,high=cap;
+ for(let k=0;k<35;k++){
+  const mid=(low+high)/2,d=dimensions(mid);
+  if(n*mid+d.rowWidth*sides+4<=availW&&n*mid+d.colHeight*sides+4<=availH)low=mid;
+  else high=mid;
+ }
+ const fit=Math.max(.5,low),cell=fit*boardZoom,d=dimensions(cell);
+ area.classList.remove('nono-zoomed');
+ area.style.setProperty('--nono-fit-scroller-height',availH.toFixed(2)+'px');
+ area.style.removeProperty('--nono-visible-board-height');
+ const props={
+  '--cell-size':cell.toFixed(3)+'px',
+  '--nono-fit-size':String(n),
+  '--nono-fit-grid-width':(cell*n).toFixed(3)+'px',
+  '--nono-fit-item-width':d.slotWidth.toFixed(3)+'px',
+  '--nono-fit-line-height':d.slotHeight.toFixed(3)+'px',
+  '--nono-fit-font':d.font.toFixed(3)+'px',
+  '--nono-fit-row-width':d.rowWidth.toFixed(3)+'px',
+  '--nono-fit-col-height':d.colHeight.toFixed(3)+'px'
+ };
+ for(const [key,value] of Object.entries(props))grid.style.setProperty(key,value,'important');
  grid.dataset.fitCellSize=cell.toFixed(2);
  grid.dataset.fitMax=fit.toFixed(2);
  $('nono-zoom-label').textContent=boardZoom===1?'맞춤':Math.round(boardZoom*100)+'%';
- $('nono-zoom-fit').disabled=boardZoom===1;
- $('nono-zoom-out').disabled=boardZoom<=.5;
- $('nono-zoom-in').disabled=boardZoom>=2.2;
+ $('nono-zoom-fit').disabled=false;
+ $('nono-zoom-out').disabled=boardZoom<=.4;
+ $('nono-zoom-in').disabled=boardZoom>=1;
+ if(isLarge)centerBoard();
 }
 function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();}
 function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+n+'</b>';const g=E('div','nono-minimap-grid');g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
