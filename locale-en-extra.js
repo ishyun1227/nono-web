@@ -149,6 +149,56 @@ const rows=[
  ['체험 포인트가 부족해요.','Not enough demo points.'],
  ['퍼즐판 축소','Zoom board out'],['퍼즐판 확대','Zoom board in']
 ];
-const dict={};for(const [a,b] of rows)dict[a]=b;
+
+const worldAndMisc=[
+ ['NONO 달빛 정령의 숲','NONO Moonlit Grove'],
+ ['달빛 숲 홈','Moonlit Grove home'],['숲속 탐험 메뉴','Forest exploration menu'],
+ ['숲속 광장','Forest plaza'],['탐험의 길','Adventure paths'],['퍼즐 도감','Puzzle collection'],
+ ['달빛 아래 숨겨진','Hidden beneath the moonlight'],['작은 이야기.','Small stories.'],
+ ['숲속에 잠든 그림을 한 칸씩 깨워보세요.','Reveal the sleeping forest picture one cell at a time.'],
+ ['숫자를 따라가면 정령의 비밀이 드러나요.','Follow the clues to uncover the spirits’ secrets.'],
+ ['숲속 퍼즐 시작하기','Start a forest puzzle'],['아래로 탐험하기 ↓','Explore below ↓'],
+ ['나만의 속도로 즐기는 노노그램','Nonograms at your own pace'],
+ ['어느 길로 떠날까요?','Which path will you choose?'],
+ ['서로 다른 네 가지 숲속 모험. 원하는 플레이 방식부터 골라보세요.','Four different forest adventures. Pick how you want to play.'],
+ ['고요한 오솔길','Quiet woodland path'],['반딧불이 경주','Firefly race'],
+ ['함께 피우는 꽃','Bloom together'],['별빛 기록관','Starry records'],
+ ['혼자 풀기 · 내 속도로','Solo · At your own pace'],
+ ['실시간 대결 · 먼저 완성하기','Live race · Finish first'],
+ ['협동 플레이 · 한 판을 함께','Co-op · One puzzle together'],
+ ['기록 경쟁 · 나의 최고 기록','Time trial · Personal best'],
+ ['모험 준비하기','Prepare for adventure'],['달빛 도감','Moonlit collection'],
+ ['실제 플레이 가능한 퍼즐 목록이에요. 고르면 위의 모험 준비에 반영돼요.','These are real puzzles you can play. Choose one to start the adventure.'],
+ ['달빛 숲 노노그램 게임','Moonlit forest nonogram game'],
+ ['숲에 숨겨진 그림','A picture hidden in the forest'],
+ ['한 칸씩 밝혀지는 작은 모험','A small adventure, one cell at a time'],
+ ['NONO 던전 터미널','NONO Dungeon Terminal'],
+ ['칸을 채우면 숨겨진 그림이 나타나요.','Fill cells to reveal a hidden picture.'],
+ ['홈으로','Go home'],['퍼즐 선택으로 이동','Go to puzzle selection'],
+ ['네 가지 플레이 방식 중 하나를 선택하세요.','Choose one of the four play modes.'],
+ ['실제 이용 가능한 퍼즐 목록','Puzzles available to play'],
+ ['퍼즐 선택:','Select puzzle:'],['숨겨진 그림','Hidden picture'],
+ ['이어하기','Resume'],['준비된 퍼즐이 없습니다','No puzzles available'],
+ ['퍼즐 번호','Puzzle number'],['이어서 풀기 목록으로 이동','Go to unfinished puzzles'],
+ ['이어서 풀기','Continue puzzles'],
+ ['진행 중 퍼즐이 없어요.','No unfinished puzzles.'],
+ ['위쪽 메뉴에서 플레이 방식을 선택하세요.','Choose a play mode from the menu above.'],
+ ['퍼즐 선택 →','Select puzzle →'],
+ ['주어진 정보로 퍼즐을 풀어보세요.','Solve the puzzle using the given clues.'],
+ ['조금만 더! 퍼즐을 완성해 보세요.','Almost there! Complete the puzzle.'],
+ ['나의 최고 기록','Personal best'],
+ ['🎮 컨트롤러 연결됨','🎮 Controller connected'],
+ ['🎮 게임패드 연결됨','🎮 Gamepad connected'],
+ ['로컬 체험','Local demo'],
+ ['키 설정 · 기본키 / 보조키','Keyboard shortcuts · primary / secondary'],
+ ['힌트 숫자를 놓는 가능한','Possible clue arrangements'],
+ ['이 조건의 퍼즐은 아직 준비 중이에요.','No puzzles match these filters yet.'],
+ ['포인트 부족 ·','Not enough points ·'],
+ ['출석 완료!','Check-in complete!'],
+ ['대결','Race'],['협동','Co-op'],['기록','Records'],
+ ['퍼즐 완성!','Puzzle complete!'],
+ ['퍼즐을 골라 바로 시작해 보세요.','Choose a puzzle and start playing.']
+];
+const dict={};for(const [a,b] of [...rows,...worldAndMisc])dict[a]=b;
 window.NONO_EN_EXTRA=Object.freeze(dict);
 })();
