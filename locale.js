@@ -170,6 +170,7 @@ const LEXICON=[
 ];
 const map={en:new Map(),ja:new Map()};
 for(const [ko,en,ja] of LEXICON){map.en.set(ko,en);map.ja.set(ko,ja);}
+for(const [source,translation] of Object.entries(window.NONO_EN_EXTRA||{}))map.en.set(source,translation);
 for(const locale of SUPPORTED.filter(l=>!['ko','en','ja'].includes(l))){map[locale]=new Map(Object.entries(window.NONO_LOCALE_PACKS?.[locale]||{}));}
 const patterns=[
  [/^(\d+)\s*\/\s*(\d+)\s*달성$/,(m,a,b,l)=>l==='en'?a+' / '+b+' completed':a+' / '+b+' 達成'],
@@ -271,9 +272,9 @@ function renderSelector(){
  let label=head.querySelector('#nono-language-control');
  if(!label){
   label=document.createElement('label');label.id='nono-language-control';label.className='nono-language-control';
-  const caption=document.createElement('span');caption.textContent='🌐 언어 / Language';
-  const select=document.createElement('select');select.id='nono-language-select';select.setAttribute('aria-label','언어 선택');
-  for(const [value,name] of [['auto','자동 · Browser'],...(window.NONO_LOCALE_OPTIONS||[['ko','한국어'],['en','English'],['ja','日本語']])]){
+  const caption=document.createElement('span');caption.textContent='🌐 Language';
+  const select=document.createElement('select');select.id='nono-language-select';select.setAttribute('aria-label','Language selection');
+  for(const [value,name] of [['auto','Auto · Browser'],...(window.NONO_LOCALE_OPTIONS||[['ko','한국어'],['en','English'],['ja','日本語']])]){
    const option=document.createElement('option');option.value=value;option.textContent=name;option.dataset.localeOption='1';select.append(option);
   }
   select.addEventListener('change',()=>setLanguage(select.value));
