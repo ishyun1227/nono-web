@@ -636,8 +636,11 @@ body.nono-fit-playing #game .board-scroll #board{max-width:none!important}
 .nono-guide-pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .nono-guide-sample{border:1px solid #405579;border-radius:8px;background:#0c1730;padding:5px;min-width:0}
 .nono-guide-sample strong{display:block;text-align:center;font-size:10px;margin:0 0 4px;color:#d8ddff}
-.nono-guide-approved-image{display:block;width:100%;max-width:100%;height:auto;object-fit:contain;border:1px solid #52628e;border-radius:10px;background:#0e1a30;image-rendering:auto}
-.nono-guide-item:has(.nono-guide-approved-image){grid-column:1/-1}
+.nono-guide-approved-image{display:block;width:100%;max-width:640px;max-height:min(68vh,560px);height:auto;object-fit:contain;margin:0 auto;border:0;border-radius:8px;background:transparent;image-rendering:auto}
+.nono-guide-dialog:has(.nono-guide-approved-image){width:min(720px,95vw);max-height:90vh}
+.nono-guide-items:has(.nono-guide-approved-image){display:block;padding:10px 14px 14px;overflow:auto}
+.nono-guide-item:has(.nono-guide-approved-image){grid-column:1/-1;padding:0;border:0;background:transparent}
+@media(max-height:650px){.nono-guide-approved-image{max-height:65vh}}
 .nono-guide-sample svg{display:block;width:100%;height:auto;max-height:100px}
 @media(max-width:530px){.nono-settings-head{gap:8px;padding:12px}.nono-settings-head h2{font-size:16px}
  .nono-guide-items{grid-template-columns:1fr}.nono-visual-help-button{padding:7px;font-size:11px}}
@@ -761,18 +764,17 @@ function openVisualGuides(focusKey){
  const tab=Number(document.querySelector('.nono-settings-tabs .is-active')?.dataset.tab||0);
  const pane=E('div','nono-guide-overlay');pane.id='nono-guide-overlay';
  const dialog=E('section','nono-guide-dialog');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');
- const header=E('div','nono-guide-head'),title=E('h3',null,(typeof focusKey==='string'?'개별 설정':'전체 설정')+' · 이미지로 설명보기');
+ const header=E('div','nono-guide-head'),title=E('h3',null,'이미지 설명');
  const close=E('button','nono-modal-btn','닫기');close.type='button';close.onclick=()=>pane.remove();
  header.append(title,close);dialog.append(header);
- dialog.append(E('p','nono-guide-desc','설정을 켰을 때와 껐을 때의 차이를 그림으로 보여줍니다. 실제 정답을 미리 공개하지 않습니다.'));
  const area=E('div','nono-guide-items');
  let list=schema[tab][1].map(([key,label,type,options,help])=>({key,label,type,options,help}));
  if(tab===0)for(const action of Object.keys(standardKeys))list.push({key:'keyboard-'+action,label:shortcutNames[action],type:'choice',help:'선택한 키를 눌러 단축키를 지정하며 기존 퍼즐 그림과 답은 바뀌지 않습니다.'});
  if(typeof focusKey==='string')list=list.filter(info=>info.key===focusKey);
  for(const info of list){
   const card=E('article','nono-guide-item');
-  card.append(E('h4',null,info.label),E('p',null,info.help));
   const imagePath=approvedGuideImage[info.key];
+  if(!imagePath)card.append(E('h4',null,info.label),E('p',null,info.help));
   if(imagePath){
    const picture=E('img','nono-guide-approved-image');
    picture.src=imagePath;
