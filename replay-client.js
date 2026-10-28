@@ -20,7 +20,8 @@
     public:['공개 리플레이','Public replay','公開リプレイ'],
     locked:['완료 후 리플레이 공개','Unlock after completion','クリア後にリプレイを公開'],
     replay:['풀이 리플레이','Solve replay','プレイリプレイ'],
-    close:['닫기','Close','閉じる']
+    close:['닫기','Close','閉じる'],
+    share:['완료 기록을 다른 사람에게 공개','Share completed replays','完成したリプレイを公開']
   };
   const t = key => {
     const l=document.documentElement.lang||'ko';
@@ -158,10 +159,25 @@
   if (anchor?.parentNode) anchor.after(panel);
   else root.appendChild(panel);
   const list = panel.querySelector('.nono-replay-items');
+  const consent=document.createElement('label');
+  consent.style.cssText='display:flex;gap:7px;align-items:center;font-size:12px;color:#b9c8e7;margin:4px 0 10px;cursor:pointer';
+  const consentInput=document.createElement('input');
+  consentInput.type='checkbox';consentInput.disabled=true;consentInput.setAttribute('aria-label',t('share'));
+  const consentLabel=document.createElement('span');consentLabel.textContent=t('share');
+  consent.append(consentInput,consentLabel);
+  panel.insertBefore(consent,list);
+  consentInput.addEventListener('change',async()=>{
+    const requested=consentInput.checked;
+    consentInput.disabled=true;
+    try{await window.NONO_REPLAY_CLOUD?.setPublicEnabled(requested);}
+    catch(error){console.warn('리플레이 공개 설정 실패',error);consentInput.checked=!requested;toast('리플레이 공개 설정을 변경할 수 없어요.');}
+    finally{consentInput.disabled=false;}
+  });
   let stopAnimations = [], remoteRows = [], accountRows = [];
   window.NONO_REPLAY_UI = {
     setRemote(rows) {remoteRows = Array.isArray(rows) ? rows.slice(0,5) : [];renderRecent();},
-    setAccount(rows) {accountRows = Array.isArray(rows) ? rows.slice(0,5) : [];renderRecent();}
+    setAccount(rows) {accountRows = Array.isArray(rows) ? rows.slice(0,5) : [];renderRecent();},
+    setPublicPreference(value) {consentInput.disabled=false;consentInput.checked=Boolean(value);consentLabel.textContent=t('share');}
   };
   function draw(canvas, grid, size) {
     const ctx = canvas.getContext('2d');
