@@ -18,7 +18,7 @@ const touch=new Map(),physical=new Set();
 let expanded=true,connected=false;
 function active(){
  return !game.classList.contains('hidden')&&lobby.classList.contains('hidden')&&!area.classList.contains('hidden')
- &&!$('nono-settings-overlay')&&!document.querySelector('.nono-guide-overlay')&&!$('nono-overview');
+ &&!$('nono-settings-overlay')&&!document.querySelector('.nono-guide-overlay')&&(!$('nono-overview')||$('nono-overview').hidden);
 }
 function emit(name,down){
  if(name==='undo'||name==='redo'){if(down&&active())$(name)?.click();return;}
