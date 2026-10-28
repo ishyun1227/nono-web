@@ -191,6 +191,30 @@ const patterns=[
  [/^진행 중 퍼즐이 없어요.*$/,(m,l)=>l==='en'?'No puzzles in progress.':'進行中のパズルはありません。'],
  [/^(\d+) \/ 5$/,(m,n)=>n+' / 5']
 ];
+// Dynamic UI strings are composed by game/setting modules. Translate their pieces
+// instead of relying on Korean interpolation matching a static dictionary entry.
+function translateDynamic(original,locale){
+ let m;
+ const t=value=>translate(value,locale);
+ if((m=/^(.+?) 이미지로 설명보기$/.exec(original)))
+   return (locale==='ja'?'画像で説明：':locale.startsWith('zh')?'查看示例：':'View example: ')+t(m[1]);
+ if((m=/^(.+?) 미리보기$/.exec(original)))
+   return (locale==='ja'?'プレビュー：':locale.startsWith('zh')?'预览：':'Preview: ')+t(m[1]);
+ if((m=/^(.+?) 진행 중$/.exec(original)))
+   return t(m[1])+' · '+t('진행 중');
+ if((m=/^(.+?) 이어하기$/.exec(original)))
+   return t(m[1])+' · '+t('이어하기');
+ if((m=/^퍼즐 (\d+), (\d+×\d+)$/.exec(original)))
+   return t('퍼즐')+' '+m[1]+', '+m[2];
+ if((m=/^([\d,]+ P) 현금 충전 준비 중$/.exec(original)))
+   return m[1]+' · '+t('결제 준비 중');
+ if((m=/^변경 즉시 적용 · 장치별 브라우저 저장 · (PC|터치) 프로필$/.exec(original)))
+   return (locale==='ja'?'変更を即時適用 · この端末に保存 · ':locale.startsWith('zh')?'即时应用 · 保存于本设备 · ':'Applied immediately · Saved on this device · ')+
+     (m[1]==='PC'?'PC':locale==='ja'?'タッチ':locale.startsWith('zh')?'触屏':'Touch')+' '+t('프로필');
+ if((m=/^(\d+)칸 초과$/.exec(original)))
+   return (locale==='ja'?m[1]+'マス超':locale.startsWith('zh')?'超过'+m[1]+'格':'Over '+m[1]+' cells');
+ return null;
+}
 const attrNames=['aria-label','title','placeholder'];
 const originals=new WeakMap(),attrOriginals=new WeakMap();
 function languageChoice(){try{const v=localStorage.getItem(KEY);return v==='auto'||SUPPORTED.includes(v)?v:'ko';}catch{return 'ko';}}
@@ -210,6 +234,7 @@ let active=effective();
 function translate(original,locale){
  if(locale==='ko')return original;
  if(map[locale]?.has(original))return map[locale].get(original);
+ const dynamic=translateDynamic(original,locale);if(dynamic!==null)return dynamic;
  // Dynamic count/reward texts use English if the selected locale lacks a grammar template.
  for(const [re,fn] of patterns){const match=original.match(re);if(match)return fn(...match,locale==='ja'?'ja':'en');}
  // English text is a deliberate, explicit fallback, not an accidental Korean screen.
