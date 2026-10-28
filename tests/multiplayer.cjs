@@ -19,6 +19,7 @@ async function main(){
   // Public cooperation is discoverable even when the host has left the active player list.
   await assertSucceeds(remove(ref(a,'rooms/ABCDEF/players/0')));
   await assertSucceeds(get(ref(b,'publicRooms/ABCDEF')));
+  await join(a,'ABCDEF','0','alice');
   await assertFails(get(ref(b,'publicRooms')));
   await assertFails(get(query(ref(b,'publicRooms'),orderByChild('createdAt'),limitToLast(31))));
   const listed=await assertSucceeds(get(query(ref(b,'publicRooms'),orderByChild('createdAt'),limitToLast(30))));
