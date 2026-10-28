@@ -23,9 +23,17 @@ const {pathToFileURL} = require('node:url');
   ];
   for (let variant = 0; variant < samples.length; variant++) {
     await page.goto(source + '?test=1');
-    await page.selectOption('#nono-quick-size','30');
     const [id,expected] = samples[variant];
-    await page.locator('#nono-quick-variants button').nth(variant).click();
+    // The approved neon UI uses visible size/difficulty buttons, not the old hidden native selector.
+    // Choose the exact puzzle through the native engine's supported change event;
+    // apple-home.js will synchronize its visible controls from that selection.
+    await page.evaluate(puzzleId=>{
+      const picker=document.getElementById('puzzle');
+      if(![...picker.options].some(option=>option.value===puzzleId))
+        throw Error('Missing VOX puzzle '+puzzleId);
+      picker.value=puzzleId;
+      picker.dispatchEvent(new Event('change',{bubbles:true}));
+    },id);
     if (await page.locator('#puzzle').inputValue() !== id) throw Error('Incorrect preview puzzle: ' + id);
     await page.locator('#play-alone').click();
     await page.locator('#nono-vox-test-button').waitFor({state:'visible'});
@@ -45,6 +53,7 @@ const {pathToFileURL} = require('node:url');
     if(await dialog.isVisible()) throw Error('Preview did not close');
     const after = await page.evaluate(() => ({board:board.join(''),changes,finished,startedAt}));
     if(JSON.stringify(before)!==JSON.stringify(after)) throw Error('Preview mutated game state for '+id);
+    page.once('dialog',dialog=>dialog.accept());
     await page.locator('#leave-game').click();
   }
   if(errors.length) throw Error('Preview JavaScript errors: '+errors.join(' | '));
