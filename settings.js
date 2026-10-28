@@ -636,6 +636,15 @@ function guideIllustration(key,enabled){
  if(enabled&&(['move','repeat','repeatWait','quick','wrap','follow','followSpeed','dragPolicy','focusEntry','pointerFollow'].includes(key)||key.startsWith('keyboard-')))body+='<path d="M130 47h32m-8-8 8 8-8 8" stroke="#c9b8ff" stroke-width="4" fill="none"/>';
  if(enabled&&['undoButtons','toolCross'].includes(key))body+='<path d="M126 45a17 17 0 1 1-4 19 M122 64l-3-10-9 8" stroke="#c9b8ff" stroke-width="4" fill="none"/>';
  if(enabled&&['multiplayerCursor','multiplayerNames'].includes(key))body+='<circle cx="130" cy="36" r="8" fill="#eaa1bf"/><text x="117" y="55" font-size="9" fill="#f5bbdf">친구</text>';
+ if(key==='pointerFollow'){
+  body+='<path d="M111 48L127 64l-2-11 10-5Z" fill="#fff" stroke="#7aa5d6" stroke-width="2"/>'+
+   (enabled?'<rect x="73" y="45" width="11" height="11" stroke="#70ebff" stroke-width="3" fill="none"/>':
+    '<rect x="73" y="45" width="11" height="11" stroke="#5d6b87" stroke-width=".8" fill="none"/>');
+ }
+ if(key==='dragPolicy'){
+  body+='<path d="M37 57h11m11 0h11m11 0h11" fill="none" stroke="#eacb94" stroke-width="3"/>'+
+   (enabled?'<path d="m83 48-7 9 7 9" fill="none" stroke="#9cf1fb" stroke-width="3"/>':'');
+ }
  return '<svg viewBox="0 0 175 100" role="img" aria-label="노노그램 기능 적용 예시">'+base+body+'</svg>';
 }
 function openVisualGuides(focusKey){
@@ -648,7 +657,7 @@ function openVisualGuides(focusKey){
  header.append(title,close);dialog.append(header);
  dialog.append(E('p','nono-guide-desc','각 항목을 바꾸면 무엇이 달라지는지 보여주는 도식 예시입니다. 실제 퍼즐 캡처나 정답 미리보기가 아닙니다.'));
  const area=E('div','nono-guide-items');
- let list=schema[tab][1].map(([key,label,type,options,help])=>({key,label,type,help}));
+ let list=schema[tab][1].map(([key,label,type,options,help])=>({key,label,type,options,help}));
  if(tab===0)for(const action of Object.keys(standardKeys))list.push({key:'keyboard-'+action,label:shortcutNames[action],type:'choice',help:'선택한 키를 눌러 단축키를 지정하며 기존 퍼즐 그림과 답은 바뀌지 않습니다.'});
  if(typeof focusKey==='string')list=list.filter(info=>info.key===focusKey);
  for(const info of list){
@@ -657,7 +666,12 @@ function openVisualGuides(focusKey){
   const pair=E('div','nono-guide-pair');
   for(const isActive of [false,true]){
    const preview=E('div','nono-guide-sample');
-   preview.append(E('strong',null,isActive?'기능 적용 예시':'비교 기준'));
+   const optionLabel=(value)=>String(value??'').split(':').slice(-1)[0];
+   const variants=info.type==='bool'?['OFF','ON']:
+    info.type==='range'?[String(info.options?.[0]),String(info.options?.[1])]:
+    info.type==='choice'?[optionLabel(info.options?.[0]),optionLabel(info.options?.at(-1))]:
+    ['기본','변경'];
+   preview.append(E('strong',null,variants[isActive?1:0]));
    const holder=E('div');
    holder.innerHTML=guideIllustration(info.key,isActive);
    preview.append(holder);pair.append(preview);
