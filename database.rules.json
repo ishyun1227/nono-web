@@ -214,7 +214,7 @@
     "publishedReplays": {
       "$puzzle": {
         "$uid": {
-          ".read": "auth != null && (auth.uid == $uid || root.child('runs').child($puzzle).child(auth.uid).child('finishedAt').val() > 0)",
+          ".read": "auth != null && (auth.uid == $uid || root.child('scores').child($puzzle).child(auth.uid).child('finishedAt').val() > 0)",
           ".write": "auth != null && auth.uid == $uid && root.child('runs').child($puzzle).child($uid).child('finishedAt').val() > 0 && newData.exists() && (!data.exists() || newData.child('completedAt').val() > data.child('completedAt').val())",
           ".validate": "newData.hasChildren(['uid','completedAt','payload'])",
           "uid": {
