@@ -27,6 +27,7 @@
 <link rel="stylesheet" href="./controller-input.css?v=1" />
 <link rel="stylesheet" href="./controller-customization.css?v=1" />
 <link rel="stylesheet" href="./daily-rewards.css?v=1" />
+<link rel="stylesheet" href="./shop.css?v=1" />
 </head>
 <body data-nono-theme="neon">
   <script>
@@ -35,7 +36,13 @@
     var key='nono-theme-session-trial-v1';
     var supported=['neon','aurora','pastel','retro','forest','arcade','library','enchanted','cosmos','terminal'];
     var current='neon';
-    try{var saved=sessionStorage.getItem(key);if(supported.indexOf(saved)!==-1)current=saved;}catch(_error){}
+    try{
+      var saved=sessionStorage.getItem(key);
+      var owned=localStorage.getItem('nono-theme-owned-selection-v1');
+      var wallet=JSON.parse(localStorage.getItem('nono-daily-preview-v1')||'null');
+      if(supported.indexOf(saved)!==-1)current=saved;
+      else if(supported.indexOf(owned)!==-1&&(owned==='neon'||(wallet&&Array.isArray(wallet.ownedThemes)&&wallet.ownedThemes.includes(owned))))current=owned;
+    }catch(_error){}
     document.body.dataset.nonoTheme=current;
     document.documentElement.dataset.nonoTheme=current;
     document.documentElement.style.colorScheme=current==='pastel'?'light':'dark';
@@ -715,6 +722,7 @@ initHome();resumeHub=installResume();connectFirebase();
 <script src="./controller-input.js?v=2"></script>
 <script src="./controller-customization.js?v=1"></script>
 <script src="./daily-rewards.js?v=1"></script>
+<script src="./shop.js?v=1"></script>
 <script>
 /* Optional developer preview, never downloaded during ordinary play. */
 if(new URLSearchParams(location.search).get('test')==='1'){
