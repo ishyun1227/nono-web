@@ -1,0 +1,44 @@
+/* Waterpark-inspired lobby rewards, deliberately separate from the trusted economy. */
+.nono-daily-hub{display:grid;grid-template-columns:minmax(0,1.14fr) minmax(0,1fr);gap:14px;margin:18px auto 30px;width:100%;min-width:0;font-family:inherit}
+.nono-daily-card{min-width:0;padding:21px;border:1px solid #4c719a;border-radius:17px;background:linear-gradient(155deg,#142c48,#101f38 85%);color:#eef8ff;box-shadow:0 8px 24px #0712262c}
+.nono-daily-attendance{background:linear-gradient(145deg,#1e4266,#173254 70%,#172b49);border-color:#527eac}
+.nono-daily-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:13px}
+.nono-daily-head h2{font-size:21px;line-height:1.2;letter-spacing:-.04em;margin:3px 0 0;color:inherit}
+.nono-daily-kicker{font-size:10px;letter-spacing:.1em;font-weight:750;color:#9bdbff}
+.nono-daily-progress,.nono-daily-wallet{font-size:12px;font-weight:800;border:1px solid #678ab1;border-radius:15px;background:#234969;padding:6px 10px;white-space:nowrap;color:#f7faff}
+.nono-daily-wallet{background:#295478}
+.nono-mission-list{display:grid;gap:8px}
+.nono-mission-row{display:flex;align-items:center;gap:10px;padding:10px 11px;border:1px solid #365779;background:#10253d;border-radius:12px;min-height:62px}
+.nono-mission-row.is-claimed{opacity:.79}
+.nono-mission-icon{width:35px;height:35px;display:grid;place-items:center;background:#2a5474;border-radius:10px;font-size:20px;flex-shrink:0}
+.nono-mission-copy{flex:1;min-width:0;display:grid;gap:3px}
+.nono-mission-copy strong{font-size:13px;line-height:1.25}
+.nono-mission-copy small{font-size:11px;color:#b2cbdf;line-height:1.25}
+.nono-mission-claim,.nono-attendance-claim{font:inherit;font-weight:800;border:0;cursor:pointer}
+.nono-mission-claim{border-radius:9px;background:#ffd36a;color:#432e10;padding:8px 10px;min-width:82px;font-size:11px}
+.nono-mission-claim:disabled{background:#294460;color:#b4c2d4;cursor:default;opacity:1}
+.nono-mission-row.is-claimed .nono-mission-claim{background:#245670;color:#b7f0d5}
+.nono-attendance-lead{font-size:13px;color:#d5e9ff;line-height:1.5;min-height:20px;margin:0 0 13px}
+.nono-attendance-days{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-bottom:14px}
+.nono-attendance-day{min-width:0;min-height:65px;padding:9px 2px;border-radius:10px;border:1px solid #4e759c;background:#1b3859;display:flex;align-items:center;justify-content:center;gap:6px;flex-direction:column;text-align:center}
+.nono-attendance-day strong{font-size:10px;white-space:nowrap;color:#c8e0ff}
+.nono-attendance-day span{font-size:10px;white-space:nowrap;font-weight:800;color:#ffdf9b}
+.nono-attendance-day.is-today{border:2px solid #ffdf83;background:#2d5e80}
+.nono-attendance-day.is-collected{background:#246679;border-color:#7bd6cb}
+.nono-attendance-claim{display:block;width:100%;padding:12px 16px;border-radius:12px;background:linear-gradient(100deg,#ffe38e,#ffba68);color:#26354e;font-size:14px}
+.nono-attendance-claim:disabled{background:#296478;color:#d3f7ff;cursor:default;opacity:1}
+.nono-daily-note{font-size:11px;line-height:1.5;color:#9cb8d0;margin:11px 0 0}
+.nono-daily-in-terminal{max-width:1150px;margin:14px auto 35px;padding:0 12px}
+body[data-nono-theme="pastel"] .nono-daily-card{background:#f7faff;color:#273850;border-color:#c9d8ed}
+body[data-nono-theme="pastel"] .nono-daily-attendance{background:#e7f5ff}
+body[data-nono-theme="pastel"] .nono-daily-kicker{color:#2b689a}
+body[data-nono-theme="pastel"] .nono-mission-row{background:#edf7ff;border-color:#d1e5f2}
+body[data-nono-theme="pastel"] .nono-mission-copy small,body[data-nono-theme="pastel"] .nono-attendance-lead,body[data-nono-theme="pastel"] .nono-daily-note{color:#536c80}
+body[data-nono-theme="pastel"] .nono-attendance-day{background:#d8eafb;border-color:#bdd7ec}
+body[data-nono-theme="pastel"] .nono-attendance-day strong{color:#2c527d}
+body[data-nono-theme="pastel"] .nono-attendance-day span{color:#805419}
+body[data-nono-theme="pastel"] .nono-daily-wallet,body[data-nono-theme="pastel"] .nono-daily-progress{color:#315470;background:#d8eafb}
+body[data-nono-theme="enchanted"] #fg-home .nono-daily-hub{width:min(100%,1160px);padding:0 15px}
+@media(max-width:850px){.nono-daily-hub{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:470px){.nono-daily-hub{gap:10px;margin:12px auto 24px}.nono-daily-card{padding:14px;border-radius:14px}.nono-daily-head h2{font-size:19px}.nono-attendance-days{gap:3px}.nono-attendance-day{min-height:59px}.nono-attendance-day strong,.nono-attendance-day span{font-size:9px}.nono-mission-row{padding:8px}.nono-mission-copy strong{font-size:12px}.nono-mission-copy small{font-size:10px}.nono-mission-claim{min-width:73px;padding:8px 6px}}
+@media(prefers-reduced-motion:reduce){.nono-daily-hub *{animation:none!important;transition:none!important}}
