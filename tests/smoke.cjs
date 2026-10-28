@@ -380,10 +380,26 @@ const { pathToFileURL } = require('node:url');
       const rows=await page.locator('#nono-settings-content .nono-setting').count();
       const helps=await page.locator('#nono-settings-content .nono-setting .nono-setting-visual').count();
       if(rows!==helps)throw new Error('Each setting needs an individual illustration button');
-      await page.getByRole('button',{name:'마우스 실시간 선택 이미지로 설명보기'}).click();
-      if(await page.locator('#nono-guide-overlay .nono-guide-item').count()!==1||
-         await page.locator('#nono-guide-overlay svg').count()!==2)
-        throw new Error('Individual explanation should focus on only that option');
+      for(const [label,path] of [
+        ['현재 행·열 강조','row-highlight.svg'],
+        ['마우스 실시간 선택','pointer-follow.svg'],
+        ['현재 행·열 숫자 HUD','hint-hud.svg'],
+        ['연속 색칠 칸 수 표시','filled-run.svg']
+      ]){
+        await page.getByRole('button',{name:label+' 이미지로 설명보기'}).click();
+        const img=page.locator('#nono-guide-overlay img.nono-guide-approved-image');
+        await img.waitFor();
+        await page.waitForFunction(path=>{
+          const image=document.querySelector('#nono-guide-overlay img.nono-guide-approved-image');
+          return image&&image.complete&&image.naturalWidth>0&&image.getAttribute('src').endsWith(path);
+        },path);
+        if(await page.locator('#nono-guide-overlay .nono-guide-item').count()!==1)
+          throw new Error('Guide must only show requested option '+label);
+        await page.locator('#nono-guide-overlay button').first().click();
+      }
+      await page.getByRole('button',{name:'드래그 칸 수 HUD 이미지로 설명보기'}).click();
+      if(await page.locator('#nono-guide-overlay img.nono-guide-approved-image').count()!==0)
+        throw new Error('Unapproved drag HUD image must not be installed');
       await page.locator('#nono-guide-overlay button').first().click();
       await pref.uncheck();await page.click('#nono-settings-close');
       const oldSelected=await page.evaluate(()=>selected);
