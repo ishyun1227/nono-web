@@ -11,7 +11,11 @@ pad.hidden=true;
 const reopen=document.createElement('button');
 reopen.id='nono-mobile-pad-toggle';reopen.type='button';reopen.hidden=true;
 reopen.textContent='✥ 조작 패드';
-document.body.append(pad,reopen);
+const indicator=document.createElement('div');
+indicator.id='nono-gamepad-status';indicator.hidden=true;
+indicator.textContent='🎮 컨트롤러 연결됨';
+indicator.title='방향키/왼쪽 스틱 이동 · A(×) 칠하기 · B(○) X 표시 · X(□) 지우기 · LB/RB 취소/다시';
+document.body.append(pad,reopen,indicator);
 const buttons=Array.from(pad.querySelectorAll('button[data-nono-input]'));
 const codes={up:['ArrowUp','ArrowUp'],down:['ArrowDown','ArrowDown'],left:['ArrowLeft','ArrowLeft'],right:['ArrowRight','ArrowRight'],fill:[' ','Space'],cross:['x','KeyX'],clear:['Backspace','Backspace']};
 const touch=new Map(),physical=new Set();
@@ -21,6 +25,9 @@ function active(){
  &&!$('nono-settings-overlay')&&!document.querySelector('.nono-guide-overlay')&&(!$('nono-overview')||$('nono-overview').hidden);
 }
 function emit(name,down){
+ if(down&&active()&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)){
+   try{document.getElementById('board')?.focus({preventScroll:true});}catch(_){}
+ }
  if(name==='undo'||name==='redo'){if(down&&active())$(name)?.click();return;}
  const c=codes[name];if(!c||(down&&!active()))return;
  document.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',{key:c[0],code:c[1],bubbles:true,cancelable:true,repeat:false}));
@@ -32,6 +39,7 @@ function sync(){
  const playable=active(),show=mq.matches&&playable,open=show&&expanded;
  const wasOpen=document.body.classList.contains('nono-touch-pad-visible');
  pad.hidden=!open;reopen.hidden=!show||expanded;
+ indicator.hidden=!playable||!connected||show;
  document.body.classList.toggle('nono-touch-pad-visible',open);
  document.body.classList.toggle('nono-touch-pad-collapsed',show&&!expanded);
  if(wasOpen!==open)window.dispatchEvent(new Event('resize'));
@@ -69,6 +77,7 @@ function poll(){
   connected=ok;
   const status=$('nono-pad-connection');if(status)status.textContent=ok?'🎮 게임패드 연결됨':'방향키 · 칸 입력';
   document.body.classList.toggle('nono-gamepad-connected',ok);
+  indicator.hidden=!ok||!active()||mq.matches;
  }
  if(!gp||!active()){releasePhysical();return;}
  const down=i=>Boolean(gp.buttons[i]?.pressed||gp.buttons[i]?.value>.55);
