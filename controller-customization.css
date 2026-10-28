@@ -1,0 +1,226 @@
+/* Editable mobile touch deck — loaded after the original controller skin. */
+#nono-mobile-pad[hidden],#nono-mobile-pad-toggle[hidden],#nono-pad-editbar[hidden]{display:none!important}
+#nono-mobile-pad{
+  position:fixed!important;inset:0!important;left:0!important;top:0!important;
+  bottom:auto!important;right:auto!important;transform:none!important;
+  width:100vw!important;height:100dvh!important;min-height:0!important;
+  margin:0!important;padding:0!important;background:none!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+  backdrop-filter:none!important;-webkit-backdrop-filter:none!important;
+  overflow:visible!important;z-index:170;
+  pointer-events:none!important;opacity:1!important;
+  --nono-pad-scale:1;--nono-pad-opacity:.8;
+}
+#nono-mobile-pad .nono-pad-main{display:contents!important}
+#nono-mobile-pad .nono-pad-top{
+  display:flex!important;position:fixed!important;
+  bottom:calc(7px + env(safe-area-inset-bottom,0px))!important;
+  left:50%!important;transform:translateX(-50%)!important;
+  width:auto!important;min-height:30px!important;
+  padding:4px!important;gap:4px!important;z-index:9;
+  border:1px solid #7088a65c;background:#15253bde;
+  border-radius:999px;box-shadow:0 5px 19px #07162b5e;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  pointer-events:auto!important;
+}
+#nono-mobile-pad .nono-pad-caption,#nono-mobile-pad .nono-pad-connection{display:none!important}
+#nono-mobile-pad .nono-pad-top button{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:30px!important;padding:5px 12px!important;
+  font:700 11px/1.2 Inter,Pretendard,system-ui,sans-serif;
+  border-radius:999px!important;white-space:nowrap;
+  color:#e7f2fb!important;background:transparent!important;border:0!important;
+  touch-action:manipulation;
+}
+#nono-mobile-pad .nono-pad-top button:hover{background:#405c71a6!important}
+#nono-mobile-pad .nono-dpad{
+  display:grid!important;position:fixed!important;z-index:4;
+  left:var(--pad-x,21vw)!important;top:var(--pad-y,83dvh)!important;
+  transform:translate(-50%,-50%) scale(var(--nono-pad-scale,1))!important;
+  width:151px!important;height:130px!important;margin:0!important;
+  grid-template-columns:repeat(3,1fr)!important;
+  grid-template-rows:repeat(3,1fr)!important;gap:3px!important;
+  grid-template-areas:". up ." "left middle right" ". down ."!important;
+  justify-self:auto!important;align-self:auto!important;
+  pointer-events:auto!important;opacity:var(--nono-pad-opacity,.8)!important;
+  border:0!important;background:none!important;
+}
+#nono-mobile-pad .nono-pad-key{
+  min-width:0!important;min-height:0!important;padding:0!important;
+  border-radius:13px!important;
+  background:linear-gradient(155deg,#23374fef,#182b45f5)!important;
+  border:1px solid #a3bfda88!important;color:#e2fff9!important;
+  font-size:17px!important;font-weight:780;
+  box-shadow:0 3px 12px #030c1e65,inset 0 1px 2px #ffffff15;
+}
+#nono-mobile-pad .nono-pad-center{
+  grid-area:middle!important;pointer-events:none!important;
+  background:#172941dc!important;color:#8ae7d6!important;border-radius:11px!important;
+  border:1px solid #8ca5c44d!important;
+}
+#nono-mobile-pad .nono-pad-actions{
+  display:grid!important;position:fixed!important;z-index:4;
+  left:var(--pad-x,79vw)!important;top:var(--pad-y,83dvh)!important;
+  transform:translate(-50%,-50%) scale(var(--nono-pad-scale,1))!important;
+  width:170px!important;height:130px!important;max-width:none!important;
+  margin:0!important;justify-self:auto!important;align-self:auto!important;
+  grid-template-columns:repeat(2,minmax(0,1fr))!important;
+  grid-template-rows:repeat(2,minmax(0,1fr))!important;gap:8px!important;
+  pointer-events:auto!important;opacity:var(--nono-pad-opacity,.8)!important;
+  background:none!important;border:0!important;
+}
+#nono-mobile-pad .nono-pad-actions button[data-nono-input]{
+  min-width:0!important;min-height:0!important;
+  transform:translate(var(--offset-x,0px),var(--offset-y,0px))!important;
+  border-radius:18px!important;
+  border:1px solid #8fabc480!important;
+  background:linear-gradient(155deg,#283f58f4,#192b44f5)!important;
+  box-shadow:0 5px 15px #07172f66,inset 0 1px #ffffff19;
+  color:#f2f5ff!important;font-size:24px!important;line-height:1!important;
+  touch-action:none!important;
+}
+#nono-mobile-pad .nono-pad-actions button.is-fill{
+  background:linear-gradient(155deg,#b7f8e6,#7de5d3)!important;
+  color:#123833!important;border-color:#c9fff1!important;
+}
+#nono-mobile-pad .nono-pad-actions button.is-cross{
+  background:linear-gradient(155deg,#654a70,#433653)!important;
+  color:#fce6ff!important;border-color:#a784b0!important;
+}
+#nono-mobile-pad .nono-pad-actions button.is-undo{color:#e5e2ff!important}
+#nono-mobile-pad .nono-pad-actions button small{font-size:11px!important;font-weight:750!important}
+#nono-mobile-pad .nono-pad-actions button.is-held,
+#nono-mobile-pad .nono-pad-key.is-held{
+  filter:brightness(1.24)!important;
+  box-shadow:inset 0 2px 10px #060f257d!important;
+}
+#nono-mobile-pad .nono-pad-drag-handle{
+  display:none;position:absolute;top:-25px;left:50%;transform:translateX(-50%);
+  z-index:10;min-width:70px;line-height:22px;padding:0 10px;
+  text-align:center;white-space:nowrap;font-size:11px;font-weight:850;
+  color:#0a3a35;background:#baf5e5;border:1px dashed #369e8d;
+  border-radius:11px;cursor:grab;pointer-events:auto;touch-action:none;
+}
+#nono-mobile-pad.nono-pad-editing .nono-pad-drag-handle{display:block}
+#nono-mobile-pad.nono-pad-editing .nono-dpad,
+#nono-mobile-pad.nono-pad-editing .nono-pad-actions{
+  outline:2px dashed #95f1e0!important;outline-offset:5px;
+  opacity:1!important;
+}
+#nono-mobile-pad.nono-pad-editing .nono-pad-actions button[data-nono-input]{
+  cursor:grab!important;
+}
+#nono-mobile-pad.nono-pad-editing .nono-pad-top{display:none!important}
+#nono-floating-zone{
+  display:none;position:fixed;z-index:3;
+  left:calc(var(--zone-x,21vw) - 92px);top:calc(var(--zone-y,83dvh) - 92px);
+  width:184px;height:184px;
+  border:1px dashed #96bed26f;border-radius:45%;
+  background:#253c4a0a;
+  pointer-events:auto;touch-action:none;
+  -webkit-user-select:none;user-select:none;
+}
+#nono-floating-zone::after{
+  content:"터치하여 이동";position:absolute;left:50%;top:50%;
+  transform:translate(-50%,-50%);font-size:11px;font-weight:750;
+  white-space:nowrap;color:#8adacbb8;pointer-events:none;
+}
+#nono-floating-stick{
+  display:none;position:fixed;z-index:5;pointer-events:none;
+  width:100px;height:100px;transform:translate(-50%,-50%);
+  border-radius:50%;background:#16344f9c;
+  border:2px solid #b7dce7bb;
+  box-shadow:0 7px 23px #071a3688;
+}
+#nono-floating-stick.is-on{display:block!important}
+#nono-floating-knob{
+  position:absolute;left:50%;top:50%;width:42px;height:42px;
+  transform:translate(-50%,-50%);
+  background:linear-gradient(145deg,#d4fbf1,#7fddcc);
+  border-radius:50%;border:2px solid #e2fff8;
+  box-shadow:0 3px 10px #102a4a88;
+}
+#nono-mobile-pad.nono-floating-mode .nono-dpad{display:none!important}
+#nono-mobile-pad.nono-floating-mode #nono-floating-zone{display:block}
+#nono-mobile-pad.nono-floating-mode.nono-pad-editing .nono-dpad{
+  display:grid!important;opacity:.7!important;
+}
+#nono-mobile-pad.nono-floating-mode.nono-pad-editing #nono-floating-zone{display:none!important}
+#nono-pad-editbar{
+  position:fixed;z-index:10100;left:50%;top:calc(9px + env(safe-area-inset-top,0px));
+  transform:translateX(-50%);width:min(95vw,680px);
+  display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
+  gap:7px;padding:10px 13px;
+  background:#12263ef2;color:#f5faff;border:1px solid #81cbbc;
+  border-radius:17px;box-shadow:0 9px 35px #080d2c82;
+  font:500 12px/1.45 Inter,Pretendard,system-ui,sans-serif;
+}
+#nono-pad-editbar strong{font-size:13px;font-weight:810}
+#nono-pad-editbar small{font-size:11px;color:#c3d7e6}
+#nono-pad-editbar button{
+  border:1px solid #536d89;border-radius:10px;
+  background:#2b415c;color:#f5faff;
+  padding:7px 11px;min-height:34px;cursor:pointer;font-size:12px;
+}
+#nono-pad-editbar [data-pad-edit="save"]{color:#092d2b;background:#a9f0dc;border-color:#a9f0dc}
+#nono-mobile-pad-toggle{z-index:170!important}
+.nono-controller-intro{
+  padding:12px 14px;margin:0 0 7px;
+  color:#dceaff;background:#202f4a;border:1px solid #405779;border-radius:12px;
+  font-size:13px;line-height:1.55;
+}
+.nono-controller-row{
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+  border-bottom:1px solid #ffffff1a;padding:13px 5px;min-height:62px;
+}
+.nono-controller-label{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.nono-controller-label strong{font-size:13px;color:#edf3ff;font-weight:760}
+.nono-controller-label small{font-size:11px;color:#adc1db;line-height:1.4}
+.nono-controller-row select{
+  width:min(220px,40%);max-width:220px;flex:0 0 auto;
+  background:#223553;color:#f3f6ff;border:1px solid #516d94;
+  border-radius:11px;padding:10px 11px;font:600 12px/1.3 Inter,Pretendard,system-ui,sans-serif;
+}
+.nono-controller-row input[type=checkbox]{accent-color:#82dccf;width:20px;height:20px}
+.nono-controller-range{display:flex;align-items:center;gap:10px;width:min(230px,45%)}
+.nono-controller-range input{width:100%;min-width:0;accent-color:#8ee9d6;cursor:pointer}
+.nono-controller-range output{width:42px;text-align:right;font-size:12px;color:#dfecfd}
+.nono-controller-buttons{display:flex;gap:9px;flex-wrap:wrap;margin:20px 0 10px}
+.nono-controller-buttons button{
+  padding:11px 14px;font-weight:750;font-size:13px;
+  color:#dffff6;background:#253e51;border:1px solid #72aaad;
+  border-radius:12px;cursor:pointer;
+}
+.nono-controller-buttons button:first-child{background:#305e61;color:#e4fff7}
+.nono-controller-tip{color:#9db3d1;font-size:11px;line-height:1.65;margin:14px 2px}
+@media(max-width:480px){
+ #nono-mobile-pad .nono-dpad{width:131px!important;height:113px!important}
+ #nono-mobile-pad .nono-pad-actions{width:145px!important;height:113px!important;gap:6px!important}
+ #nono-mobile-pad .nono-pad-actions button[data-nono-input]{
+   font-size:19px!important;border-radius:14px!important;gap:3px!important
+ }
+ #nono-mobile-pad .nono-pad-actions button small{font-size:10px!important}
+ .nono-controller-row{gap:9px}
+ .nono-controller-row select{width:42%;padding:8px 5px;font-size:11px}
+ .nono-controller-range{width:45%;gap:4px}
+ #nono-pad-editbar small{display:none}
+}
+/* On small boards leave scroll space below; on large boards viewport fitting
+   already subtracts the reserved mobile control height in settings.js. */
+@media(max-width:900px) and (pointer:coarse){
+ body.nono-touch-pad-visible:not(.nono-fit-playing) #game{
+   padding-bottom:calc(190px + env(safe-area-inset-bottom,0px))!important
+ }
+}
+@media(max-height:470px) and (orientation:landscape) and (pointer:coarse){
+ #nono-mobile-pad .nono-pad-top{
+  bottom:5px!important
+ }
+ #nono-mobile-pad .nono-dpad{
+  width:116px!important;height:98px!important
+ }
+ #nono-mobile-pad .nono-pad-actions{
+  width:142px!important;height:96px!important;gap:5px!important
+ }
+ #nono-mobile-pad .nono-pad-actions button small{font-size:9px!important}
+}
