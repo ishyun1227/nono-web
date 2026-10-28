@@ -285,12 +285,16 @@ function effective(v=choice){
 let active=effective();
 function translate(original,locale){
  if(locale==='ko')return original;
+ // Premium world templates include non-breaking spaces between an icon and label.
+ // Normalize internal whitespace for lookup without changing the Korean source text.
+ const key=original.replace(/\s+/g,' ').trim();
  if(map[locale]?.has(original))return map[locale].get(original);
- const dynamic=translateDynamic(original,locale);if(dynamic!==null)return dynamic;
+ if(key!==original&&map[locale]?.has(key))return map[locale].get(key);
+ const dynamic=translateDynamic(key,locale);if(dynamic!==null)return dynamic;
  // Dynamic count/reward texts use English if the selected locale lacks a grammar template.
- for(const [re,fn] of patterns){const match=original.match(re);if(match)return fn(...match,locale==='ja'?'ja':'en');}
+ for(const [re,fn] of patterns){const match=key.match(re);if(match)return fn(...match,locale==='ja'?'ja':'en');}
  // English text is a deliberate, explicit fallback, not an accidental Korean screen.
- return map.en.get(original)||original;
+ return map.en.get(original)||map.en.get(key)||original;
 }
 function convertText(node){
  if(!node||node.nodeType!==Node.TEXT_NODE)return;
