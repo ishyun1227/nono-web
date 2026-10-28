@@ -262,6 +262,7 @@ async function leaveGame(){
   clearListeners();const oldRoom=roomCode,oldSlot=mySlot,metaModeBeforeLeave=meta?.mode,wasPublicHost=publicHosted&&meta?.host===currentId();publicHosted=false;autoStartMatch=false;roomCode=null;mySlot=null;meta=null;players={};raceStates={};roomBoard=null;finished=false;finishing=false;
   const url=new URL(location.href);url.searchParams.delete('room');history.replaceState({},'',url);
   $('game').classList.add('hidden');$('home-view').classList.remove('hidden');refreshHomepageScores();window.scrollTo({top:0,behavior:'instant'});
+  resume.refresh();
   if(oldRoom&&onlineReady()){try{const presence=ref(database,`rooms/${oldRoom}/players/${oldSlot}`);await onDisconnect(presence).cancel();await remove(presence);}catch(e){console.warn('퇴장 정리 실패',e);}}
   if(wasPublicHost&&metaModeBeforeLeave==='race')await removePublicListing(oldRoom);
 }
@@ -618,8 +619,24 @@ function installResume(){
       }
     },error=>console.warn('내 퍼즐 목록 읽기 실패: Firebase 규칙 확인',error));
   }
+  async function refresh(){
+    if(!onlineReady())return render();
+    try{
+      const current=(await get(ref(database,`userRooms/${currentId()}`))).val()||{};
+      const rows=await Promise.all(Object.keys(current).filter(code=>/^[A-HJ-NP-Z2-9]{6}$/.test(code)).map(async code=>{
+        try{
+          const [m,b]=await Promise.all([get(ref(database,`rooms/${code}/meta`)),get(ref(database,`rooms/${code}/board`))]);
+          const info=m.val(),p=PUZZLES.find(x=>x.id===info?.puzzleId),value=b.val();
+          return p&&info.mode==='coop'&&typeof value==='string'&&value.length===p.size*p.size&&!isSolved(value.split(''),p)
+            ?{type:'coop',code,text:p.size+'×'+p.size+' · 함께 풀기',time:Number(info.createdAt)||0}:null;
+        }catch(_){return null;}
+      }));
+      shared=rows.filter(Boolean);
+    }catch(error){console.warn('이어하기 새로고침 실패',error);}
+    render();
+  }
   render();
-  return {watch,render};
+  return {watch,render,refresh};
 }
 initHome();const resume=installResume();connectFirebase();
 
