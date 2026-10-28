@@ -294,7 +294,7 @@ const { pathToFileURL } = require('node:url');
       await page.mouse.up();
       const afterState=await page.evaluate(()=>({undo:undoStack.length,dragging:!document.getElementById('nono-drag-hud').hidden}));
       if(afterState.dragging||afterState.undo!==initialState.undo+1)
-        throw new Error('Drag must commit exactly one history entry');
+        throw new Error('Drag must commit exactly one history entry: '+JSON.stringify({initialState:{undo:initialState.undo},afterState}));
       await page.click('#undo');
       const restored=await page.evaluate(()=>board.slice());
       if(JSON.stringify(restored)!==JSON.stringify(initialState.values))
