@@ -542,6 +542,60 @@ body.nono-fit-playing #game .rules{display:none!important}
  font-size:11px;white-space:nowrap}
 .nono-setting-visual:hover,.nono-setting-visual:focus-visible{background:#42538a;outline:1px solid #aca5ff}
 
+
+/* Native PAGE scrolling is allowed; the puzzle container itself never scrolls.
+   Zooming past fit enlarges document dimensions so no puzzle content is inaccessible. */
+html:has(body.nono-fit-playing){overflow-x:auto!important;overflow-y:auto!important}
+body.nono-fit-playing{overflow-x:auto!important;overflow-y:auto!important}
+body.nono-fit-playing #game{
+ position:relative!important;
+ min-height:var(--nono-page-height,100dvh)!important;
+ height:var(--nono-page-height,100dvh)!important;
+ width:100%!important;
+}
+body.nono-fit-playing #game #play-area{
+ box-sizing:border-box!important;display:block!important;
+ width:var(--nono-page-width,100vw)!important;
+ max-width:none!important;
+ min-width:var(--nono-page-width,100vw)!important;
+ height:var(--nono-page-height,100dvh)!important;
+ min-height:var(--nono-page-height,100dvh)!important;
+ margin-left:calc(50% - 50vw)!important;margin-right:0!important
+}
+body.nono-fit-playing #game .board-card{
+ position:relative!important;top:auto!important;bottom:auto!important;
+ left:auto!important;right:auto!important;inset:auto!important;
+ width:var(--nono-page-width,100vw)!important;
+ min-width:var(--nono-page-width,100vw)!important;
+ height:var(--nono-page-height,100dvh)!important;
+ min-height:var(--nono-page-height,100dvh)!important;
+ margin:0!important;
+}
+body.nono-fit-playing #game .board-scroll,
+body.nono-fit-playing #game .board-scroll.nono-zoomed{
+ overflow:hidden!important;overflow-x:hidden!important;overflow-y:hidden!important;
+ height:100%!important;min-height:100%!important;max-height:100%!important;
+ width:100%!important
+}
+body.nono-fit-playing #game .board-scroll #board{max-width:none!important}
+/* A selected row/column uses TWO composited overlays; mouse movement never
+   loops over 10,000 cell elements just to move the highlight. */
+#board .cells{position:relative;isolation:isolate}
+#board .cells.nono-hover-lines::before,
+#board .cells.nono-hover-lines::after{
+ content:"";position:absolute;left:0;top:0;z-index:2;pointer-events:none;
+ will-change:transform;background:rgba(56,94,158,.38);
+}
+#board .cells.nono-hover-lines::before{
+ width:100%;height:var(--cell-size);
+ transform:translate3d(0,var(--nono-hover-row-y,0px),0)
+}
+#board .cells.nono-hover-lines::after{
+ width:var(--cell-size);height:100%;
+ transform:translate3d(var(--nono-hover-col-x,0px),0,0)
+}
+#board .cells .cell.active{position:relative;z-index:3!important}
+
 .nono-visual-help-button{white-space:nowrap;background:#28345d;border:1px solid #8d91ce;color:#fff;
   border-radius:9px;padding:8px 11px;font-size:12px;font-weight:750;cursor:pointer}
 .nono-guide-overlay{position:fixed;inset:0;z-index:12010;background:#050a18e8;display:grid;place-items:center;padding:14px}
@@ -730,7 +784,7 @@ $('progress').textContent=hud;$('progress').style.display=prefs.progress==='off'
 $('undo').style.display=prefs.undoButtons?'':'none';$('redo').style.display=prefs.undoButtons?'':'none';
 $('nono-hint-action').style.display=(prefs.hintLine||prefs.hintExplanation||prefs.hintCell)?'':'none';
 const hintGuide=document.querySelector('.board-caption');if(hintGuide)hintGuide.hidden=prefs.guide==='off';
-cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',!!prefs.rowHighlight&&(r===Math.floor(selected/n)||col===selected%n));c.classList.toggle('nono-done-line',!!prefs.completeLines&&(lineSolved('row',r)||lineSolved('col',col)));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<n-1);
+cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',false);c.classList.toggle('nono-done-line',!!prefs.completeLines&&(lineSolved('row',r)||lineSolved('col',col)));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<n-1);
 const atEdge=col===n-1&&prefs.lineNumbers&&(r+1)%Math.max(1,Number(prefs.lineInterval)||5)===0;
 if(atEdge)c.dataset.rowCoordinate=String(r+1);else delete c.dataset.rowCoordinate;});
 for(const axis of ['row','col']){const elems=$('board').querySelectorAll(axis==='row'?'#board > .row-clues:not(.nono-extra-row) .row-clue':'#board > .col-clues:not(.nono-extra-col) .col-clue');elems.forEach((el,i)=>{el.querySelectorAll('span').forEach((span,j)=>{const stored=(manualClues[puzzle.id]||{})[axis+':'+i+':'+j];span.classList.toggle('nono-fade-clue',stored===true||(stored!==false&&prefs.autoHintFade&&canFade(axis,i,j)));span.classList.toggle('nono-hint-target',hintMode&&hintAxis===axis&&hintIndex===i&&j===hintNumber);});});}
@@ -744,6 +798,7 @@ $('nono-hud').style.background=prefs.hudBg==='weak'?'#1b284866':prefs.hudBg==='s
 $('nono-hud').style.position=prefs.pinnedClues?'sticky':'';$('nono-hud').style.top=prefs.pinnedClues?'0':'';$('nono-hud').style.zIndex=prefs.pinnedClues?'30':'';
 for(const key of ['hints','drag','progress'])applyHudConfig(key);
 updateClueDecor();
+updateHighlightOverlay(selected);
 drawMinimap();
 }
 
@@ -857,6 +912,17 @@ function fitBoardToViewport(){
   else high=mid;
  }
  const fit=Math.max(.5,low),cell=fit*boardZoom,d=dimensions(cell);
+ const renderedWidth=n*cell+d.rowWidth*sides+8;
+ const renderedHeight=n*cell+d.colHeight*sides+8;
+ const pageWidth=Math.ceil(Math.max(viewportW,renderedWidth+4));
+ const pageHeight=Math.ceil(Math.max(viewportH,renderedHeight+4));
+ // Scroll the DOCUMENT, never the puzzle container.
+ // Keep fit centered and allow extra-zoom content to extend the document.
+ if(isLarge){
+  const game=$('game');
+  game.style.setProperty('--nono-page-width',pageWidth+'px');
+  game.style.setProperty('--nono-page-height',pageHeight+'px');
+ }
  area.classList.remove('nono-zoomed');
  area.style.setProperty('--nono-fit-scroller-height',availH.toFixed(2)+'px');
  area.style.removeProperty('--nono-visible-board-height');
@@ -873,6 +939,7 @@ function fitBoardToViewport(){
  for(const [key,value] of Object.entries(props))grid.style.setProperty(key,value,'important');
  grid.dataset.fitCellSize=cell.toFixed(2);
  grid.dataset.fitMax=fit.toFixed(2);
+ updateHighlightOverlay(selected);
  $('nono-zoom-label').textContent=boardZoom===1?'맞춤':Math.round(boardZoom*100)+'%';
  $('nono-zoom-fit').disabled=false;
  $('nono-zoom-out').disabled=boardZoom<=.4;
@@ -983,28 +1050,27 @@ function squashHistory(first){if(!['practice','record'].includes(mode)||undoStac
    crossed 10,000 cells on every mouse event. Here a stroke updates only changed DOM
    cells and selected lines, then commits one undo snapshot + one full render on release.
    The path is freeform: it is not locked to the first row or column. */
+function updateHighlightOverlay(index){
+ const grid=$('board'),region=grid.querySelector('.cells');
+ if(!region||!puzzle)return;
+ const n=puzzle.size;
+ const cellSize=parseFloat(grid.dataset.fitCellSize)||parseFloat(grid.style.getPropertyValue('--cell-size'))||41;
+ region.classList.toggle('nono-hover-lines',!!prefs.rowHighlight);
+ region.style.setProperty('--nono-hover-row-y',(Math.floor(index/n)*cellSize).toFixed(2)+'px');
+ region.style.setProperty('--nono-hover-col-x',((index%n)*cellSize).toFixed(2)+'px');
+}
 function updateLiveSelection(next,cells){
- const n=puzzle.size,previous=selected;
+ const previous=selected;
  if(next===previous)return;
- const oldRow=Math.floor(previous/n),oldCol=previous%n;
- const newRow=Math.floor(next/n),newCol=next%n;
+ // Constant-time DOM update. No per-row/per-column classList loops.
  cells[previous]?.classList.remove('active');
  cells[previous]?.setAttribute('aria-selected','false');
- if(prefs.rowHighlight){
-  for(let i=0;i<n;i++){
-   cells[oldRow*n+i]?.classList.remove('nono-selected-row');
-   cells[i*n+oldCol]?.classList.remove('nono-selected-row');
-  }
-  for(let i=0;i<n;i++){
-   cells[newRow*n+i]?.classList.add('nono-selected-row');
-   cells[i*n+newCol]?.classList.add('nono-selected-row');
-  }
- }
  selected=next;
  cells[next]?.classList.add('active');
  cells[next]?.setAttribute('aria-selected','true');
+ updateHighlightOverlay(next);
  const hud=$('nono-hud');
- if(hud)hud.textContent='행 '+hintsForLine('row',newRow).join(' ')+' · 열 '+hintsForLine('col',newCol).join(' ');
+ if(hud)hud.textContent='행 '+hintsForLine('row',Math.floor(next/puzzle.size)).join(' ')+' · 열 '+hintsForLine('col',next%puzzle.size).join(' ');
 }
 function startFastDrag(e,index){
  if(fastDrag||startingAlone||finished||finishing||!board||
