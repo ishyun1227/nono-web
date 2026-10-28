@@ -55,7 +55,6 @@
             <button class="mode-card" data-mode="race" type="button" aria-pressed="false"><span class="mode-icon">⚔</span><span class="mode-text"><strong>실시간 대결</strong><small>먼저 완성하면 승리</small></span><span class="selected-indicator">✓</span></button>
             <button class="mode-card" data-mode="coop" type="button" aria-pressed="false"><span class="mode-icon">♧</span><span class="mode-text"><strong>협동 플레이</strong><small>한 판을 함께 완성</small></span><span class="selected-indicator">✓</span></button>
             <button class="mode-card" data-mode="record" type="button" aria-pressed="false"><span class="mode-icon">★</span><span class="mode-text"><strong>기록 경쟁</strong><small>최단 시간 도전</small></span><span class="selected-indicator">✓</span></button>
-            <button class="mode-card" id="nono-resume-tab" type="button" aria-pressed="false"><span class="mode-icon">↺</span><span class="mode-text"><strong>이어서 풀기</strong><small>진행 중 퍼즐</small></span><span class="selected-indicator">✓</span></button>
           </div>
           <section class="setup card" id="setup" aria-labelledby="setup-heading">
             <div class="setup-description"><h3 id="setup-heading">혼자 연습</h3><p id="setup-description">퍼즐을 골라 바로 시작해 보세요.</p></div>
@@ -197,7 +196,6 @@ function currentId(){return currentUser?.uid||'local';}
 function clearListeners(){unsubscribe.forEach(fn=>fn());unsubscribe=[];}
 function firebaseError(e){console.error(e);toast(e?.code==='PERMISSION_DENIED'||e?.code==='permission-denied'?'권한이 거부됐어요. Firebase 규칙과 방 상태를 확인하세요.':`문제가 발생했어요: ${e.message||String(e)}`);}
 function setMode(next){
-  if(resumeHub)resumeHub.closeTab();
   mode=next;
   document.querySelectorAll('.mode-card[data-mode]').forEach(b=>b.classList.toggle('selected',b.dataset.mode===mode));
   $('setup-heading').textContent=modes[mode][0];$('setup-description').textContent=modes[mode][1];
@@ -575,10 +573,10 @@ async function connectFirebase(){
   catch(e){$('connection').textContent='연결 실패 · 오프라인';firebaseError(e);}
 }
 function installResume(){
-  const home=document.getElementById('home-view'),setup=document.getElementById('setup'),tab=document.getElementById('nono-resume-tab');
-  if(!home||!setup||!tab)return {watch(){},refresh(){},closeTab(){}};
+  const setup=document.getElementById('setup');
+  if(!setup)return {watch(){},refresh(){}};
   const view=document.createElement('section');
-  view.id='nono-resume-view';view.className='card';view.hidden=true;
+  view.id='nono-resume-view';view.className='card';
   view.innerHTML=[
     '<div class="nono-resume-heading"><div><h2>이어서 풀기</h2><p>혼자 풀기 · 대결 · 협동의 진행 중 퍼즐</p></div><span id="nono-resume-total"></span></div>',
     '<div class="nono-resume-summary" aria-label="모드별 진행 중 퍼즐">',
@@ -588,7 +586,7 @@ function installResume(){
     '<div id="nono-resume-items" class="nono-resume-items" aria-live="polite"></div>'
   ].join('');
   setup.after(view);
-  let active=false,shared=[],stop=null,epoch=0;
+  let shared=[],stop=null,epoch=0;
   const puzzleOf=id=>PUZZLES.find(item=>item.id===id);
   const progressFor=(value,p)=>{
     if(!p||typeof value!=='string')return 0;
@@ -642,11 +640,6 @@ function installResume(){
       card.append(icon,info,button);target.append(card);
     }
   }
-  function closeTab(){
-    if(!active)return;
-    active=false;document.body.classList.remove('nono-resume-open');view.hidden=true;
-    tab.classList.remove('selected');tab.setAttribute('aria-pressed','false');
-  }
   async function continueItem(item){
     if(item.kind==='solo'){
       const select=document.getElementById('puzzle');
@@ -696,16 +689,9 @@ function installResume(){
     stop=onValue(ref(database,`userRooms/${currentId()}`),()=>{refresh().catch(console.warn);},
       error=>console.warn('내 퍼즐 목록 접근 실패: Firebase 규칙 확인',error));
   }
-  tab.addEventListener('click',()=>{
-    active=true;
-    document.body.classList.add('nono-resume-open');view.hidden=false;
-    document.querySelectorAll('.mode-card[data-mode]').forEach(button=>{button.classList.remove('selected');button.setAttribute('aria-pressed','false');});
-    tab.classList.add('selected');tab.setAttribute('aria-pressed','true');
-    render();refresh().catch(console.warn);
-  });
-  window.addEventListener('focus',()=>{if(active)refresh().catch(console.warn);});
+  window.addEventListener('focus',()=>{refresh().catch(console.warn);});
   render();
-  return {watch,refresh,render,closeTab};
+  return {watch,refresh,render};
 }
 initHome();resumeHub=installResume();connectFirebase();
 
