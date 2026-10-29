@@ -138,8 +138,12 @@ async function changeUser(next){
  if(previous===target)return;
  clearTimeout(syncTimer);
  scope=target;
- changeScope(target,previous==='guest'&&target!=='guest');
- if(target!=='guest')await syncNow();
+ const movedGuest=previous==='guest'&&target!=='guest';
+ changeScope(target,movedGuest);
+ if(target!=='guest'){
+  const synced=await syncNow();
+  if(movedGuest&&synced===true)localStorage.setItem(CACHE+'guest',JSON.stringify({format:1,keys:{}}));
+ }
  else if(!localStorage.getItem(INTRO)&&auth)setTimeout(()=>{if(!isSignedIn()&&!modal)open('welcome');},300);
  if(typeof resumeHub!=='undefined'){resumeHub?.watch?.();resumeHub?.refresh?.();}
 }
@@ -208,6 +212,7 @@ async function login(providerName){
    else await sdk.signInWithPopup(auth,provider);
   }catch(error){
    if(error.code!=='auth/credential-already-in-use')throw error;
+   if(auth.currentUser&&!auth.currentUser.isAnonymous)throw new Error('이미 다른 계정과 연결된 로그인 수단이에요. 해당 계정에 먼저 로그인해야 합니다.');
    const credential=providerName==='google'?sdk.GoogleAuthProvider.credentialFromError(error):sdk.OAuthProvider.credentialFromError(error);
    if(!credential)throw error;
    await sdk.signInWithCredential(auth,credential);
@@ -224,7 +229,7 @@ async function login(providerName){
    'auth/account-exists-with-different-credential':'같은 이메일이 다른 소셜 계정에 연결되어 있어요. 기존 방식으로 로그인한 다음 연결해 주세요.'
   };
   console.warn('소셜 로그인 실패',error);
-  message(errors[error.code]||'로그인에 실패했어요: '+(error.code||'연결 상태 확인'));
+  message(errors[error.code]||error.message||'로그인에 실패했어요: '+(error.code||'연결 상태 확인'));
  }finally{busy=false;}
 }
 async function logout(){
