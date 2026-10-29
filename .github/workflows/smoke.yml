@@ -58,6 +58,11 @@ jobs:
           node --check shop.js
           node --check tests/shop.cjs
           node --check tests/daily-rewards.cjs
+          node --check answer-bitpack.js
+          node --check tools/seed-packed-answers.cjs
+          node --check tests/answer-bitpack.cjs
+      - name: Verify lossless private answer packing and dry-run seeding
+        run: npm run test:answers
       - name: Verify native locale translation completeness
         run: node tests/i18n-completeness.cjs
       - name: Verify all eleven target locales have native text for every catalogued message
