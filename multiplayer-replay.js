@@ -17,7 +17,7 @@
     if (!['coop','race'].includes(modeValue) || actor!==currentId()) return;
     const start=Number(detail.startedAt)||serverNow();
     const elapsed=Math.max(0,Math.min(86400000,Math.round((Number(detail.at)||serverNow())-start)));
-    const cells=JSON.stringify(detail.changes);
+    const cells=window.NONO_REPLAY.encodeChanges(detail.changes,puzzle.size);
     if(cells.length>12000)return;
     // Serialise own submissions, preserving a reproducible participant order.
     pending=pending.catch(()=>{}).then(async()=>{
@@ -38,7 +38,7 @@
       for(const [key,v] of Object.entries(actions)){
         if(v?.actor!==uid || !['race','coop'].includes(v.mode) || !Number.isFinite(v.at) ||
           !Number.isFinite(v.elapsedMs) || typeof v.cells!=='string'||v.cells.length>12000)continue;
-        let changes;try{changes=JSON.parse(v.cells);}catch{continue;}
+        let changes;try{changes=window.NONO_REPLAY.decodeChanges(v.cells,size);}catch{continue;}
         if(!valid(changes)||!changes.every(c=>c[0]>=0&&c[0]<size*size&&c[1]>=0&&c[1]<=2&&c[2]>=0&&c[2]<=2))continue;
         items.push({uid,key,at:v.at,ms:v.elapsedMs,changes,mode:v.mode});
       }
