@@ -100,3 +100,24 @@ node tools/prepare-puzzle.cjs --input /secure/source.json \
 유일해 여부는 별도의 솔버 결과를 확인해야 한다. `reviewStatus:'approved'`를 사용하는 경우
 입력 데이터에 `uniqueProofStatus:'unique'`가 필요하지만, 단순 문자열 값은 독립 검증의 대체물이 아니다.
 현재 도구는 파일을 준비하는 단계이며 공식 목록 등록과 운영 서버 배포까지 자동화하지 않았다.
+
+
+### 데이터만으로 체험 퍼즐 추가
+
+```bash
+node tools/prepare-puzzle.cjs \
+  --input /secure/new-puzzle.json \
+  --public-out ./puzzles/trial/new-puzzle-id.json \
+  --private-out /secure/answers/new-puzzle-id.json
+npm run build
+node tests/generated-trial.cjs
+```
+
+`puzzles/trial/*.json`은 **힌트만 있는 공개 등록 파일**이다.
+빌드하면 `dist/trials/ID.html`과 `dist/trial-index.json`을 자동 생성하고, 추가 체험 퍼즐 링크를 홈에 연결한다.
+`winter-snowman-trial-v1`은 기존 눈사람 테스트 링크에서 자동 생성한 페이지로 연결한다.
+템플릿은 공통으로 `winter-snowman-test.html`을 사용하므로 퍼즐마다 조작·저장 코드를 새로 작성하지 않는다.
+
+`/secure/answers/...`는 절대 공개 저장소에 커밋하거나 `dist/`로 복사하지 않는다.
+이 자동화는 **체험/검수용 목록**이다. 정식 혼자하기의 점수·포인트·실시간 완료 기록 및
+직사각형 대응까지 자동 연결된 것으로 오해하면 안 된다.
