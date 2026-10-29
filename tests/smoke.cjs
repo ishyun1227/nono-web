@@ -744,6 +744,73 @@ const { pathToFileURL } = require('node:url');
   const moveReleased=await page.evaluate(()=>selected);
   await page.waitForTimeout(180);
   if(await page.evaluate(()=>selected)!==moveReleased)throw new Error('Arrow repeated after key release');
+  // A mark during the initial repeat delay freezes the cursor. While the arrow
+  // remains held, a NEW Space/X press then steps one square and marks it.
+  await page.evaluate(()=>{
+    board=Array(puzzle.size*puzzle.size).fill('0');
+    selected=Math.floor(puzzle.size/2)*puzzle.size;
+    render();
+  });
+  await page.keyboard.down('ArrowRight');
+  const pendingCell=await page.evaluate(()=>selected);
+  await page.keyboard.down('Space');
+  const pendingMark=await page.evaluate(()=>({selected,value:board[selected]}));
+  if(pendingMark.selected!==pendingCell||pendingMark.value!=='1')
+    throw new Error('Pre-repeat Space must mark current square: '+JSON.stringify(pendingMark));
+  await page.waitForTimeout(510);
+  if(await page.evaluate(()=>selected)!==pendingCell)
+    throw new Error('Pre-repeat Space should cancel held-arrow auto-repeat');
+  await page.keyboard.up('Space');
+  await page.keyboard.down('x');
+  const manualMark=await page.evaluate(()=>({selected,value:board[selected]}));
+  if(manualMark.selected!==pendingCell+1||manualMark.value!=='2')
+    throw new Error('Held-arrow manual X must advance and mark: '+JSON.stringify(manualMark));
+  await page.keyboard.up('x');
+  await page.keyboard.up('ArrowRight');
+
+  // Once automatic motion actually starts, holding Space/X must paint every
+  // visited square without interrupting arrow repeat. Releasing the mark key
+  // stops painting but the arrow keeps moving until it is released.
+  await page.evaluate(()=>{
+    board=Array(puzzle.size*puzzle.size).fill('0');
+    selected=Math.floor(puzzle.size/2)*puzzle.size;
+    render();
+  });
+  await page.keyboard.down('ArrowRight');
+  const initialAutoCell=await page.evaluate(()=>selected);
+  await page.waitForTimeout(440);
+  const repeatingCell=await page.evaluate(()=>selected);
+  if(repeatingCell===initialAutoCell)
+    throw new Error('Expected held-arrow automatic movement before painting');
+  await page.keyboard.down('Space');
+  if(await page.evaluate(()=>board[selected])!=='1')
+    throw new Error('Space must paint the currently selected auto-moving square');
+  await page.waitForTimeout(185);
+  const filledTrail=await page.evaluate(()=>({
+    selected,marks:board.filter(value=>value==='1').length
+  }));
+  if(filledTrail.selected===repeatingCell||filledTrail.marks<2)
+    throw new Error('Space did not continuously paint during auto-repeat: '+JSON.stringify(filledTrail));
+  await page.keyboard.up('Space');
+  const stoppedPainting=await page.evaluate(()=>({selected,board:board.join('')}));
+  await page.waitForTimeout(160);
+  const movingOnly=await page.evaluate(()=>({selected,board:board.join('')}));
+  if(movingOnly.selected===stoppedPainting.selected||movingOnly.board!==stoppedPainting.board)
+    throw new Error('Releasing Space must stop paint but preserve movement');
+  await page.keyboard.down('x');
+  if(await page.evaluate(()=>board[selected])!=='2')
+    throw new Error('X must mark the current square without halting auto-repeat');
+  const firstCrossCell=await page.evaluate(()=>selected);
+  await page.waitForTimeout(185);
+  const crossTrail=await page.evaluate(()=>({
+    selected,marks:board.filter(value=>value==='2').length
+  }));
+  if(crossTrail.selected===firstCrossCell||crossTrail.marks<2)
+    throw new Error('X did not continuously mark during auto-repeat: '+JSON.stringify(crossTrail));
+  await page.keyboard.up('x');
+  await page.keyboard.up('ArrowRight');
+  if(await page.locator('#nono-drag-hud').isVisible())
+    throw new Error('Keyboard continuous marks must not show the pointer drag HUD');
   await page.keyboard.press('Space');
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('x');
