@@ -1,0 +1,30 @@
+name: Multiplayer delta protocol
+on:
+  push:
+    branches: [main]
+    paths:
+      - index.html
+      - database.rules.json
+      - settings.js
+      - tests/multiplayer.cjs
+      - tests/browser-multiplayer.cjs
+      - .github/workflows/multiplayer-delta.yml
+  workflow_dispatch:
+jobs:
+  multiplayer-delta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: node --check settings.js && node --check tests/multiplayer.cjs && node --check tests/browser-multiplayer.cjs
+      - run: npm run test:multiplayer
+      - run: npm run test:browser
