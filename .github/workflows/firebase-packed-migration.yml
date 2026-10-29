@@ -53,6 +53,8 @@ jobs:
         run: npm run test:answers
       - name: Verify Firebase rules for legacy and packed answers
         run: npm run test:multiplayer
+      - name: Verify migration does not overwrite existing Firebase values
+        run: npm run test:migrate
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Verify two-browser multiplayer and packed completion
