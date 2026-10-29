@@ -290,6 +290,8 @@ function translate(original,locale){
  const key=original.replace(/\s+/g,' ').trim();
  if(map[locale]?.has(original))return map[locale].get(original);
  if(key!==original&&map[locale]?.has(key))return map[locale].get(key);
+ const native=window.NONO_DYNAMIC_LOCALE?.format(key,locale,s=>translate(s,locale));
+ if(native!==null&&native!==undefined)return native;
  const dynamic=translateDynamic(key,locale);if(dynamic!==null)return dynamic;
  // Dynamic count/reward texts use English if the selected locale lacks a grammar template.
  for(const [re,fn] of patterns){const match=key.match(re);if(match)return fn(...match,locale==='ja'?'ja':'en');}
