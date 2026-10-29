@@ -1,4 +1,5 @@
 const {chromium}=require('playwright');
+const {atob}=require('node:buffer');
 const {initializeTestEnvironment}=require('@firebase/rules-unit-testing');
 const {ref,set}=require('firebase/database');
 const {answers}=require('./puzzles.cjs');
@@ -37,6 +38,15 @@ async function main(){
   await b.locator('#board .cell').first().waitFor();
   await Promise.all([a.locator('#board .cell').nth(0).click(),b.locator('#board .cell').nth(1).click()]);
   for(const p of [a,b])await p.waitForFunction(()=>board[0]==='1'&&board[1]==='1');
+  const coopStorage=await a.evaluate(async code=>{
+    const data=(await get(ref(database,`rooms/${code}/coopMoves`))).val()||{};
+    const baseline=(await get(ref(database,`rooms/${code}/board`))).val();
+    return {actions:Object.values(data),baseline,format:meta.format};
+  },coop);
+  assert.equal(coopStorage.format,2,'New co-op rooms must use delta format');
+  assert.equal(coopStorage.baseline,null,'No full co-op board should be sent on input');
+  assert.equal(coopStorage.actions.length,2,'Each concurrent co-op input should produce one move');
+  for(const action of coopStorage.actions)assert.equal(atob(action.bits).length,2,'Move stores a two-byte index/value pair');
   await a.screenshot({path:'test-results/coop-desktop.png'});
   console.log('PASS two independent browsers: invitation, cooperative concurrent input');
   await a.evaluate(()=>leaveGame());
@@ -66,7 +76,16 @@ async function main(){
   const firstBlack=answers.heart5.indexOf('1');
   assert(firstBlack>=0,'The test puzzle needs at least one filled cell');
   await a.evaluate(i=>paint(i,'1',true),firstBlack);
-  await a.waitForFunction(i=>board[i]==='1' && raceStates[currentId()]?.board?.[i]==='1',firstBlack);
+  await a.waitForFunction(i=>board[i]==='1' && raceMoveBoards[currentId()]?.[i]==='1',firstBlack);
+  const raceStorage=await a.evaluate(async code=>{
+    const user=currentId(),state=(await get(ref(database,`rooms/${code}/states/${user}`))).val();
+    const moves=(await get(ref(database,`rooms/${code}/raceMoves/${user}`))).val()||{};
+    return {state,moves:Object.values(moves),format:meta.format};
+  },race);
+  assert.equal(raceStorage.format,2,'New race rooms must use delta format');
+  assert.equal(raceStorage.state.board,undefined,'Race must not send a full board during play');
+  assert.equal(raceStorage.moves.length,1,'Race must store one changed-cell action');
+  assert.equal(atob(raceStorage.moves[0].bits).length,2,'Race move is packed binary');
   await a.evaluate(()=>leaveGame());
   // The same five-card resume area must remain below the mode-specific setup.
   for(const tab of ['practice','coop','record','race']){
