@@ -61,7 +61,7 @@ const { pathToFileURL } = require('node:url');
     else await target.locator('#nono-theme-open').click();
   };
 
-  await page.locator('#nono-theme-open').waitFor();
+  await page.locator('#nono-shop-tab-top').waitFor({state:'visible'});
   // Five top actions and narrow center with left/right rails.
   const base=await page.evaluate(()=>{
     const rect=id=>{const r=document.querySelector(id).getBoundingClientRect();return {x:r.x,right:r.right,width:r.width,y:r.y,bottom:r.bottom}};
