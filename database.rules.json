@@ -35,6 +35,9 @@
           },
           "$other": {
             ".validate": false
+          },
+          "format": {
+            ".validate": "newData.val() == 2 && (!data.exists() || data.val() == 2)"
           }
         },
         "players": {
@@ -65,12 +68,12 @@
           ".read": "auth != null && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)",
           "$uid": {
             ".write": "auth != null && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid) && auth.uid == $uid && root.child('rooms').child($room).child('meta/mode').val() == 'race' && root.child('rooms').child($room).child('meta/status').val() == 'playing' && (!data.exists() || data.child('finishedAt').val() == 0) && newData.exists()",
-            ".validate": "newData.hasChildren(['board','filled','startedAt','finishedAt'])",
+            ".validate": "newData.hasChildren(['startedAt','finishedAt']) && (root.child('rooms').child($room).child('meta/format').val() == 2 || newData.hasChildren(['board','filled']))",
             "board": {
               ".validate": "newData.isString() && newData.val().matches(/^[012]+$/) && newData.val().length == root.child('rooms').child($room).child('meta/size').val() * root.child('rooms').child($room).child('meta/size').val()"
             },
             "filled": {
-              ".validate": "newData.isString() && newData.val() == newData.parent().child('board').val().replace('2', '0')"
+              ".validate": "(root.child('rooms').child($room).child('meta/format').val() == 2 && newData.isString() && newData.val().matches(/^[01]+$/) && newData.val().length == root.child('rooms').child($room).child('meta/size').val() * root.child('rooms').child($room).child('meta/size').val()) || (root.child('rooms').child($room).child('meta/format').val() != 2 && newData.isString() && newData.val() == newData.parent().child('board').val().replace('2', '0'))"
             },
             "startedAt": {
               ".validate": "newData.val() == root.child('rooms').child($room).child('meta/startedAt').val()"
@@ -80,6 +83,43 @@
             },
             "$other": {
               ".validate": false
+            }
+          }
+        },
+        "coopMoves": {
+          ".read": "auth != null && (((root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)) || root.child('rooms').child($room).child('players').child(auth.uid).child('uid').val() == auth.uid || root.child('publicRooms').child($room).exists() || root.child('userRooms').child(auth.uid).child($room).val() == true)",
+          "$move": {
+            ".write": "auth != null && (((root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)) || root.child('rooms').child($room).child('players').child(auth.uid).child('uid').val() == auth.uid) && root.child('rooms').child($room).child('meta/mode').val() == 'coop' && root.child('rooms').child($room).child('meta/format').val() == 2 && !data.exists() && newData.exists() && newData.child('uid').val() == auth.uid",
+            ".validate": "newData.hasChildren(['bits','uid','at'])",
+            "bits": {
+              ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 27000 && newData.val().length % 4 == 0 && newData.val().matches(/^[A-Za-z0-9+/]+={0,2}$/)"
+            },
+            "uid": {
+              ".validate": "newData.val() == auth.uid"
+            },
+            "at": {
+              ".validate": "newData.val() == now"
+            },
+            "$other": {
+              ".validate": false
+            }
+          }
+        },
+        "raceMoves": {
+          ".read": "auth != null && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)",
+          "$uid": {
+            "$move": {
+              ".write": "auth != null && auth.uid == $uid && (root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid) && root.child('rooms').child($room).child('meta/mode').val() == 'race' && root.child('rooms').child($room).child('meta/status').val() == 'playing' && root.child('rooms').child($room).child('meta/format').val() == 2 && root.child('rooms').child($room).child('states').child($uid).child('finishedAt').val() == 0 && root.child('rooms').child($room).child('states').child($uid).exists() && !data.exists() && newData.exists()",
+              ".validate": "newData.hasChildren(['bits','at'])",
+              "bits": {
+                ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 27000 && newData.val().length % 4 == 0 && newData.val().matches(/^[A-Za-z0-9+/]+={0,2}$/)"
+              },
+              "at": {
+                ".validate": "newData.val() == now"
+              },
+              "$other": {
+                ".validate": false
+              }
             }
           }
         }
@@ -169,6 +209,9 @@
         },
         "$other": {
           ".validate": false
+        },
+        "format": {
+          ".validate": "newData.val() == 2 && newData.val() == root.child('rooms').child($room).child('meta/format').val()"
         }
       }
     },
@@ -187,7 +230,7 @@
         "completedAt"
       ],
       "$event": {
-        ".write": "auth != null && !data.exists() && newData.exists() && newData.child('uid').val() == auth.uid && newData.child('completedAt').val() == now && (newData.child('mode').val() == 'solo' || (newData.child('mode').val() == 'race' && root.child('rooms').child(newData.child('roomCode').val()).child('meta/mode').val() == 'race' && root.child('rooms').child(newData.child('roomCode').val()).child('states').child(auth.uid).child('finishedAt').val() > 0) || (newData.child('mode').val() == 'coop' && root.child('rooms').child(newData.child('roomCode').val()).child('meta/mode').val() == 'coop' && root.child('rooms').child(newData.child('roomCode').val()).child('board').exists()))",
+        ".write": "auth != null && !data.exists() && newData.exists() && newData.child('uid').val() == auth.uid && newData.child('completedAt').val() == now && (newData.child('mode').val() == 'solo' || (newData.child('mode').val() == 'race' && root.child('rooms').child(newData.child('roomCode').val()).child('meta/mode').val() == 'race' && root.child('rooms').child(newData.child('roomCode').val()).child('states').child(auth.uid).child('finishedAt').val() > 0) || (newData.child('mode').val() == 'coop' && root.child('rooms').child(newData.child('roomCode').val()).child('meta/mode').val() == 'coop' && root.child('rooms').child(newData.child('roomCode').val())(root.child('rooms').child(newData.child('roomCode').val()).child('board').exists() || (root.child('rooms').child(newData.child('roomCode').val()).child('meta/format').val() == 2 && root.child('rooms').child(newData.child('roomCode').val()).child('coopMoves').exists()))))",
         ".validate": "newData.hasChildren(['mode','puzzleId','size','name','uid','roomCode','completedAt'])",
         "mode": {
           ".validate": "newData.isString() && (newData.val() == 'solo' || newData.val() == 'race' || newData.val() == 'coop')"
