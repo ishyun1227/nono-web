@@ -180,6 +180,40 @@
           ".validate": "newData.val() == true"
         }
       }
+    },
+    "recentCompletions": {
+      ".read": "auth != null && query.orderByChild == 'completedAt' && query.limitToLast <= 10",
+      ".indexOn": [
+        "completedAt"
+      ],
+      "$event": {
+        ".write": "auth != null && !data.exists() && newData.exists() && newData.child('uid').val() == auth.uid && newData.child('completedAt').val() == now && (newData.child('mode').val() == 'solo' || (newData.child('mode').val() == 'race' && root.child('rooms').child(newData.child('roomCode').val()).child('meta/mode').val() == 'race' && root.child('rooms').child(newData.child('roomCode').val()).child('states').child(auth.uid).child('finishedAt').val() > 0) || (newData.child('mode').val() == 'coop' && root.child('rooms').child(newData.child('roomCode').val()).child('meta/mode').val() == 'coop' && root.child('rooms').child(newData.child('roomCode').val()).child('board').exists()))",
+        ".validate": "newData.hasChildren(['mode','puzzleId','size','name','uid','roomCode','completedAt'])",
+        "mode": {
+          ".validate": "newData.isString() && (newData.val() == 'solo' || newData.val() == 'race' || newData.val() == 'coop')"
+        },
+        "puzzleId": {
+          ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9_-]{1,80}$/) && (newData.parent().child('mode').val() == 'solo' || newData.val() == root.child('rooms').child(newData.parent().child('roomCode').val()).child('meta/puzzleId').val())"
+        },
+        "size": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 100 && newData.val() % 1 == 0 && (newData.parent().child('mode').val() == 'solo' || newData.val() == root.child('rooms').child(newData.parent().child('roomCode').val()).child('meta/size').val())"
+        },
+        "name": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 18 && (newData.parent().child('mode').val() != 'coop' || newData.val() == '협동 팀')"
+        },
+        "uid": {
+          ".validate": "newData.isString() && newData.val() == auth.uid"
+        },
+        "roomCode": {
+          ".validate": "newData.isString() && ((newData.parent().child('mode').val() == 'solo' && newData.val() == '') || (newData.parent().child('mode').val() != 'solo' && newData.val().matches(/^[A-HJ-NP-Z2-9]{6}$/)))"
+        },
+        "completedAt": {
+          ".validate": "newData.isNumber() && newData.val() == now"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
