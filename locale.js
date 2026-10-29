@@ -5,6 +5,7 @@
 const KEY='nono-language-v1';
 const SUPPORTED=['ko','en','ja','zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
 const LEXICON=[
+ ['🌐 언어','🌐 Language','🌐 言語'],
  // Main navigation and lobby
  ['⚙ 설정','⚙ Settings','⚙ 設定'],
  ['🛍 상점','🛍 Shop','🛍 ショップ'],
