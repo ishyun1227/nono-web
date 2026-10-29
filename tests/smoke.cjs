@@ -168,7 +168,7 @@ const { pathToFileURL } = require('node:url');
   const simple=await page.evaluate(()=>{
     const panel=document.querySelector('#setup').getBoundingClientRect();
     const heading=document.getElementById('setup-heading').getBoundingClientRect();
-    const options=document.getElementById('nono-quick-options').getBoundingClientRect();
+    const options=document.getElementById('nono-quick-sizes').getBoundingClientRect();
     const start=document.getElementById('play-alone').getBoundingClientRect();
     const decors=[...document.querySelectorAll('.nono-base-kicker,.nono-base-detail,.nono-base-footer')];
     return {
