@@ -6,7 +6,33 @@
   'use strict';
   const API = window.NONO_REPLAY;
   if (!API) return;
-  const local = storage; // Use the main app's safe storage adapter.
+  const replayPrefix='nono-account-replay-v1:';
+  const getScope=()=>window.NONO_ACCOUNT?.isSignedIn()&&currentUser?.uid?currentUser.uid:'guest';
+  const storageKey=(scope,key)=>replayPrefix+scope+':'+key;
+  const local={
+    getItem(key){return storage.getItem(storageKey(getScope(),key));},
+    setItem(key,value){storage.setItem(storageKey(getScope(),key),value);},
+    removeItem(key){storage.removeItem(storageKey(getScope(),key));}
+  };
+  // Never upload one account's locally stored replay history into another account.
+  window.NONO_REPLAY_STORAGE=local;
+  function moveGuestReplays(previous,next){
+    if(previous!=='guest'||!next||next==='guest')return;
+    const prefix=replayPrefix+'guest:',target=replayPrefix+next+':';
+    const entries=Object.keys(localStorage).filter(key=>key.startsWith(prefix));
+    const indexKey='nono-numeric-replay-v1:complete-index';
+    for(const key of entries){
+      if(key===prefix+indexKey)continue;
+      const candidate=target+key.slice(prefix.length);
+      if(localStorage.getItem(candidate)===null)localStorage.setItem(candidate,localStorage.getItem(key));
+    }
+    const prevIndex=JSON.parse(localStorage.getItem(prefix+indexKey)||'[]');
+    const nextIndex=JSON.parse(localStorage.getItem(target+indexKey)||'[]');
+    if(Array.isArray(prevIndex)&&Array.isArray(nextIndex)){
+      localStorage.setItem(target+indexKey,JSON.stringify([...new Set([...nextIndex,...prevIndex])].slice(0,300)));
+    }
+    for(const key of entries)localStorage.removeItem(key);
+  }
   // New replay UI is translated independently so it does not stay Korean
   // when the user chooses a language whose dictionary predates this feature.
   const words = {
@@ -289,6 +315,7 @@
       list.appendChild(button);
     }
   }
+  window.addEventListener('nono:account-changed',event=>{try{moveGuestReplays(event.detail?.previous,event.detail?.target);}catch(error){console.warn('게스트 리플레이 이전 실패',error);}renderRecent();});
   window.addEventListener('nono:languagechange',renderRecent);
   renderRecent();
 })();
