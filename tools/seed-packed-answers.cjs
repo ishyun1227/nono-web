@@ -8,6 +8,7 @@ const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),cp=r
 const codec=require('../answer-bitpack.js');
 const {answers,puzzles}=require('../tests/puzzles.cjs');
 const {curatedVoxAnswers}=require('./curated-vox-answers.cjs');
+const {curatedPlaytestAnswers}=require('./curated-playtest-answers.cjs');
 const argv=process.argv.slice(2);
 const option=key=>{const i=argv.indexOf(key);return i<0?null:argv[i+1];};
 const apply=argv.includes('--apply'),project=option('--project'),input=option('--input');
@@ -19,7 +20,8 @@ const specs=[
  ...puzzles.filter(p=>p.size<=10).map(p=>({
   id:p.id,width:p.size,height:p.size,mask:answers[p.id],rows:p.rows,cols:p.cols
  })),
- ...curatedVoxAnswers()
+ ...curatedVoxAnswers(),
+ ...curatedPlaytestAnswers()
 ];
 if(input){
   const extra=JSON.parse(fs.readFileSync(path.resolve(input),'utf8'));
