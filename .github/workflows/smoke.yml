@@ -58,6 +58,8 @@ jobs:
           node --check shop.js
           node --check tests/shop.cjs
           node --check tests/daily-rewards.cjs
+          node --check tests/generated-trial.cjs
+          node --check tools/prepare-puzzle.cjs
           node --check answer-bitpack.js
           node --check tools/seed-packed-answers.cjs
           node --check tests/answer-bitpack.cjs
@@ -77,6 +79,8 @@ jobs:
         run: node tests/completion-history.cjs
       - name: Verify rabbit and samurai playable puzzles
         run: node tests/playtest-browser.cjs
+      - name: Verify auto-generated clue-only trial puzzle
+        run: node tests/generated-trial.cjs
       - name: Verify daily missions and check-in
         run: node tests/daily-rewards.cjs
       - name: Verify completed VOX preview mode
