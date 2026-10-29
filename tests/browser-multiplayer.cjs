@@ -18,7 +18,17 @@ async function main(){
   for(const p of [a,b]){p.on('pageerror',e=>errors.push(e.message));p.on('console',m=>{if(m.type()==='error')console.error('BROWSER:',m.text());});}
   await Promise.all([a.goto('http://127.0.0.1:4173'),b.goto('http://127.0.0.1:4173')]);
   for(const p of [a,b])await p.waitForFunction(()=>document.querySelector('#connection').textContent.includes('온라인 연결'));
-  await a.fill('#nickname','Alice');await b.fill('#nickname','Bob');
+  // Nickname is no longer editable. The production UI requires a signed-in account.
+  // Create two genuine, non-anonymous accounts in the local Firebase Auth emulator.
+  for(const [page,email] of [[a,'alice-test@example.invalid'],[b,'bob-test@example.invalid']]){
+    await page.evaluate(async address=>{
+      const ready=window.NONO_AUTH_READY_DETAIL;
+      if(!ready?.auth||!ready.sdk?.createUserWithEmailAndPassword)throw Error('Auth SDK not ready');
+      await ready.sdk.createUserWithEmailAndPassword(ready.auth,address,'emulator-test-only-password');
+    },email);
+    await page.waitForFunction(()=>window.NONO_ACCOUNT?.isSignedIn()===true);
+  }
+  assert.equal(await a.locator('#nickname').getAttribute('type'),'hidden');
   // Public matchmaking: a stranger should see and join an actual waiting room.
   await Promise.all([a.click('[data-mode="race"]'),b.click('[data-mode="race"]')]);
   await a.click('#quick-match');await a.waitForURL(/room=/);
@@ -82,7 +92,7 @@ async function main(){
   console.log('PASS cooperative completion freezes timer for both players');
   await Promise.all([a.evaluate(()=>leaveGame()),b.evaluate(()=>leaveGame())]);
   await a.click('[data-mode="race"]');await a.click('#create-room');await a.waitForURL(/room=/);const race=new URL(a.url()).searchParams.get('room');
-  await b.click('[data-mode="race"]');await b.fill('#room-code',race);await b.click('#join-room');await b.locator('#lobby-players').getByText('Alice').waitFor();
+  await b.click('[data-mode="race"]');await b.fill('#room-code',race);await b.click('#join-room');await b.locator('#lobby-players').getByText('플레이어').first().waitFor();
   await a.click('#start-race');for(const p of [a,b])await p.waitForFunction(()=>meta?.status==='playing'&&!startingRace&&!settingBoard&&raceStates[currentId()]);
   // A race must resume from its saved personal board in the shared panel below every mode.
   const firstBlack=answers.heart5.indexOf('1');
@@ -121,7 +131,7 @@ async function main(){
   const runTimes=await a.evaluate(async()=>({local:startedAt,server:(await get(ref(database,`runs/${puzzle.id}/${currentId()}`))).val().startedAt}));
   assert.equal(runTimes.local,runTimes.server,'Restart must establish a fresh server-timed record run');
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1')paint(i,'1',true);},answers.heart5);
-  await a.waitForFunction(()=>finished);await a.locator('#live-results').getByText('1위 Alice').waitFor();
+  await a.waitForFunction(()=>finished);await a.locator('#live-results').getByText('1위 플레이어').waitFor();
   await a.setViewportSize({width:390,height:844});await a.screenshot({path:'test-results/record-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);console.log('PASS online record saved, leaderboard and mobile view, no page errors');
  }finally{await browser.close();await new Promise(r=>server.close(r));await env.cleanup();}
