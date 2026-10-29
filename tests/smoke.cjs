@@ -21,10 +21,14 @@ const { pathToFileURL } = require('node:url');
     throw new Error('Built settings script reference has no fresh hash, browser may show stale diagrams');
   await page.goto(pathToFileURL(path.resolve(__dirname, '..', 'dist','index.html')).href);
   await page.locator('#nono-open-settings').waitFor();
+  const openShop=async target=>{
+    if(await target.locator('#nono-shop-tab-top').isVisible())
+      await target.locator('#nono-shop-tab-top').click();
+    else await target.locator('#nono-theme-open').click();
+  };
 
   await page.locator('#nono-theme-open').waitFor();
-  // The approved compact base layout shares one left/right edge across
-  // the header, all four mode tabs and the full settings card.
+  // Five top actions and narrow center with left/right rails.
   const base=await page.evaluate(()=>{
     const rect=id=>{const r=document.querySelector(id).getBoundingClientRect();return {x:r.x,right:r.right,width:r.width,y:r.y,bottom:r.bottom}};
     return {
@@ -49,18 +53,17 @@ const { pathToFileURL } = require('node:url');
     };
   });
   if(!base.heroHidden || !base.nativePickerHidden || base.controls!==9 || base.difficulties!==3 ||
-    Math.abs(base.header.x-base.tabs.x)>1 ||
-    Math.abs(base.tabs.x-base.panel.x)>1 ||
-    Math.abs(base.header.right-base.tabs.right)>1 ||
-    Math.abs(base.tabs.right-base.panel.right)>1 ||
-    base.panel.y<base.tabs.bottom || base.panel.width<1000 ||
-    base.panel.height>340 || Math.abs(base.panel.x-(base.viewportWidth-base.panel.right))>2 ||
-    base.documentWidth>base.viewportWidth+2 ||
-    base.shellHeight<800 || base.pageTheme!=='neon' ||
-    base.fillerCount!==0 || base.artContent!=='none' ||
-    base.originalArt!=='none' || base.selectedTabColor==='rgba(0, 0, 0, 0)' ||
-    Math.abs(base.choiceSizeRow-base.difficultyRow)>2)
-    throw new Error('Default launcher side edges / compact spacing broken: '+JSON.stringify(base));
+      base.tabs.x<base.header.x || base.tabs.right>base.header.right ||
+      base.panel.y<base.header.bottom || base.panel.width<400 ||
+      base.documentWidth>base.viewportWidth+2 ||
+      base.shellHeight<800 || base.pageTheme!=='neon' ||
+      base.fillerCount!==0 || base.artContent!=='none' ||
+      base.originalArt!=='none' || base.selectedTabColor==='rgba(0, 0, 0, 0)')
+    throw new Error('Default five-tab launcher broken: '+JSON.stringify(base));
+  if(!await page.locator('#nono-community-tab').isVisible() ||
+     !await page.locator('#nono-shop-tab-top').isVisible() ||
+      await page.locator('.mode-card[data-mode="record"]').isVisible())
+    throw new Error('Community/shop tab visibility regression');
   // The resume section is a persistent shared area below the setup for every mode.
   if(await page.locator('.mode-card').count()!==4 ||
       await page.locator('#nono-resume-tab').count()!==0 ||
@@ -83,15 +86,16 @@ const { pathToFileURL } = require('node:url');
   });
   if(!cap.skipped&&cap.rendered!==5)throw new Error('Resume must show at most five unfinished puzzles');
   for(const choice of ['practice','race','coop','record']){
-    await page.locator('.mode-card[data-mode="'+choice+'"]').click();
+    if(choice==='record')await page.evaluate(()=>document.querySelector('.mode-card[data-mode="record"]').click());
+    else await page.locator('.mode-card[data-mode="'+choice+'"]').click();
     if(!await page.locator('#nono-resume-view').isVisible() ||
         await page.locator('#nono-resume-items .nono-resume-card').count()>5)
       throw new Error('Resume panel missing or exceeding five entries in '+choice);
     const layout=await page.evaluate(()=>{
       const setup=document.getElementById('setup').getBoundingClientRect(),resume=document.getElementById('nono-resume-view').getBoundingClientRect();
-      return {below:resume.top>=setup.bottom,visible:resume.width>0,overflow:document.documentElement.scrollWidth>innerWidth+2};
+      return {nextTo:resume.left>=setup.right,visible:resume.width>0,overflow:document.documentElement.scrollWidth>innerWidth+2};
     });
-    if(!layout.below||!layout.visible||layout.overflow)throw new Error('Resume must appear below the active setup: '+JSON.stringify(layout));
+    if(!layout.nextTo||!layout.visible||layout.overflow)throw new Error('Resume must appear next to the active setup: '+JSON.stringify(layout));
   }
   await page.evaluate(()=>{
     for(const p of PUZZLES)localStorage.removeItem('nono-web-puzzle-v1:'+p.id);
@@ -118,12 +122,8 @@ const { pathToFileURL } = require('node:url');
         screen:document.querySelector('.shell').getBoundingClientRect().height
       };
     });
-    if(layout.overflow || layout.panel.width < Math.min(layout.viewport*.86,1160)-2 ||
-      Math.abs(layout.panel.left-(layout.viewport-layout.panel.right))>2 ||
-      Math.abs(layout.header.left-layout.tabs.left)>1 ||
-      Math.abs(layout.tabs.left-layout.panel.left)>1 ||
-      Math.abs(layout.header.right-layout.tabs.right)>1 ||
-      Math.abs(layout.tabs.right-layout.panel.right)>1 ||
+    if(layout.overflow || layout.panel.width < (layout.viewport>=1280?layout.viewport*.30:layout.viewport*.38) ||
+      layout.tabs.left<layout.header.left || layout.tabs.right>layout.header.right+1 ||
       layout.setupArt!=='none' ||
       layout.screen<viewport.height-1)
       throw new Error('Viewport-responsive NONO base layout failed: '+JSON.stringify({viewport,...layout}));
@@ -146,7 +146,7 @@ const { pathToFileURL } = require('node:url');
     };
   });
   if(simple.decors!==0 || simple.panelArt!=='none' ||
-     simple.panelHeight>340 || simple.headingSize<18 ||
+     simple.headingSize<18 ||
      simple.headingY>=simple.optionsY || simple.optionsY>=simple.startY)
     throw new Error('Simple homepage content-only layout failed: '+JSON.stringify(simple));
   await page.screenshot({path:'test-results/default-home-desktop.png',fullPage:true});
@@ -566,7 +566,7 @@ const { pathToFileURL } = require('node:url');
   await page.locator('#nono-guide-overlay button').first().click();
   await page.click('#nono-settings-close');
 
-  await page.click('#nono-theme-open');
+  await openShop(page);
   if (await page.locator('.nono-theme-card').count() !== 10) throw new Error('Ten tiered theme cards not found');
   if(await page.locator('.nono-theme-section').count()!==2)throw new Error('Color/world theme categories missing');
   if(await page.locator('.nono-theme-card[data-tier="color"]').count()!==5)throw new Error('Incorrect color theme count');
@@ -579,14 +579,14 @@ const { pathToFileURL } = require('node:url');
   await page.click('#nono-theme-close');
   if (await page.locator('body').getAttribute('data-nono-theme') !== 'neon')
     throw new Error('Closing preview did not restore default theme');
-  await page.click('#nono-theme-open');
+  await openShop(page);
   await page.getByRole('button', { name: '포레스트 그린 미리보기' }).click();
   await page.locator('#nono-theme-use').click();
   if (await page.locator('body').getAttribute('data-nono-theme') !== 'forest')
     throw new Error('Temporary theme trial was not applied');
   // A full world skin must replace the hero artwork and structurally redesign the game.
   for (const [id,label] of [['arcade','픽셀 시티 아케이드'],['library','신비로운 도서관'],['enchanted','정령의 숲'],['cosmos','우주 관제실']]) {
-    await page.click('#nono-theme-open');
+    await openShop(page);
     await page.getByRole('button',{name:label+' 미리보기'}).click();
     const world=await page.evaluate(()=>{
       const hero=document.querySelector('.hero');
@@ -616,7 +616,7 @@ const { pathToFileURL } = require('node:url');
     throw new Error('Theme did not update the surrounding UI');
 
   // Premium worlds must be functional, not just mockup decoration.
-  await page.click('#nono-theme-open');
+  await openShop(page);
   await page.getByRole('button',{name:'신비로운 도서관 미리보기'}).click();
   await page.locator('#nono-theme-use').click();
   // SVG originals are vector artwork, not compressed/cropped portions of the mockup.
@@ -708,7 +708,7 @@ const { pathToFileURL } = require('node:url');
   });
   if(!illustratedGame.boardBackground.includes('gradient') || !illustratedGame.panelVisible)
     throw new Error('Library parchment game area or live objective sidebar is missing: '+JSON.stringify(illustratedGame));
-  await page.click('#nono-theme-open');
+  await openShop(page);
   await page.getByRole('button',{name:'크림 라벤더 미리보기'}).click();
   const colorBorder=await page.locator('.board-card').evaluate(el=>getComputedStyle(el).borderTopWidth);
   if(colorBorder===premiumBorder)throw new Error('Changing to cheap color theme did not restore base board structure');
@@ -757,7 +757,7 @@ const { pathToFileURL } = require('node:url');
   forestPage.on('pageerror',error=>forestErrors.push(error.message));
   await forestPage.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
   await forestPage.goto(pathToFileURL(path.resolve(__dirname,'..','index.html')).href);
-  await forestPage.click('#nono-theme-open');
+  await openShop(forestPage);
   await forestPage.getByRole('button',{name:'정령의 숲 미리보기'}).click();
   await forestPage.locator('#nono-theme-use').click();
   await forestPage.locator('#fg-scene').waitFor({state:'visible'});
@@ -796,7 +796,7 @@ const { pathToFileURL } = require('node:url');
   if(await forestPage.locator('#forest-experience').isVisible() ||
      !await forestPage.locator('body>.shell #game').count())
     throw new Error('Switching out of forest did not restore the original game DOM');
-  await forestPage.click('#nono-theme-open');
+  await openShop(forestPage);
   await forestPage.getByRole('button',{name:'정령의 숲 미리보기'}).click();
   await forestPage.locator('#nono-theme-use').click();
   await forestPage.setViewportSize({width:390,height:740});
@@ -816,7 +816,7 @@ const { pathToFileURL } = require('node:url');
   terminalPage.on('pageerror',error=>terminalErrors.push(error.message));
   await terminalPage.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
   await terminalPage.goto(pathToFileURL(path.resolve(__dirname,'..','index.html')).href);
-  await terminalPage.click('#nono-theme-open');
+  await openShop(terminalPage);
   await terminalPage.getByRole('button',{name:'던전 터미널 미리보기'}).click();
   await terminalPage.locator('#nono-theme-use').click();
   await terminalPage.locator('#terminal-experience').waitFor({state:'visible'});
@@ -858,7 +858,7 @@ const { pathToFileURL } = require('node:url');
   if(await terminalPage.locator('#terminal-experience').isVisible() ||
     !await terminalPage.locator('body>.shell #game').count())
     throw new Error('CRT environment did not restore original site when exiting');
-  await terminalPage.click('#nono-theme-open');
+  await openShop(terminalPage);
   await terminalPage.getByRole('button',{name:'던전 터미널 미리보기'}).click();
   await terminalPage.locator('#nono-theme-use').click();
   await terminalPage.setViewportSize({width:390,height:740});
