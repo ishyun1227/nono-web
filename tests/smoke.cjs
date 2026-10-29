@@ -902,6 +902,15 @@ const { pathToFileURL } = require('node:url');
   await undoResumePage.click('#play-alone');
   await undoResumePage.locator('#board .cell').first().waitFor();
   await undoResumePage.evaluate(()=>{paint(0,'1',false);paint(1,'2',false);});
+  const deltaSave=await undoResumePage.evaluate(()=>{
+    const saved=JSON.parse(localStorage.getItem('nono-web-puzzle-v1:heart5')||'null');
+    return {format:saved?.historyFormat,board:saved?.board?.slice(0,2),
+      actions:saved?.undo,hasSnapshots:undoStack.some(x=>Boolean(x.board))};
+  });
+  if(deltaSave.format!==2||deltaSave.board!=='12'||deltaSave.hasSnapshots||
+    deltaSave.actions?.length!==2||deltaSave.actions.some(a=>a.length!==5||a[4].length!==1||
+      a[4][0].some(n=>!Number.isSafeInteger(n))))
+    throw new Error('Undo must save changed-cell numeric deltas only: '+JSON.stringify(deltaSave));
   await undoResumePage.reload();
   await undoResumePage.locator('#nono-resume-items .nono-resume-continue').first().click();
   await undoResumePage.locator('#board .cell').first().waitFor();
@@ -921,6 +930,35 @@ const { pathToFileURL } = require('node:url');
   await undoResumePage.click('#redo');
   if(await undoResumePage.evaluate(()=>board.slice(0,2).join(''))!=='12')
     throw new Error('Redo after a second solo resume failed');
+  // Existing saves with packed full-board snapshots should migrate automatically.
+  await undoResumePage.evaluate(()=>{
+    const encode=values=>{
+      let packed='';
+      for(let i=0;i<values.length;i+=4){
+        let bits=0;
+        for(let k=0;k<4&&i+k<values.length;k++)bits|=Number(values[i+k])<<(2*k);
+        packed+=String.fromCharCode(bits);
+      }
+      return btoa(packed);
+    };
+    const blank='0'.repeat(25),first='1'+'0'.repeat(24);
+    localStorage.setItem('nono-web-puzzle-v1:heart5',JSON.stringify({
+      board:'12'+'0'.repeat(23),startedAt:Date.now(),finishedAt:0,selected:1,changes:0,
+      manual:{},savedAt:Date.now(),undo:[[encode(blank),0,0],[encode(first),0,0]],redo:[]}));
+  });
+  await undoResumePage.reload();
+  await undoResumePage.locator('#nono-resume-items .nono-resume-continue').first().click();
+  await undoResumePage.locator('#board .cell').first().waitFor();
+  if(await undoResumePage.evaluate(()=>undoStack.length)!==2)
+    throw new Error('Legacy undo history did not migrate to changed-cell actions');
+  await undoResumePage.click('#undo');
+  const migrated=await undoResumePage.evaluate(()=>({
+    value:board.slice(0,2).join(''),
+    saved:JSON.parse(localStorage.getItem('nono-web-puzzle-v1:heart5')||'null')
+  }));
+  if(migrated.value!=='10'||migrated.saved?.historyFormat!==2||
+      migrated.saved?.undo?.some(x=>x.length!==5))
+    throw new Error('Old snapshot history was not migrated to deltas');
   await undoResumePage.close();
   // The moonlit forest must be an independent website layer, not altered colors on the default home.
   const forestPage=await browser.newPage({viewport:{width:1440,height:900}});
