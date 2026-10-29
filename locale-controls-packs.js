@@ -38,7 +38,7 @@ const rows=[
 ['레이아웃은 유지 · 0 ~ 500 P','布局不变 · 0～500 P','版面維持不變 · 0～500 P','Mismo diseño · 0–500 P','Mesmo layout · 0–500 P','Même disposition · 0–500 P','Gleiches Layout · 0–500 P','Tata letak tetap · 0–500 P','Giữ bố cục · 0–500 P','เค้าโครงเดิม · 0–500 P'],
 ['배경·메뉴·카드·게임판 전면 재설계 · 2,500 ~ 6,500 P','背景、菜单、卡片及棋盘全部重制 · 2,500～6,500 P','背景、選單、卡片與盤面全面重製 · 2,500～6,500 P','Cambio completo de fondo, menús, tarjetas y tablero · 2.500–6.500 P','Mudança total do fundo, menus, cartões e tabuleiro · 2.500–6.500 P','Refonte du fond, des menus, cartes et grille · 2 500–6 500 P','Komplett neues Design für Hintergrund, Menüs, Karten und Spielfeld · 2.500–6.500 P','Latar, menu, kartu dan papan berubah total · 2.500–6.500 P','Đổi toàn bộ nền, menu, thẻ và bàn chơi · 2.500–6.500 P','เปลี่ยนพื้นหลัง เมนู การ์ด และกระดานทั้งหมด · 2,500–6,500 P'],
 ['기본 테마는 무료로 계속 사용할 수 있어요.','默认主题始终可以免费使用。','預設主題始終可免費使用。','El tema básico siempre es gratis.','O tema padrão é sempre gratuito.','Le thème par défaut reste toujours gratuit.','Das Standarddesign bleibt kostenlos.','Tema bawaan tetap gratis.','Giao diện mặc định luôn miễn phí.','ธีมเริ่มต้นใช้ฟรีได้เสมอ'],
-['맞춤','适应','พอดีหน้าจอ','Ajustar','Ajustar','Adapter','Anpassen','Sesuaikan','Vừa khít','พอดี'],
+['맞춤','适应','符合螢幕','Ajustar','Ajustar','Adapter','Anpassen','Sesuaikan','Vừa khít','พอดี'],
 ['가운데 두기','居中','置中','Centrar','Centralizar','Centrer','Zentrieren','Tengahkan','Căn giữa','จัดกึ่งกลาง'],
 ['화면 맞춤','适应屏幕','符合螢幕','Ajustar a pantalla','Ajustar à tela','Adapter à l’écran','An Bildschirm anpassen','Sesuaikan layar','Vừa màn hình','พอดีจอ'],
 ['💡 도움 힌트','💡 提示','💡 提示','💡 Pista','💡 Dica','💡 Indice','💡 Tipp','💡 Petunjuk','💡 Gợi ý','💡 คำใบ้'],
