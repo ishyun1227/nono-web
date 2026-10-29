@@ -102,6 +102,15 @@ function publish(detail){
   Promise.resolve(work).catch(error=>console.warn('완료 기록 공개 실패 (Firebase 규칙 확인 필요)',error));
 }
 message('실시간 완료 기록을 연결하는 중…');
+const connection=document.getElementById('connection');
+if(connection){
+  const updateOfflineState=()=>{
+    if(!dbReady()&&/오프라인|연결 실패/.test(connection.textContent||''))
+      message('온라인 연결 후 최근 완료 기록이 표시돼요.');
+  };
+  new MutationObserver(updateOfflineState).observe(connection,{childList:true,subtree:true,characterData:true});
+  updateOfflineState();
+}
 window.addEventListener('nono:firebase-ready',watch);
 window.addEventListener('nono:completion-confirmed',event=>publish(event.detail));
 if(dbReady())watch();
