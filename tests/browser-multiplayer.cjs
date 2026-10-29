@@ -61,6 +61,9 @@ async function main(){
   await a.locator('#nono-resume-items .nono-resume-card').filter({hasText:'협동'}).first().locator('.nono-resume-continue').click();
   await a.waitForURL(/room=/);
   await a.waitForFunction(()=>board[0]==='1'&&board[1]==='1');
+  const resumedPuzzle=await a.evaluate(()=>({size:puzzle.size,length:board.length,roomSize:meta.size}));
+  assert.deepEqual(resumedPuzzle,{size:5,length:25,roomSize:5},
+    'Resume must restore the room puzzle size, not the home picker size');
   console.log('PASS public listing survives host departure and saved cooperation resumes after page reload');
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)paint(i,answer[i]==='1'?'1':'0',true);},answers.heart5);
   try{for(const p of [a,b])await p.waitForFunction(()=>finished&&finishedAt>0,{timeout:10000});}
