@@ -302,7 +302,7 @@ function initHome(){
   const options=PUZZLES.map((p,i)=>`<option value="${p.id}">${p.size}×${p.size} · ${p.sizeTest?'크기 테스트':'퍼즐 '+String(i+1).padStart(2,'0')}</option>`).join('');$('puzzle').innerHTML=options;
   $('nickname').value=storage.getItem('nono-nickname')||'';updateProfileLabel();
   document.querySelectorAll('.mode-card[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
-  $('puzzle').addEventListener('change',()=>{puzzle=PUZZLES.find(p=>p.id===$('puzzle').value)||PUZZLES[0];refreshHomepageScores();});
+  $('puzzle').addEventListener('change',()=>{if(roomCode){$('puzzle').value=puzzle.id;return;}puzzle=PUZZLES.find(p=>p.id===$('puzzle').value)||PUZZLES[0];refreshHomepageScores();});
   $('nickname').addEventListener('input',()=>{storage.setItem('nono-nickname',nickname());updateProfileLabel();});
   $('create-room').addEventListener('click',createRoom);
   $('quick-match').addEventListener('click',quickMatch);
@@ -615,7 +615,7 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
         raceStates=s.val()||{};const own=raceStates[currentId()];
         if(own){
           if(!pendingRaceWrites){
-            if(meta?.format===2)board=(raceMoveBoards[currentId()]||emptyBoard(puzzle)).slice();
+            if(meta?.format===2)board=(raceMoveBoards[currentId()]||emptyBoard(p)).slice();
             else if(own.board)board=own.board.split('');
           }
           finishedAt=own.finishedAt||0;finished=finishedAt>0;
@@ -626,8 +626,8 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
       },firebaseError));
       if(info.format===2)unsubscribe.push(onValue(ref(database,`rooms/${code}/raceMoves`),s=>{
         if(roomCode!==code)return;
-        raceMoveBoards=Object.fromEntries(Object.entries(s.val()||{}).map(([uid,events])=>[uid,applyMoveLog(events,puzzle)]));
-        if(!pendingRaceWrites&&!finished)board=(raceMoveBoards[currentId()]||emptyBoard(puzzle)).slice();
+        raceMoveBoards=Object.fromEntries(Object.entries(s.val()||{}).map(([uid,events])=>[uid,applyMoveLog(events,p)]));
+        if(!pendingRaceWrites&&!finished)board=(raceMoveBoards[currentId()]||emptyBoard(p)).slice();
         if(raceStates[currentId()]){
           const percent=Math.min(100,Math.round(board.filter(v=>v==='1').length/Math.max(1,totalBlack(puzzle))*100));
           saveRaceResume(code,puzzle.id,finished,percent);
@@ -638,11 +638,11 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
     if(mode==='coop')unsubscribe.push(onValue(ref(database,`rooms/${code}/${info.format===2?'coopMoves':'board'}`),s=>{
       if(roomCode!==code)return;
       const value=s.val();
-      const next=info.format===2?applyMoveLog(value,puzzle):
-        typeof value==='string'&&value.length===puzzle.size*puzzle.size?value.split(''):null;
+      const next=info.format===2?applyMoveLog(value,p):
+        typeof value==='string'&&value.length===p.size*p.size?value.split(''):null;
       if(next){
         board=next;roomBoard=board.join('');const wasFinished=finished;
-        finished=isSolved(board,puzzle);finishedAt=finished?(finishedAt||serverNow()):0;
+        finished=isSolved(board,p);finishedAt=finished?(finishedAt||serverNow()):0;
         if(finished&&!wasFinished){
           if(contributedCoopRooms.has(code))window.dispatchEvent(new CustomEvent('nono:completion-confirmed',{detail:{mode:'coop',puzzleId:p.id,size:p.size,name:'협동 팀',roomCode:code,finishedAt:serverNow()}}));
           toast('협동 퍼즐 완성!');
