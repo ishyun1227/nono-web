@@ -63,6 +63,48 @@ async function main(){
   await set(ref(a,'rooms/GHJKLM/states/alice'),{...state,board:answers.heart5,filled:answers.heart5,finishedAt:serverTimestamp()});
   await assertFails(set(ref(a,'rooms/GHJKLM/states/alice'),state));
   console.log('PASS race start authority, late joins, ownership, answer validation, immutable finish');
+  // Version 2 rooms store packed changed-cell actions, never rewrite the whole board.
+  await assertSucceeds(set(ref(a,'rooms/LMNPQR/meta'),{...meta('coop'),format:2}));
+  await join(a,'LMNPQR','0','alice');await join(b,'LMNPQR','1','bob');
+  const v2Coop=(await get(ref(a,'rooms/LMNPQR/meta'))).val();
+  await assertSucceeds(set(ref(a,'publicRooms/LMNPQR'),
+    {...listing,format:2,createdAt:v2Coop.createdAt}));
+  await assertSucceeds(set(ref(a,'rooms/LMNPQR/coopMoves/moveA'),
+    {bits:'AAE=',at:serverTimestamp(),uid:'alice'}));
+  await assertSucceeds(set(ref(b,'rooms/LMNPQR/coopMoves/moveB'),
+    {bits:'AAU=',at:serverTimestamp(),uid:'bob'}));
+  const coopDeltas=(await get(ref(a,'rooms/LMNPQR/coopMoves'))).val();
+  assert.equal(Object.keys(coopDeltas).length,2);
+  assert.equal((await get(ref(a,'rooms/LMNPQR/board'))).val(),null);
+  await assertFails(set(ref(a,'rooms/LMNPQR/coopMoves/moveA'),
+    {bits:'AAY=',at:serverTimestamp(),uid:'alice'}));
+  await assertFails(set(ref(a,'rooms/LMNPQR/coopMoves/fake'),
+    {bits:'AAY=',at:serverTimestamp(),uid:'bob'}));
+  await assertFails(set(ref(outsider,'rooms/LMNPQR/coopMoves/spoof'),
+    {bits:'AAY=',at:serverTimestamp(),uid:'eve'}));
+  await assertFails(set(ref(a,'rooms/LMNPQR/coopMoves/bad'),
+    {bits:'invalid',at:serverTimestamp(),uid:'alice'}));
+  await assertSucceeds(set(ref(a,'userRooms/alice/LMNPQR'),true));
+  await remove(ref(a,'rooms/LMNPQR/players/0'));
+  await assertSucceeds(get(ref(a,'rooms/LMNPQR/coopMoves')));
+  console.log('PASS v2 co-op append-only binary actions, member authorization, saved-room read');
+
+  await set(ref(a,'rooms/WX2345/meta'),{...meta('race'),format:2});
+  await join(a,'WX2345','0','alice');await join(b,'WX2345','1','bob');
+  const v2Race=(await get(ref(a,'rooms/WX2345/meta'))).val();
+  await set(ref(a,'rooms/WX2345/meta'),{...v2Race,status:'playing',startedAt:serverTimestamp()});
+  const v2Start=(await get(ref(a,'rooms/WX2345/meta/startedAt'))).val();
+  await assertSucceeds(set(ref(a,'rooms/WX2345/states/alice'),{startedAt:v2Start,finishedAt:0}));
+  await assertSucceeds(set(ref(a,'rooms/WX2345/raceMoves/alice/moveA'),{bits:'AAE=',at:serverTimestamp()}));
+  await assertFails(set(ref(b,'rooms/WX2345/raceMoves/alice/forged'),{bits:'AAY=',at:serverTimestamp()}));
+  await assertFails(set(ref(a,'rooms/WX2345/raceMoves/alice/moveA'),{bits:'AAI=',at:serverTimestamp()}));
+  assert.equal((await get(ref(a,'rooms/WX2345/states/alice'))).val().board,undefined);
+  await assertFails(set(ref(a,'rooms/WX2345/states/alice'),{
+    startedAt:v2Start,finishedAt:serverTimestamp(),filled:'0'.repeat(25)}));
+  await assertSucceeds(set(ref(a,'rooms/WX2345/states/alice'),{
+    startedAt:v2Start,finishedAt:serverTimestamp(),filled:answers.heart5}));
+  await assertFails(set(ref(a,'rooms/WX2345/raceMoves/alice/after'),{bits:'AAY=',at:serverTimestamp()}));
+  console.log('PASS v2 race per-player binary actions, completion validation and immutable history');
   const run=ref(a,'runs/heart5/alice');
   await set(run,{name:'Alice',startedAt:serverTimestamp(),finishedAt:0,filled:'0'.repeat(25),changes:0});
   const initial=(await get(run)).val();
