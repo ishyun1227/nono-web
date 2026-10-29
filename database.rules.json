@@ -131,6 +131,33 @@
               }
             }
           }
+        },
+        "replayEvents": {
+          ".read": "auth != null && ((root.child('rooms').child($room).child('meta/mode').val() == 'race' && root.child('rooms').child($room).child('states').child(auth.uid).exists()) || (root.child('rooms').child($room).child('meta/mode').val() == 'coop' && ((root.child('rooms').child($room).child('players').child(auth.uid).child('uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid) || root.child('userRooms').child(auth.uid).child($room).val() == true)))",
+          "$uid": {
+            "$event": {
+              ".write": "auth != null && auth.uid == $uid && !data.exists() && newData.exists() && ((root.child('rooms').child($room).child('meta/mode').val() == 'coop' && (root.child('rooms').child($room).child('players').child(auth.uid).child('uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('0/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('1/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('2/uid').val() == auth.uid || root.child('rooms').child($room).child('players').child('3/uid').val() == auth.uid)) || (root.child('rooms').child($room).child('meta/mode').val() == 'race' && root.child('rooms').child($room).child('states').child(auth.uid).exists()))",
+              ".validate": "newData.hasChildren(['actor','mode','elapsedMs','cells','at'])",
+              "actor": {
+                ".validate": "newData.isString() && newData.val() == auth.uid"
+              },
+              "mode": {
+                ".validate": "newData.isString() && newData.val() == root.child('rooms').child($room).child('meta/mode').val()"
+              },
+              "elapsedMs": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 86400000 && newData.val() % 1 == 0"
+              },
+              "cells": {
+                ".validate": "newData.isString() && newData.val().length > 8 && newData.val().length <= 12000 && (newData.val().matches(/^NRC1:[A-Za-z0-9+\\/]+={0,2}$/) || newData.val().matches(/^\\[\\[[0-9]+,[012],[012]\\](,\\[[0-9]+,[012],[012]\\])*\\]$/))"
+              },
+              "at": {
+                ".validate": "newData.isNumber() && newData.val() == now"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          }
         }
       }
     },
@@ -270,6 +297,88 @@
     "privateAnswersPacked": {
       ".read": false,
       ".write": false
+    },
+    "privateReplays": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid",
+        "$run": {
+          ".write": "auth != null && auth.uid == $uid && !data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['uid','mode','completedAt','puzzleId','payload'])",
+          "uid": {
+            ".validate": "newData.isString() && newData.val() == auth.uid"
+          },
+          "mode": {
+            ".validate": "newData.isString() && (newData.val() == 'practice' || newData.val() == 'record')"
+          },
+          "completedAt": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() <= now && newData.val() % 1 == 0"
+          },
+          "puzzleId": {
+            ".validate": "newData.isString() && newData.val().matches(/^[a-zA-Z0-9_-]{1,90}$/)"
+          },
+          "payload": {
+            ".validate": "newData.isString() && newData.val().length > 50 && newData.val().length <= 300000"
+          },
+          "$other": {
+            ".validate": false
+          }
+        },
+        ".indexOn": [
+          "completedAt"
+        ]
+      }
+    },
+    "publishedReplays": {
+      "$puzzle": {
+        "$uid": {
+          ".read": "auth != null && (auth.uid == $uid || root.child('scores').child($puzzle).child(auth.uid).child('finishedAt').val() > 0)",
+          ".write": "auth != null && auth.uid == $uid && ((!newData.exists() && data.exists()) || (newData.exists() && (auth != null && auth.uid == $uid && root.child('runs').child($puzzle).child($uid).child('finishedAt').val() > 0 && newData.exists() && (!data.exists() || newData.child('completedAt').val() > data.child('completedAt').val()))))",
+          ".validate": "newData.hasChildren(['uid','completedAt','payload'])",
+          "uid": {
+            ".validate": "newData.isString() && newData.val() == auth.uid"
+          },
+          "completedAt": {
+            ".validate": "newData.isNumber() && newData.val() == root.child('runs').child($puzzle).child($uid).child('finishedAt').val()"
+          },
+          "payload": {
+            ".validate": "newData.isString() && newData.val().length > 50 && newData.val().length <= 300000"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "publicReplayFeed": {
+      "$puzzle": {
+        ".read": "auth != null && query.orderByChild == 'completedAt' && query.limitToLast <= 5",
+        ".indexOn": [
+          "completedAt"
+        ],
+        "$uid": {
+          ".write": "auth != null && auth.uid == $uid && ((!newData.exists() && data.exists()) || (newData.exists() && (auth != null && auth.uid == $uid && newData.exists() && root.child('runs').child($puzzle).child($uid).child('finishedAt').val() > 0 && root.child('publishedReplays').child($puzzle).child($uid).child('completedAt').val() == newData.child('completedAt').val() && (!data.exists() || newData.child('completedAt').val() > data.child('completedAt').val()))))",
+          ".validate": "newData.hasChildren(['uid','name','puzzleId','size','completedAt'])",
+          "uid": {
+            ".validate": "newData.isString() && newData.val() == auth.uid"
+          },
+          "name": {
+            ".validate": "newData.isString() && newData.val() == root.child('runs').child($puzzle).child($uid).child('name').val() && newData.val().length <= 18"
+          },
+          "puzzleId": {
+            ".validate": "newData.isString() && newData.val() == $puzzle"
+          },
+          "size": {
+            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() * newData.val() == root.child('privateAnswers').child($puzzle).val().length"
+          },
+          "completedAt": {
+            ".validate": "newData.isNumber() && newData.val() == root.child('publishedReplays').child($puzzle).child($uid).child('completedAt').val()"
+          },
+          "$other": {
+            ".validate": false
+          },
+          ".read": "auth != null && auth.uid == $uid"
+        }
+      }
     }
   }
 }
