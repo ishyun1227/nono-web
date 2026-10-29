@@ -193,13 +193,13 @@ const { pathToFileURL } = require('node:url');
   if(!await page.locator('#public-room-toggle').isChecked())throw new Error('New rooms must default to public');
   await page.locator('#quick-match').click();
   if(!((await page.locator('#toast').innerText()).includes('온라인 연결')))throw new Error('Offline quick matching must show an honest connection warning');
-  if(!await page.locator('#nono-quick-options').isVisible() ||
+  if(!await page.locator('#setup .nono-apple-setup').isVisible() ||
       !await page.locator('#public-lobby-create').isVisible() ||
       await page.locator('#room-controls').isVisible())
     throw new Error('Race needs compact filters, public lobby and no duplicate room controls');
   const lobbyOrder=await page.evaluate(()=>{
     const top=id=>document.getElementById(id).getBoundingClientRect().top;
-    return [top('nono-quick-options'),top('quick-match'),top('public-room-list'),top('public-lobby-create')];
+    return [document.querySelector('#setup .nono-apple-setup').getBoundingClientRect().top,top('quick-match'),top('public-room-list'),top('public-lobby-create')];
   });
   if(lobbyOrder.some((n,i)=>i>0&&n<=lobbyOrder[i-1]))
     throw new Error('Approved lobby order broken: '+lobbyOrder.join(','));
@@ -215,7 +215,7 @@ const { pathToFileURL } = require('node:url');
   if(!(await page.locator('#quick-match').innerText()).includes('빠른 협동'))
     throw new Error('Coop quick-match label missing');
   await page.locator('.mode-card[data-mode="practice"]').click();
-  if(!await page.locator('#nono-quick-options').isVisible() ||
+  if(!await page.locator('#setup .nono-apple-setup').isVisible() ||
       await page.locator('#public-lobby').isVisible())
     throw new Error('Solo must show only size/difficulty');
   if(!await page.locator('#nono-quick-size option[value="15"]').evaluate(option=>option.disabled))
@@ -228,7 +228,7 @@ const { pathToFileURL } = require('node:url');
   // Every (size, difficulty) pair must list all matching real puzzle IDs, not
   // only the 30x30 voxel group. Keep solution thumbnails and titles hidden.
   await page.selectOption('#nono-quick-size','30');
-  if(!await page.locator('#nono-quick-difficulty').isVisible())
+  if(!await page.locator('#setup .nono-apple-difficulty-choices').isVisible())
     throw new Error('Difficulty filter is missing for 30x30');
   if(await page.locator('#nono-quick-variants button').allTextContents().then(x=>x.join(','))!=='01,02,03')
     throw new Error('30x30 puzzle choices should show 01 / 02 / 03');
