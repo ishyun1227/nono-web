@@ -202,3 +202,25 @@ Firebase 연결값이 비어 있으면 오프라인 체험으로 실행됩니다
 - 퍼즐 선택 카드 안의 **보상표 버튼**을 누르면 전체 매트릭스와 대결·연승·협동 산식을 확인할 수 있습니다.
 
 코드: `community.js/css`, `reward-policy.js/css`, `daily-rewards.js`; 빌드: `node tools/build.cjs`; 검증: `npm run test:community`.
+
+
+## 선택형 소셜 로그인 / 개인 프로필 (2026-10-29)
+
+- **비회원**은 혼자하기를 이용할 수 있습니다. Firebase 웹 설정이 있으면 익명 인증으로 작동하지만 소셜 계정으로 취급하지 않습니다.
+- **Google / Apple** 팝업 로그인은 상단 프로필 버튼에서 시작합니다. Firebase 익명 사용자를 linkWithPopup으로 연결하면 가능하면 동일 UID를 유지합니다.
+- 이미 존재하는 소셜 계정이면 해당 계정으로 로그인하고, **현재 브라우저의 비회원 혼자하기 기록**을 계정 기록과 병합합니다. 서로 다른 기존 소셜 계정은 자동으로 합치지 않습니다.
+- 혼자하기의 nono-web-puzzle-v1:<id> (정답 칸/숫자형 Undo·Redo), 로컬 완료 기록 nono-completion-history-v1, 시간 기록 nono-records-<id>를 userSync/$uid/state에 동기화합니다. 진행판은 savedAt이 최신인 쪽을 택하고 완료 기록은 고유 키로 합칩니다. 실패 시 로컬 원본을 유지합니다.
+- **대결·협동 방의 진행 중 상태/포인트·테마 소유권은 이 개인 기록 동기화의 대상이 아닙니다.** 기존 방의 소유권과 참가 권한은 Firebase UID를 기준으로 유지됩니다. 상점의 포인트/테마는 기존 브라우저 체험 데이터이며 서버 검증 구매/보유권으로 표시하지 않습니다.
+- 프로필은 커뮤니티가 아닌 사이트 헤더 우측에 있고, **닉네임 편집은 제거**했습니다. 공개 플레이어 이름은 현재 '플레이어' 고정입니다.
+- 로그인/로그아웃 중인 대결·협동 방 전환은 차단합니다. 계정별 브라우저 캐시를 분리하고, 게스트 기록이 계정에 성공적으로 업로드되면 게스트 캐시를 비웁니다. 클라우드 동기화 실패 시 계정 기록은 브라우저에 남습니다.
+
+### 배포 전에 반드시 필요한 Firebase 설정
+
+1. Firebase 콘솔 → **Authentication → Sign-in method**에서 Google 및 Apple 제공업체 활성화. 기존 **Anonymous** 제공업체는 비회원 온라인 기능 때문에 유지해야 합니다.
+2. Firebase Authentication → **Settings → Authorized domains**에 실제 Cloudflare Workers 사용자 도메인과 필요한 사용자 정의 도메인을 추가.
+3. Apple Developer Program 등록 후 웹 **Service ID**, Team ID, Key ID, Apple private key를 준비해 **Firebase Console의 Apple 제공업체 설정에만** 입력. Apple Service ID 웹 Return URL은 아래입니다. 개인 키는 GitHub 코드나 firebase-config.js에 추가하면 안 됩니다.
+   https://nono-web-ishyun-20261020.firebaseapp.com/__/auth/handler
+4. 별도로 변경된 Realtime Database 규칙을 배포: 인증된 운영 환경에서 firebase deploy --only database --project nono-web-ishyun-20261020. **Worker 배포만으로 데이터베이스 규칙은 바뀌지 않습니다.** 규칙 배포 전에는 동기화 실패 안내가 나와야 정상입니다.
+5. 로그인/동기화가 준비되면 서로 다른 브라우저에서 익명 → Google/Apple 연결 → 퍼즐 이어하기/완료 기록 표시, 계정 전환/로그아웃, Apple 비공개 이메일 선택을 테스트합니다.
+
+공식 참고: https://firebase.google.com/docs/auth/web/google-signin · https://firebase.google.com/docs/auth/web/apple · https://firebase.google.com/docs/reference/security/database
