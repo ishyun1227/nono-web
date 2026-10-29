@@ -24,15 +24,7 @@ const eligible=p=>inGroup(p)&&difficultyOf(p)===state.level&&supportsMode(p);
 const state={group:0,level:'보통'};
 const origin=document.createComment('Original mode navigation location');
 tabs.parentNode.insertBefore(origin,tabs);
-const resumeTab=document.createElement('button');
-resumeTab.type='button';
-resumeTab.className='mode-card nono-apple-resume-tab';
-resumeTab.textContent='이어하기';
-resumeTab.setAttribute('aria-label','이어서 풀기 목록으로 이동');
-tabs.insertBefore(resumeTab,tabs.querySelector('[data-mode="record"]'));
-resumeTab.addEventListener('click',()=>{
-  $('nono-resume-view')?.scrollIntoView({behavior:'smooth',block:'center'});
-});
+/* Resume stays below the mode cards; no separate top navigation tab. */
 const ui=document.createElement('div');
 ui.className='nono-apple-setup';
 ui.innerHTML=[
