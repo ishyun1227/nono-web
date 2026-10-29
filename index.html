@@ -387,6 +387,11 @@ function buildBoard(){
   target.append(corner,col,row,cells);
 }
 function render(){
+  // A home size picker may fire a delayed change event after rejoining a room.
+  if(roomCode&&meta?.puzzleId&&puzzle.id!==meta.puzzleId){
+    const active=PUZZLES.find(value=>value.id===meta.puzzleId);
+    if(active){puzzle=active;$('puzzle').value=active.id;}
+  }
   const all=$('board').querySelectorAll('.cell');
   all.forEach((el,i)=>{const v=board[i]||'0';el.classList.toggle('filled',v==='1');el.classList.toggle('cross',v==='2');el.classList.toggle('active',i===selected);el.textContent=v==='2'?'×':'';el.setAttribute('aria-selected',String(i===selected));});
   const filled=board.filter(v=>v==='1').length,value=Math.min(100,Math.round(filled/Math.max(1,totalBlack(puzzle))*100));
