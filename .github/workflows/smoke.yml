@@ -41,12 +41,15 @@ jobs:
           node --check locale-en-extra.js
           node --check tests/locale.cjs
           node --check tests/i18n-audit.cjs
+          node --check tests/i18n-completeness.cjs
           node --check settings.js
           node --check themes.js
           node --check daily-rewards.js
           node --check shop.js
           node --check tests/shop.cjs
           node --check tests/daily-rewards.cjs
+      - name: Verify native locale translation completeness
+        run: node tests/i18n-completeness.cjs
       - name: Verify language switching and persistence
         run: node tests/locale.cjs
       - name: Audit translated UI coverage
