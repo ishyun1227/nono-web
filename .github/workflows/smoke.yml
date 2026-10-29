@@ -68,7 +68,7 @@ jobs:
           node --check tools/curated-playtest-answers.cjs
       - name: Verify lossless private answer packing and dry-run seeding
         run: npm run test:answers
-      - name: Verify nondestructive packed-answer migration against Firebase emulator
+      - name: Verify nondestructive packed-answer migration planner offline
         run: npm run test:migrate
       - name: Verify native locale translation completeness
         run: node tests/i18n-completeness.cjs
