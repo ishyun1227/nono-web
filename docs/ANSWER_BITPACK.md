@@ -140,8 +140,10 @@ node tests/generated-trial.cjs
 배포 실행 시 `privateAnswersPacked`의 모든 자료를 덮어쓰지 않고, **없는 자식 키만 등록**한다.
 기존 자식 키의 저장값이 예상값과 다르면 즉시 중단한다.
 
-배포 전에 `npm run test:migrate`는 Firebase 에뮬레이터에 기존 문자열 정답과 별도 비공개 답안을 넣은 뒤,
-신규 등록·재실행·잘못된 답안 충돌을 모두 검사한다.
+배포 전에 `npm run test:migrate`는 **네트워크에 접근하지 않는 순수 로직 테스트**로
+신규 등록 계획·재실행·기존 답안 충돌·다른 키 보존을 검사한다.
+별도로 `npm run test:multiplayer`가 Firebase 에뮬레이터에서 실제 보안 규칙을 검증한다.
+운영 Firebase에 새 정답을 쓰는 명령은 관리자 수동 워크플로에서만 실행한다.
 
 운영 등록은 관리자만 `Manual Firebase packed-answer migration` 워크플로의 `rules_and_seed` 단계로 실행한다.
 그 전까지 `NONO_PACKED_ANSWERS_READY` 허용목록에는 기존 3개 ID만 남긴다.
