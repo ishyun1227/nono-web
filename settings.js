@@ -172,9 +172,8 @@ function saveBoard(){
  // Preserve the latest actions first if browser storage becomes full.
  for(const limit of [150,75,30,0]){
   try{
-   data.undo=undoStack.slice(-limit||undoStack.length).map(encodeHistoryAction).filter(Boolean);
-   data.redo=redoStack.slice(-limit||redoStack.length).map(encodeHistoryAction).filter(Boolean);
-   if(!limit){data.undo=[];data.redo=[];}
+   data.undo=limit?undoStack.slice(-limit).map(encodeHistoryAction).filter(Boolean):[];
+   data.redo=limit?redoStack.slice(-limit).map(encodeHistoryAction).filter(Boolean):[];
    localStorage.setItem(saveKey(),JSON.stringify(data));
    return;
   }catch(error){if(limit===0)console.warn('퍼즐 진행 상태를 저장하지 못했어요.',error);}
