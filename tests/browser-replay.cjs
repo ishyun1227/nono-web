@@ -82,7 +82,7 @@ async function main(){
   }))));
   console.log('REPLAY COOP DIAGNOSTIC',JSON.stringify({room,peers,events,errors}));
   assert.equal(new Set(events.map(x=>x.actor)).size,2);
-  assert(events.every(x=>x.mode==='coop'&&/^\[\[/.test(x.cells)));
+  assert(events.every(x=>x.mode==='coop'&&x.cells.startsWith('NRC1:')));
   assert.equal(errors.length,0,errors.join('; '));
   console.log('PASS browser solo numeric replay and two-player co-op event logging');
  }finally{
