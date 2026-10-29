@@ -33,19 +33,37 @@ function close(){
 function escape(e){if(e.key==='Escape')close();}
 function localRecords(){
  const data=[];
- if(typeof PUZZLES==='undefined')return data;
- for(const p of PUZZLES){
+ const completed=window.NONO_COMPLETION_HISTORY?.all?.()||[];
+ for(const row of completed){
+  if(!row||!['solo','race','coop'].includes(row.mode)||
+     !Number.isFinite(row.finishedAt)||!Number.isInteger(row.size))continue;
+  data.push({name:typeof row.name==='string'?row.name:'플레이어',
+   mode:row.mode,puzzleId:row.puzzleId,size:row.size,
+   ms:Number.isFinite(row.duration)?row.duration:null,finishedAt:row.finishedAt});
+ }
+ // Preserve older offline time-trial scores rather than replacing them.
+ if(typeof PUZZLES!=='undefined')for(const p of PUZZLES){
   let rows=[];
   try{rows=JSON.parse(localStorage.getItem('nono-records-'+p.id)||'[]');}catch{}
   if(!Array.isArray(rows))continue;
   for(const row of rows){
    if(!row||!Number.isFinite(row.duration)||row.duration<0)continue;
+   const when=Number(row.finishedAt)||0;
+   if(data.some(x=>x.puzzleId===p.id&&Math.abs(x.finishedAt-when)<2000))continue;
    data.push({name:typeof row.name==='string'?row.name:'플레이어',
-     size:p.size,ms:row.duration,finishedAt:Number(row.finishedAt)||0});
+     mode:'solo',puzzleId:p.id,size:p.size,ms:row.duration,finishedAt:when});
   }
  }
- return data.sort((a,b)=>b.finishedAt-a.finishedAt).slice(0,5);
+ return data.sort((a,b)=>b.finishedAt-a.finishedAt).slice(0,12);
 }
+function recordDetail(item){
+ const when=item.finishedAt>0?new Date(item.finishedAt).toLocaleString('ko-KR',{
+   timeZone:'Asia/Seoul',month:'numeric',day:'numeric',
+   hour:'2-digit',minute:'2-digit',hour12:false
+ }):'';
+ return (when?when+' · ':'')+(Number.isFinite(item.ms)?format(item.ms):'완료');
+}
+
 function format(ms){
  if(!Number.isFinite(ms))return '—';
  return Math.floor(ms/60000)+'분 '+String(Math.floor(ms/1000)%60).padStart(2,'0')+'초';
@@ -73,7 +91,7 @@ function render(){
  title(local,'내 기록','이 브라우저에서 저장된 기록만 표시해요.');
  const entries=localRecords();
  if(!entries.length)local.append(elt('p','nono-community-empty','아직 저장된 시간 기록이 없어요.'));
- for(const e of entries)local.append(line(e.size+'×'+e.size+' · '+e.name,format(e.ms)));
+ for(const e of entries)local.append(line(({solo:'혼자',race:'대결',coop:'협동'})[e.mode]+' · '+e.size+'×'+e.size+' · '+e.name,recordDetail(e)));
  const leaderboard=elt('div','nono-community-card');
  title(leaderboard,'퍼즐별 랭킹','현재 선택한 퍼즐의 기록을 조회해요.');
  const leaderRows=elt('div','nono-community-leaders');
