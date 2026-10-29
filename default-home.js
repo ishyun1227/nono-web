@@ -129,9 +129,6 @@ modeButtons.forEach(btn=>{
   new MutationObserver(()=>{if(on())screen();}).observe(btn,{attributes:true,attributeFilter:['class']});
 });
 picker.addEventListener('change',()=>{if(on()){syncPuzzleFromSelection();renderChoices();}});
-$('profile-button')?.addEventListener('click',()=>{
-  if(on())setup.dataset.nonoProfileOpen=setup.dataset.nonoProfileOpen==='true'?'false':'true';
-},true);
 const title=$('game-title');
 if(title){
   const hideAnswer=()=>{
