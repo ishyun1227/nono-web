@@ -33,6 +33,52 @@ home.insertBefore(left,home.querySelector('.home-content')||null);
 home.append(right);
 
 const list=left.querySelector('#nono-completion-list');
+
+const HISTORY_KEY='nono-completion-history-v1';
+const inflight=new Set();
+function readHistory(){
+  try{
+    const rows=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]');
+    return Array.isArray(rows)?rows.filter(row=>row&&typeof row.key==='string'&&Number.isFinite(row.finishedAt)):[];
+  }catch{return [];}
+}
+function writeHistory(rows){
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(rows));}
+  catch(error){console.warn('개인 완료 기록 저장 실패',error);}
+}
+function remember(detail){
+  if(!detail||!['solo','race','coop'].includes(detail.mode)||
+     typeof detail.puzzleId!=='string'||!detail.puzzleId||
+     !Number.isInteger(Number(detail.size)))return null;
+  const finishedAt=Number(detail.finishedAt)||Date.now();
+  const roomCode=String(detail.roomCode||'');
+  const key=detail.mode==='solo'
+    ?'solo:'+detail.puzzleId+':'+finishedAt
+    :detail.mode+':'+roomCode;
+  const rows=readHistory();
+  const existing=rows.find(row=>row.key===key);
+  if(existing)return existing;
+  const start=detail.mode==='solo'
+    ?(typeof startedAt==='number'?startedAt:0)
+    :(typeof meta!=='undefined'&&meta?Number(meta.startedAt):0);
+  const duration=Number.isFinite(start)&&start>0&&finishedAt>=start?finishedAt-start:null;
+  const item={key,mode:detail.mode,puzzleId:detail.puzzleId,
+    size:Number(detail.size),name:String(detail.name||'플레이어').slice(0,18),
+    roomCode,finishedAt,duration,status:'pending'};
+  rows.unshift(item);
+  writeHistory(rows);
+  window.dispatchEvent(new CustomEvent('nono:completion-history-updated',{detail:item}));
+  return item;
+}
+function setHistoryStatus(key,status){
+  const rows=readHistory();
+  const item=rows.find(row=>row.key===key);
+  if(!item||item.status===status)return;
+  item.status=status;
+  writeHistory(rows);
+}
+window.NONO_COMPLETION_HISTORY=Object.freeze({all:readHistory});
+
 function message(text){
   const note=document.createElement('p');note.className='nono-completion-empty';note.textContent=text;list.replaceChildren(note);
 }
@@ -48,13 +94,26 @@ function clock(value){
   try{return new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(value));}
   catch{return '';}
 }
+let publicValues={};
 function render(values){
-  const rows=Object.values(values||{}).filter(x=>x&&
+  if(values!==undefined)publicValues=values||{};
+  const published=Object.values(publicValues).filter(x=>x&&
     ['solo','race','coop'].includes(x.mode)&&
     Number.isFinite(x.completedAt)&&
     Number.isInteger(x.size)&&x.size>=1&&x.size<=100&&
-    typeof x.name==='string').sort((a,b)=>b.completedAt-a.completedAt).slice(0,6);
-  if(!rows.length){message('아직 공개된 완료 기록이 없어요. 첫 클리어를 기다리고 있어요!');return;}
+    typeof x.name==='string');
+  const own=readHistory().map(x=>({
+    mode:x.mode,puzzleId:x.puzzleId,size:x.size,
+    name:x.name,completedAt:x.finishedAt,local:true,status:x.status
+  })).filter(x=>['solo','race','coop'].includes(x.mode)&&
+    Number.isFinite(x.completedAt)&&Number.isInteger(x.size));
+  const unmatched=own.filter(x=>!published.some(p=>
+    p.mode===x.mode&&p.puzzleId===x.puzzleId&&p.size===x.size&&
+    (p.uid===currentUser?.uid||x.mode==='coop')&&
+    Math.abs(p.completedAt-x.completedAt)<120000));
+  const rows=[...published,...unmatched]
+    .sort((a,b)=>b.completedAt-a.completedAt).slice(0,6);
+  if(!rows.length){message('아직 완료 기록이 없어요. 첫 클리어를 기다리고 있어요!');return;}
   const nodes=rows.map(item=>{
     const row=document.createElement('article');row.className='nono-completion-item';row.setAttribute('role','article');
     const name=document.createElement('strong');name.className='nono-completion-name';name.textContent=item.name.slice(0,18)||'플레이어';
@@ -62,12 +121,16 @@ function render(values){
     const mode=document.createElement('span');mode.className='nono-completion-tag';
     mode.dataset.mode=item.mode;mode.textContent=({solo:'혼자',race:'대결',coop:'협동'})[item.mode];
     const size=document.createElement('span');size.textContent=item.size+'×'+item.size;
-    const done=document.createElement('span');done.textContent='✓ 완료';
+    const done=document.createElement('span');
+    done.textContent=item.local
+      ?(item.status==='failed'?'내 완료 · 공개 실패':'내 완료 · 공개 대기')
+      :'✓ 완료';
     const time=document.createElement('span');time.className='nono-completion-time';time.textContent=clock(item.completedAt);
     info.append(mode,size,done,time);row.append(name,info);return row;
   });
   list.replaceChildren(...nodes);
 }
+
 let stop=null;
 function watch(){
   if(stop||!dbReady())return;
@@ -87,6 +150,8 @@ function publish(detail){
   if(!valid||!Number.isInteger(size)||size<1||size>100||
      !/^[a-zA-Z0-9_-]{1,80}$/.test(puzzleId)||
      (mode!=='solo'&&!/^[A-HJ-NP-Z2-9]{6}$/.test(roomCode)))return;
+  const historyKey=detail.key||'';
+  if(historyKey&&inflight.has(historyKey))return;
   const uid=currentUser.uid;
   const time=Math.max(0,Math.floor(finishedAt||Date.now()));
   const id=mode==='coop'?'coop-'+roomCode:
@@ -96,11 +161,20 @@ function publish(detail){
     name:(mode==='coop'?'협동 팀':String(detail.name||'플레이어')).slice(0,18),
     completedAt:serverTimestamp()};
   const destination=ref(database,'recentCompletions/'+id);
+  if(historyKey)inflight.add(historyKey);
   const work=mode==='coop'&&typeof runTransaction==='function'
     ?runTransaction(destination,current=>current?undefined:value,{applyLocally:false})
     :set(destination,value);
-  Promise.resolve(work).catch(error=>console.warn('완료 기록 공개 실패 (Firebase 규칙 확인 필요)',error));
+  Promise.resolve(work).then(()=>{
+    if(historyKey)setHistoryStatus(historyKey,'published');
+    render();
+  }).catch(error=>{
+    if(historyKey)setHistoryStatus(historyKey,'failed');
+    render();
+    console.warn('완료 기록 공개 실패 (Firebase 규칙 확인 필요)',error);
+  }).finally(()=>{if(historyKey)inflight.delete(historyKey);});
 }
+
 message('실시간 완료 기록을 연결하는 중…');
 const connection=document.getElementById('connection');
 if(connection){
@@ -111,7 +185,20 @@ if(connection){
   new MutationObserver(updateOfflineState).observe(connection,{childList:true,subtree:true,characterData:true});
   updateOfflineState();
 }
-window.addEventListener('nono:firebase-ready',watch);
-window.addEventListener('nono:completion-confirmed',event=>publish(event.detail));
-if(dbReady())watch();
+window.addEventListener('nono:firebase-ready',()=>{
+  watch();
+  for(const item of readHistory().filter(x=>x.status==='pending'||x.status==='failed'))
+    publish(item);
+});
+window.addEventListener('nono:completion-confirmed',event=>{
+  const item=remember(event.detail);
+  render();
+  if(item)publish(item);
+});
+render();
+if(dbReady()){
+  watch();
+  for(const item of readHistory().filter(x=>x.status==='pending'||x.status==='failed'))
+    publish(item);
+}
 })();
