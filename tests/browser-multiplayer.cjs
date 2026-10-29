@@ -37,11 +37,11 @@ async function main(){
     await page.waitForFunction(()=>window.NONO_ACCOUNT?.isSignedIn()===true);
   }
   assert.equal(await a.locator('#nickname').getAttribute('type'),'hidden');
+  // Opt in only in the emulator test. Production stays on legacy masks until Firebase migration.
+  await a.evaluate(()=>{window.NONO_PACKED_ANSWERS_READY=['heart5'];});
   // An ID not seeded for packed validation must keep legacy mask format.
   const fallback=await a.evaluate(()=>serverAnswerMask(Array(100).fill('0'),{id:'cat10',size:10}));
   assert.equal(fallback,'0'.repeat(100),'Unseeded puzzles retain existing format');
-  // Opt in only in the emulator test. Production stays on legacy masks until Firebase migration.
-  await a.evaluate(()=>{window.NONO_PACKED_ANSWERS_READY=['heart5'];});
   // Public matchmaking: a stranger should see and join an actual waiting room.
   await Promise.all([a.click('[data-mode="race"]'),b.click('[data-mode="race"]')]);
   await a.click('#quick-match');await a.waitForURL(/room=/);
