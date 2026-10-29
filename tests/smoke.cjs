@@ -440,7 +440,7 @@ const { pathToFileURL } = require('node:url');
         await img.waitFor();
         await page.waitForFunction(path=>{
           const image=document.querySelector('#nono-guide-overlay img.nono-guide-approved-image');
-          return image&&image.complete&&image.naturalWidth>0&&image.getAttribute('src').endsWith(path);
+          return image&&image.complete&&image.naturalWidth>0&&new URL(image.src,document.baseURI).pathname.endsWith(path);
         },path);
         if(await page.locator('#nono-guide-overlay .nono-guide-item').count()!==1)
           throw new Error('Guide must only show requested option '+label);
