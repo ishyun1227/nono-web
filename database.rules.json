@@ -82,13 +82,13 @@
               ".validate": "newData.isString() && newData.val().matches(/^[012]+$/) && newData.val().length == root.child('rooms').child($room).child('meta/size').val() * root.child('rooms').child($room).child('meta/size').val()"
             },
             "filled": {
-              ".validate": "(root.child('rooms').child($room).child('meta/format').val() == 2 && newData.isString() && newData.val().matches(/^[01]+$/) && newData.val().length == root.child('rooms').child($room).child('meta/size').val() * root.child('rooms').child($room).child('meta/size').val()) || (root.child('rooms').child($room).child('meta/format').val() != 2 && newData.isString() && newData.val() == newData.parent().child('board').val().replace('2', '0'))"
+              ".validate": "((root.child('rooms').child($room).child('meta/format').val() == 2 && newData.isString() && newData.val().matches(/^[01]+$/) && newData.val().length == root.child('rooms').child($room).child('meta/size').val() * root.child('rooms').child($room).child('meta/size').val()) || (root.child('rooms').child($room).child('meta/format').val() != 2 && newData.isString() && newData.val() == newData.parent().child('board').val().replace('2', '0'))) || (root.child('rooms').child($room).child('meta/format').val() == 2 && newData.isString() && root.child('privateAnswersPacked').child(root.child('rooms').child($room).child('meta/puzzleId').val()).exists() && newData.val() == root.child('privateAnswersPacked').child(root.child('rooms').child($room).child('meta/puzzleId').val()).val())"
             },
             "startedAt": {
               ".validate": "newData.val() == root.child('rooms').child($room).child('meta/startedAt').val()"
             },
             "finishedAt": {
-              ".validate": "newData.val() == 0 || (newData.val() == now && newData.parent().child('filled').val() == root.child('privateAnswers').child(root.child('rooms').child($room).child('meta/puzzleId').val()).val())"
+              ".validate": "newData.val() == 0 || (newData.val() == now && (newData.parent().child('filled').val() == root.child('privateAnswers').child(root.child('rooms').child($room).child('meta/puzzleId').val()).val() || (root.child('privateAnswersPacked').child(root.child('rooms').child($room).child('meta/puzzleId').val()).exists() && newData.parent().child('filled').val() == root.child('privateAnswersPacked').child(root.child('rooms').child($room).child('meta/puzzleId').val()).val())))"
             },
             "$other": {
               ".validate": false
@@ -147,10 +147,10 @@
             ".validate": "newData.val() == (newData.parent().child('finishedAt').val() == 0 ? now : data.val())"
           },
           "finishedAt": {
-            ".validate": "newData.val() == 0 || (data.exists() && data.val() == 0 && newData.val() == now && newData.parent().child('filled').val() == root.child('privateAnswers').child($puzzle).val())"
+            ".validate": "newData.val() == 0 || (data.exists() && data.val() == 0 && newData.val() == now && (newData.parent().child('filled').val() == root.child('privateAnswers').child($puzzle).val() || (root.child('privateAnswersPacked').child($puzzle).exists() && newData.parent().child('filled').val() == root.child('privateAnswersPacked').child($puzzle).val())))"
           },
           "filled": {
-            ".validate": "newData.isString() && newData.val().matches(/^[01]+$/) && newData.val().length == root.child('privateAnswers').child($puzzle).val().length"
+            ".validate": "(newData.isString() && newData.val().matches(/^[01]+$/) && newData.val().length == root.child('privateAnswers').child($puzzle).val().length) || (newData.isString() && root.child('privateAnswersPacked').child($puzzle).exists() && newData.val() == root.child('privateAnswersPacked').child($puzzle).val())"
           },
           "changes": {
             ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100000 && newData.val() % 1 == 0"
@@ -266,6 +266,10 @@
           ".validate": false
         }
       }
+    },
+    "privateAnswersPacked": {
+      ".read": false,
+      ".write": false
     }
   }
 }
