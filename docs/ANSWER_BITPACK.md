@@ -71,3 +71,32 @@ npm run test:browser
 `--input /보안경로/answer.json`으로 전달한다. 예시의 힌트는 실제 값이 아니므로 검증 실패한다.
 추가 퍼즐을 실제 게임에 공개할 때는 공개 힌트 목록 추가, 크기별 렌더링, 서버의 허용 ID/완료 처리, 시작·저장·이어서하기 테스트를 별도로 수행해야 한다.
 **본 작업은 기존 정사각형 게임 엔진을 직사각형 엔진으로 전면 전환하는 작업이 아니다.** 겨울 눈사람 63×59 시험 페이지는 기존대로 독립 동작한다.
+
+
+## 새 퍼즐 입력 사전 검증 (2026-10-29)
+
+`node tools/prepare-puzzle.cjs --input /보안경로/puzzle.json`은 **dry-run**으로 검증만 진행한다.
+
+입력에 `id,name,width,height,difficulty,mask,rows,cols`가 필요하다.
+정답은 위에서 아래로 이어 붙인 row-major 0/1 문자열이다. 검사 과정에서
+- 입력 크기와 순수 0/1 비트 확인
+- 정답으로부터 계산된 모든 행·열 힌트 정확성 확인
+- 외곽 전체가 0인 행 또는 열 제거 여부 확인
+- 1비트 MSB 바이너리 변환·복원의 무손실 일치 확인
+- 공개 힌트 데이터와 비공개 압축 정답 분리
+
+다음 명령은 검증한 두 산출물을 실제로 작성한다.
+
+```bash
+node tools/prepare-puzzle.cjs --input /secure/source.json \
+  --public-out ./puzzles-public/example.json \
+  --private-out /secure/answers/example.json
+```
+
+`--private-out`은 **GitHub 저장소 바깥의 경로만 허용**하며 공개 산출물에 정답을 넣지 않는다.
+기존 파일은 임의로 덮어쓰지 않는다. 강제 변경 시에만 `--overwrite` 사용.
+
+**주의:** 이 도구는 힌트와 정답의 일치만 검증하고 유일해/재미도/인간 논리 풀이를 독립적으로 증명하지 않는다.
+유일해 여부는 별도의 솔버 결과를 확인해야 한다. `reviewStatus:'approved'`를 사용하는 경우
+입력 데이터에 `uniqueProofStatus:'unique'`가 필요하지만, 단순 문자열 값은 독립 검증의 대체물이 아니다.
+현재 도구는 파일을 준비하는 단계이며 공식 목록 등록과 운영 서버 배포까지 자동화하지 않았다.
