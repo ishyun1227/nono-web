@@ -139,7 +139,8 @@
   // NR2: lossless, versioned packed action stream. Active moves stay in memory
   // for instant editing; localStorage/RTDB persist this representation directly.
   // This is a binary encoding, not an additional general-purpose compression pass.
-  const PACKED_PREFIX = 'NR2:';
+  const PACKED_PREFIX = 'NR3:';
+  const PACKED_V2_PREFIX = 'NR2:';
   const CHANGE_PREFIX = 'NRC1:';
   const encoder = new TextEncoder();
   const decoder = new TextDecoder('utf-8', {fatal: true});
@@ -248,8 +249,8 @@
   }
   function serialize(session) {
     assertSession(session);
-    getCursor(session); // Validate the entire saved sequence before encoding.
-    const out=[78,82,2];
+    getCursor(session); // Validate every transition before storing it.
+    const out=[78,82,3];
     pushString(out,session.id);
     pushString(out,session.puzzleId);
     const mode=MODE_IDS.indexOf(session.mode);
@@ -260,23 +261,38 @@
     pushVar(out,session.completedAt||0);
     for(const b of packBoard(session.initial))out.push(b);
     pushString(out,JSON.stringify(session.actors||[]));
-    pushVar(out,session.actions.length);
-    let previousId=0,previousTime=0;
-    for(const action of session.actions){
+    const actions=session.actions;
+    const sequential=actions.every((a,i)=>a[0]===i+1);
+    const uniformActor=actions.length>0 && actions.every(a=>a[1]===actions[0][1]);
+    const flags=(sequential?1:0)|(uniformActor?2:0);
+    out.push(flags);
+    if(uniformActor)pushVar(out,actions[0][1]);
+    pushVar(out,actions.length);
+    let prevId=0,prevTime=0;
+    for(const action of actions){
       if(!Array.isArray(action)||action.length!==4||!Array.isArray(action[3])||!action[3].length)
         throw new TypeError('Invalid replay action');
-      pushVar(out,integer(action[0]-previousId,'actionId delta',1,Number.MAX_SAFE_INTEGER));
-      pushVar(out,integer(action[1],'actor',0,Number.MAX_SAFE_INTEGER));
-      pushVar(out,integer(action[2]-previousTime,'time delta',0,Number.MAX_SAFE_INTEGER));
-      pushVar(out,action[3].length);
-      for(const change of action[3])pushChange(out,change,session.size);
-      previousId=action[0];previousTime=action[2];
+      if(!sequential)pushVar(out,integer(action[0]-prevId,'actionId delta',1,Number.MAX_SAFE_INTEGER));
+      if(!uniformActor)pushVar(out,integer(action[1],'actor',0,Number.MAX_SAFE_INTEGER));
+      pushVar(out,integer(action[2]-prevTime,'time delta',0,Number.MAX_SAFE_INTEGER));
+      // An end-of-action bit replaces a separate cell-count byte.
+      // Zero means last change; one means another change follows.
+      const changes=action[3];
+      for(let i=0;i<changes.length;i++){
+        pushChange([],changes[i],session.size); // validate cell/state and non-no-op
+        const cell=changes[i][0],before=changes[i][1],after=changes[i][2];
+        pushVar(out,(cell*9+before*3+after)*2+(i<changes.length-1?1:0));
+      }
+      prevId=action[0];prevTime=action[2];
     }
     return PACKED_PREFIX+asBase64(Uint8Array.from(out));
   }
   function parsePacked(raw) {
-    const data=fromBase64(raw.slice(PACKED_PREFIX.length)),cursor={i:0};
-    if(data[cursor.i++]!==78||data[cursor.i++]!==82||data[cursor.i++]!==2)
+    const isV3=raw.startsWith(PACKED_PREFIX);
+    const prefix=isV3?PACKED_PREFIX:PACKED_V2_PREFIX;
+    const data=fromBase64(raw.slice(prefix.length)),cursor={i:0};
+    const codecVersion=isV3?3:2;
+    if(data[cursor.i++]!==78||data[cursor.i++]!==82||data[cursor.i++]!==codecVersion)
       throw new TypeError('Unsupported packed replay version');
     const id=takeString(data,cursor),puzzleId=takeString(data,cursor);
     const mode=MODE_IDS[data[cursor.i++]];
@@ -287,29 +303,50 @@
     const initial=unpackBoard(data,cursor,size);
     const actors=JSON.parse(takeString(data,cursor));
     if(!Array.isArray(actors))throw new TypeError('Invalid replay actors');
+    const flags=isV3?data[cursor.i++]:0;
+    if(isV3 && (!Number.isInteger(flags)||flags>3))throw new TypeError('Invalid replay flags');
+    const defaultActor=(flags&2)?takeVar(data,cursor):null;
     const actionCount=takeVar(data,cursor);
     if(actionCount>1000000)throw new TypeError('Replay action count too large');
     const actions=[];
     let prevId=0,prevTime=0;
     for(let i=0;i<actionCount;i++){
-      const idDelta=takeVar(data,cursor),actor=takeVar(data,cursor),delta=takeVar(data,cursor),count=takeVar(data,cursor);
-      if(idDelta<1||count<1||count>22500)throw new TypeError('Invalid replay action lengths');
+      const idDelta=(flags&1)?1:takeVar(data,cursor);
+      const actor=(flags&2)?defaultActor:takeVar(data,cursor);
+      const delta=takeVar(data,cursor);
+      if(idDelta<1)throw new TypeError('Invalid replay action ID');
       const nextId=prevId+idDelta,nextTime=prevTime+delta;
       if(!Number.isSafeInteger(nextId)||!Number.isSafeInteger(nextTime))throw new TypeError('Replay action overflow');
       const changes=[];
-      for(let j=0;j<count;j++)changes.push(takeChange(data,cursor,size));
+      if(isV3){
+        let more=1;
+        while(more){
+          if(changes.length>=22500)throw new TypeError('Replay stroke too large');
+          const word=takeVar(data,cursor);
+          more=word%2;
+          const code=Math.floor(word/2);
+          const cell=Math.floor(code/9),rest=code%9;
+          const before=Math.floor(rest/3),after=rest%3;
+          integer(cell,'cell',0,size*size-1);
+          if(before===after)throw new TypeError('Invalid replay no-op');
+          changes.push([cell,before,after]);
+        }
+      }else{
+        const count=takeVar(data,cursor);
+        if(count<1||count>22500)throw new TypeError('Invalid replay action lengths');
+        for(let j=0;j<count;j++)changes.push(takeChange(data,cursor,size));
+      }
       actions.push([nextId,actor,nextTime,changes]);
       prevId=nextId;prevTime=nextTime;
     }
     if(cursor.i!==data.length)throw new TypeError('Trailing replay bytes');
     const session={version:VERSION,id,puzzleId,size,mode,initial,startedAt,completedAt,actors,actions};
-    assertSession(session);
-    getCursor(session);
+    assertSession(session);getCursor(session);
     return session;
   }
   function parse(raw) {
     if (typeof raw !== 'string') throw new TypeError('Replay must be a string');
-    if(raw.startsWith(PACKED_PREFIX))return parsePacked(raw);
+    if(raw.startsWith(PACKED_PREFIX)||raw.startsWith(PACKED_V2_PREFIX))return parsePacked(raw);
     const data=JSON.parse(raw); // Legacy NR1 JSON is read-only compatible.
     assertSession(data);getCursor(data);
     return data;
