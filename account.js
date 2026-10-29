@@ -17,7 +17,7 @@ style.textContent=[
  '.nono-account-row span{color:#b5c5dd}.nono-account-entry{font-size:12px;border-bottom:1px solid #283853;padding:7px 0}.nono-account-note{font-size:12px!important;color:#9aacc8!important}'
 ].join('');
 document.head.append(style);
-let auth=null,sdk=null,db=null,databaseSdk=null,user=null,scope='',modal=null,busy=false,syncJob=null,syncTimer=null;
+let auth=null,sdk=null,db=null,databaseSdk=null,user=null,scope='',modal=null,busy=false,syncJob=null,syncOwner='',syncTimer=null,connecting=false,applying=false;
 const validKey=key=>key==='nono-completion-history-v1'||/^nono-web-puzzle-v1:[a-zA-Z0-9_-]{1,90}$/.test(key)||/^nono-records-[a-zA-Z0-9_-]{1,90}$/.test(key);
 const json=(value,fallback)=>{try{return JSON.parse(value);}catch{return fallback;}};
 const currentKeys=()=>Object.keys(localStorage).filter(validKey);
@@ -84,15 +84,18 @@ function applyState(state){
  const combined=mergeState(localSnapshot(),state);
  for(const [key,value] of Object.entries(combined.keys))if(localStorage.getItem(key)!==value)localStorage.setItem(key,value);
  backup(localStorage.getItem(SCOPE)||'guest');
- window.dispatchEvent(new Event('nono:completion-history-updated'));
+ applying=true;
+ try{window.dispatchEvent(new Event('nono:completion-history-updated'));}finally{applying=false;}
  if(typeof resumeHub!=='undefined')resumeHub?.refresh?.();
 }
 const isSignedIn=()=>!!user&&!user.isAnonymous;
 async function syncNow(){
  if(!isSignedIn()||!db||!databaseSdk)return;
- if(syncJob)return syncJob;
- const uid=user.uid,atStart=localSnapshot();
- syncJob=(async()=>{
+ const uid=user.uid;
+ if(syncJob&&syncOwner===uid)return syncJob;
+ const atStart=localSnapshot();
+ syncOwner=uid;
+ const job=(async()=>{
   try{
    const path=databaseSdk.ref(db,'userSync/'+uid+'/state');
    const tx=await databaseSdk.runTransaction(path,previous=>{
@@ -105,12 +108,15 @@ async function syncNow(){
     applyState(json(tx.snapshot.val(),null));
     window.dispatchEvent(new Event('nono:account-synced'));
    }
+   return true;
   }catch(error){
    console.warn('기록 동기화 실패 · 로컬 기록 유지',error);
    message('기록 동기화에 실패했어요. 진행 상태는 현재 브라우저에 보존됩니다.');
+   return false;
   }
  })();
- try{await syncJob;}finally{syncJob=null;}
+ syncJob=job;
+ try{return await job;}finally{if(syncJob===job){syncJob=null;syncOwner='';}}
 }
 function scheduleSync(){
  if(!isSignedIn())return;
@@ -135,7 +141,7 @@ async function changeUser(next){
  changeScope(target,previous==='guest'&&target!=='guest');
  if(target!=='guest')await syncNow();
  else if(!localStorage.getItem(INTRO)&&auth)setTimeout(()=>{if(!isSignedIn()&&!modal)open('welcome');},300);
- if(typeof resumeHub!=='undefined')resumeHub?.refresh?.();
+ if(typeof resumeHub!=='undefined'){resumeHub?.watch?.();resumeHub?.refresh?.();}
 }
 function node(tag,text,parent,className){
  const n=document.createElement(tag);if(text!==null)n.textContent=text;
@@ -227,6 +233,7 @@ async function logout(){
  busy=true;
  try{
   if(user?.uid)backup(user.uid);
+  if(await syncNow()===false){message('클라우드 동기화가 실패해 로그아웃을 중단했어요. 연결을 확인해 주세요.');return;}
   await sdk.signOut(auth);
   const credential=await sdk.signInAnonymously(auth);
   await changeUser(credential.user);
@@ -236,14 +243,18 @@ async function logout(){
 button.addEventListener('click',()=>open('profile'));
 window.addEventListener('nono:completion-confirmed',scheduleSync);
 window.addEventListener('nono:local-record-changed',scheduleSync);
-window.addEventListener('nono:completion-history-updated',scheduleSync);
+window.addEventListener('nono:completion-history-updated',()=>{if(!applying)scheduleSync();});
 window.addEventListener('focus',()=>{if(isSignedIn())syncNow();});
 window.addEventListener('pagehide',()=>{if(isSignedIn())backup(user.uid);});
 window.NONO_ACCOUNT={open,isSignedIn,require(){if(isSignedIn())return true;open('welcome');return false;},syncNow,scheduleSync};
-window.addEventListener('nono:auth-ready',event=>{
- auth=event.detail.auth;sdk=event.detail.sdk;db=event.detail.database;databaseSdk=event.detail.databaseSdk;
+function authReady(detail){
+ if(connecting)return;
+ connecting=true;
+ auth=detail.auth;sdk=detail.sdk;db=detail.database;databaseSdk=detail.databaseSdk;
  changeUser(auth.currentUser);
  sdk.onAuthStateChanged(auth,next=>changeUser(next));
-});
+}
+window.addEventListener('nono:auth-ready',event=>authReady(event.detail));
+if(window.NONO_AUTH_READY_DETAIL)authReady(window.NONO_AUTH_READY_DETAIL);
 updateChip();
 })();
