@@ -54,7 +54,7 @@ const {pathToFileURL}=require('node:url');
      await page.locator('#nono-shop-tab-'+id).click();await audit(lang+':shop-'+id);
    }
    await page.locator('#nono-theme-close').click();
-   if(['en','ja','zh-CN','es'].includes(lang)){
+   { // Every non-Korean locale must pass premium-world and active-game screens.
      for(const theme of ['enchanted','terminal']){
        await page.evaluate(id=>{
          document.body.dataset.nonoTheme=id;
