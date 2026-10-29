@@ -69,3 +69,64 @@ sprites.forEach(([colors, pixels],spriteIndex)=>{
 parts.push('</svg>');
 fs.writeFileSync(path.join(output,'assets/friends-parade.svg'),parts.join(''));
 console.log('Built NONO static assets and restored six original grid characters');
+
+
+ 
+// Generate trial puzzle pages from clue-only JSON, using one shared puzzle
+// play engine template. This avoids writing a new game page for each puzzle.
+// DO NOT ever copy private masks, packed answers, or source art into dist.
+const trialDir=path.join(root,'puzzles','trial');
+const trialOutput=path.join(output,'trials');
+fs.mkdirSync(trialOutput,{recursive:true});
+const trialIndex=[];
+const winterTemplate=fs.readFileSync(path.join(root,'winter-snowman-test.html'),'utf8');
+const htmlEscape=x=>String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+for(const filename of (fs.existsSync(trialDir)?fs.readdirSync(trialDir):[]).filter(n=>n.endsWith('.json')).sort()){
+ const p=JSON.parse(fs.readFileSync(path.join(trialDir,filename),'utf8'));
+ if(!p||typeof p!=='object'||!/^[a-z][a-z0-9_-]{2,78}$/.test(p.id)||filename!==p.id+'.json')
+   throw Error('Invalid trial puzzle file/id: '+filename);
+ if(typeof p.name!=='string'||p.name.length<1||p.name.length>90||/[<>]/.test(p.name)||
+    !Number.isInteger(p.width)||!Number.isInteger(p.height)||p.width<1||p.height<1||
+    p.width*p.height>16384||!Array.isArray(p.rows)||!Array.isArray(p.cols)||
+    p.rows.length!==p.height||p.cols.length!==p.width)
+   throw Error('Invalid trial puzzle dimensions/name: '+filename);
+ if(['mask','packed','answer','solution','grid','bitmap'].some(key=>Object.prototype.hasOwnProperty.call(p,key)))
+   throw Error('PRIVATE ANSWER in public trial catalog: '+filename);
+ const sum=lines=>{
+   let total=0;
+   for(const line of lines){
+     if(!Array.isArray(line)||line.length===0||line.length>Math.max(p.width,p.height))throw Error('Malformed clue line');
+     for(const n of line)if(!Number.isInteger(n)||n<0||n>Math.max(p.width,p.height))throw Error('Invalid clue');
+     if(line.length>1&&line.includes(0))throw Error('Zero clue in nonempty row');
+     total+=line.reduce((a,b)=>a+b,0);
+   }
+   return total;
+ };
+ if(sum(p.rows)!==sum(p.cols))throw Error('Conflicting row/col totals: '+filename);
+ if([p.rows[0],p.rows[p.height-1],p.cols[0],p.cols[p.width-1]]
+   .some(line=>line.length===1&&line[0]===0))
+   throw Error('Outer zero line not trimmed: '+filename);
+ if(!['trial','approved'].includes(p.reviewStatus))throw Error('Missing review status: '+filename);
+ const publicData={id:p.id,width:p.width,height:p.height,rows:p.rows,cols:p.cols};
+ let html=winterTemplate;
+ const title=htmlEscape(p.name);
+ html=html.replace(/<title>[^<]*<\/title>/, '<title>'+title+' · 노노그램 체험 | NONO</title>');
+ html=html.replace(/<h1>❄ 겨울 눈사람 <small[^>]*>63행 × 59열<\/small><\/h1>/,
+   '<h1>🧩 '+title+' <small style="font-size:14px;color:#a9c9e3">'+p.height+'행 × '+p.width+'열</small></h1>');
+ html=html.replace(/repeat\(59,var\(--cell\)\)/g,'repeat('+p.width+',var(--cell))');
+ html=html.replace(/<script type="application\/json" id="data">[\s\S]*?<\/script>/,
+   '<script type="application/json" id="data">'+JSON.stringify(publicData).replace(/</g,'\\u003c')+'</script>');
+ html=html.replace("const KEY='nono-winter-snowman-trial-v1'",
+   "const KEY='nono-trial-'+d.id+'-v1'");
+ html=html.replace(/href="\.\//g,'href="../');
+ if(!html.includes("const KEY='nono-trial-'+d.id+'-v1'")||
+    !html.includes('<script type="application/json" id="data">'))
+   throw Error('Trial template failed to render: '+filename);
+ const route='trials/'+p.id+'.html';
+ fs.writeFileSync(path.join(output,route),html);
+ trialIndex.push({id:p.id,name:p.name,width:p.width,height:p.height,
+   difficulty:p.difficulty||'미지정',reviewStatus:p.reviewStatus,route:'./'+route});
+}
+fs.writeFileSync(path.join(output,'trial-index.json'),JSON.stringify(trialIndex));
+console.log('Generated '+trialIndex.length+' clue-only trial nonograms without publishing answers');
