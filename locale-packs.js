@@ -4,6 +4,7 @@
 (()=>{'use strict';
 const locales=['zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
 const rows=[
+['🌐 언어','🌐 语言','🌐 語言','🌐 Idioma','🌐 Idioma','🌐 Langue','🌐 Sprache','🌐 Bahasa','🌐 Ngôn ngữ','🌐 ภาษา'],
 ['⚙ 설정','⚙ 设置','⚙ 設定','⚙ Ajustes','⚙ Configurações','⚙ Paramètres','⚙ Einstellungen','⚙ Pengaturan','⚙ Cài đặt','⚙ ตั้งค่า'],
 ['🛍 상점','🛍 商店','🛍 商店','🛍 Tienda','🛍 Loja','🛍 Boutique','🛍 Shop','🛍 Toko','🛍 Cửa hàng','🛍 ร้านค้า'],
 ['설정','设置','設定','Ajustes','Configurações','Paramètres','Einstellungen','Pengaturan','Cài đặt','ตั้งค่า'],
