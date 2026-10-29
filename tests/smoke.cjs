@@ -248,7 +248,7 @@ const { pathToFileURL } = require('node:url');
     await selectUnderlying('nono-quick-size',String(size));
     if(await page.locator('#puzzle').inputValue()!=='size-test-'+size)
       throw new Error('Large layout test size '+size+' cannot be selected');
-    if(await page.locator('#setup .nono-apple-puzzle-choices button').allTextContents().then(x=>x.join(','))!=='01')
+    if(await page.locator('#nono-quick-variants button').allTextContents().then(x=>x.join(','))!=='01')
       throw new Error('Each large size should offer exactly one random test puzzle');
   }
   const previewPuzzles=await page.evaluate(()=>[50,75,100].map(size=>{
