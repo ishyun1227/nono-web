@@ -1080,6 +1080,39 @@ const { pathToFileURL } = require('node:url');
   if(terminalErrors.length)throw new Error('CRT JavaScript errors: '+terminalErrors.join(' | '));
   await terminalPage.close();
 
+  // New source-art nonograms must be actually playable without relying on the
+  // square-only main engine. Verify exact dimensions, hints, undo, save and switch.
+  const playtestPage=await browser.newPage({viewport:{width:1280,height:900}});
+  const playtestErrors=[];
+  playtestPage.on('pageerror',error=>playtestErrors.push(error.message));
+  await playtestPage.goto(pathToFileURL(path.resolve(__dirname,'..','dist','playtest-rabbit-samurai.html')).href);
+  await playtestPage.locator('#board .cell').first().waitFor({state:'visible'});
+  if(await playtestPage.locator('#board .cell').count()!==53*73 ||
+     await playtestPage.locator('#board .rh').count()!==73 ||
+     await playtestPage.locator('#board .ch').count()!==53)
+    throw new Error('Rabbit playtest dimensions or hints are wrong');
+  await playtestPage.locator('#board .cell').first().click();
+  if(!await playtestPage.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))
+    throw new Error('Rabbit click did not fill a cell');
+  await playtestPage.locator('#undo').click();
+  if(await playtestPage.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))
+    throw new Error('Rabbit undo did not restore empty cell');
+  await playtestPage.locator('#redo').click();
+  await playtestPage.reload();
+  if(!await playtestPage.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))
+    throw new Error('Rabbit playtest autosave did not restore after reload');
+  await playtestPage.locator('#samurai').click();
+  if(await playtestPage.locator('#board .cell').count()!==72*72 ||
+     await playtestPage.locator('#board .rh').count()!==72 ||
+     await playtestPage.locator('#board .ch').count()!==72)
+    throw new Error('Samurai playtest dimensions or hints are wrong');
+  await playtestPage.locator('#board .cell').first().click();
+  await playtestPage.locator('#rabbit').click();
+  if(!await playtestPage.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))
+    throw new Error('Rabbit progress lost while switching puzzles');
+  if(playtestErrors.length)throw new Error('Nonogram playtest page JS errors: '+playtestErrors.join(' | '));
+  await playtestPage.close();
+
   if (errors.length) throw new Error('Browser errors: ' + errors.join(' | '));
   console.log('NONO smoke test passed.');
   await browser.close();
