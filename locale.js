@@ -354,6 +354,15 @@ function queue(node){
  });
 }
 function renderSelector(){
+ const meta={
+  ko:['🌐 언어','자동 · 브라우저'],en:['🌐 Language','Auto · Browser'],
+  ja:['🌐 言語','自動 · ブラウザ'], 'zh-CN':['🌐 语言','自动 · 浏览器'],
+  'zh-TW':['🌐 語言','自動 · 瀏覽器'],es:['🌐 Idioma','Automático · Navegador'],
+  'pt-BR':['🌐 Idioma','Automático · Navegador'],fr:['🌐 Langue','Auto · Navigateur'],
+  de:['🌐 Sprache','Automatisch · Browser'],id:['🌐 Bahasa','Otomatis · Browser'],
+  vi:['🌐 Ngôn ngữ','Tự động · Trình duyệt'],th:['🌐 ภาษา','อัตโนมัติ · เบราว์เซอร์']
+ };
+ const labels=meta[active]||meta.ko;
  const modal=document.querySelector('#nono-settings-overlay');
  if(!modal)return;
  const head=modal.querySelector('.nono-settings-head');
@@ -361,16 +370,18 @@ function renderSelector(){
  let label=head.querySelector('#nono-language-control');
  if(!label){
   label=document.createElement('label');label.id='nono-language-control';label.className='nono-language-control';
-  const caption=document.createElement('span');caption.textContent='🌐 Language';
-  const select=document.createElement('select');select.id='nono-language-select';select.setAttribute('aria-label','Language selection');
-  for(const [value,name] of [['auto','Auto · Browser'],...(window.NONO_LOCALE_OPTIONS||[['ko','한국어'],['en','English'],['ja','日本語']])]){
+  const caption=document.createElement('span');caption.textContent=labels[0];
+  const select=document.createElement('select');select.id='nono-language-select';select.setAttribute('aria-label',labels[0]);
+  for(const [value,name] of [['auto',labels[1]],...(window.NONO_LOCALE_OPTIONS||[['ko','한국어'],['en','English'],['ja','日本語']])]){
    const option=document.createElement('option');option.value=value;option.textContent=name;option.dataset.localeOption='1';select.append(option);
   }
   select.addEventListener('change',()=>setLanguage(select.value));
   label.append(caption,select);
   head.insertBefore(label,head.lastElementChild);
  }
- const input=label.querySelector('select');if(input&&input.value!==choice)input.value=choice;
+ const input=label.querySelector('select');
+ label.querySelector('span').textContent=labels[0];
+ if(input){input.setAttribute('aria-label',labels[0]);input.querySelector('option[value="auto"]').textContent=labels[1];if(input.value!==choice)input.value=choice;}
 }
 function setLanguage(next){
  if(next!=='auto'&&!SUPPORTED.includes(next))return false;
