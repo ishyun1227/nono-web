@@ -35,6 +35,8 @@ jobs:
           node --check locale-core-packs.js
           node --check locale-controls-packs.js
           node --check locale-options-packs.js
+          node --check locale-navigation-packs.js
+          node --check locale-world-packs.js
           node --check locale-en-extra.js
           node --check tests/locale.cjs
           node --check tests/i18n-audit.cjs
