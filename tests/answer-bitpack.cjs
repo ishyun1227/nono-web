@@ -9,7 +9,7 @@ assert.equal(codec.pack('11111111',4,2),'/w==');
 assert.throws(()=>codec.unpack('gIE=',3,3),/padding/);
 assert.throws(()=>codec.unpack('gIA',3,3),/base64/);
 assert.throws(()=>codec.unpack('gI=',3,3),/base64/);
-assert.throws(()=>codec.unpack('gIA=',4,3),/length/);
+assert.throws(()=>codec.unpack('gIA=',5,5),/length/);
 assert.throws(()=>codec.pack('0102',2,2),/0\/1/);
 assert.throws(()=>codec.pack('010',2,2),/dimensions/);
 assert.throws(()=>codec.unpack('gIA=',0,9),/dimensions/);
