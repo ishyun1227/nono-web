@@ -63,7 +63,16 @@ async function main(){
   await a.waitForFunction(()=>board[0]==='1'&&board[1]==='1');
   console.log('PASS public listing survives host departure and saved cooperation resumes after page reload');
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)paint(i,answer[i]==='1'?'1':'0',true);},answers.heart5);
-  for(const p of [a,b])await p.waitForFunction(()=>finished&&finishedAt>0);
+  try{for(const p of [a,b])await p.waitForFunction(()=>finished&&finishedAt>0,{timeout:10000});}
+  catch(error){
+    const states=await Promise.all([a,b].map(p=>p.evaluate(async({code,answer})=>{
+      const moves=(await get(ref(database,`rooms/${code}/coopMoves`))).val()||{};
+      const records=Object.entries(moves).map(([id,v])=>({id,at:v.at,bits:v.bits})).sort((x,y)=>x.at-y.at||x.id.localeCompare(y.id));
+      return {board:board.join(''),answer,finished,meta,moveCount:records.length,records};
+    },{code:coop,answer:answers.heart5})));
+    console.error('COOP COMPLETION DEBUG '+JSON.stringify(states));
+    throw error;
+  }
   const coopFinish=await b.evaluate(()=>{tick();return {at:finishedAt,label:document.querySelector('#timer').textContent};});
   await b.waitForTimeout(1100);
   assert.equal(await b.evaluate(()=>{tick();return document.querySelector('#timer').textContent;}),coopFinish.label);
