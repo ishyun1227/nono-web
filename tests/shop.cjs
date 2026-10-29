@@ -10,7 +10,7 @@ const {pathToFileURL}=require('node:url');
  await page.goto(uri);
  await page.locator('#nono-theme-open').waitFor();
  if((await page.locator('#nono-theme-open').textContent()).indexOf('상점')<0)throw Error('Store entry not renamed');
- await page.click('#nono-shop-tab-top');
+ await page.evaluate(()=>window.NONO_THEMES.open());
  await page.locator('#nono-shop-tab-themes').waitFor();
  if(await page.locator('#nono-shop-themes .nono-theme-card').count()!==10)throw Error('Missing existing theme catalog');
  await page.click('#nono-shop-tab-points');
