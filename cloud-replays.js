@@ -15,7 +15,7 @@
   const isPublicAllowed=()=>ready() && storage.getItem(PUBLIC_PREF + currentId())==='true';
   const live = [];
   const uploaded = new Set();
-  let token = 0, online = false, feed = [];
+  let token = 0, online = false, feed = [], watchedUid = '';
 
   function ready() { return Boolean(database && currentUser && window.NONO_ACCOUNT?.isSignedIn() && typeof get === 'function'); }
   function actualRun(s) {
@@ -23,7 +23,7 @@
       && API.boardAtEnd(s).length === s.size * s.size;
   }
   function safeLocalRuns() {
-    try { return API.recentCompleted(storage, Number.MAX_SAFE_INTEGER); }
+    try { return API.recentCompleted(window.NONO_REPLAY_STORAGE||storage, Number.MAX_SAFE_INTEGER); }
     catch (error) { console.warn('로컬 리플레이 목록 조회 실패',error); return []; }
   }
   async function upload(run) {
@@ -162,6 +162,11 @@
     UI.setPublicPreference?.(false);
   }
   function onAuth() {
+    const next=ready()?currentUser.uid:'';
+    if(watchedUid!==next){
+      stop();online=false;feed=[];watchedUid=next;
+      UI.setRemote?.([]);UI.setAccount?.([]);
+    }
     if (!ready()) return;
     UI.setPublicPreference?.(isPublicAllowed());
     if (!online) watchFeed();
@@ -174,6 +179,7 @@
   };
   window.addEventListener('nono:online-ready',onAuth);
   window.addEventListener('nono:account-synced',onAuth);
+  window.addEventListener('nono:account-changed',onAuth);
   window.addEventListener('pagehide',stop);
   if (ready()) onAuth();
 })();
