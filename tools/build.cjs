@@ -28,7 +28,7 @@ if(!/\.\/apple-home\.css\?v=[^"' ]+/.test(currentIndex))throw Error('Apple home 
 fs.writeFileSync(builtIndex,currentIndex.replace(/\.\/apple-home\.css\?v=[^"' ]+/g,'./apple-home.css?v='+appleHomeHash));
 
 // New side rails must be cached by file content, not the legacy fixed ?v=1.
-for(const asset of ['home-sidebars.css','home-sidebars.js','apple-home.js','daily-rewards.js','reward-policy.css','reward-policy.js','community.css','community.js','locale-community-rewards.js']){
+for(const asset of ['locale-sidebars.js','home-sidebars.css','home-sidebars.js','apple-home.js','daily-rewards.js','reward-policy.css','reward-policy.js','community.css','community.js','locale-community-rewards.js']){
   const hash=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,asset))).digest('hex').slice(0,12);
   const html=fs.readFileSync(builtIndex,'utf8');
   const current='./'+asset+'?v=1';
