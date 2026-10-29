@@ -58,6 +58,11 @@ async function main(){
   await assertFails(set(ref(a,'rooms/ABCDEF/replayEvents/alice/entryBad'),{...coopEvent,cells:'untrusted'}));
   await assertFails(get(ref(outsider,'rooms/ABCDEF/replayEvents')));
   await assertSucceeds(get(ref(b,'rooms/ABCDEF/replayEvents')));
+  // Packed actions use a strictly bounded base64 envelope, legacy rows remain readable.
+  const packedCoop={...coopEvent,cells:'NRC1:AQIB'};
+  await assertSucceeds(set(ref(a,'rooms/ABCDEF/replayEvents/alice/entryPacked'),packedCoop));
+  await assertFails(set(ref(a,'rooms/ABCDEF/replayEvents/alice/entryInvalidPacked'),{...coopEvent,cells:'NRC1:not valid!'}));
+
   console.log('PASS cooperation concurrency, unlimited UID membership, private saved-room index, board validation');
   await set(ref(a,'rooms/GHJKLM/meta'),meta('race'));await join(a,'GHJKLM','0','alice');await join(b,'GHJKLM','1','bob');
   const race=(await get(ref(a,'rooms/GHJKLM/meta'))).val();
