@@ -837,6 +837,51 @@ const { pathToFileURL } = require('node:url');
   await page.locator('#nono-hud-editor').waitFor({state:'detached'});
   const {answers}=require('./puzzles.cjs');
   const completedAt=await page.evaluate(answer=>{board=answer.split('');startedAt=Date.now()-15000;finishLocal();return finishedAt;},answers.heart5);
+  // Completion preview must be a square 10x10 picture even if only some
+  // blank cells were entered as X. The original board data must remain intact.
+  const overviewPage=await browser.newPage({viewport:{width:1440,height:900}});
+  await overviewPage.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
+  await overviewPage.goto(pathToFileURL(path.resolve(__dirname,'..','dist','index.html')).href);
+  await overviewPage.locator('#nono-open-settings').waitFor();
+  const overviewCheck=await overviewPage.evaluate(answer=>{
+    puzzle=PUZZLES.find(item=>item.id==='cat10');
+    mode='practice';roomCode=null;board=Array(puzzle.size*puzzle.size).fill('0');
+    selected=0;finished=false;
+    showGame();
+    document.querySelector('#lobby').classList.add('hidden');
+    document.querySelector('#play-area').classList.remove('hidden');
+    board=answer.split('').map((value,index)=>value==='0'&&index%3===0?'2':value);
+    finished=true;
+    render();openOverview();
+    const preview=document.querySelector('#nono-overview-grid');
+    const tiles=[...preview.children];
+    const sizes=tiles.map(tile=>tile.getBoundingClientRect());
+    const range=values=>Math.max(...values)-Math.min(...values);
+    const completed={
+      count:tiles.length,
+      sizesWide:range(sizes.map(rect=>rect.width)),
+      sizesHigh:range(sizes.map(rect=>rect.height)),
+      square:Math.max(...sizes.map(rect=>Math.abs(rect.width-rect.height))),
+      gridSquare:Math.abs(preview.getBoundingClientRect().width-preview.getBoundingClientRect().height),
+      shownCrosses:tiles.filter(tile=>tile.textContent==='×').length,
+      storedCrosses:board.filter(value=>value==='2').length,
+      title:document.querySelector('#nono-overview .nono-options strong').textContent
+    };
+    // Manually opening the preview before completion retains marks already entered.
+    finished=false;openOverview();
+    return {...completed,
+      inProgressCrosses:[...preview.children].filter(tile=>tile.textContent==='×').length,
+      inProgressTitle:document.querySelector('#nono-overview .nono-options strong').textContent};
+  },answers.cat10);
+  if(overviewCheck.count!==100 || overviewCheck.storedCrosses===0 ||
+     overviewCheck.sizesWide>1 || overviewCheck.sizesHigh>1 ||
+     overviewCheck.square>1 || overviewCheck.gridSquare>1 ||
+     overviewCheck.shownCrosses!==0 ||
+     overviewCheck.inProgressCrosses!==overviewCheck.storedCrosses ||
+     !overviewCheck.title.includes('완성된') ||
+     !overviewCheck.inProgressTitle.includes('현재 입력'))
+    throw new Error('Completed 10x10 overview grid/blank X regression: '+JSON.stringify(overviewCheck));
+  await overviewPage.close();
   await page.reload();await page.locator('#nono-open-settings').waitFor();
   if(await page.locator('body').getAttribute('data-nono-theme')!=='library')throw new Error('Temporary library trial was not retained in the same browser tab');
   const freshContext=await browser.newContext();
