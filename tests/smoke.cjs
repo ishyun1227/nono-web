@@ -63,6 +63,15 @@ const { pathToFileURL } = require('node:url');
     select.value=String(value);
     select.dispatchEvent(new Event('change',{bubbles:true}));
   },{id,value});
+  // The source <select id="puzzle"> is hidden by the active themed
+  // launcher. Update it through its native change event in smoke fixtures.
+  const chooseFixturePuzzle=async(target,id)=>target.evaluate(value=>{
+    const picker=document.getElementById('puzzle');
+    if(!picker||![...picker.options].some(option=>option.value===value))
+      throw new Error('Fixture puzzle is unavailable: '+value);
+    picker.value=value;
+    picker.dispatchEvent(new Event('change',{bubbles:true}));
+  },id);
   const openShop=async target=>{
     if(await target.locator('#nono-shop-tab-top').isVisible())
       await target.locator('#nono-shop-tab-top').click();
@@ -692,7 +701,7 @@ const { pathToFileURL } = require('node:url');
   const worldItems=page.locator('.nono-world-puzzle');
   await worldItems.last().click();
   if(!await page.locator('#puzzle').inputValue())throw new Error('Premium puzzle selection did not set puzzle picker');
-  await page.selectOption('#puzzle','heart5'); // Continue the existing five-cell completion/resume regression test.
+  await chooseFixturePuzzle(page,'heart5'); // Continue the existing five-cell completion/resume regression test.
   await page.click('#nono-open-settings');
   await page.locator('#nono-settings-content').waitFor();
   if (!await page.locator('.nono-setting').count()) throw new Error('No settings rendered');
@@ -945,7 +954,7 @@ const { pathToFileURL } = require('node:url');
   await undoResumePage.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
   await undoResumePage.goto(pathToFileURL(path.resolve(__dirname,'..','dist','index.html')).href);
   await undoResumePage.locator('#nono-open-settings').waitFor();
-  await undoResumePage.selectOption('#puzzle','heart5');
+  await chooseFixturePuzzle(undoResumePage,'heart5');
   await undoResumePage.click('#play-alone');
   await undoResumePage.locator('#board .cell').first().waitFor();
   await undoResumePage.evaluate(()=>{paint(0,'1',false);paint(1,'2',false);});
@@ -1037,7 +1046,7 @@ const { pathToFileURL } = require('node:url');
   if(!await forestPage.locator('.mode-card[data-mode="race"]').evaluate(el=>el.classList.contains('selected')))
     throw new Error('Forest mode choice did not update actual NONO game mode');
   await forestPage.locator('[data-forest-mode="practice"]').click();
-  await forestPage.selectOption('#puzzle','heart5');
+  await chooseFixturePuzzle(forestPage,'heart5');
   await forestPage.click('#play-alone');
   await forestPage.locator('#forest-experience #board .cell').first().waitFor({state:'visible'});
   if(!await forestPage.locator('#fg-playing').isVisible() ||
@@ -1096,7 +1105,7 @@ const { pathToFileURL } = require('node:url');
   if(!await terminalPage.locator('.mode-card[data-mode="race"]').evaluate(el=>el.classList.contains('selected')))
     throw new Error('CRT window mode failed to switch the real game');
   await terminalPage.locator('[data-term-mode="practice"]').click();
-  await terminalPage.selectOption('#puzzle','heart5');
+  await chooseFixturePuzzle(terminalPage,'heart5');
   await terminalPage.click('#play-alone');
   await terminalPage.locator('#terminal-experience #board .cell').first().waitFor({state:'visible'});
   if(!await terminalPage.locator('#term-playing').isVisible() ||
