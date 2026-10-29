@@ -1,0 +1,61 @@
+/* Native navigation, theme summaries, room controls, and reward notices. */
+(()=>{'use strict';
+const ids=['zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
+const rows=[
+['오늘은 어떤 퍼즐?','今天玩什么谜题？','今天玩什麼謎題？','¿Qué puzle jugamos hoy?','Qual puzzle jogar hoje?','Quelle grille aujourd’hui ?','Welches Rätsel heute?','Teka-teki apa hari ini?','Hôm nay chơi câu đố nào?','วันนี้เล่นปริศนาอะไรดี'],
+['대결할 퍼즐을 골라주세요','选择对战谜题','選擇對戰謎題','Elige un puzle para el duelo','Escolha um puzzle para o duelo','Choisissez une grille pour le duel','Wähle ein Duell-Rätsel','Pilih teka-teki untuk duel','Chọn câu đố để đấu','เลือกปริศนาเพื่อแข่ง'],
+['함께 풀 퍼즐을 골라주세요','选择合作谜题','選擇合作謎題','Elige un puzle para resolver juntos','Escolha um puzzle para resolver juntos','Choisissez une grille pour jouer ensemble','Wähle ein Koop-Rätsel','Pilih teka-teki untuk kerja sama','Chọn câu đố để giải cùng nhau','เลือกปริศนาเพื่อร่วมมือกัน'],
+['기록에 도전해볼까요?','要挑战最佳纪录吗？','要挑戰最佳紀錄嗎？','¿Listo para batir un récord?','Pronto para bater um recorde?','Prêt à battre un record ?','Bereit für einen Rekord?','Siap memecahkan rekor?','Sẵn sàng phá kỷ lục?','พร้อมท้าทายสถิติหรือยัง'],
+['원하는 크기와 난이도를 선택하세요.','选择喜欢的大小和难度。','選擇喜歡的大小與難度。','Elige tamaño y dificultad.','Escolha tamanho e dificuldade.','Choisissez la taille et la difficulté.','Wähle Größe und Schwierigkeit.','Pilih ukuran dan tingkat kesulitan.','Chọn kích thước và độ khó.','เลือกขนาดและความยาก'],
+['대결 로비','对战大厅','對戰大廳','Sala de duelos','Lobby de duelos','Salon des duels','Duell-Lobby','Lobi duel','Sảnh đối kháng','ล็อบบี้แข่งขัน'],
+['협동 로비','合作大厅','合作大廳','Sala cooperativa','Lobby cooperativo','Salon coopératif','Koop-Lobby','Lobi kooperatif','Sảnh hợp tác','ล็อบบี้ร่วมมือ'],
+['기록','纪录','紀錄','Récords','Recordes','Records','Rekorde','Rekor','Kỷ lục','สถิติ'],
+['대결','对战','對戰','Duelo','Duelo','Duel','Duell','Duel','Đối kháng','แข่งขัน'],
+['협동','合作','合作','Cooperativo','Cooperativo','Coopération','Koop','Kerja sama','Hợp tác','ร่วมมือ'],
+['테마 선택','选择主题','選擇主題','Elegir tema','Escolher tema','Choisir un thème','Design wählen','Pilih tema','Chọn giao diện','เลือกธีม'],
+['게임 설정','游戏设置','遊戲設定','Ajustes del juego','Configurações do jogo','Paramètres du jeu','Spieleinstellungen','Pengaturan permainan','Cài đặt trò chơi','ตั้งค่าเกม'],
+['테마 상점','主题商店','主題商店','Tienda de temas','Loja de temas','Boutique de thèmes','Design-Shop','Toko tema','Cửa hàng giao diện','ร้านธีม'],
+['퍼즐 목록','谜题列表','謎題清單','Lista de puzles','Lista de puzzles','Liste des grilles','Rätselliste','Daftar teka-teki','Danh sách câu đố','รายการปริศนา'],
+['퍼즐 목록 새로고침','刷新谜题列表','重新整理謎題清單','Actualizar lista de puzles','Atualizar lista de puzzles','Actualiser la liste','Rätselliste aktualisieren','Muat ulang daftar teka-teki','Làm mới danh sách câu đố','รีเฟรชรายการปริศนา'],
+['모바일 퍼즐 조작 패드','手机谜题控制键','手機謎題控制鍵','Controles móviles del puzle','Controles móveis do puzzle','Commandes mobiles du nonogramme','Mobile Rätselsteuerung','Kontrol teka-teki seluler','Điều khiển câu đố trên di động','แผงควบคุมปริศนาบนมือถือ'],
+['✥ 조작 패드','✥ 控制键','✥ 控制鍵','✥ Controles','✥ Controles','✥ Commandes','✥ Steuerpad','✥ Kontrol','✥ Bảng điều khiển','✥ แผงควบคุม'],
+['게임패드 연결됨','游戏手柄已连接','控制器已連接','Mando conectado','Controle conectado','Manette connectée','Gamepad verbunden','Gamepad terhubung','Tay cầm đã kết nối','เชื่อมต่อจอยเกมแล้ว'],
+['컨트롤러 연결됨','控制器已连接','控制器已連接','Mando conectado','Controle conectado','Manette connectée','Controller verbunden','Kontroler terhubung','Đã kết nối tay cầm','เชื่อมต่อคอนโทรลเลอร์แล้ว'],
+['방향키 · 칸 입력','方向键 · 填格','方向鍵 · 填格','Flechas · Marcar casilla','Setas · Marcar célula','Flèches · Marquer une case','Pfeile · Feld markieren','Arah · Isi sel','Phím hướng · Tô ô','ปุ่มทิศทาง · ลงช่อง'],
+['이 버튼은 다른 동작에 사용 중이에요.','此按钮已分配给其他操作。','此按鈕已分配給其他操作。','Este botón ya está asignado a otra acción.','Este botão já está atribuído a outra ação.','Ce bouton est déjà attribué à une autre action.','Diese Taste ist schon einer anderen Aktion zugewiesen.','Tombol ini sudah dipakai untuk aksi lain.','Nút này đã gán cho thao tác khác.','ปุ่มนี้ถูกใช้กับการกระทำอื่นแล้ว'],
+['컨트롤러 버튼 기본값','控制器按钮默认设置','控制器按鈕預設設定','Botones predeterminados del mando','Botões padrão do controle','Touches par défaut de la manette','Standard-Controllerbelegung','Tombol bawaan kontroler','Phím tay cầm mặc định','ปุ่มเริ่มต้นของคอนโทรลเลอร์'],
+['컨트롤러 버튼과 데드존 설정을 기본값으로 되돌릴까요?',
+ '是否重置控制器按钮和死区设置？','要重設控制器按鈕與死區設定嗎？',
+ '¿Restablecer los botones y la zona muerta del mando?','Redefinir botões e zona morta do controle?',
+ 'Réinitialiser les touches et la zone morte de la manette ?','Controller-Tasten und Totzone zurücksetzen?',
+ 'Atur ulang tombol dan deadzone kontroler?','Đặt lại nút tay cầm và vùng chết?','รีเซ็ตปุ่มและเดดโซนของคอนโทรลเลอร์หรือไม่'],
+['기본 · 기존 NONO 디자인','默认 · 原版NONO设计','預設 · 原版NONO設計','Predeterminado · Diseño NONO original','Padrão · Design original do NONO','Par défaut · Design NONO d’origine','Standard · Ursprüngliches NONO-Design','Bawaan · Desain asli NONO','Mặc định · Giao diện NONO gốc','เริ่มต้น · ดีไซน์ NONO ดั้งเดิม'],
+['기존 구조 그대로 · 청록·남보라','保留布局 · 青绿和紫色','保留版面 · 青綠和紫色','Mismo diseño · Verde azulado y violeta','Mesmo layout · Verde-água e roxo','Même disposition · Turquoise et violet','Gleiches Layout · Türkis und Violett','Tata letak sama · Toska dan ungu','Giữ bố cục · Xanh ngọc và tím','เค้าโครงเดิม · เขียวอมฟ้ากับม่วง'],
+['기존 구조 그대로 · 크림·라벤더','保留布局 · 奶油色和薰衣草紫','保留版面 · 奶油色與薰衣草紫','Mismo diseño · Crema y lavanda','Mesmo layout · Creme e lavanda','Même disposition · Crème et lavande','Gleiches Layout · Creme und Lavendel','Tata letak sama · Krim dan lavender','Giữ bố cục · Kem và oải hương','เค้าโครงเดิม · ครีมกับลาเวนเดอร์'],
+['기존 디자인에 초록빛 픽셀 감성','原版布局加入绿色像素风格','原版版面加入綠色像素風格','Diseño original con píxeles verdes','Design original com pixels verdes','Design original aux pixels verts','Originaldesign mit grünen Pixeln','Desain asli bergaya piksel hijau','Giao diện gốc với pixel xanh','ดีไซน์เดิมสไตล์พิกเซลสีเขียว'],
+['기존 디자인에 깊은 초록과 황금빛','原版布局加入深绿和金色','原版版面加入深綠與金色','Diseño original en verde oscuro y dorado','Design original em verde escuro e dourado','Design original vert foncé et or','Originaldesign in Dunkelgrün und Gold','Desain asli hijau tua dan emas','Giao diện gốc xanh đậm và vàng','ดีไซน์เดิมสีเขียวเข้มและทอง'],
+['네온 게임기·픽셀 UI·아케이드 모니터','霓虹游戏机、像素界面和街机屏幕','霓虹遊戲機、像素介面與街機螢幕','Máquinas neón, interfaz píxel y pantallas arcade','Máquinas neon, interface pixel e telas arcade','Bornes néon, interface pixel et écrans d’arcade','Neon-Automaten, Pixel-UI und Arcade-Bildschirme','Mesin neon, UI piksel dan monitor arkade','Máy game neon, giao diện pixel và màn hình arcade','ตู้เกมนีออน UI พิกเซล และจออาร์เคด'],
+['별자리 창문·양피지·황금빛 서고 전체 개편','星座窗、羊皮纸和金色书库的全面改版','星座窗、羊皮紙與金色書庫的全面改版','Ventanas de constelaciones, pergamino y biblioteca dorada','Janelas de constelações, pergaminhos e biblioteca dourada','Fenêtres étoilées, parchemins et bibliothèque dorée','Sternbildfenster, Pergament und goldene Bibliothek','Jendela rasi bintang, perkamen dan perpustakaan emas','Cửa sổ chòm sao, giấy da và thư viện vàng','หน้าต่างกลุ่มดาว กระดาษโบราณ และห้องสมุดสีทอง'],
+['달빛 숲, 나무 액자, 판타지 서체와 장식','月光森林、木质边框和奇幻字体装饰','月光森林、木質邊框與奇幻字型裝飾','Bosque lunar, marcos de madera y letras de fantasía','Floresta lunar, molduras de madeira e fontes de fantasia','Forêt au clair de lune, cadres en bois et typographie fantastique','Mondscheinwald, Holzrahmen und Fantasy-Schrift','Hutan bulan, bingkai kayu dan huruf fantasi','Rừng ánh trăng, khung gỗ và chữ giả tưởng','ป่าแสงจันทร์ กรอบไม้ และตัวอักษรแฟนตาซี'],
+['우주선, 홀로그램 HUD, 관제 콘솔형 배치','宇宙飞船、全息HUD和控制台布局','太空船、全像HUD與控制台版面','Nave espacial, HUD holográfico y consola de control','Nave espacial, HUD holográfico e console de controle','Vaisseau spatial, HUD holographique et console de pilotage','Raumschiff, holografisches HUD und Kontrollkonsole','Pesawat luar angkasa, HUD hologram dan konsol','Tàu vũ trụ, HUD hologram và bàn điều khiển','ยานอวกาศ HUD โฮโลแกรม และแผงควบคุม'],
+['형광 초록 CRT · 레트로 창형 퍼즐 데스크톱','荧光绿CRT · 复古窗口式谜题桌面','螢光綠CRT · 復古視窗式謎題桌面','CRT verde fluorescente · Ventanas retro de puzles','CRT verde fluorescente · Janelas retrô de puzzle','CRT vert fluorescent · Bureau rétro à fenêtres','Neongrüner CRT · Retro-Rätselfenster','CRT hijau neon · Desktop teka-teki retro','CRT xanh huỳnh quang · Bàn chơi cửa sổ cổ điển','CRT เขียวนีออน · เดสก์ท็อปปริศนาแบบย้อนยุค'],
+['퍼즐을 고르고 고요한 숲에서 시작해 보세요.','挑选谜题，走进宁静的森林。','挑選謎題，走進寧靜的森林。','Elige un puzle y empieza en el bosque tranquilo.','Escolha um puzzle e comece na floresta tranquila.','Choisissez une grille et commencez dans la forêt paisible.','Wähle ein Rätsel und starte im stillen Wald.','Pilih teka-teki dan mulai di hutan tenang.','Chọn câu đố và bắt đầu trong khu rừng yên tĩnh.','เลือกปริศนาแล้วเริ่มในป่าอันสงบ'],
+['다른 플레이어와 함께 같은 퍼즐을 먼저 완성해 보세요.','与其他玩家比赛，争取最先完成同一谜题。','與其他玩家比賽，爭取率先完成同一謎題。','Compite por resolver primero el mismo puzle.','Compita para resolver primeiro o mesmo puzzle.','Affrontez d’autres joueurs pour finir la même grille le premier.','Löse dasselbe Rätsel schneller als die anderen.','Berlomba menyelesaikan teka-teki yang sama lebih dulu.','Cạnh tranh giải xong cùng một câu đố trước người khác.','แข่งแก้ปริศนาเดียวกันให้เสร็จก่อนคนอื่น'],
+['친구와 하나의 퍼즐을 함께 밝혀 나가요.','和朋友一起揭开同一幅谜题图案。','與朋友一起揭開同一幅謎題圖案。','Revela un puzle junto a tus amigos.','Revele um puzzle com seus amigos.','Révélez une grille avec vos amis.','Enthülle mit Freunden ein gemeinsames Rätsel.','Buka teka-teki bersama teman-teman.','Cùng bạn bè mở ra một câu đố.','ช่วยเพื่อนเปิดเผยปริศนาเดียวกัน'],
+['가장 빠른 완성 기록으로 이름을 남겨보세요.','以最快完成时间登上排行榜。','以最快完成時間登上排行榜。','Deja tu nombre con el mejor tiempo.','Deixe seu nome com o melhor tempo.','Inscrivez votre nom avec le meilleur temps.','Verewige dich mit der schnellsten Lösungszeit.','Catat namamu dengan waktu tercepat.','Ghi tên mình bằng thời gian giải nhanh nhất.','ฝากชื่อไว้ด้วยเวลาที่เร็วที่สุด'],
+['로컬 체험','本地体验','本機體驗','Prueba local','Teste local','Démo locale','Lokale Vorschau','Demo lokal','Trải nghiệm cục bộ','ทดลองบนเครื่อง'],
+['사이트 전체 테마 미리보기','预览整站主题','預覽全站主題','Vista previa de temas del sitio','Prévia dos temas do site','Aperçu des thèmes du site','Seitenweite Designs ansehen','Pratinjau tema seluruh situs','Xem thử giao diện toàn trang','ดูตัวอย่างธีมทั้งเว็บไซต์'],
+['테마, 포인트 충전, 프리미엄 상점','主题、积分充值和高级版商店','主題、儲值點數與進階版商店','Tienda de temas, puntos y premium','Loja de temas, pontos e premium','Boutique de thèmes, points et premium','Shop für Designs, Punkte und Premium','Toko tema, poin dan premium','Cửa hàng giao diện, điểm và cao cấp','ร้านธีม แต้ม และพรีเมียม'],
+['상점 메뉴','商店菜单','商店選單','Menú de tienda','Menu da loja','Menu de la boutique','Shopmenü','Menu toko','Menu cửa hàng','เมนูร้านค้า'],
+['7일 출석 보상','七日签到奖励','七日簽到獎勵','Recompensa de 7 días','Recompensa de 7 dias','Récompenses sur 7 jours','7-Tage-Belohnung','Hadiah check-in 7 hari','Thưởng điểm danh 7 ngày','รางวัลเช็กอิน 7 วัน'],
+['상품 정보가 올바르지 않아요.','商品信息无效。','商品資訊無效。','Los datos del producto no son válidos.','Os dados do produto são inválidos.','Les informations du produit sont invalides.','Ungültige Produktdaten.','Informasi produk tidak valid.','Thông tin sản phẩm không hợp lệ.','ข้อมูลสินค้าไม่ถูกต้อง'],
+['이미 이 브라우저에서 해제한 테마예요.','此主题已在该浏览器解锁。','此主題已在此瀏覽器解鎖。','Este tema ya está desbloqueado aquí.','Este tema já foi desbloqueado aqui.','Ce thème est déjà débloqué ici.','Dieses Design ist hier schon freigeschaltet.','Tema ini sudah dibuka di browser ini.','Giao diện này đã mở trong trình duyệt.','ธีมนี้ปลดล็อกในเบราว์เซอร์แล้ว'],
+['체험 포인트가 부족해요.','体验积分不足。','體驗點數不足。','No tienes suficientes puntos de prueba.','Você não tem pontos de teste suficientes.','Vous n’avez pas assez de points d’essai.','Nicht genug Testpunkte.','Poin demo tidak cukup.','Không đủ điểm thử.','แต้มทดลองไม่พอ'],
+['퍼즐판 축소','缩小棋盘','縮小盤面','Alejar tablero','Reduzir tabuleiro','Réduire la grille','Spielfeld verkleinern','Perkecil papan','Thu nhỏ bàn chơi','ย่อกระดาน'],
+['퍼즐판 확대','放大棋盘','放大盤面','Ampliar tablero','Ampliar tabuleiro','Agrandir la grille','Spielfeld vergrößern','Perbesar papan','Phóng to bàn chơi','ขยายกระดาน']
+];
+for(const row of rows){
+ if(row.length!==ids.length+1)throw Error('Navigation translation invalid '+row[0]);
+ ids.forEach((id,i)=>window.NONO_LOCALE_PACKS[id][row[0]]=row[i+1]);
+}
+})();
