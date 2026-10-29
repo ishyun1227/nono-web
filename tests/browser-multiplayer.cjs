@@ -3,10 +3,18 @@ const {atob}=require('node:buffer');
 const {initializeTestEnvironment}=require('@firebase/rules-unit-testing');
 const {ref,set}=require('firebase/database');
 const {answers}=require('./puzzles.cjs');
+const answerBits=require('../answer-bitpack.js');
 const http=require('node:http'),fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict');
 async function main(){
  const env=await initializeTestEnvironment({projectId:'demo-nono',database:{host:'127.0.0.1',port:9000,rules:fs.readFileSync('database.rules.json','utf8')}});
- await env.clearDatabase();await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'privateAnswers'),answers));
+ await env.clearDatabase();await env.withSecurityRulesDisabled(async c=>{
+   await set(ref(c.database(),'privateAnswers'),answers);
+   await set(ref(c.database(),'privateAnswersPacked'),
+     Object.fromEntries(Object.entries(answers).map(([id,mask])=>{
+       const size=id==='heart5'?5:10;
+       return [id,answerBits.pack(mask,size,size)];
+     })));
+  });
  const server=http.createServer((req,res)=>{const file=req.url.split('?')[0];res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':'text/html');if(file==='/firebase-config.js')return res.end("window.NONO_FIREBASE_CONFIG={apiKey:'demo-key',projectId:'demo-nono',databaseURL:'https://demo-nono.firebaseio.com',appId:'demo'};window.NONO_FIREBASE_EMULATORS=true;");const target=path.join(process.cwd(),file==='/'?'index.html':file);if(!target.startsWith(process.cwd())){res.statusCode=403;return res.end();}fs.readFile(target,(e,data)=>{res.statusCode=e?404:200;res.end(e?'missing':data);});});
  await new Promise(r=>server.listen(4173,'127.0.0.1',r));
  const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{})});
@@ -29,6 +37,8 @@ async function main(){
     await page.waitForFunction(()=>window.NONO_ACCOUNT?.isSignedIn()===true);
   }
   assert.equal(await a.locator('#nickname').getAttribute('type'),'hidden');
+  // Opt in only in the emulator test. Production stays on legacy masks until Firebase migration.
+  await a.evaluate(()=>{window.NONO_PACKED_ANSWERS_READY=true;});
   // Public matchmaking: a stranger should see and join an actual waiting room.
   await Promise.all([a.click('[data-mode="race"]'),b.click('[data-mode="race"]')]);
   await a.click('#quick-match');await a.waitForURL(/room=/);
@@ -64,6 +74,7 @@ async function main(){
   assert.equal(listedAfterHostLeave,true,'Public shared puzzle must survive its host leaving');
   await a.reload();
   await a.locator('#nono-resume-view').waitFor({state:'visible'});
+  await a.evaluate(()=>{window.NONO_PACKED_ANSWERS_READY=true;});
   for(const mode of ['practice','coop','record','race']){
     await a.click('[data-mode="'+mode+'"]');
     if(!await a.locator('#nono-resume-view').isVisible())throw new Error('Resume panel hidden in '+mode+' mode');
@@ -121,6 +132,8 @@ async function main(){
   console.log('PASS persistent below-mode resume panel restores incomplete race state');
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1'&&board[i]!=='1')paint(i,'1',true);},answers.heart5);
   await a.waitForFunction(()=>finished);await b.waitForFunction(()=>Object.values(raceStates).some(s=>s.finishedAt>0));
+  const packedRace=await a.evaluate(async()=>((await get(ref(database,`rooms/${roomCode}/states/${currentId()}`))).val()||{}).filled);
+  assert.equal(packedRace,answerBits.pack(answers.heart5,5,5),'Race finish must send packed answer');
   await b.screenshot({path:'test-results/race-desktop.png'});
   console.log('PASS synchronized race start, rapid input, completion and opponent results');
   await a.evaluate(()=>leaveGame());await a.click('[data-mode="record"]');await a.click('#play-alone');
@@ -132,6 +145,8 @@ async function main(){
   assert.equal(runTimes.local,runTimes.server,'Restart must establish a fresh server-timed record run');
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1')paint(i,'1',true);},answers.heart5);
   await a.waitForFunction(()=>finished);await a.locator('#live-results').getByText('1위 플레이어').waitFor();
+  const packedRun=await a.evaluate(async()=>((await get(ref(database,`runs/${puzzle.id}/${currentId()}`))).val()||{}).filled);
+  assert.equal(packedRun,answerBits.pack(answers.heart5,5,5),'Online record must send packed answer');
   await a.setViewportSize({width:390,height:844});await a.screenshot({path:'test-results/record-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);console.log('PASS online record saved, leaderboard and mobile view, no page errors');
  }finally{await browser.close();await new Promise(r=>server.close(r));await env.cleanup();}
