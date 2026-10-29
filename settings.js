@@ -694,6 +694,15 @@ body.nono-fit-playing #game .board-scroll.nono-zoomed{
  width:100%!important
 }
 body.nono-fit-playing #game .board-scroll #board{max-width:none!important}
+/* Exact-fit large puzzles must start at the viewport top, not at the 32px
+   layout position inherited from the surrounding shell. Zoomed boards retain
+   normal document scrolling through the earlier relative-position rule. */
+body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
+ position:fixed!important;inset:0!important;
+ width:100vw!important;max-width:none!important;
+ height:100dvh!important;min-height:100dvh!important;
+ margin:0!important;padding:0!important
+}
 /* A selected row/column uses TWO composited overlays; mouse movement never
    loops over 10,000 cell elements just to move the highlight. */
 #board .cells{position:relative;isolation:isolate}
