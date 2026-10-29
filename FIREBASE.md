@@ -69,8 +69,7 @@ Chromium을 설치하려면 `npx playwright install chromium`을 실행합니다
 4. 검증 후 `phase: rules_and_seed`와 동일한 확인값으로 운영 `privateAnswersPacked`에
    기존 퍼즐 정답을 추가한다. `privateAnswers`와 기존 사용자 기록은 보존한다.
 5. 운영 서버에서 정답 읽기 거부, 정상·허위 완료 판정 및 과거 기록 유지 여부를 확인한다.
-6. 마지막에만 `NONO_PACKED_ANSWERS_READY` 클라이언트 설정을 명시적으로 켜서
-   Cloudflare에 배포하고, 바로 혼자하기·대결·협동·이어하기를 점검한다.
+6. 마지막에만 `NONO_PACKED_ANSWERS_READY=['heart5','cat10','rocket10']`처럼 **시드가 존재하는 퍼즐 ID만** 클라이언트에서 활성화해 Cloudflare에 배포하고, 바로 혼자하기·대결·협동·이어하기를 점검한다. `true`로 일괄 활성화하면 아직 정답이 등록되지 않은 30×30 및 대형 퍼즐 완료가 거부될 수 있으므로 운영에서는 금지한다.
 
 **현재 운영 완료로 간주할 수 없다:** 보안 규칙과 데이터베이스의 실제 배포 결과,
 GitHub Secret의 존재 여부, Cloudflare 배포는 별도로 확인해야 한다.
