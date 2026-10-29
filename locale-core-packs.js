@@ -105,7 +105,7 @@ const rows=[
  'Paket ini direncanakan untuk membeli poin dengan uang. Penyedia pembayaran dan persetujuan server belum terhubung; tidak ada biaya.',
  'Các gói này dự kiến cho phép nạp điểm bằng tiền. Chưa kết nối bên thanh toán và xác nhận máy chủ nên không thu tiền thật.',
  'แพ็กเหล่านี้เตรียมไว้สำหรับเติมแต้มด้วยเงินจริง แต่ยังไม่เชื่อมต่อผู้ให้บริการชำระเงินและการอนุมัติจากเซิร์ฟเวอร์ จึงไม่มีการเรียกเก็บเงิน'],
-['소량 충전 패키지','小额充值包','แพ็กเติมแต้มจำนวนเล็กน้อย','Paquete pequeño','Pacote pequeno','Petit pack de points','Kleines Punktepaket','Paket kecil','Gói nạp nhỏ','แพ็กเติมแต้มเล็ก'],
+['소량 충전 패키지','小额充值包','小額儲值包','Paquete pequeño','Pacote pequeno','Petit pack de points','Kleines Punktepaket','Paket kecil','Gói nạp nhỏ','แพ็กเติมแต้มเล็ก'],
 ['테마 구매용 패키지','主题购买积分包','主題購買點數包','Paquete para comprar temas','Pacote para comprar temas','Pack pour acheter des thèmes','Paket für Designs','Paket untuk tema','Gói mua giao diện','แพ็กซื้อธีม'],
 ['월드 테마 구매용 패키지','世界主题购买积分包','世界主題購買點數包','Paquete para temas de mundo','Pacote para temas de mundo','Pack pour thèmes de monde','Paket für Weltdesigns','Paket untuk tema dunia','Gói mua giao diện thế giới','แพ็กซื้อธีมโลก'],
 ['결제 승인 이후에만 서버 포인트가 적립되어야 합니다. 브라우저 체험 P는 현금 충전·환불·기기 간 이동 대상이 아닙니다.',
