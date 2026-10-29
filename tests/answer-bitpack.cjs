@@ -37,3 +37,32 @@ const mask='10010110111001001';
 assert.equal(browserCodec.pack(mask,17,1),codec.pack(mask,17,1));
 assert.equal(browserCodec.unpack(codec.pack(mask,17,1),17,1),mask);
 console.log('PASS answer codec legacy compatibility, base64, MSB bit order, padding, rectangular grid, clues and browser parity');
+
+ 
+// Production rollout allowlist must match IDs actually seeded by the guarded
+// workflow. Never switch unseeded 30x30+ or trial puzzles to packed completions.
+const production={window:{}};
+vm.runInNewContext(fs.readFileSync(require.resolve('../firebase-config.js'),'utf8'),production);
+assert.equal(production.window.NONO_FIREBASE_CONFIG.projectId,'nono-web-ishyun-20261020');
+const enabled=Array.from(production.window.NONO_PACKED_ANSWERS_READY||[]);
+assert.deepEqual(enabled.sort(),['cat10','heart5','rocket10'],'Production rollout allowlist');
+assert.equal(enabled.length,new Set(enabled).size,'Duplicate rollout ID');
+assert.deepEqual(enabled.slice().sort(),puzzles.filter(p=>p.size<=10).map(p=>p.id).sort(),
+  'Rollout must match all and only private packed-answer seed IDs');
+const indexSource=fs.readFileSync(require.resolve('../index.html'),'utf8');
+const maskFunction=indexSource.match(/function serverAnswerMask\(board,p\)\{[\s\S]*?\n\}/);
+assert(maskFunction,'Missing browser completion encoder');
+const live={window:{NONO_PACKED_ANSWERS_READY:enabled,NONO_ANSWER_BITS:codec},
+  filledMask:board=>board.map(x=>x==='1'?'1':'0').join('')};
+vm.runInNewContext(maskFunction[0],live);
+for(const puzzle of puzzles.filter(p=>p.size<=10)){
+ const mask=answers[puzzle.id],board=mask.split('');
+ assert.equal(live.serverAnswerMask(board,puzzle),codec.pack(mask,puzzle.size,puzzle.size),
+   puzzle.id+' packed production completion');
+}
+const large=Array(30*30).fill('0');
+assert.equal(live.serverAnswerMask(large,{id:'unseeded-30x30',size:30}),large.join(''),
+ 'Unseeded puzzle must retain legacy completion');
+assert.equal(live.serverAnswerMask(large,{id:'winter-snowman-trial-v1',size:30}),large.join(''),
+ 'Trial puzzle must not submit packed answer to absent production seed');
+console.log('PASS Production rollout allowlist and backwards-compatible completion encoding');
