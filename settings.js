@@ -1391,7 +1391,7 @@ function startFastDrag(e,index){
   start:index,axis:null,end:index%n,row:Math.floor(index/n),col:index%n,
   startX:e.clientX,startY:e.clientY,originX:e.clientX,originY:e.clientY,
   rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},
-  touched:new Set(),filled:original.filter(v=>v==='1').length,
+  touched:new Set(),replayChanges:[],filled:original.filter(v=>v==='1').length,
   history,count:1,hasExtended:false,initialChanges,initialSelected};
  pointerDown=false;dragCount=1;lastInput=-1;
  setFastDragValue(index,value);
@@ -1406,6 +1406,7 @@ function setFastDragValue(index,value){
  if(prev==='1')d.filled--;
  if(value==='1')d.filled++;
  board[index]=value;d.touched.add(index);
+ d.replayChanges.push([index,Number(prev),Number(value)]);
  const cell=d.cells[index];if(cell){
   cell.classList.toggle('filled',value==='1');
   cell.classList.toggle('cross',value==='2');
@@ -1505,6 +1506,7 @@ function endFastDrag(e){
   lastInput=selected;lastInputTime=Date.now();
   playSound('input',d.target);
   saveBoard();
+  if(d.replayChanges.length)window.dispatchEvent(new CustomEvent('nono:replay-stroke',{detail:{changes:d.replayChanges,at:Date.now()}}));
   const solved=isSolved(board,puzzle);
   if(mode==='race')queueRaceState(solved,changedCells);
   else if(solved)finishLocal();
