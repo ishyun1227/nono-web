@@ -42,6 +42,9 @@ jobs:
           node --check locale-firebase-messages.js
           node --check locale-controller-messages.js
           node --check locale-en-extra.js
+          node --check locale-ja-advanced.js
+          node --check locale-ja-navigation.js
+          node --check tests/i18n-native-coverage.cjs
           node --check tests/locale.cjs
           node --check tests/i18n-audit.cjs
           node --check tests/i18n-completeness.cjs
@@ -53,6 +56,8 @@ jobs:
           node --check tests/daily-rewards.cjs
       - name: Verify native locale translation completeness
         run: node tests/i18n-completeness.cjs
+      - name: Verify all eleven target locales have native text for every catalogued message
+        run: node tests/i18n-native-coverage.cjs
       - name: Verify language switching and persistence
         run: node tests/locale.cjs
       - name: Audit translated UI coverage
