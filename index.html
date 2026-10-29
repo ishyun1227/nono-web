@@ -164,7 +164,10 @@ function filledMask(board){return board.map(v=>v==='1'?'1':'0').join('');}
 // Old rooms, old records, and legacy server rules remain compatible.
 function serverAnswerMask(board,p){
   const mask=filledMask(board);
-  if(window.NONO_PACKED_ANSWERS_READY!==true)return mask;
+  // Only IDs already seeded in privateAnswersPacked may use packed answers.
+  // A per-ID allowlist avoids breaking 30x30 and larger puzzles during rollout.
+  const ready=window.NONO_PACKED_ANSWERS_READY;
+  if(!(ready===true||(Array.isArray(ready)&&ready.includes(p.id))))return mask;
   if(!window.NONO_ANSWER_BITS)throw new Error('Answer codec unavailable');
   const width=p.width||p.size,height=p.height||p.size;
   return window.NONO_ANSWER_BITS.pack(mask,width,height);
