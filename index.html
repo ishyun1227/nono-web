@@ -654,7 +654,19 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
     },firebaseError));
     return roomCode===code;
   }catch(e){firebaseError(e);return false;}}
-async function ensureRaceState(){if(!meta||meta.status!=='playing'||!roomCode)return;const path=`rooms/${roomCode}/states/${currentId()}`,start=meta.startedAt,blank='0'.repeat(puzzle.size*puzzle.size);if(settingBoard)return;settingBoard=true;try{await runTransaction(ref(database,path),current=>current?undefined:meta.format===2?{startedAt:start,finishedAt:0}:{board:blank,filled:blank,startedAt:start,finishedAt:0});}finally{settingBoard=false;}}
+let raceSetup=null;
+async function ensureRaceState(){
+  if(!meta||meta.status!=='playing'||!roomCode)return;
+  const path=`rooms/${roomCode}/states/${currentId()}`,start=meta.startedAt,format=meta.format;
+  if(raceSetup?.path===path)return raceSetup.promise;
+  const blank='0'.repeat(puzzle.size*puzzle.size);
+  settingBoard=true;
+  const promise=runTransaction(ref(database,path),current=>current?undefined:
+    format===2?{startedAt:start,finishedAt:0}:{board:blank,filled:blank,startedAt:start,finishedAt:0})
+    .finally(()=>{if(raceSetup?.promise===promise){raceSetup=null;settingBoard=false;}});
+  raceSetup={path,promise};
+  return promise;
+}
 async function startRace(){if(!roomCode||!meta||meta.host!==currentId()||startingRace)return;if(Object.keys(players).length<2){toast('대결은 최소 2명부터 시작할 수 있어요.');return;}startingRace=true;try{await set(ref(database,`rooms/${roomCode}/meta`),{...meta,status:'playing',startedAt:serverTimestamp()});meta=(await get(ref(database,`rooms/${roomCode}/meta`))).val();if(publicHosted){await removePublicListing(roomCode);publicHosted=false;}await ensureRaceState();}catch(e){firebaseError(e);}finally{startingRace=false;}}
 let pendingRaceWrites=0;
 function queueRaceState(solved,cells=[]){
@@ -665,6 +677,7 @@ function queueRaceState(solved,cells=[]){
   raceQueue=raceQueue.then(async()=>{
     const path=`rooms/${code}/states/${uid}`;
     if(format===2){
+      await ensureRaceState();
       if(bits)await set(push(ref(database,`rooms/${code}/raceMoves/${uid}`)),{bits,at:serverTimestamp()});
       // Send a full answer mask only once on completion for server-side validation.
       if(solved)await set(ref(database,path),{filled:filledMask(snapshot.split('')),startedAt:start,finishedAt:serverTimestamp()});
