@@ -99,7 +99,7 @@
                 ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 86400000 && newData.val() % 1 == 0"
               },
               "cells": {
-                ".validate": "newData.isString() && newData.val().length > 8 && newData.val().length <= 12000 && newData.val().matches(/^\\[\\[[0-9]+,[012],[012]\\](,\\[[0-9]+,[012],[012]\\])*\\]$/)"
+                ".validate": "newData.isString() && newData.val().length > 8 && newData.val().length <= 12000 && (newData.val().matches(/^NRC1:[A-Za-z0-9+\\/]+={0,2}$/) || newData.val().matches(/^\\[\\[[0-9]+,[012],[012]\\](,\\[[0-9]+,[012],[012]\\])*\\]$/))"
               },
               "at": {
                 ".validate": "newData.isNumber() && newData.val() == now"
