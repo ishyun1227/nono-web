@@ -1114,7 +1114,7 @@ const standardKeys={
 };
 const shortcutNames={up:'위로 이동',down:'아래로 이동',left:'왼쪽 이동',right:'오른쪽 이동',
  fill:'칸 칠하기',cross:'X 표시',clear:'칸 지우기',undo:'되돌리기',redo:'다시 실행',hint:'힌트 선택 모드',overview:'전체보기',toolFill:'칠하기 도구',toolCross:'X 도구'};
-let bindingCapture=null,moveHeld='',moveTimer=null,moveWait=null;
+let bindingCapture=null,moveHeld='',moveDirection=null,moveQuick=false,movePhase='idle',moveTimer=null,moveWait=null;
 function shortcut(action){
  let base=standardKeys[action]||['',''];if(['up','down','left','right'].includes(action)&&prefs.move==='wasd'){
   const m={up:'KeyW',down:'KeyS',left:'KeyA',right:'KeyD'};base=[m[action],''];
@@ -1137,13 +1137,28 @@ function editBinding(action,slot,button){
  document.addEventListener('keydown',handle,true);
 }
 function moveOne(dir,fast){moveSelection(dir,fast);if(keyboardDrag){paint(selected,keyboardDrag.to,true);keyboardDrag.steps++;}}
-function releaseMove(){if(moveTimer!==null)clearInterval(moveTimer);if(moveWait!==null)clearTimeout(moveWait);moveTimer=null;moveWait=null;moveHeld='';}
+function stopMoveRepeat(){
+ if(moveTimer!==null)clearInterval(moveTimer);
+ if(moveWait!==null)clearTimeout(moveWait);
+ moveTimer=null;moveWait=null;
+}
+function releaseMove(){
+ stopMoveRepeat();
+ moveHeld='';moveDirection=null;moveQuick=false;movePhase='idle';
+}
 function beginMove(code,dir,quick){
  if(moveHeld===code)return;
- releaseMove();moveHeld=code;moveOne(dir,quick);
+ releaseMove();
+ moveHeld=code;moveDirection=dir;moveQuick=quick;movePhase='pending';
+ moveOne(dir,quick);
  const delay={short:170,normal:330,long:550}[prefs.repeatWait]||330;
  const speed={slow:165,normal:85,fast:45}[prefs.repeat]||85;
- moveWait=setTimeout(()=>{moveWait=null;moveTimer=setInterval(()=>moveOne(dir,quick),speed)},delay);
+ moveWait=setTimeout(()=>{
+  moveWait=null;
+  if(moveHeld!==code||movePhase!=='pending')return;
+  movePhase='repeating';
+  moveTimer=setInterval(()=>{if(moveHeld===code&&movePhase==='repeating')moveOne(dir,quick)},speed);
+ },delay);
 }
 function beginAltClue(direction){
   if(direction==='right'&&!prefs.bothClues)return;
@@ -1185,7 +1200,17 @@ if(matches('toolFill',e)||matches('toolCross',e)){tool=matches('toolFill',e)?'1'
  }
  const to=matches('fill',e)?'1':matches('cross',e)?'2':matches('clear',e)?'0':null;
  if(to!==null){e.preventDefault();e.stopImmediatePropagation();
-  if(e.repeat&&keyboardDrag&&keyboardDrag.to===to)return;
+  // Holding Space/X must not toggle a cell repeatedly on native key-repeat.
+  if(e.repeat)return;
+  if(moveHeld){
+   // First mark during the initial delay stays on the just-selected square.
+   // After that, each fresh mark advances one square while the arrow stays held.
+   const advance=movePhase!=='pending';
+   stopMoveRepeat();
+   movePhase='manual';
+   if(advance)moveSelection(moveDirection,moveQuick);
+  }
+  if(keyboardDrag&&keyboardDrag.to!==to){squashHistory(keyboardDrag.first);keyboardDrag=null;}
   if(!keyboardDrag)keyboardDrag={to,first:undoStack.length,steps:1};
   paint(selected,to,false);return;
  }
@@ -1389,6 +1414,8 @@ const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;rel
 const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');return oldLeave()};
 const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playSound('finish');setTimeout(()=>openOverview(),300)};
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
+window.addEventListener('blur',releaseMove);
+document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseMove()});
 document.addEventListener('click',e=>{if(e.target.closest('#restart')){e.preventDefault();e.stopImmediatePropagation();if(roomCode)return;if(!confirm('퍼즐을 초기화할까요? 현재 진행 상황이 지워집니다.'))return;if(mode==='practice'){dropSave();delete manualClues[puzzle.id];}startAlone().then(saveBoard).catch(firebaseError);}},true);
 document.addEventListener('click',e=>{if(e.target.closest('#leave-game')){e.preventDefault();e.stopImmediatePropagation();if(!confirm('로비로 나갈까요? 진행 상황은 자동 저장됩니다.'))return;leaveGame()}},true);
 
