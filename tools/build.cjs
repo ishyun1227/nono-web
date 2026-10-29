@@ -1,7 +1,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'..'),output=path.join(root,'dist');
 fs.mkdirSync(output,{recursive:true});
-for(const name of ['index.html','locale.js','locale-packs.js','locale-en-extra.js','locale-settings-packs.js','locale-descriptions-packs.js','locale-core-packs.js','locale-controls-packs.js','locale-options-packs.js','locale-navigation-packs.js','locale-world-packs.js','locale-dynamics.js','puzzles-brainrot.js','voxel-test-preview.js','settings.js','firebase-config.js','themes.css','themes.js','premium-themes.css','theme-extras.css','library-precision.css','theme-world-ui.js','library-ui.js','forest-world.css','forest-world.js','assets/forest-world.svg','terminal-world.css','terminal-world.js','assets/terminal-wallpaper.svg','default-home.css','default-home.js','apple-home.css','apple-home.js','controller-input.css','controller-input.js','controller-customization.css','controller-customization.js','daily-rewards.js','daily-rewards.css','shop.js','shop.css','public-lobby.css','pixel-friends.css','assets/friends-parade.svg','assets/library-scene.svg','assets/library-world.svg','assets/library-mode-practice.svg','assets/library-mode-race.svg','assets/library-mode-coop.svg','assets/library-mode-record.svg','assets/arcade-scene.svg','assets/enchanted-scene.svg','assets/cosmos-scene.svg','assets/setting-guides/row-highlight.svg','assets/setting-guides/pointer-follow.svg','assets/setting-guides/hint-hud.svg','assets/setting-guides/filled-run.svg','assets/setting-guides/drag-hud.svg']){
+for(const name of ['index.html','locale.js','locale-packs.js','locale-en-extra.js','locale-settings-packs.js','locale-descriptions-packs.js','locale-core-packs.js','locale-controls-packs.js','locale-options-packs.js','locale-navigation-packs.js','locale-world-packs.js','locale-dynamics.js','puzzles-brainrot.js','voxel-test-preview.js','settings.js','firebase-config.js','themes.css','themes.js','premium-themes.css','theme-extras.css','library-precision.css','theme-world-ui.js','library-ui.js','forest-world.css','forest-world.js','assets/forest-world.svg','terminal-world.css','terminal-world.js','assets/terminal-wallpaper.svg','default-home.css','default-home.js','apple-home.css','apple-home.js','home-sidebars.css','home-sidebars.js','controller-input.css','controller-input.js','controller-customization.css','controller-customization.js','daily-rewards.js','daily-rewards.css','shop.js','shop.css','public-lobby.css','pixel-friends.css','assets/friends-parade.svg','assets/library-scene.svg','assets/library-world.svg','assets/library-mode-practice.svg','assets/library-mode-race.svg','assets/library-mode-coop.svg','assets/library-mode-record.svg','assets/arcade-scene.svg','assets/enchanted-scene.svg','assets/cosmos-scene.svg','assets/setting-guides/row-highlight.svg','assets/setting-guides/pointer-follow.svg','assets/setting-guides/hint-hud.svg','assets/setting-guides/filled-run.svg','assets/setting-guides/drag-hud.svg']){
   const target=path.join(output,name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(root,name),target);
 }
 
@@ -26,6 +26,15 @@ const appleHomeHash=crypto.createHash('sha256').update(fs.readFileSync(path.join
 const currentIndex=fs.readFileSync(builtIndex,'utf8');
 if(!/\.\/apple-home\.css\?v=[^"' ]+/.test(currentIndex))throw Error('Apple home stylesheet reference missing');
 fs.writeFileSync(builtIndex,currentIndex.replace(/\.\/apple-home\.css\?v=[^"' ]+/g,'./apple-home.css?v='+appleHomeHash));
+
+// New side rails must be cached by file content, not the legacy fixed ?v=1.
+for(const asset of ['home-sidebars.css','home-sidebars.js']){
+  const hash=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,asset))).digest('hex').slice(0,12);
+  const html=fs.readFileSync(builtIndex,'utf8');
+  const current='./'+asset+'?v=1';
+  if(!html.includes(current))throw Error('Home rail asset reference missing: '+asset);
+  fs.writeFileSync(builtIndex,html.replace(current,'./'+asset+'?v='+hash));
+}
 
 // Generate polished non-clickable decorations from the reference character strip.
 // The old heavily thresholded SVG removed dark eye outlines and damaged the faces.
