@@ -48,7 +48,7 @@ const {pathToFileURL}=require('node:url');
    const length=await tabs.count();
    for(let i=0;i<length;i++){await tabs.nth(i).click();await audit(lang+':settings-tab-'+i);}
    await page.locator('#nono-settings-close').click();
-   await page.locator('#nono-theme-open').click();
+   await page.evaluate(()=>window.NONO_THEMES.open());
    await audit(lang+':shop-theme');
    for(const id of ['points','premium']){
      await page.locator('#nono-shop-tab-'+id).click();await audit(lang+':shop-'+id);
