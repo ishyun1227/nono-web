@@ -134,11 +134,13 @@ function render(values){
 let stop=null;
 function watch(){
   if(stop||!dbReady())return;
-  message('최근 완료 기록을 불러오는 중…');
+  if(readHistory().length)render();
+  else message('최근 완료 기록을 불러오는 중…');
   stop=onValue(query(ref(database,'recentCompletions'),orderByChild('completedAt'),limitToLast(10)),
     snap=>render(snap.val()),error=>{
       console.warn('최근 클리어 구독 실패 (Firebase 규칙 확인 필요)',error);
-      message('완료 기록에 연결하지 못했어요.');
+      if(readHistory().length)render();
+      else message('완료 기록에 연결하지 못했어요.');
     });
 }
 function publish(detail){
@@ -180,7 +182,8 @@ const connection=document.getElementById('connection');
 if(connection){
   const updateOfflineState=()=>{
     if(!dbReady()&&/오프라인|연결 실패/.test(connection.textContent||''))
-      message('온라인 연결 후 최근 완료 기록이 표시돼요.');
+      {if(readHistory().length)render();
+      else message('온라인 연결 후 최근 완료 기록이 표시돼요.');}
   };
   new MutationObserver(updateOfflineState).observe(connection,{childList:true,subtree:true,characterData:true});
   updateOfflineState();
