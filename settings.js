@@ -755,7 +755,7 @@ function guideIllustration(key,enabled){
 }
 const approvedGuideImage={
  rowHighlight:'./assets/setting-guides/row-highlight.svg',
- pointerFollow:'./assets/setting-guides/pointer-follow.svg',
+ pointerFollow:'./assets/setting-guides/pointer-follow.svg?v=approved-original-20261029',
  hintHud:'./assets/setting-guides/hint-hud.svg',
  filledRunCount:'./assets/setting-guides/filled-run.svg',
  dragHud:'./assets/setting-guides/drag-hud.svg'
