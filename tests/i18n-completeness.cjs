@@ -11,7 +11,8 @@ const window={};
 const ctx=vm.createContext({window});
 for(const name of ['locale-packs.js','locale-settings-packs.js','locale-descriptions-packs.js',
   'locale-core-packs.js','locale-controls-packs.js','locale-options-packs.js',
-  'locale-navigation-packs.js','locale-world-packs.js','locale-dynamics.js']){
+  'locale-navigation-packs.js','locale-world-packs.js','locale-dynamics.js',
+  'locale-runtime-messages.js','locale-firebase-messages.js','locale-controller-messages.js']){
  vm.runInContext(load(name),ctx,{filename:name});
 }
 const keyPattern=/\[\s*'((?:\\.|[^'])+)'\s*,\s*'/g;
@@ -46,4 +47,14 @@ for(const locale of expected){
  }
  console.log('I18N_COMPLETE '+locale+' '+sources.size+' native strings + '+samples.length+' dynamic sample checks');
 }
+const liveKeys=Object.keys(window.NONO_RUNTIME_PACKS?.en||{});
+if(liveKeys.length<105)throw Error('Expected 105+ non-Korean multiplayer/controller messages; got '+liveKeys.length);
+const allLocales=['en','ja',...expected];
+for(const locale of allLocales){
+ const dict=window.NONO_RUNTIME_PACKS[locale]||{};
+ const missing=liveKeys.filter(key=>!dict[key]||/[가-힣]/.test(dict[key]));
+ if(missing.length)throw Error(locale+' missing live UI messages: '+missing.slice(0,12).join(' | '));
+ console.log('I18N_RUNTIME '+locale+' '+liveKeys.length+' translated live messages');
+}
+
 console.log('I18N_COMPLETE 9 locale packs contain translations for all '+sources.size+' catalogued strings.');
