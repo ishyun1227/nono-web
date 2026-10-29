@@ -212,6 +212,11 @@ japaneseAuditFixes.push(
 for(const [source,translation] of japaneseAuditFixes)map.ja.set(source,translation);
 
 for(const locale of SUPPORTED.filter(l=>!['ko','en','ja'].includes(l))){map[locale]=new Map(Object.entries(window.NONO_LOCALE_PACKS?.[locale]||{}));}
+// Apply live multiplayer/controller strings before translation begins, for every target locale.
+for(const [id,entries] of Object.entries(window.NONO_RUNTIME_PACKS||{})){
+ if(!map[id])continue;
+ for(const [source,translation] of Object.entries(entries))map[id].set(source,translation);
+}
 const patterns=[
  [/^(\d+)\s*\/\s*(\d+)\s*달성$/,(m,a,b,l)=>l==='en'?a+' / '+b+' completed':a+' / '+b+' 達成'],
  [/^(\d+)일차(?: ✨)?$/,(m,n,l)=>l==='en'?'Day '+n:'第'+n+'日'],
