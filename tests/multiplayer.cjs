@@ -2,15 +2,20 @@ const {initializeTestEnvironment,assertFails,assertSucceeds}=require('@firebase/
 const {ref,set,get,runTransaction,serverTimestamp,query,orderByChild,limitToFirst,limitToLast,remove}=require('firebase/database');
 const fs=require('node:fs'),assert=require('node:assert/strict');
 const {answers}=require('./puzzles.cjs');
+const answerBits=require('../answer-bitpack.js');
 async function main(){
  const env=await initializeTestEnvironment({projectId:'demo-nono',database:{host:'127.0.0.1',port:9000,rules:fs.readFileSync('database.rules.json','utf8')}});
  try{
-  await env.clearDatabase();await env.withSecurityRulesDisabled(c=>set(ref(c.database(),'privateAnswers'),answers));
+  await env.clearDatabase();await env.withSecurityRulesDisabled(async c=>{
+   await set(ref(c.database(),'privateAnswers'),answers);
+   await set(ref(c.database(),'privateAnswersPacked'),Object.fromEntries(Object.entries(answers).map(([id,mask])=>[id,answerBits.pack(mask,mask.length===25?5:10,mask.length===25?5:10)])));
+  });
   const db=uid=>env.authenticatedContext(uid).database(),a=db('alice'),b=db('bob'),outsider=db('eve');
   const meta=mode=>({host:'alice',mode,puzzleId:'heart5',size:5,status:mode==='race'?'lobby':'playing',createdAt:serverTimestamp(),startedAt:mode==='race'?0:serverTimestamp()});
   const join=(d,code,slot,uid)=>set(ref(d,`rooms/${code}/players/${slot}`),{uid,name:uid,joinedAt:serverTimestamp()});
   await assertFails(get(ref(env.unauthenticatedContext().database(),'rooms/ABCDEF/meta')));
   await assertFails(get(ref(a,'privateAnswers')));
+  await assertFails(get(ref(a,'privateAnswersPacked')));
   await assertSucceeds(set(ref(a,'rooms/ABCDEF/meta'),meta('coop')));
   await join(a,'ABCDEF','0','alice');await join(b,'ABCDEF','1','bob');
   const publicMeta=(await get(ref(a,'rooms/ABCDEF/meta'))).val();
@@ -106,6 +111,17 @@ async function main(){
     startedAt:v2Start,finishedAt:serverTimestamp(),filled:answers.heart5}));
   await assertFails(set(ref(a,'rooms/WX2345/raceMoves/alice/after'),{bits:'AAY=',at:serverTimestamp()}));
   console.log('PASS v2 race per-player binary actions, completion validation and immutable history');
+  const packedAnswer=answerBits.pack(answers.heart5,5,5);
+  const wrongPacked=answerBits.pack('0'.repeat(25),5,5);
+  await assertSucceeds(set(ref(a,'rooms/PACK23/meta'),{...meta('race'),format:2}));
+  await join(a,'PACK23','0','alice');await join(b,'PACK23','1','bob');
+  const packedRace=(await get(ref(a,'rooms/PACK23/meta'))).val();
+  await set(ref(a,'rooms/PACK23/meta'),{...packedRace,status:'playing',startedAt:serverTimestamp()});
+  const packedStarted=(await get(ref(a,'rooms/PACK23/meta/startedAt'))).val();
+  await set(ref(a,'rooms/PACK23/states/alice'),{startedAt:packedStarted,finishedAt:0});
+  await assertFails(set(ref(a,'rooms/PACK23/states/alice'),{startedAt:packedStarted,finishedAt:serverTimestamp(),filled:wrongPacked}));
+  await assertSucceeds(set(ref(a,'rooms/PACK23/states/alice'),{startedAt:packedStarted,finishedAt:serverTimestamp(),filled:packedAnswer}));
+  console.log('PASS private packed race answer validation and rejected forged completions');
   const run=ref(a,'runs/heart5/alice');
   await set(run,{name:'Alice',startedAt:serverTimestamp(),finishedAt:0,filled:'0'.repeat(25),changes:0});
   const initial=(await get(run)).val();
@@ -118,6 +134,12 @@ async function main(){
   await assertFails(get(ref(b,'scores/heart5')));
   const scores=await get(query(ref(b,'scores/heart5'),orderByChild('duration'),limitToFirst(12)));assert(scores.exists());
   console.log('PASS record answer/time validation, score tampering, bounded leaderboard');
+  const packedRun=ref(b,'runs/heart5/bob');
+  await set(packedRun,{name:'Bob',startedAt:serverTimestamp(),finishedAt:0,filled:'0'.repeat(25),changes:0});
+  const packInitial=(await get(packedRun)).val();
+  await assertFails(set(packedRun,{...packInitial,filled:wrongPacked,finishedAt:serverTimestamp()}));
+  await assertSucceeds(set(packedRun,{...packInitial,filled:packedAnswer,finishedAt:serverTimestamp()}));
+  console.log('PASS packed record completion with unchanged legacy run support');
  }finally{await env.cleanup();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
