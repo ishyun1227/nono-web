@@ -95,8 +95,68 @@ function E(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=c
 function persist(){profiles[device]=Object.assign({},prefs);try{localStorage.setItem(KEY,JSON.stringify(profiles))}catch{}}
 persist();
 function saveKey(){return SAVE+puzzle.id;}
-function saveBoard(){if(mode!=='practice'||roomCode||!board||!puzzle||puzzle.sizeTest)return;try{localStorage.setItem(saveKey(),JSON.stringify({board:board.join(''),startedAt,finishedAt,selected,manual:manualClues[puzzle.id]||{},savedAt:Date.now()}))}catch{}}
-function readBoard(){try{const data=JSON.parse(localStorage.getItem(saveKey())||'null');return data&&typeof data.board==='string'&&data.board.length===puzzle.size*puzzle.size?data:null}catch{return null}}
+// Persist undo/redo in a compact 2-bit-per-cell format, preserving the existing save key.
+// Cache encoded snapshots because unchanged history entries are re-saved after each move.
+const historySaveCache=new WeakMap();
+function packHistoryState(state){
+ if(!state||!Array.isArray(state.board)||state.board.length!==puzzle.size*puzzle.size)return null;
+ const cached=historySaveCache.get(state);
+ if(cached)return cached;
+ let packed='';
+ for(let i=0;i<state.board.length;i+=4){
+  let bits=0;
+  for(let k=0;k<4&&i+k<state.board.length;k++){
+   const value=state.board[i+k];
+   bits|=(value==='1'?1:value==='2'?2:0)<<(k*2);
+  }
+  packed+=String.fromCharCode(bits);
+ }
+ const encoded=[btoa(packed),Number.isFinite(state.changes)?state.changes:0,Number.isInteger(state.selected)?state.selected:0];
+ historySaveCache.set(state,encoded);
+ return encoded;
+}
+function unpackHistoryState(data){
+ if(!Array.isArray(data)||data.length!==3||typeof data[0]!=='string')return null;
+ const length=puzzle.size*puzzle.size;
+ if(!Number.isFinite(data[1])||data[1]<0||!Number.isInteger(data[2])||data[2]<0||data[2]>=length)return null;
+ try{
+  const bytes=atob(data[0]);
+  if(bytes.length!==Math.ceil(length/4))return null;
+  const result=new Array(length);
+  for(let i=0;i<length;i++){
+   const value=(bytes.charCodeAt(i>>2)>>(2*(i&3)))&3;
+   if(value===3)return null;
+   result[i]=String(value);
+  }
+  return {board:result,changes:data[1],selected:data[2]};
+ }catch{return null;}
+}
+function restoredHistory(list){
+ if(!Array.isArray(list))return [];
+ return list.slice(-150).map(unpackHistoryState).filter(Boolean);
+}
+function saveBoard(){
+ if(mode!=='practice'||roomCode||!board||!puzzle||puzzle.sizeTest)return;
+ const data={board:board.join(''),startedAt,finishedAt,selected,changes,
+  manual:manualClues[puzzle.id]||{},savedAt:Date.now()};
+ // If browser storage is almost full, retain the board and as much history as fits.
+ for(const limit of [150,75,30,0]){
+  try{
+   if(limit){
+    data.undo=undoStack.slice(-limit).map(packHistoryState).filter(Boolean);
+    data.redo=redoStack.slice(-limit).map(packHistoryState).filter(Boolean);
+   }else{delete data.undo;delete data.redo;}
+   localStorage.setItem(saveKey(),JSON.stringify(data));
+   return;
+  }catch(error){if(limit===0)console.warn('퍼즐 진행 상태를 저장하지 못했어요.',error);}
+ }
+}
+function readBoard(){
+ try{
+  const data=JSON.parse(localStorage.getItem(saveKey())||'null');
+  return data&&typeof data.board==='string'&&data.board.length===puzzle.size*puzzle.size&&/^[012]+$/.test(data.board)?data:null;
+ }catch{return null;}
+}
 function dropSave(){try{localStorage.removeItem(saveKey())}catch{}}
 function setPref(k,v,keepControl){prefs[k]=v;persist();apply();if(settingsOpen&&!keepControl)drawSettings();}
 function playSound(which,variation){const active={input:prefs.soundInput,finish:prefs.soundFinish,wrong:prefs.soundWrong&&prefs.errorMode==='immediate',ui:prefs.soundClick,hint:prefs.soundHint,hover:prefs.soundHover};if(!active[which]||!prefs.volume)return;try{soundContext=soundContext||new(window.AudioContext||window.webkitAudioContext)();const o=soundContext.createOscillator(),g=soundContext.createGain(),t=soundContext.currentTime;const vol=prefs.volume/100*((which==='input'?prefs.inputVolume:which==='ui'||which==='hover'?prefs.uiVolume:prefs.effectVolume)/100)*.085;const base=which==='finish'?790:which==='wrong'?240:which==='hint'?650:which==='ui'?520:which==='hover'?410:variation==='2'?340:500;o.type=prefs.soundTheme==='pop'?'square':prefs.soundTheme==='soft'?'sine':'triangle';o.frequency.setValueAtTime(base,t);o.frequency.exponentialRampToValueAtTime(base*(which==='wrong'?.62:1.3),t+.085);g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.0001,t+.11);o.connect(g);g.connect(soundContext.destination);o.start(t);o.stop(t+.12)}catch{}}
@@ -1220,7 +1280,7 @@ function endKeyboard(e){
   e.preventDefault();e.stopImmediatePropagation();commitAltClue();
  }
  if(e.code===moveHeld)releaseMove();if(!keyboardDrag)return;if((keyboardDrag.to==='1'&&matches('fill',e))||(keyboardDrag.to==='2'&&matches('cross',e))||(keyboardDrag.to==='0'&&matches('clear',e))){squashHistory(keyboardDrag.first);keyboardDrag=null;render();}}
-function squashHistory(first){if(!['practice','record'].includes(mode)||undoStack.length<=first+1)return;undoStack.splice(first+1,undoStack.length-first-1)}
+function squashHistory(first){if(!['practice','record'].includes(mode)||undoStack.length<=first+1)return;undoStack.splice(first+1,undoStack.length-first-1);saveBoard()}
 
 /* High-performance stroke handling. The original per-cell render() and updateBoard()
    crossed 10,000 cells on every mouse event. Here a stroke updates only changed DOM
@@ -1410,7 +1470,14 @@ function setupPointer(){
 const oldPaint=paint;paint=function(index,to,drag){if(drag&&dragStart!==null){if(mode==='coop'){oldPaint(index,to,true);return;}const n=puzzle.size;const ar=Math.floor(dragStart/n),ac=dragStart%n,r=Math.floor(index/n),c=index%n;if(!dragAxis){dragAxis=Math.abs(c-ac)>=Math.abs(r-ar)?'row':'col'}if((dragAxis==='row'&&r!==ar)||(dragAxis==='col'&&c!==ac))return;const from=selected;const start=dragAxis==='row'?from%n:Math.floor(from/n),end=dragAxis==='row'?c:r,step=end>=start?1:-1;for(let k=start;k!==end+step;k+=step){const at=dragAxis==='row'?ar*n+k:k*n+ac;if(prefs.dragPolicy==='skip'&&board[at]!=='0'&&at!==dragStart)continue;oldPaint(at,to,true);dragCount++}updateBoard();return;}
 const prev=board[index];oldPaint(index,to,drag);if(board[index]!==prev){lastInput=index;lastInputTime=Date.now();if(prefs.lastInput==='3'||prefs.lastInput==='5')setTimeout(()=>{if(Date.now()-lastInputTime>=Number(prefs.lastInput)*1000)updateBoard()},Number(prefs.lastInput)*1000+50);playSound('input',to);if(prefs.errorMode==='immediate'&&wrongCells().length)notifyWrong('immediate');else scheduleWrong();saveBoard();const cl=$('board').querySelectorAll('.cell')[index];if(cl&&prefs.animation!=='basic'){const style='nono-input-'+prefs.animation;cl.classList.remove(style,'nono-anim-cross','nono-anim-fill');void cl.offsetWidth;cl.classList.add(style,to==='2'?'nono-anim-cross':'nono-anim-fill');}if(prefs.feedback!=='off'&&navigator.vibrate)navigator.vibrate(prefs.feedback==='strong'?45:prefs.feedback==='normal'?25:12)}updateBoard();};
 const oldRender=render;render=function(){oldRender();updateBoard()};
-const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();keyboardDrag=null;hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();manualClues[puzzle.id]=saved.manual||{};finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
+// Undo/redo must update the persistent resume snapshot, not only the live board.
+const oldRestoreHistory=restoreHistory;
+restoreHistory=function(source,target){
+ const changed=['practice','record'].includes(mode)&&!roomCode&&!finished&&source.length>0;
+ oldRestoreHistory(source,target);
+ if(changed&&mode==='practice')saveBoard();
+};
+const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();keyboardDrag=null;hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();changes=Number.isFinite(saved.changes)?saved.changes:0;manualClues[puzzle.id]=saved.manual||{};undoStack=restoredHistory(saved.undo);redoStack=restoredHistory(saved.redo);finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
 const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');return oldLeave()};
 const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playSound('finish');setTimeout(()=>openOverview(),300)};
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
