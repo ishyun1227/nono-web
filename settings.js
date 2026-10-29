@@ -201,8 +201,12 @@ body[data-error-intensity=weak] .nono-error{outline-width:1px!important}body[dat
 .nono-overview{position:fixed;inset:0;z-index:11000;display:grid;place-items:center;background:#060d21da;padding:15px}
 .nono-overview[data-position=topright]{place-items:start end}.nono-overview[data-position=topleft]{place-items:start}
 .nono-overview-card{background:#182440;border:1px solid #7185bb;border-radius:18px;box-shadow:0 20px 80px #000a;padding:15px;max-width:94vw;max-height:91vh;overflow:auto}
-.nono-overview-grid{display:grid;gap:1px;width:min(62vw,600px);aspect-ratio:1}.nono-overview[data-size=small] .nono-overview-grid{width:min(40vw,400px)}.nono-overview[data-size=large] .nono-overview-grid{width:min(83vw,850px)}
-.nono-overview-grid i{background:#22304b;display:grid;place-items:center;color:#92a8c8;font-style:normal;font-size:clamp(7px,1vw,17px)}.nono-overview-grid i.is-filled{background:#b1a3f8}
+/* Explicit equal-size tracks prevent rows with X glyphs from becoming taller. */
+.nono-overview-grid{display:grid;gap:1px;width:min(62vw,600px);aspect-ratio:1/1;grid-auto-rows:minmax(0,1fr);grid-auto-columns:minmax(0,1fr);align-content:stretch;justify-content:stretch;min-width:0;min-height:0;overflow:hidden}
+.nono-overview[data-size=small] .nono-overview-grid{width:min(40vw,400px)}
+.nono-overview[data-size=large] .nono-overview-grid{width:min(83vw,850px)}
+.nono-overview-grid i{min-width:0;min-height:0;overflow:hidden;background:#22304b;display:grid;place-items:center;color:#92a8c8;font-style:normal;font-size:clamp(7px,1vw,17px);line-height:1}
+.nono-overview-grid i.is-filled{background:#b1a3f8}
 .nono-minimap{position:fixed;right:15px;top:105px;z-index:100;background:#121d35e8;padding:9px;border:1px solid #536492;border-radius:13px;max-width:160px;box-shadow:0 8px 30px #0006}
 .nono-minimap-grid{display:grid;width:120px;aspect-ratio:1;gap:1px}.nono-minimap-grid i{background:#243251}.nono-minimap-grid i.is-filled{background:#aa9dfa}.nono-minimap-grid i.is-cross{background:#445d7c}
 .nono-actions{display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin:8px 0}.nono-actions button{border-radius:9px;background:#202c50;border:1px solid #53649b;color:#f0f1ff;padding:8px 12px;cursor:pointer}
@@ -1129,7 +1133,24 @@ function fitBoardToViewport(){
 }
 function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();}
 function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+n+'</b>';const g=E('div','nono-minimap-grid');g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
-function openOverview(){if($('game').classList.contains('hidden'))return;overviewOpen=true;const modal=$('nono-overview');modal.hidden=false;modal.dataset.position=prefs.overviewPosition;modal.dataset.size=prefs.overviewSize;const n=puzzle.size,filled=board.filter(v=>v==='1').length,black=totalBlack(puzzle),pr=Math.round(filled/Math.max(1,black)*100);$('nono-overview-info').textContent=prefs.overviewInfo==='off'?'':prefs.overviewInfo==='percent'?pr+'%':prefs.overviewInfo==='filled'?filled+'칸':prefs.overviewInfo==='remaining'?Math.max(0,black-filled)+'칸':'진행 '+pr+'% · 칠함 '+filled+'칸 · 남음 '+Math.max(0,black-filled)+'칸';const g=$('nono-overview-grid');g.innerHTML='';g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{g.append(E('i',v==='1'?'is-filled':'',v==='2'?'×':''))});apply();}
+function openOverview(){
+ if($('game').classList.contains('hidden'))return;
+ overviewOpen=true;
+ const modal=$('nono-overview');
+ modal.hidden=false;modal.dataset.position=prefs.overviewPosition;modal.dataset.size=prefs.overviewSize;
+ // A completed puzzle is a clean answer picture: never display only some X marks.
+ // The underlying player's X/empty marks remain unchanged for saved history.
+ const completed=!!finished;
+ modal.querySelector('.nono-options strong').textContent=completed?'전체보기 · 완성된 퍼즐':'전체보기 · 현재 입력';
+ const n=puzzle.size,filled=board.filter(v=>v==='1').length,black=totalBlack(puzzle),pr=Math.round(filled/Math.max(1,black)*100);
+ $('nono-overview-info').textContent=prefs.overviewInfo==='off'?'':prefs.overviewInfo==='percent'?pr+'%':prefs.overviewInfo==='filled'?filled+'칸':prefs.overviewInfo==='remaining'?Math.max(0,black-filled)+'칸':'진행 '+pr+'% · 칠함 '+filled+'칸 · 남음 '+Math.max(0,black-filled)+'칸';
+ const g=$('nono-overview-grid');
+ g.replaceChildren();
+ g.style.gridTemplateColumns='repeat('+n+',minmax(0,1fr))';
+ g.style.gridTemplateRows='repeat('+n+',minmax(0,1fr))';
+ board.forEach(v=>{g.append(E('i',v==='1'?'is-filled':'',!completed&&v==='2'?'×':''))});
+ apply();
+}
 function closeOverview(){overviewOpen=false;$('nono-overview').hidden=true;apply();}
 function enumerateLine(hints,values){const n=values.length,states=[],out=[];function go(i,at){if(i===hints.length){const row=Array(n).fill('2');for(const [start,end] of states)for(let k=start;k<end;k++)row[k]='1';if(row.every((v,k)=>values[k]==='0'||values[k]===v))out.push(row);return}const remaining=hints.slice(i+1).reduce((s,v)=>s+v+1,0);for(let start=at;start<=n-hints[i]-remaining;start++){states.push([start,start+hints[i]]);go(i+1,start+hints[i]+1);states.pop();if(out.length>30000)return}}go(0,0);return out}
 function logicHint(){if(puzzle.sizeTest){toast('크기 테스트 퍼즐은 풀이 힌트를 제공하지 않습니다.');return;}hintStage++;let found=null;for(let axis of ['row','col']){for(let i=0;i<puzzle.size;i++){const values=lineValues(axis,i),poss=enumerateLine(hintsForLine(axis,i),values);if(!poss.length)continue;for(let j=0;j<puzzle.size;j++){if(values[j]!=='0')continue;const v=poss[0][j];if(poss.every(line=>line[j]===v)){found={axis,i,j,v,count:poss.length};break}}if(found)break}if(found)break}if(!found){toast('현재 논리적으로 확실한 칸이 없어요.');return;}
