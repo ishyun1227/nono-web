@@ -35,7 +35,7 @@ const {pathToFileURL}=require('node:url');
  if(english.lang!=='en'||english.modes[0]!=='Solo'||!english.title.includes('settings')||english.daily!=='Daily missions'||english.attendance!=='Daily check-in')
   throw Error('English localization incomplete: '+JSON.stringify(english));
  await page.locator('#nono-settings-close').click();
- await page.click('#nono-theme-open');
+ await page.evaluate(()=>window.NONO_THEMES.open());
  await page.waitForFunction(()=>document.querySelector('#nono-shop-tab-points')?.textContent.includes('Top up'));
  if(!(await page.locator('#nono-shop-tab-premium').innerText()).includes('Ad-free'))throw Error('Shop translation missing');
  if(await page.locator('#nono-shop-points button:not([disabled])').count())throw Error('Cash button should remain disabled');
