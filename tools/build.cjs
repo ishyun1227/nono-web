@@ -118,9 +118,9 @@ for(const filename of (fs.existsSync(trialDir)?fs.readdirSync(trialDir):[]).filt
  html=html.replace(/<script type="application\/json" id="data">[\s\S]*?<\/script>/,
    '<script type="application/json" id="data">'+JSON.stringify(publicData).replace(/</g,'\\u003c')+'</script>');
  html=html.replace("const KEY='nono-winter-snowman-trial-v1'",
-   "const KEY='nono-trial-'+d.id+'-v1'");
+   "const KEY=d.id==='winter-snowman-trial-v1'?'nono-winter-snowman-trial-v1':'nono-trial-'+d.id+'-v1'");
  html=html.replace(/href="\.\//g,'href="../');
- if(!html.includes("const KEY='nono-trial-'+d.id+'-v1'")||
+ if(!html.includes("const KEY=d.id==='winter-snowman-trial-v1'?'nono-winter-snowman-trial-v1':'nono-trial-'+d.id+'-v1'")||
     !html.includes('<script type="application/json" id="data">'))
    throw Error('Trial template failed to render: '+filename);
  const route='trials/'+p.id+'.html';
