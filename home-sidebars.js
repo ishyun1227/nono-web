@@ -123,7 +123,7 @@ function render(values){
     const size=document.createElement('span');size.textContent=item.size+'×'+item.size;
     const done=document.createElement('span');
     done.textContent=item.local
-      ?(item.status==='failed'?'내 완료 · 공개 실패':'내 완료 · 공개 대기')
+      ?(item.status==='failed'?'내 완료 · 공개 실패':item.status==='published'?'내 완료 · 공개됨':'내 완료 · 공개 대기')
       :'✓ 완료';
     const time=document.createElement('span');time.className='nono-completion-time';time.textContent=clock(item.completedAt);
     info.append(mode,size,done,time);row.append(name,info);return row;
@@ -193,7 +193,7 @@ window.addEventListener('nono:firebase-ready',()=>{
 window.addEventListener('nono:completion-confirmed',event=>{
   const item=remember(event.detail);
   render();
-  if(item)publish(item);
+  if(item&&item.status!=='published')publish(item);
 });
 render();
 if(dbReady()){
