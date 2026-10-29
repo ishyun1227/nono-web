@@ -160,7 +160,7 @@ const rows=[
  'Tampilkan kemajuan di kanan atas; sembunyikan saat ikhtisar terbuka',
  'Hiện tiến độ ở góc trên phải; ẩn khi mở toàn cảnh',
  'แสดงความคืบหน้าที่มุมขวาบน ซ่อนชั่วคราวเมื่อเปิดภาพรวม'],
-['정답 그림은 노출하지 않음','不会泄露答案图像','ไม่เปิดเผยภาพเฉลย',
+['정답 그림은 노출하지 않음','不会泄露答案图像','不會揭露答案圖像',
  'No revela la imagen solución','Não revela a imagem da solução','Ne révèle pas l’image solution',
  'Zeigt das Lösungsbild nicht','Tidak mengungkap gambar jawaban','Không hiển thị ảnh đáp án','ไม่เปิดเผยภาพเฉลย'],
 ['키보드 셀 이동 시 스크롤 위치','键盘移动光标时的滚动方式','鍵盤移動游標時的捲動方式',
