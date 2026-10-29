@@ -66,3 +66,20 @@ assert.equal(live.serverAnswerMask(large,{id:'unseeded-30x30',size:30}),large.jo
 assert.equal(live.serverAnswerMask(large,{id:'winter-snowman-trial-v1',size:30}),large.join(''),
  'Trial puzzle must not submit packed answer to absent production seed');
 console.log('PASS Production rollout allowlist and backwards-compatible completion encoding');
+
+ 
+// Additional 30x30 curated source art is prepared for a SEPARATE server seed.
+// The production browser flag must not enable these until that deployment succeeds.
+const {curatedVoxAnswers}=require('../tools/curated-vox-answers.cjs');
+const vox=curatedVoxAnswers();
+assert.deepEqual(vox.map(p=>p.id).sort(),[
+ 'vox_crabino_front','vox_crabino_side','vox_crabino_top'
+],'Exactly three curated 30x30 answer masks are discoverable');
+for(const p of vox){
+ const mask=p.mask;
+ assert.equal(mask.length,900,p.id+' answer length');
+ const canonical=codec.validateAnswer(mask,30,30,p.rows,p.cols);
+ assert.equal(codec.unpack(canonical,30,30),mask,p.id+' lossless 1-bit canonical roundtrip');
+ assert.equal(enabled.includes(p.id),false,p.id+' must not be enabled before private migration');
+}
+console.log('PASS three additional 30x30 masks verified but not prematurely activated');
