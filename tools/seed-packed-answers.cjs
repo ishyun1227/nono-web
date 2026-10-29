@@ -7,6 +7,7 @@
 const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');
 const codec=require('../answer-bitpack.js');
 const {answers,puzzles}=require('../tests/puzzles.cjs');
+const {curatedVoxAnswers}=require('./curated-vox-answers.cjs');
 const argv=process.argv.slice(2);
 const option=key=>{const i=argv.indexOf(key);return i<0?null:argv[i+1];};
 const apply=argv.includes('--apply'),project=option('--project'),input=option('--input');
@@ -14,9 +15,12 @@ if(argv.some(arg=>arg.startsWith('--')&&!['--apply','--project','--input'].inclu
 if(apply&&(!project||!/^[a-z][a-z0-9-]{4,28}[a-z0-9]$/.test(project)))
   throw Error('Apply requires: --apply --project PROJECT_ID');
 if(argv.includes('--input')&&!input)throw Error('Missing --input JSON file path');
-const specs=puzzles.filter(p=>p.size<=10).map(p=>({
+const specs=[
+ ...puzzles.filter(p=>p.size<=10).map(p=>({
   id:p.id,width:p.size,height:p.size,mask:answers[p.id],rows:p.rows,cols:p.cols
-}));
+ })),
+ ...curatedVoxAnswers()
+];
 if(input){
   const extra=JSON.parse(fs.readFileSync(path.resolve(input),'utf8'));
   if(!extra||typeof extra!=='object'||typeof extra.id!=='string'||!/^[A-Za-z0-9_-]{1,80}$/.test(extra.id))
@@ -37,13 +41,32 @@ if(!apply){
   console.log('DRY RUN: Verified '+specs.length+' packed answers; no Firebase writes. To publish: --apply --project PROJECT_ID');
   process.exit(0);
 }
-const dir=fs.mkdtempSync(path.join(os.tmpdir(),'nono-packed-')),file=path.join(dir,'privateAnswersPacked.json');
+// Read first and never silently destroy existing answers. Firebase's database:update
+// at /privateAnswersPacked replaces the entire branch, so write only missing child IDs.
+const cli=path.join(__dirname,'../node_modules/firebase-tools/lib/bin/firebase.js');
+if(!fs.existsSync(cli))throw Error('Run npm ci before deploying private packed answers');
+const base=['--project',project],read=cp.execFileSync(process.execPath,[cli,'database:get','/privateAnswersPacked',...base],{encoding:'utf8',stdio:['ignore','pipe','pipe']});
+const existing=JSON.parse(read);
+if(existing!==null&&(typeof existing!=='object'||Array.isArray(existing)))throw Error('Unexpected privateAnswersPacked root format');
+const current=existing||Object.create(null);
+for(const [id,packed] of Object.entries(packedAnswers)){
+ if(Object.hasOwn(current,id)&&current[id]!==packed)
+  throw Error('Existing private packed answer differs, refusing to overwrite: '+id);
+}
+const missing=Object.entries(packedAnswers).filter(([id])=>!Object.hasOwn(current,id));
+console.log('Preflight:',Object.keys(current).length,'existing packed answers;',missing.length,'new answers to add');
+if(missing.length===0){console.log('All expected packed answers are already seeded.');process.exit(0);}
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'nono-packed-'));
 try{
-  fs.writeFileSync(file,JSON.stringify(packedAnswers),{mode:0o600});
-  const cli=path.join(__dirname,'../node_modules/firebase-tools/lib/bin/firebase.js');
-  if(!fs.existsSync(cli))throw Error('Run npm ci before deploying private packed answers');
-  cp.execFileSync(process.execPath,[cli,'database:update','/privateAnswersPacked',file,'--project',project,'--force'],{stdio:'inherit'});
-  console.log('Published packed answers WITHOUT modifying legacy privateAnswers.');
+ for(const [id,packed] of missing){
+  const file=path.join(dir,id+'.json');
+  fs.writeFileSync(file,JSON.stringify(packed),{mode:0o600});
+  // Never replace the privateAnswersPacked root, or remove any previous entry.
+  cp.execFileSync(process.execPath,[cli,'database:set','/privateAnswersPacked/'+id,file,...base,'--force'],{stdio:'inherit'});
+  fs.rmSync(file,{force:true});
+  console.log('Added verified private packed answer:',id);
+ }
+ console.log('Published '+missing.length+' additional packed answers WITHOUT modifying prior answers, rooms, records or the legacy privateAnswers path.');
 }finally{
-  fs.rmSync(dir,{recursive:true,force:true});
+ fs.rmSync(dir,{recursive:true,force:true});
 }
