@@ -115,9 +115,10 @@
   <div id="toast" role="status" aria-live="polite" class="toast hidden"></div>
   <script src="./firebase-config.js"></script>
   <script src="./puzzles-brainrot.js?v=1"></script>
+  <script src="./answer-bitpack.js?v=1"></script>
   <script>
 const firebaseConfig=window.NONO_FIREBASE_CONFIG||{};
-// 공개되는 것은 힌트뿐입니다. 정답 비트열은 데이터베이스의 privateAnswers에 보관합니다.
+// Public files contain clues and a codec, never private answer masks. Packed answers are stored only in protected Firebase paths.
 // Layout-test puzzles use random fill masks to build internally consistent row and column clues.
 // They are not curated images, and their solution does not have to be unique.
 function createSizeTestPuzzle(size) {
@@ -159,6 +160,15 @@ function isSolved(board,puzzle){
   return true;
 }
 function filledMask(board){return board.map(v=>v==='1'?'1':'0').join('');}
+// Opt-in only AFTER Firebase rules AND privateAnswersPacked are deployed.
+// Old rooms, old records, and legacy server rules remain compatible.
+function serverAnswerMask(board,p){
+  const mask=filledMask(board);
+  if(window.NONO_PACKED_ANSWERS_READY!==true)return mask;
+  if(!window.NONO_ANSWER_BITS)throw new Error('Answer codec unavailable');
+  const width=p.width||p.size,height=p.height||p.size;
+  return window.NONO_ANSWER_BITS.pack(mask,width,height);
+}
 // Version 2 multiplayer: each move stores only changed indices and 2-bit cell
 // values. Two bytes per cell allow up to 16,384 cells; a push ID + server time
 // gives all clients the same replay order, including simultaneous moves.
@@ -448,7 +458,7 @@ function paint(index,to,drag){
 function tick(){if($('game').classList.contains('hidden'))return;let start=mode==='race'?meta?.startedAt:startedAt;let end=finishedAt||(onlineReady()?serverNow():Date.now());$('timer').textContent=elapsedFormat(start?end-start:0);}
 function finishLocal(){if(finishing||finished)return;if(mode==='record'&&onlineReady()){finishRecord();return;}finishedAt=Date.now();finished=true;render();emitDailyActivity('puzzle-complete');window.dispatchEvent(new CustomEvent('nono:completion-confirmed',{detail:{mode:'solo',puzzleId:puzzle.id,size:puzzle.size,name:nickname(),roomCode:'',finishedAt}}));toast('퍼즐 완성!');if(mode==='record'){const key=`nono-records-${puzzle.id}`,scores=JSON.parse(storage.getItem(key)||'[]'),duration=finishedAt-startedAt;scores.push({name:nickname(),duration,changes,finishedAt});storage.setItem(key,JSON.stringify(scores.sort((a,b)=>a.duration-b.duration).slice(0,50)));refreshHomepageScores();}renderLive();}
 async function finishRecord(){if(finishing)return;finishing=true;try{
-  const path=`runs/${puzzle.id}/${currentId()}`;await set(ref(database,path),{name:nickname(),startedAt,finishedAt:serverTimestamp(),filled:filledMask(board),changes});
+  const path=`runs/${puzzle.id}/${currentId()}`;await set(ref(database,path),{name:nickname(),startedAt,finishedAt:serverTimestamp(),filled:serverAnswerMask(board,puzzle),changes});
   const data=(await get(ref(database,path))).val();finishedAt=data.finishedAt;finished=true;emitDailyActivity('puzzle-complete');window.dispatchEvent(new CustomEvent('nono:completion-confirmed',{detail:{mode:'solo',puzzleId:puzzle.id,size:puzzle.size,name:nickname(),roomCode:'',finishedAt:data.finishedAt}}));const duration=data.finishedAt-data.startedAt;
   const scoreRef=ref(database,`scores/${puzzle.id}/${currentId()}`);
   await runTransaction(scoreRef,prior=>!prior||duration<prior.duration?{name:data.name,startedAt:data.startedAt,finishedAt:data.finishedAt,duration,changes:data.changes}:undefined);
@@ -686,7 +696,7 @@ function queueRaceState(solved,cells=[]){
       await ensureRaceState();
       if(bits)await set(push(ref(database,`rooms/${code}/raceMoves/${uid}`)),{bits,at:serverTimestamp()});
       // Send a full answer mask only once on completion for server-side validation.
-      if(solved)await set(ref(database,path),{filled:filledMask(snapshot.split('')),startedAt:start,finishedAt:serverTimestamp()});
+      if(solved)await set(ref(database,path),{filled:serverAnswerMask(snapshot.split(''),puzzle),startedAt:start,finishedAt:serverTimestamp()});
     }else await set(ref(database,path),{board:snapshot,filled:filledMask(snapshot.split('')),startedAt:start,finishedAt:solved?serverTimestamp():0});
     if(roomCode===code)emitDailyActivity('race-action');
     if(solved&&roomCode===code){
