@@ -1,0 +1,30 @@
+const { chromium }=require('playwright');
+const path=require('node:path');
+const { pathToFileURL }=require('node:url');
+(async()=>{
+  const browser=await chromium.launch({headless:true});
+  const page=await browser.newPage({viewport:{width:1280,height:850}});
+  const errors=[];page.on('pageerror',e=>errors.push(e.message));
+  await page.goto(pathToFileURL(path.resolve(__dirname,'..','dist','playtest-rabbit-samurai.html')).href);
+  const sizes=async(cells,rows,cols)=>{
+    await page.locator('#board .cell').first().waitFor({state:'visible'});
+    const nums=await page.evaluate(()=>({cells:document.querySelectorAll('#board .cell').length,rows:document.querySelectorAll('#board .rh').length,cols:document.querySelectorAll('#board .ch').length}));
+    if(nums.cells!==cells||nums.rows!==rows||nums.cols!==cols)throw Error('Incorrect puzzle dimensions: '+JSON.stringify(nums));
+  };
+  await sizes(53*73,73,53);
+  await page.locator('#board .cell').first().click();
+  if(!await page.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))throw Error('Rabbit paint failed');
+  await page.locator('#undo').click();
+  if(await page.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))throw Error('Rabbit undo failed');
+  await page.locator('#redo').click();
+  await page.reload();
+  if(!await page.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))throw Error('Rabbit resume failed');
+  await page.locator('#samurai').click();
+  await sizes(72*72,72,72);
+  await page.locator('#board .cell').first().click();
+  await page.locator('#rabbit').click();
+  if(!await page.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))throw Error('Switching puzzle lost rabbit progress');
+  if(errors.length)throw Error('Browser JS errors: '+errors.join(' | '));
+  console.log('PLAYTEST_PASS: rabbit 53x73, samurai 72x72, paint, undo, redo, resume, switch');
+  await browser.close();
+})().catch(e=>{console.error(e);process.exit(1)});
