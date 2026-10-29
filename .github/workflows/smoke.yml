@@ -42,6 +42,7 @@ jobs:
           node --check locale-firebase-messages.js
           node --check locale-controller-messages.js
           node --check locale-en-extra.js
+          node --check locale-sidebars.js
           node --check locale-ja-advanced.js
           node --check locale-ja-navigation.js
           node --check tests/i18n-native-coverage.cjs
