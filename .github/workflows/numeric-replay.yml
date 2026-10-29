@@ -1,0 +1,35 @@
+name: NONO lossless replay checks
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  replay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Validate syntax
+        run: |
+          node --check numeric-replay.js
+          node --check replay-client.js
+          node --check cloud-replays.js
+          node --check multiplayer-replay.js
+          node --check account.js
+      - run: npm run test:replay
+      - run: npm run test:replay:multiplayer
+      - run: npm run build
+      - name: Verify deployed replay assets
+        run: |
+          test -s dist/numeric-replay.js
+          test -s dist/replay-client.js
+          test -s dist/cloud-replays.js
+          test -s dist/multiplayer-replay.js
+          grep -q './numeric-replay.js' dist/index.html
+          grep -q './cloud-replays.js' dist/index.html
