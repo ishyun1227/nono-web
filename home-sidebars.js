@@ -113,7 +113,7 @@ function render(values){
     Math.abs(p.completedAt-x.completedAt)<120000));
   const rows=[...published,...unmatched]
     .sort((a,b)=>b.completedAt-a.completedAt).slice(0,6);
-  if(!rows.length){message('아직 완료 기록이 없어요. 첫 클리어를 기다리고 있어요!');return;}
+  if(!rows.length){message('아직 공개된 완료 기록이 없어요. 첫 클리어를 기다리고 있어요!');return;}
   const nodes=rows.map(item=>{
     const row=document.createElement('article');row.className='nono-completion-item';row.setAttribute('role','article');
     const name=document.createElement('strong');name.className='nono-completion-name';name.textContent=item.name.slice(0,18)||'플레이어';
