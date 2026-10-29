@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101729"><title>토끼 · 사무라이 플레이테스트 | NONO</title>
+<style>
+:root{color-scheme:dark;--bg:#0c1324;--card:#171f34;--line:#344664;--text:#f3f5ff;--sub:#a9b8d5;--accent:#b9a0ff;--cell:23px}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 75% 0,#2a2850,#0c1324 54%);color:var(--text);font:14px/1.5 system-ui,-apple-system,"Noto Sans KR",sans-serif}
+header{max-width:1300px;margin:auto;padding:20px 22px 12px;display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+a{color:#cabbff}h1{font-size:clamp(20px,3vw,30px);margin:0}h2{margin:0 0 8px;font-size:16px}
+main{max-width:1300px;margin:auto;padding:0 16px 28px}.muted{color:var(--sub)}.eyebrow{font-size:11px;letter-spacing:2px;color:var(--accent)}
+.toolbar,.meta,.tools{display:flex;gap:9px;flex-wrap:wrap;align-items:center}.toolbar{margin:16px 0 12px}.meta{margin:12px 0}
+button,a.button{appearance:none;font:inherit;border:1px solid #48577c;border-radius:11px;background:#222f49;color:var(--text);padding:9px 14px;cursor:pointer;text-decoration:none;font-weight:650}
+button:hover,a.button:hover{border-color:#aa9bea}button.active{background:#58449a;border-color:#c0a6ff}button:disabled{opacity:.35;cursor:not-allowed}
+button:focus-visible,a:focus-visible{outline:3px solid #e0baff;outline-offset:2px}.card{border:1px solid #35415b;background:#151e33;border-radius:17px;padding:14px 16px}
+.notice{background:#1e2940;color:#cbd7f7;border-radius:10px;padding:9px 12px}.subtle{font-size:12px}
+#board-scroll{width:100%;max-height:73vh;min-height:330px;overflow:auto;overscroll-behavior:contain;border:1px solid #435274;border-radius:12px;background:#f3f6fc;position:relative;touch-action:pan-x pan-y;scrollbar-color:#8290af #e2e8f1}
+#board{display:grid;width:max-content;height:max-content;grid-template-columns:var(--gutter) repeat(var(--columns),var(--cell));grid-template-rows:var(--top) repeat(var(--rows),var(--cell));color:#283348;padding-right:1px;padding-bottom:1px}
+.corner{grid-column:1;grid-row:1;position:sticky;left:0;top:0;z-index:5;background:#dbe5f7;border-right:2px solid #263b5a;border-bottom:2px solid #263b5a;display:flex;align-items:end;justify-content:center;font-weight:750;font-size:11px;color:#51617e;padding-bottom:10px}
+.ch{position:sticky;top:0;z-index:3;min-width:0;background:#e1eaf7;display:flex;flex-flow:column nowrap;justify-content:flex-end;align-items:center;border-right:1px solid #cad3e2;border-bottom:2px solid #334e78;white-space:nowrap;font-size:11px;font-weight:700;padding-bottom:5px}
+.rh{position:sticky;left:0;z-index:2;background:#e1eaf7;display:flex;align-items:center;justify-content:flex-end;gap:4px;border-right:2px solid #334e78;border-bottom:1px solid #cad3e2;white-space:nowrap;font-size:11px;font-weight:700;padding-right:8px}
+.rh.five{border-top:2px solid #7383a7}.ch.five{border-left:2px solid #7383a7}.rh.done,.ch.done{color:#92a0b6}
+.cell{border:0;border-right:1px solid #cdd4e0;border-bottom:1px solid #cdd4e0;border-radius:0;background:white;padding:0;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;color:#8697a9;line-height:1;user-select:none;-webkit-user-select:none;touch-action:pan-x pan-y}
+.cell.filled{background:#172033}.cell.cross:after{content:"×";font-size:calc(var(--cell) * .8);font-weight:600}.cell.five-col{border-left:2px solid #70809e}.cell.five-row{border-top:2px solid #70809e}.cell.selected{outline:2px solid #ff9e42;outline-offset:-2px;z-index:1}
+.cell:hover{box-shadow:inset 0 0 0 2px #ba86f4}
+#status{font-weight:650;color:#e1d4ff}#complete{display:none;background:#153d36;color:#b6ffe7;padding:10px 15px;border:1px solid #3b8e76;border-radius:11px;margin:12px 0}
+#complete.shown{display:block}.progressbar{height:7px;background:#354362;border-radius:10px;overflow:hidden;width:180px}.progressbar>div{background:linear-gradient(90deg,#b59eff,#65dacc);height:100%;width:0}
+@media(max-width:640px){header{padding:14px 14px 5px}main{padding:0 9px 25px}.card{padding:10px}.toolbar{gap:6px}.toolbar button,.tools button{padding:8px 10px}#board-scroll{max-height:67vh}.rh{font-size:10px;gap:3px}.ch{font-size:10px}.notice{font-size:12px}}
+</style></head>
+<body><header><div><div class="eyebrow">NONO / PRIVATE PLAYTEST</div><h1>토끼 · 사무라이 퍼즐 체험</h1><div class="muted subtle">실제로 제작한 정답 격자에서 문제 힌트를 생성했습니다.</div></div><a class="button" href="./">← NONO 홈</a></header>
+<main>
+<section class="card">
+<div class="toolbar"><button type="button" id="rabbit" class="active">🐰 토끼 <small>53×73</small></button><button type="button" id="samurai">⚔ 사무라이 <small>72×72</small></button><span id="status" role="status"></span></div>
+<p class="notice">정답 그림은 미리 표시하지 않습니다. 빈칸에서 시작하며, 플레이 내용과 실행 취소 기록은 이 브라우저에 저장됩니다. 두 퍼즐은 정식 점수·포인트에 반영되지 않는 테스트판입니다.</p>
+<div class="meta"><span id="count"></span><div class="progressbar"><div id="bar"></div></div><span id="elapsed">00:00</span><span id="cursorlabel" class="muted"></span></div>
+<div class="tools" aria-label="도구"><button id="fill" class="active" type="button">■ 칠하기</button><button id="cross" type="button">× X 표시</button><button id="erase" type="button">⌫ 지우기</button><button id="undo" type="button">↶ 실행 취소</button><button id="redo" type="button">↷ 다시 실행</button><button id="zoomout" type="button">− 축소</button><button id="zoomin" type="button">＋ 확대</button><button id="reset" type="button">초기화</button></div>
+<div id="complete" role="status">완성했어요! 이 퍼즐의 정답 격자와 일치합니다.</div>
+<p class="muted subtle">클릭하거나 드래그해서 칠하세요. 오른쪽 클릭은 X 표시입니다. 방향키로 이동하고 Space=칠하기, X=X 표시, Backspace=지우기, Ctrl+Z/Y=실행 취소/다시 실행을 사용할 수 있습니다. 모바일은 도구를 선택한 후 칸을 터치하세요.</p>
+<div id="board-scroll" tabindex="0" aria-label="노노그램 문제판: 방향키, 스페이스, X, 백스페이스로 조작"><div id="board"></div></div>
+</section></main>
+<script>
+(function(){
+'use strict';
+// These are bit-packed exact solutions from the 2026-10-29 source puzzles.
+// Clues are calculated from the decoded bitmap; do not expose the solution in the UI.
+const DATA={
+rabbit:{name:'토끼',w:53,h:73,total:1069,b64:'AAHAAAAAAAAfgAAABwAA/wAAAPwAB/wAAB/wAH/wAAH/gAPPwAAf/AAePwAB8OAAcPwAHwcAA4PgAfA4ABwfgB8DwADgfAHwHAAHA/APAOAAOA+A+AcAAOB8B4B4AAcD4DwDgAA8H4PgHAAA4PweAeAAB4fg8A4AABw/B4DwAABx//wPAAADz//g8AAAD/APDwAAAD4AHPAAAAHAAH8AAAAcAAHwAAAAwAAHAAAADgAAOAAAAGAAAMAAAAc4AAYAAAAzwAY4AAADngB5wAAAOPADxgAAA4eAHjAAABg8APDAAADAxweGAAAOAD4YGAAAcAHgAMAAA4BGAAYAAAwDcQAwAABwH/gDgAADgAOAHAAAPgAAAcAAB/wAABwAAHj4AAHAAAeH8AB+AAB4PwAH8AADgfAAAcAD+AeAAAYAP8A8AAAwA/wA4AABgB/gAwAADAH+BAAAAGAPwDgAAAMAfgDgAAAcA+ADgAgA4B8AHgBgB4B4AHADAHwBgAPADIMwDAAeAHwZgGAA8APBzAOAB8AeDmAMAD4A4GcAYAP4BwMwA4A/wDgb4A4D/gGA/8B4AHgOAwcBwAHAOBwcBgAmAMBiYDAZMBYjEwHgy8yxmbgH//5l//+AD/+////4AAAAf8AAAA=='},
+samurai:{name:'사무라이',w:72,h:72,total:2136,b64:'AAAAfAAAAAAAAAAB/4AAAAAAAAAD/4AAAAAAAAAH/8AAAAAAAAAD/4AAAAAAAAAH+PwAAAAAAAAH8/+AAAAAAAAP//3gAAAAAAAP//7wAAAAAAAP///wAAAAAAAGeD/4AAAAAAAC/9/8AAAAAAAB/5B+AAAAAAAB/zAeAAAAAAAD/6APAAAAAAAD/zgPAAAAAAAHv34PAAAAAAAH/ke9AAAAAAAH3p95AAAAAAAHvgJ5AAAAAAAHvgApAAAAAAADtgAoAAAAAAADlgCoAAAAAAABxgDoAAAAAAAD/AAIAAAAAAAD/APQAAAAAAAA9AAQAAAAAAAA8ACQAAAAAAAA8cAgAAAAAAAAEPgwGAAAAAAAED/8/AAAAAAAcB/N/AAAAAAD8B+//4AAAAPHsj59/uAAAAP/u3T74DAAAAf/mcnzgfgAAA/7mZPmH/wAAD/7zyfAfwIAACB3zm/B+AMAAP43xM+TwAGAAY/n6J+bAAGAAQDv+T/9gB+AAwDv/+A/gf/AAgH8AAAfz/9gB8HB//+f/+AgB//f//+f/gAwD/+f///f8AAQCB+////fcAB4GAe//AffOA/4EA94AABfeP/4MA9AAABef/+MP99AH//O//AEP/9P///u/wAGI/5////u7gACYD7////n5wAfYD7//z/35wP/QD7/+j/zzz/8+H/wAmwbz//4//eAB84dz/4MP/eH/9v83/gMD/e///v/n+AGDPO///P/n8AGGHu///5/34AiGD+///7//wf/MB//AA+f/j//J4/gAAe//P/+f+fD///k+f/+f/vf///s94H8P//////8/wQ8P///AAH53j+MP/+AAAHz7H/8P/+AAACD/P/8'}
+};
+const $=id=>document.getElementById(id);
+const run=line=>{let a=[],n=0;for(const bit of line){if(bit)n++;else if(n){a.push(n);n=0;}}if(n)a.push(n);return a.length?a:[0]};
+function decode(p){const bytes=atob(p.b64);const n=p.w*p.h;let out=new Uint8Array(n);for(let i=0;i<n;i++)out[i]=(bytes.charCodeAt(i>>3)>>(7-(i&7)))&1;return out;}
+for(const id in DATA){const p=DATA[id];p.answer=decode(p);if(p.answer.reduce((a,b)=>a+b,0)!==p.total)throw Error('퍼즐 정답 데이터 손상: '+id);p.rows=Array.from({length:p.h},(_,r)=>run(p.answer.slice(r*p.w,(r+1)*p.w)));p.cols=Array.from({length:p.w},(_,c)=>run(Array.from({length:p.h},(_,r)=>p.answer[r*p.w+c])));}
+const KEY=id=>'nono-source-playtest-20261029-'+id;
+function pack2(arr){const b=new Uint8Array(Math.ceil(arr.length/4));arr.forEach((v,i)=>{b[i>>2]|=(v&3)<<((i&3)*2)});let s='';for(const v of b)s+=String.fromCharCode(v);return btoa(s);}
+function unpack2(s,len){const b=atob(s),a=new Uint8Array(len);for(let i=0;i<len;i++)a[i]=(b.charCodeAt(i>>2)>>((i&3)*2))&3;return a;}
+let current='rabbit',p=DATA.rabbit,board=new Uint8Array(p.w*p.h),undo=[],redo=[],selected=0,tool=1,cellSize=23,elapsed=0,clockStarted=Date.now(),completed=false,painting=false,paintValue=1,filled=0,cellEls=[],rowEls=[],colEls=[];
+function save(){const ms=elapsed+(completed?0:Date.now()-clockStarted);try{localStorage.setItem(KEY(current),JSON.stringify({v:1,marks:pack2(board),undo:undo.slice(-10000),redo:redo.slice(-10000),elapsed:ms,completed:completed,zoom:cellSize}))}catch(e){console.warn('진행상태 저장 실패',e)}}
+function load(id){const newP=DATA[id];let state=null;try{state=JSON.parse(localStorage.getItem(KEY(id))||'null')}catch(e){}p=newP;current=id;board=new Uint8Array(p.w*p.h);undo=[];redo=[];elapsed=0;completed=false;cellSize=23;if(state&&state.v===1){try{const b=unpack2(state.marks,board.length);if(b.every(x=>x<=2))board=b;undo=Array.isArray(state.undo)?state.undo.filter(validAction).slice(-10000):[];redo=Array.isArray(state.redo)?state.redo.filter(validAction).slice(-10000):[];elapsed=Number.isFinite(state.elapsed)?Math.max(0,state.elapsed):0;completed=!!state.completed;cellSize=[15,19,23,27,31].includes(state.zoom)?state.zoom:23}catch(e){console.warn('저장 상태 복원 실패',e)}}clockStarted=Date.now();filled=board.reduce((a,x)=>a+(x===1),0);selected=0;render();}
+function validAction(x){return Array.isArray(x)&&x.length===3&&Number.isInteger(x[0])&&x[0]>=0&&x[0]<p.w*p.h&&[0,1,2].includes(x[1])&&[0,1,2].includes(x[2]);}
+function hintComplete(lines,axis,index){const v=axis==='row'?board.slice(index*p.w,(index+1)*p.w):Array.from({length:p.h},(_,r)=>board[r*p.w+index]);return run(v.map(x=>x===1?1:0)).join(',')===lines[index].join(',');}
+function refreshHints(){rowEls.forEach((e,i)=>e.classList.toggle('done',hintComplete(p.rows,'row',i)));colEls.forEach((e,i)=>e.classList.toggle('done',hintComplete(p.cols,'col',i)))}
+function updateCell(i){const e=cellEls[i];if(!e)return;e.classList.toggle('filled',board[i]===1);e.classList.toggle('cross',board[i]===2);}
+function setTool(x){tool=x;[['fill',1],['cross',2],['erase',0]].forEach(([id,v])=>$(id).classList.toggle('active',v===tool))}
+function format(ms){const s=Math.floor(ms/1000);return String(Math.floor(s/3600)).padStart(2,'0')+':'+String(Math.floor(s/60)%60).padStart(2,'0')+':'+String(s%60).padStart(2,'0')}
+function solved(){for(let i=0;i<board.length;i++)if((board[i]===1?1:0)!==p.answer[i])return false;return true;}
+function status(){const n=board.length,filledCount=filled; $('count').textContent='검은 칸 '+filledCount.toLocaleString()+' / '+p.total.toLocaleString()+' · '+n.toLocaleString()+'칸';$('bar').style.width=Math.min(100,100*filledCount/p.total)+'%';$('elapsed').textContent=format(elapsed+(completed?0:Date.now()-clockStarted));$('status').textContent=completed?'✅ 정답 완성':p.name+' '+p.w+'×'+p.h;$('complete').classList.toggle('shown',completed);$('undo').disabled=!undo.length;$('redo').disabled=!redo.length;$('cursorlabel').textContent='선택: '+(Math.floor(selected/p.w)+1)+'행 '+(selected%p.w+1)+'열'}
+function updateComplete(){const now=solved();if(now&&!completed){elapsed+=Date.now()-clockStarted;completed=true;}else if(!now&&completed){completed=false;clockStarted=Date.now()}}
+function apply(i,value){if(i<0||i>=board.length||board[i]===value)return;const old=board[i];board[i]=value;undo.push([i,old,value]);if(undo.length>10000)undo.shift();redo=[];filled+=(value===1)-(old===1);updateCell(i);refreshHints();updateComplete();status();save()}
+function changeHistory(source,target,reverse){const a=source.pop();if(!a)return;const [i,from,to]=a;const value=reverse?from:to;const old=board[i];board[i]=value;filled+=(value===1)-(old===1);target.push(a);updateCell(i);refreshHints();updateComplete();status();save()}
+function choose(i,scroll){const old=cellEls[selected];if(old)old.classList.remove('selected');selected=Math.max(0,Math.min(board.length-1,i));const e=cellEls[selected];if(e){e.classList.add('selected');if(scroll)e.scrollIntoView({block:'nearest',inline:'nearest'})}status()}
+function buildBoard(){const b=$('board');b.replaceChildren();b.style.setProperty('--columns',p.w);b.style.setProperty('--rows',p.h);const maxRow=Math.max(...p.rows.map(x=>x.length));const maxCol=Math.max(...p.cols.map(x=>x.length));b.style.setProperty('--gutter',(maxRow*17+18)+'px');b.style.setProperty('--top',(maxCol*15+12)+'px');b.style.setProperty('--cell',cellSize+'px');const frag=document.createDocumentFragment();const corner=document.createElement('div');corner.className='corner';corner.textContent='힌트';frag.append(corner);rowEls=[];colEls=[];cellEls=[];
+p.cols.forEach((nums,c)=>{let e=document.createElement('div');e.className='ch'+(c%5===0?' five':'');e.style.gridColumn=String(c+2);e.style.gridRow='1';nums.forEach(n=>{const s=document.createElement('span');s.textContent=n;e.append(s)});colEls.push(e);frag.append(e)});
+for(let r=0;r<p.h;r++){let hint=document.createElement('div');hint.className='rh'+(r%5===0?' five':'');hint.style.gridColumn='1';hint.style.gridRow=String(r+2);p.rows[r].forEach(n=>{const s=document.createElement('span');s.textContent=n;hint.append(s)});rowEls.push(hint);frag.append(hint);
+for(let c=0;c<p.w;c++){const i=r*p.w+c;const cell=document.createElement('button');cell.type='button';cell.className='cell'+(c%5===0?' five-col':'')+(r%5===0?' five-row':'');cell.dataset.i=String(i);cell.tabIndex=-1;cell.style.gridColumn=String(c+2);cell.style.gridRow=String(r+2);cell.setAttribute('aria-label',(r+1)+'행 '+(c+1)+'열');cellEls.push(cell);frag.append(cell)}}
+b.append(frag);cellEls.forEach((_,i)=>updateCell(i));refreshHints();choose(selected,false);}
+function render(){['rabbit','samurai'].forEach(id=>$(id).classList.toggle('active',id===current));buildBoard();status();$('board-scroll').scrollTop=0;$('board-scroll').scrollLeft=0}
+$('rabbit').onclick=()=>{if(current==='rabbit')return;save();load('rabbit')};$('samurai').onclick=()=>{if(current==='samurai')return;save();load('samurai')};
+$('fill').onclick=()=>setTool(1);$('cross').onclick=()=>setTool(2);$('erase').onclick=()=>setTool(0);
+$('undo').onclick=()=>changeHistory(undo,redo,true);$('redo').onclick=()=>changeHistory(redo,undo,false);
+$('zoomout').onclick=()=>{cellSize=[15,19,23,27,31][Math.max(0,[15,19,23,27,31].indexOf(cellSize)-1)];$('board').style.setProperty('--cell',cellSize+'px');save()};
+$('zoomin').onclick=()=>{cellSize=[15,19,23,27,31][Math.min(4,[15,19,23,27,31].indexOf(cellSize)+1)];$('board').style.setProperty('--cell',cellSize+'px');save()};
+$('reset').onclick=()=>{if(!confirm(p.name+'의 진행 기록을 초기화할까요?'))return;board=new Uint8Array(p.w*p.h);undo=[];redo=[];filled=0;completed=false;elapsed=0;clockStarted=Date.now();cellEls.forEach((_,i)=>updateCell(i));refreshHints();status();save()};
+const targetCell=e=>e.target.closest?e.target.closest('.cell'):null;
+$('board').addEventListener('pointerdown',e=>{const cell=targetCell(e);if(!cell)return;if(e.button!==0&&e.button!==2)return;choose(Number(cell.dataset.i),false);paintValue=e.button===2?2:tool;if(board[selected]===paintValue)paintValue=0;apply(selected,paintValue);painting=e.pointerType!=='touch';if(e.pointerType==='mouse')e.preventDefault()});
+$('board').addEventListener('pointerover',e=>{if(!painting)return;const cell=targetCell(e);if(cell){const i=Number(cell.dataset.i);choose(i,false);apply(i,paintValue)}});
+$('board').addEventListener('contextmenu',e=>{if(targetCell(e))e.preventDefault()});window.addEventListener('pointerup',()=>painting=false);window.addEventListener('pointercancel',()=>painting=false);window.addEventListener('blur',()=>painting=false);
+window.addEventListener('keydown',e=>{if(e.target.matches('input,textarea,select')||e.altKey||e.metaKey)return;if(e.ctrlKey&&(e.key.toLowerCase()==='z'||e.key.toLowerCase()==='y')){e.preventDefault();e.key.toLowerCase()==='z'?changeHistory(undo,redo,true):changeHistory(redo,undo,false);return}if(e.ctrlKey)return;const moves={ArrowUp:-p.w,ArrowDown:p.w,ArrowLeft:-1,ArrowRight:1};if(e.key in moves){e.preventDefault();const r=Math.floor(selected/p.w),c=selected%p.w;const nr=Math.max(0,Math.min(p.h-1,r+(e.key==='ArrowDown'?1:e.key==='ArrowUp'?-1:0)));const nc=Math.max(0,Math.min(p.w-1,c+(e.key==='ArrowRight'?1:e.key==='ArrowLeft'?-1:0)));choose(nr*p.w+nc,true)}else if(e.code==='Space'){e.preventDefault();apply(selected,board[selected]===1?0:1)}else if(e.key.toLowerCase()==='x'){e.preventDefault();apply(selected,board[selected]===2?0:2)}else if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();apply(selected,0)}});
+setInterval(()=>{status()},1000);setInterval(save,5000);window.addEventListener('pagehide',save);load('rabbit');
+})();
+</script></body></html>
