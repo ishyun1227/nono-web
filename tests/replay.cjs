@@ -45,16 +45,16 @@ assert.deepEqual(actors,[1,2]);
 assert.throws(()=>replay.record(coop,{actor:3,elapsedMs:70,changes:[[42,0,2]]}),/mismatch/);
 assert.throws(()=>replay.parse('{"version":4,"actions":[]}'),/Unsupported/);
 
-// Packed NR2 stream is the canonical persisted representation; no JSON actions.
+// Packed NR3 stream is canonical; legacy NR2 and NR1 JSON are still readable.
 const packed = replay.serialize(s);
-assert(packed.startsWith('NR2:'), 'new records must be packed from first save');
+assert(packed.startsWith('NR3:'), 'new records must be packed from first save');
 const unpacked = replay.parse(packed);
 assert.equal(replay.boardAtEnd(unpacked),replay.boardAtEnd(s));
 assert.deepEqual(unpacked.actions,s.actions,'grouping, timestamps and undo/redo unchanged');
 const oldJSONString = JSON.stringify(s);
 assert.deepEqual(replay.parse(oldJSONString).actions,s.actions,'legacy JSON remains readable');
 replay.savePending(local,s);
-assert(local.getItem('nono-numeric-replay-v1:pending:practice:heart5').startsWith('NR2:'));
+assert(local.getItem('nono-numeric-replay-v1:pending:practice:heart5').startsWith('NR3:'));
 const binaryCell = replay.encodeChanges([[1,0,1],[2,0,1],[3,1,0]],25);
 assert(binaryCell.startsWith('NRC1:'));
 assert.deepEqual(replay.decodeChanges(binaryCell,25),[[1,0,1],[2,0,1],[3,1,0]]);
