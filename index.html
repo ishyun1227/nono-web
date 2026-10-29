@@ -235,10 +235,22 @@ function updateHistoryButtons(){
   $('undo').disabled=!canEdit||undoStack.length===0;
   $('redo').disabled=!canEdit||redoStack.length===0;
 }
+// Undo and redo store only changed cells, not a full copy of the board.
+function pushHistory(cells,beforeChanges,afterChanges,beforeSelected,afterSelected){
+  if(!['practice','record'].includes(mode)||!cells.length)return;
+  undoStack.push({cells,beforeChanges,afterChanges,beforeSelected,afterSelected});
+  if(undoStack.length>150)undoStack.shift();
+  redoStack=[];
+}
 function restoreHistory(source,target){
   if(!['practice','record'].includes(mode)||roomCode||finished||!source.length)return;
-  target.push({board:board.slice(),changes,selected});
-  const state=source.pop();board=state.board.slice();changes=state.changes;selected=state.selected;
+  const action=source.pop();
+  const undo=source===undoStack;
+  for(const [index,before,after] of action.cells)board[index]=undo?before:after;
+  changes=undo?action.beforeChanges:action.afterChanges;
+  selected=undo?action.beforeSelected:action.afterSelected;
+  target.push(action);
+  if(target.length>150)target.shift();
   render();renderLive();
 }
 function checkBoard(){
@@ -379,7 +391,7 @@ function paint(index,to,drag){
     runTransaction(ref(database,`rooms/${roomCode}/board`),current=>{const old=(typeof current==='string'&&current.length===puzzle.size*puzzle.size)?current:'0'.repeat(puzzle.size*puzzle.size);return old.slice(0,index)+next+old.slice(index+1);}).then(result=>{if(result.committed&&roomCode===activeRoom){contributedCoopRooms.add(activeRoom);emitDailyActivity('coop-action');if(finished)emitDailyActivity('puzzle-complete');}}).catch(firebaseError);
     return;
   }
-  if(mode==='practice'||mode==='record'){undoStack.push({board:board.slice(),changes,selected});if(undoStack.length>150)undoStack.shift();redoStack=[];}
+  pushHistory([[index,prev,next]],changes,changes+(prev!=='0'?1:0),selected,index);
   if(prev!=='0')changes++;
   board[index]=next;selected=index;render();
   const solved=isSolved(board,puzzle);
