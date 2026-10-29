@@ -8,7 +8,7 @@ const {pathToFileURL}=require('node:url');
  await page.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
  const uri=pathToFileURL(path.resolve(__dirname,'../dist/index.html')).href;
  await page.goto(uri);
- await page.locator('#nono-theme-open').waitFor();
+ await page.locator('#nono-theme-open').waitFor({state:'attached'});
  if((await page.locator('#nono-theme-open').textContent()).indexOf('상점')<0)throw Error('Store entry not renamed');
  await page.evaluate(()=>window.NONO_THEMES.open());
  await page.locator('#nono-shop-tab-themes').waitFor();
