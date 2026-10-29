@@ -10,7 +10,7 @@
   const API = window.NONO_REPLAY, UI = window.NONO_REPLAY_UI;
   if (!API || !UI) return;
   const eligible = new Set(['heart5', 'cat10', 'rocket10']);
-  const MAX_JSON = 300000;
+  const MAX_PACKED = 300000;
   const PUBLIC_PREF='nono-replay-public-consent-v1:';
   const isPublicAllowed=()=>ready() && storage.getItem(PUBLIC_PREF + currentId())==='true';
   const live = [];
@@ -28,9 +28,9 @@
   }
   async function upload(run) {
     if (!ready() || !actualRun(run)) return;
-    const uid = currentUser.uid, content = JSON.stringify(run);
-    if (content.length > MAX_JSON) {
-      console.warn('리플레이 1건이 클라우드 120KB 제한을 초과했습니다. 로컬 기록은 유지합니다.',run.id);
+    const uid = currentUser.uid, content = API.serialize(run);
+    if (content.length > MAX_PACKED) {
+      console.warn('리플레이 1건이 클라우드 저장 크기 제한을 초과했습니다. 로컬 기록은 유지합니다.',run.id);
       return;
     }
     // In this stage only completed single-player runs are safely publishable.
