@@ -16,7 +16,7 @@ const dayKey=(ms=Date.now())=>{
  return [v('year'),v('month'),v('day')].join('-');
 };
 const priorDay=day=>new Date(Date.parse(day+'T00:00:00Z')-86400000).toISOString().slice(0,10);
-const blank=()=>({points:0,streak:0,lastAttendance:'',days:{},ownedThemes:[]});
+const blank=()=>({points:0,streak:0,lastAttendance:'',days:{},ownedThemes:[],gameRewards:{claimed:[],winStreak:0}});
 function load(){
  try{
   const raw=JSON.parse(localStorage.getItem(KEY)||'null');
@@ -29,7 +29,11 @@ function load(){
   }
   return {points:safe(raw.points),streak:safe(raw.streak,9999),
    lastAttendance:/^\d{4}-\d{2}-\d{2}$/.test(raw.lastAttendance||'')?raw.lastAttendance:'',days,
-   ownedThemes:Array.isArray(raw.ownedThemes)?[...new Set(raw.ownedThemes.filter(id=>typeof id==='string'&&Object.prototype.hasOwnProperty.call(THEME_PRICES,id)))]:[]};
+   ownedThemes:Array.isArray(raw.ownedThemes)?[...new Set(raw.ownedThemes.filter(id=>typeof id==='string'&&Object.prototype.hasOwnProperty.call(THEME_PRICES,id)))]:[],
+    gameRewards:{
+     claimed:Array.isArray(raw.gameRewards?.claimed)?[...new Set(raw.gameRewards.claimed.filter(id=>typeof id==='string'&&id.length<=130))].slice(-2500):[],
+     winStreak:safe(raw.gameRewards?.winStreak,10000)
+    }};
  }catch(_){return blank();}
 }
 let state=load(),renderedDay='';
@@ -113,7 +117,37 @@ function claimMission(id){
  entry.claimed=true;state.points=Math.min(9999999,state.points+m.points);
  save();render();notice('미션 보상 +'+m.points+' 체험 P');return true;
 }
-function purchaseTheme(id){
+/* Gameplay rewards use the same device-local preview wallet as daily missions.
+    One reward per solo puzzle each Korea day, or per joined race/coop room.
+    Never represent these client points as trusted currency or real-money credit. */
+ function creditGameCompletion(detail){
+   const policy=window.NONO_REWARD_POLICY;
+   if(!policy||!detail||!['solo','race','coop'].includes(detail.mode)||
+      !Number.isInteger(detail.size)||!policy.baseFor(detail.size,detail.difficulty))return {ok:false};
+   const {mode,puzzleId,roomCode,uid,won}=detail;
+   if(typeof puzzleId!=='string'||!puzzleId||puzzleId.length>80)return {ok:false};
+   if(mode!=='solo'&&(!/^[A-HJ-NP-Z2-9]{6}$/.test(roomCode||'')||typeof uid!=='string'||!uid))return {ok:false};
+   const key=mode==='solo'?'solo:'+dayKey()+':'+puzzleId:mode+':'+roomCode+':'+uid;
+   state=load();
+   if(state.gameRewards.claimed.includes(key))return {ok:false,reason:'already-claimed'};
+   const nextWinStreak=mode==='race'?(won?state.gameRewards.winStreak+1:0):state.gameRewards.winStreak;
+   const data=policy.reward(mode,detail.size,detail.difficulty,won===true,nextWinStreak);
+   if(!data||!Number.isSafeInteger(data.total)||data.total<0)return {ok:false};
+   state.gameRewards.claimed.push(key);
+   if(state.gameRewards.claimed.length>2500)state.gameRewards.claimed=state.gameRewards.claimed.slice(-2500);
+   state.gameRewards.winStreak=Math.min(nextWinStreak,10000);
+   state.points=Math.min(9999999,state.points+data.total);
+   save();render();
+   window.dispatchEvent(new CustomEvent('nono:wallet-change',{detail:{points:state.points,reward:data}}));
+   setTimeout(()=>notice('게임 완료 보상 +'+data.total+' 체험 P'+(won?' · '+state.gameRewards.winStreak+'연승!':'')),450);
+   return {ok:true,amount:data.total,breakdown:data,winStreak:state.gameRewards.winStreak};
+ }
+ function resetWinStreak(){
+   state=load();
+   if(!state.gameRewards.winStreak)return;
+   state.gameRewards.winStreak=0;save();render();
+ }
+ function purchaseTheme(id){
   if(typeof id!=='string'||!Object.prototype.hasOwnProperty.call(THEME_PRICES,id))
     return {ok:false,reason:'상품 정보가 올바르지 않아요.'};
   state=load();
@@ -151,7 +185,7 @@ window.addEventListener('focus',()=>{state=load();dock();render();});
 setInterval(()=>{if(dayKey()!==renderedDay){state=load();render();}},60000);
 window.NONO_DAILY_REWARDS=Object.freeze({
  getSnapshot:()=>JSON.parse(JSON.stringify({day:dayKey(),...state})),
- claimAttendance,claimMission,purchaseTheme,
+ claimAttendance,claimMission,purchaseTheme,creditGameCompletion,resetWinStreak,
   refresh:()=>{state=load();dock();render();},
   ownsTheme:id=>id==='neon'||state.ownedThemes.includes(id)
 });
