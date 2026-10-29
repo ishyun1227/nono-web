@@ -1263,16 +1263,20 @@ if(matches('toolFill',e)||matches('toolCross',e)){tool=matches('toolFill',e)?'1'
   // Holding Space/X must not toggle a cell repeatedly on native key-repeat.
   if(e.repeat)return;
   if(moveHeld){
-   // First mark during the initial delay stays on the just-selected square.
-   // After that, each fresh mark advances one square while the arrow stays held.
-   const advance=movePhase!=='pending';
-   stopMoveRepeat();
-   movePhase='manual';
-   if(advance)moveSelection(moveDirection,moveQuick);
+   if(movePhase==='pending'){
+    // Before auto-repeat begins, mark this cell and stop the pending repeat.
+    stopMoveRepeat();
+    movePhase='manual';
+   }else if(movePhase==='manual'){
+    // A fresh Space/X press advances one square when the initial repeat was canceled.
+    moveSelection(moveDirection,moveQuick);
+   }
+   // Once auto-repeat has begun, keep it running; moveOne paints every new cell
+   // only while Space/X is held (keyboardDrag is cleared on keyup).
   }
   if(keyboardDrag&&keyboardDrag.to!==to){squashHistory(keyboardDrag.first);keyboardDrag=null;}
   if(!keyboardDrag)keyboardDrag={to,first:undoStack.length,steps:1};
-  paint(selected,to,false);return;
+  paint(selected,to,movePhase==='repeating');return;
  }
 }
 function endKeyboard(e){
