@@ -20,6 +20,13 @@ const builtIndex=path.join(output,'index.html');
 const builtHtml=fs.readFileSync(builtIndex,'utf8');
 if(!/\.\/settings\.js\?v=[^"' ]+/.test(builtHtml))throw Error('Settings script reference missing');
 fs.writeFileSync(builtIndex,builtHtml.replace(/\.\/settings\.js\?v=[^"' ]+/g,'./settings.js?v='+settingsHash));
+// Fingerprint the dashboard stylesheet too: a fixed ?v=1 would let browsers
+// reuse an outdated layout after the Worker has deployed a new CSS file.
+const appleHomeHash=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,'apple-home.css'))).digest('hex').slice(0,12);
+const currentIndex=fs.readFileSync(builtIndex,'utf8');
+if(!/\.\/apple-home\.css\?v=[^"' ]+/.test(currentIndex))throw Error('Apple home stylesheet reference missing');
+fs.writeFileSync(builtIndex,currentIndex.replace(/\.\/apple-home\.css\?v=[^"' ]+/g,'./apple-home.css?v='+appleHomeHash));
+
 // Generate polished non-clickable decorations from the reference character strip.
 // The old heavily thresholded SVG removed dark eye outlines and damaged the faces.
 const zlib=require('node:zlib');
