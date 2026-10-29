@@ -24,7 +24,7 @@ jobs:
           distribution: temurin
           java-version: '21'
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
       - run: node --check settings.js && node --check tests/multiplayer.cjs && node --check tests/browser-multiplayer.cjs
       - run: npm run test:multiplayer
+      - run: npx playwright install --with-deps chromium
       - run: npm run test:browser
