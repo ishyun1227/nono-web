@@ -10,7 +10,7 @@
     "test:home": "node tests/home-sidebars.cjs",
     "test:community": "node tests/community-rewards.cjs",
     "test:account": "node tests/account-auth.cjs",
-    "test:answers": "node tests/answer-bitpack.cjs && node tools/seed-packed-answers.cjs",
+    "test:answers": "node tests/answer-bitpack.cjs && node tests/prepare-puzzle.cjs && node tools/seed-packed-answers.cjs",
     "test:replay": "node tests/replay.cjs",
     "test:replay:multiplayer": "node tests/multiplayer-replay.cjs"
   },
