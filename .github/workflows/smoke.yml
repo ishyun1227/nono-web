@@ -38,6 +38,9 @@ jobs:
           node --check locale-navigation-packs.js
           node --check locale-world-packs.js
           node --check locale-dynamics.js
+          node --check locale-runtime-messages.js
+          node --check locale-firebase-messages.js
+          node --check locale-controller-messages.js
           node --check locale-en-extra.js
           node --check tests/locale.cjs
           node --check tests/i18n-audit.cjs
