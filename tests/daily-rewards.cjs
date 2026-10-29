@@ -46,9 +46,10 @@ const {pathToFileURL}=require('node:url');
   const again=api.claimMission('puzzle');
   window.dispatchEvent(new CustomEvent('nono:activity',{detail:{kind:'unknown'}}));
   const s=api.getSnapshot();
-  return {points:s.points,again,puzzle:s.days[s.day].missions.puzzle,race:s.days[s.day].missions.race};
+  const gameplayReward=window.NONO_REWARD_POLICY.reward('solo',5,'쉬움').total;
+  return {points:s.points,expected:20+50+gameplayReward,again,puzzle:s.days[s.day].missions.puzzle,race:s.days[s.day].missions.race};
  });
- if(verify.points!==70||verify.again!==false||!verify.puzzle.claimed||verify.race?.done)
+ if(verify.points!==verify.expected||verify.again!==false||!verify.puzzle.claimed||verify.race?.done)
   throw Error('Mission claim or unknown-event handling incorrect: '+JSON.stringify(verify));
  await page.reload();
  await page.locator('#nono-attendance-claim').waitFor();
@@ -58,7 +59,7 @@ const {pathToFileURL}=require('node:url');
     count:document.querySelectorAll('.nono-attendance-day').length,
     overflow:document.documentElement.scrollWidth>innerWidth+2};
  });
- if(result.points!==70||!result.attendance||!result.claimed||result.count!==7||result.overflow)
+ if(result.points!==verify.expected||!result.attendance||!result.claimed||result.count!==7||result.overflow)
   throw Error('Browser persistence / mobile layout failed: '+JSON.stringify(result));
  if(errors.length)throw Error('Browser JavaScript errors: '+errors.join(' | '));
  console.log('Daily missions / check-in / persistence / mobile layout verified.');
