@@ -47,7 +47,7 @@ assert.equal(production.window.NONO_FIREBASE_CONFIG.projectId,'nono-web-ishyun-2
 const enabled=Array.from(production.window.NONO_PACKED_ANSWERS_READY||[]);
 assert.deepEqual(enabled.sort(),['cat10','heart5','rocket10'],'Production rollout allowlist');
 assert.equal(enabled.length,new Set(enabled).size,'Duplicate rollout ID');
-assert.deepEqual(enabled.slice().sort(),puzzles.filter(p=>p.size<=10).map(p=>p.id).sort(),
+assert.deepEqual(enabled.slice().sort(),Array.from(puzzles.filter(p=>p.size<=10),p=>p.id).sort(),
   'Rollout must match all and only private packed-answer seed IDs');
 const indexSource=fs.readFileSync(require.resolve('../index.html'),'utf8');
 const maskFunction=indexSource.match(/function serverAnswerMask\(board,p\)\{[\s\S]*?\n\}/);
