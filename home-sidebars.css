@@ -1,3 +1,7 @@
+/* Side rails belong to the default theme only, never to purchased worlds. */
+body:not([data-nono-theme="neon"]) #nono-clear-sidebar,
+body:not([data-nono-theme="neon"]) #nono-ad-sidebar {display:none!important}
+
 /* Default homepage outer rails: recently completed puzzles and reserved ad space.
    Applies only to the standard neon theme; other worlds retain their layouts. */
 body[data-nono-theme="neon"] #nono-clear-sidebar,
