@@ -124,11 +124,30 @@ function scheduleSync(){
  syncTimer=setTimeout(()=>syncNow(),6000);
 }
 function message(value){const box=$('nono-account-status');if(box)box.textContent=value;}
+// Keep profile actions translated even when auth state changes after locale initialization.
+const CHIP_LABELS={
+ ko:['로그인','내 프로필','로그인 / 내 기록'],
+ en:['Login','My profile','Login / My records'],
+ ja:['ログイン','マイプロフィール','ログイン / マイ記録'],
+ 'zh-CN':['登录','我的资料','登录 / 我的记录'],
+ 'zh-TW':['登入','我的個人資料','登入 / 我的紀錄'],
+ es:['Iniciar sesión','Mi perfil','Inicio de sesión / Mis registros'],
+ 'pt-BR':['Entrar','Meu perfil','Entrar / Meus recordes'],
+ fr:['Connexion','Mon profil','Connexion / Mes records'],
+ de:['Anmelden','Mein Profil','Anmelden / Meine Rekorde'],
+ id:['Masuk','Profil saya','Masuk / Rekor saya'],
+ vi:['Đăng nhập','Hồ sơ của tôi','Đăng nhập / Kỷ lục của tôi'],
+ th:['เข้าสู่ระบบ','โปรไฟล์ของฉัน','เข้าสู่ระบบ / สถิติของฉัน']
+};
 function updateChip(){
- $('profile-name').textContent=isSignedIn()?'내 프로필':'로그인';
- button.title=isSignedIn()?'내 프로필':'로그인 / 내 기록';
+ const locale=window.NONO_I18N?.locale||document.documentElement.lang||'ko';
+ const labels=CHIP_LABELS[locale]||CHIP_LABELS.en;
+ const signed=isSignedIn();
+ $('profile-name').textContent=labels[signed?1:0];
+ button.title=labels[signed?1:2];
  button.setAttribute('aria-label',button.title);
 }
+window.addEventListener('nono:languagechange',updateChip);
 async function changeUser(next){
  const previous=scope;
  user=next||null;
