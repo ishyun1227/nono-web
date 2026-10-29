@@ -165,6 +165,7 @@ async function changeUser(next){
  }
  else if(!localStorage.getItem(INTRO)&&auth)setTimeout(()=>{if(!isSignedIn()&&!modal)open('welcome');},300);
  if(typeof resumeHub!=='undefined'){resumeHub?.watch?.();resumeHub?.refresh?.();}
+ window.dispatchEvent(new CustomEvent('nono:account-changed',{detail:{previous,target}}));
 }
 function node(tag,text,parent,className){
  const n=document.createElement(tag);if(text!==null)n.textContent=text;

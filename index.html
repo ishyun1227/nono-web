@@ -441,7 +441,10 @@ function paint(index,to,drag){
       const bits=packMoveCells([[index,prev,next]]);
       contributedCoopRooms.add(activeRoom);
       set(push(ref(database,`rooms/${activeRoom}/coopMoves`)),{bits,at:serverTimestamp(),uid:currentId()})
-        .then(()=>{if(roomCode===activeRoom)emitDailyActivity('coop-action');}).catch(firebaseError);
+        .then(()=>{if(roomCode===activeRoom){
+          window.dispatchEvent(new CustomEvent('nono:coop-committed',{detail:{mode:'coop',room:activeRoom,actor:currentId(),startedAt:meta?.startedAt,at:serverNow(),changes:[[index,Number(prev),Number(next)]]}}));
+          emitDailyActivity('coop-action');
+        }}).catch(firebaseError);
     }else{
       runTransaction(ref(database,`rooms/${roomCode}/board`),current=>{const old=(typeof current==='string'&&current.length===puzzle.size*puzzle.size)?current:'0'.repeat(puzzle.size*puzzle.size);return old.slice(0,index)+next+old.slice(index+1);}).then(result=>{if(result.committed&&roomCode===activeRoom){contributedCoopRooms.add(activeRoom);emitDailyActivity('coop-action');if(finished)emitDailyActivity('puzzle-complete');}}).catch(firebaseError);
     }
@@ -698,6 +701,9 @@ function queueRaceState(solved,cells=[]){
       // Send a full answer mask only once on completion for server-side validation.
       if(solved)await set(ref(database,path),{filled:serverAnswerMask(snapshot.split(''),puzzle),startedAt:start,finishedAt:serverTimestamp()});
     }else await set(ref(database,path),{board:snapshot,filled:filledMask(snapshot.split('')),startedAt:start,finishedAt:solved?serverTimestamp():0});
+    if(Array.isArray(cells)&&cells.length){
+      window.dispatchEvent(new CustomEvent('nono:race-committed',{detail:{mode:'race',room:code,actor:uid,startedAt:start,at:serverNow(),changes:cells.map(([i,b,a])=>[i,Number(b),Number(a)])}}));
+    }
     if(roomCode===code)emitDailyActivity('race-action');
     if(solved&&roomCode===code){
       const state=(await get(ref(database,path))).val();
@@ -717,7 +723,7 @@ async function connectFirebase(){
     ]);
     ({initializeApp}=firebaseApp);({getAuth,signInAnonymously}=firebaseAuth);
     ({getDatabase,ref,get,set,remove,onValue,onDisconnect,runTransaction,serverTimestamp,query,orderByChild,limitToFirst,limitToLast,push}=firebaseDatabase);
-    const app=initializeApp(firebaseConfig),auth=getAuth(app);database=getDatabase(app);if(window.NONO_FIREBASE_EMULATORS&&['localhost','127.0.0.1'].includes(location.hostname)){firebaseAuth.connectAuthEmulator(auth,'http://127.0.0.1:9099',{disableWarnings:true});firebaseDatabase.connectDatabaseEmulator(database,'127.0.0.1',9000);}onValue(ref(database,'.info/serverTimeOffset'),s=>{serverOffset=s.val()||0;});onValue(ref(database,'.info/connected'),s=>{if(currentUser)$('connection').textContent=s.val()?'● 온라인 연결':'연결 끊김 · 재연결 중';if(s.val()&&roomCode){const p=ref(database,`rooms/${roomCode}/players/${mySlot}`);onDisconnect(p).remove().then(()=>get(p).then(s=>s.exists()?undefined:set(p,{uid:currentId(),name:nickname(),joinedAt:serverTimestamp()}))).catch(firebaseError);}});await auth.authStateReady();const credential=auth.currentUser?{user:auth.currentUser}:await signInAnonymously(auth);currentUser=credential.user;window.NONO_AUTH_READY_DETAIL={auth,sdk:firebaseAuth,database,databaseSdk:firebaseDatabase};window.dispatchEvent(new CustomEvent('nono:auth-ready',{detail:window.NONO_AUTH_READY_DETAIL}));window.dispatchEvent(new Event('nono:firebase-ready'));$('connection').textContent='● 온라인 연결';refreshHomepageScores();watchPublicLobby();const params=new URL(location.href).searchParams;const code=params.get('room');if(code)await enterRoom(code.toUpperCase());resumeHub.watch();}
+    const app=initializeApp(firebaseConfig),auth=getAuth(app);database=getDatabase(app);if(window.NONO_FIREBASE_EMULATORS&&['localhost','127.0.0.1'].includes(location.hostname)){firebaseAuth.connectAuthEmulator(auth,'http://127.0.0.1:9099',{disableWarnings:true});firebaseDatabase.connectDatabaseEmulator(database,'127.0.0.1',9000);}onValue(ref(database,'.info/serverTimeOffset'),s=>{serverOffset=s.val()||0;});onValue(ref(database,'.info/connected'),s=>{if(currentUser)$('connection').textContent=s.val()?'● 온라인 연결':'연결 끊김 · 재연결 중';if(s.val()&&roomCode){const p=ref(database,`rooms/${roomCode}/players/${mySlot}`);onDisconnect(p).remove().then(()=>get(p).then(s=>s.exists()?undefined:set(p,{uid:currentId(),name:nickname(),joinedAt:serverTimestamp()}))).catch(firebaseError);}});await auth.authStateReady();const credential=auth.currentUser?{user:auth.currentUser}:await signInAnonymously(auth);currentUser=credential.user;window.NONO_AUTH_READY_DETAIL={auth,sdk:firebaseAuth,database,databaseSdk:firebaseDatabase};window.dispatchEvent(new CustomEvent('nono:auth-ready',{detail:window.NONO_AUTH_READY_DETAIL}));window.dispatchEvent(new Event('nono:firebase-ready'));window.dispatchEvent(new Event('nono:online-ready'));$('connection').textContent='● 온라인 연결';refreshHomepageScores();watchPublicLobby();const params=new URL(location.href).searchParams;const code=params.get('room');if(code)await enterRoom(code.toUpperCase());resumeHub.watch();}
   catch(e){$('connection').textContent='연결 실패 · 오프라인';firebaseError(e);}
 }
 function installResume(){
@@ -868,6 +874,10 @@ initHome();resumeHub=installResume();connectFirebase();
 <script src="./locale-community-rewards.js?v=1"></script>
 <script src="./locale.js?v=2"></script>
 <script src="./settings.js?v=5"></script>
+<script src="./numeric-replay.js?v=1"></script>
+<script src="./replay-client.js?v=1"></script>
+<script src="./cloud-replays.js?v=1"></script>
+<script src="./multiplayer-replay.js?v=1"></script>
 <script src="./themes.js?v=3"></script>
 <script src="./theme-world-ui.js?v=1"></script>
 <script src="./library-ui.js?v=1"></script>
