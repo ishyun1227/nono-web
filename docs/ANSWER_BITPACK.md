@@ -6,7 +6,7 @@
 - 새 비공개 경로 `privateAnswersPacked/{id}`는 정답 비트들을 8칸=1바이트로 묶은 **Base64 문자열**을 담는다.
 - 브라우저에는 **코덱 코드만 제공**한다. 서버 정답 데이터나 서버에서 만든 Base64 답안은 배포 파일에 넣지 않는다.
 - 서버 보안 규칙은 기존 문자열 완료 검증과 새 Base64 완료 검증을 **둘 다 허용**한다. 새 형식도 유효한 정답과 정확히 일치해야 한다.
-- 클라이언트는 `window.NONO_PACKED_ANSWERS_READY === true`인 경우에만 새 완료 데이터를 제출한다. 미설정 상태는 기존 문자열을 유지한다.
+- 클라이언트는 `window.NONO_PACKED_ANSWERS_READY`에 등록된 **퍼즐 ID만** 새 압축 형식으로 완료 데이터를 제출한다. 미설정/미등록 퍼즐은 기존 문자열을 유지한다. 기존 `true` 형식은 테스트 호환성용이므로 운영 배포에는 사용하지 않는다.
 - 기존 진행 기록, 이전 대결방, Undo/Redo 변경 로그는 마이그레이션하지 않는다.
 - 현재는 **점진적 전환용 이중 저장**이므로 Firebase 전체 저장량이 즉시 감소하지 않는다. 구버전 종료 전 `privateAnswers` 삭제 금지.
 
@@ -47,7 +47,7 @@ npm run test:browser
 3. `node tools/seed-packed-answers.cjs`로 기존 퍼즐을 시뮬레이션 검사한다.
 4. `node tools/seed-packed-answers.cjs --apply --project nono-web-ishyun-20261020`로 **비공개** 경로만 채운다. 기존 데이터는 그대로 유지한다.
 5. Firebase 에뮬레이터에서 기존/신규 둘 다 완료 검증이 성공하며 허위 완료는 거부되는지 확인한다.
-6. 그 후에만 `firebase-config.js`에서 **초기화 이전**에 `window.NONO_PACKED_ANSWERS_READY=true`를 설정하고 Cloudflare에 배포한다.
+6. 서버에 등록된 퍼즐만 점검한 뒤 `firebase-config.js`에서 **초기화 이전**에 `window.NONO_PACKED_ANSWERS_READY=['heart5','cat10','rocket10']`처럼 ID 허용목록으로 설정해 Cloudflare에 배포한다. 30×30 및 대형 퍼즐은 정답 시드와 서버 완료 검사 전까지 기존 형식이어야 한다.
 7. 운영 사이트에서 혼자하기/대결/기록 저장, 구버전 기록과 이어하기, 외부에서 정답 읽기 거부 여부를 실측한다.
 
 **주의:** GitHub에 규칙과 코드를 커밋한 것만으로 운영 Firebase 규칙이나 정답 DB가 배포되지 않는다.
