@@ -156,7 +156,9 @@ body[data-error-intensity=weak] .nono-error{outline-width:1px!important}body[dat
 #board .nono-extra-col .col-clue{justify-content:flex-start}
 #board .nono-extra-row .row-clue.nono-fade-clue,#board .nono-extra-col .col-clue.nono-fade-clue{opacity:.3}
 
-#nono-drag-hud{width:max-content;min-width:110px;margin-left:auto;margin-right:auto}
+/* Drag counter is an overlay, never a flow row that resizes the puzzle. */
+#nono-drag-hud{position:fixed;top:205px;left:12px;z-index:120;pointer-events:none;width:max-content;min-width:110px;margin:0}
+#nono-drag-hud.nono-hud-target{pointer-events:auto!important}
 #nono-drag-hud.nono-drag-active{
  display:flex!important;position:fixed!important;z-index:120!important;
  left:var(--drag-live-x,12px)!important;top:var(--drag-live-y,12px)!important;
@@ -1072,7 +1074,37 @@ function closeOverview(){overviewOpen=false;$('nono-overview').hidden=true;apply
 function enumerateLine(hints,values){const n=values.length,states=[],out=[];function go(i,at){if(i===hints.length){const row=Array(n).fill('2');for(const [start,end] of states)for(let k=start;k<end;k++)row[k]='1';if(row.every((v,k)=>values[k]==='0'||values[k]===v))out.push(row);return}const remaining=hints.slice(i+1).reduce((s,v)=>s+v+1,0);for(let start=at;start<=n-hints[i]-remaining;start++){states.push([start,start+hints[i]]);go(i+1,start+hints[i]+1);states.pop();if(out.length>30000)return}}go(0,0);return out}
 function logicHint(){if(puzzle.sizeTest){toast('크기 테스트 퍼즐은 풀이 힌트를 제공하지 않습니다.');return;}hintStage++;let found=null;for(let axis of ['row','col']){for(let i=0;i<puzzle.size;i++){const values=lineValues(axis,i),poss=enumerateLine(hintsForLine(axis,i),values);if(!poss.length)continue;for(let j=0;j<puzzle.size;j++){if(values[j]!=='0')continue;const v=poss[0][j];if(poss.every(line=>line[j]===v)){found={axis,i,j,v,count:poss.length};break}}if(found)break}if(found)break}if(!found){toast('현재 논리적으로 확실한 칸이 없어요.');return;}
 const phase=[];if(prefs.hintLine)phase.push('line');if(prefs.hintExplanation)phase.push('explain');if(prefs.hintCell)phase.push('cell');if(!phase.length)return;const step=phase[(hintStage-1)%phase.length];helpTarget=found.axis==='row'?found.i*puzzle.size+found.j:found.j*puzzle.size+found.i;helpLine=found;const text=step==='line'?(found.axis==='row'?'행 ':'열 ')+(found.i+1)+'번에 확실한 칸이 있어요.':step==='explain'?'힌트 숫자를 놓는 가능한 '+found.count+'가지 배치 모두에 공통되는 칸이 있어요.':(found.v==='1'?'채울':'X 표시할')+' 수 있는 확실한 칸을 강조했어요.';toast(text);$('nono-hint-status').textContent=text;if(step==='cell'){document.querySelectorAll('#board .cell')[helpTarget]?.classList.add('nono-highlight-now');setTimeout(()=>document.querySelectorAll('#board .cell')[helpTarget]?.classList.remove('nono-highlight-now'),4500)}playSound('hint');}
-function moveSelection(dir,repeat){const n=puzzle.size,r=Math.floor(selected/n),c=selected%n;let row=r,col=c,delta=repeat?5:1;if(dir==='up')row-=delta;else if(dir==='down')row+=delta;else if(dir==='left')col-=delta;else col+=delta;row=prefs.wrap?(row+n*5)%n:Math.max(0,Math.min(n-1,row));col=prefs.wrap?(col+n*5)%n:Math.max(0,Math.min(n-1,col));selected=row*n+col;render();const cell=$('board').querySelectorAll('.cell')[selected];if(cell){cell.scrollIntoView({block:prefs.follow==='center'?'center':'nearest',inline:prefs.follow==='center'?'center':'nearest',behavior:prefs.followSpeed==='fast'?'instant':'smooth'});}}
+function moveSelection(dir,quick){
+ const n=puzzle.size,r=Math.floor(selected/n),c=selected%n,delta=quick?5:1;
+ let row=r,col=c;
+ if(dir==='up')row-=delta;else if(dir==='down')row+=delta;
+ else if(dir==='left')col-=delta;else col+=delta;
+ row=prefs.wrap?(row+n*5)%n:Math.max(0,Math.min(n-1,row));
+ col=prefs.wrap?(col+n*5)%n:Math.max(0,Math.min(n-1,col));
+ selected=row*n+col;
+ render();
+ keepSelectionInsideBoard($('board').querySelectorAll('.cell')[selected]);
+}
+function keepSelectionInsideBoard(cell){
+ if(!cell)return;
+ const scroller=cell.closest('.board-scroll');
+ if(!scroller)return;
+ const style=getComputedStyle(scroller);
+ const canX=/auto|scroll/.test(style.overflowX)&&scroller.scrollWidth>scroller.clientWidth+1;
+ const canY=/auto|scroll/.test(style.overflowY)&&scroller.scrollHeight>scroller.clientHeight+1;
+ if(!canX&&!canY)return; // A fitted puzzle must never scroll the entire page.
+ const frame=scroller.getBoundingClientRect(),rect=cell.getBoundingClientRect();
+ let left=scroller.scrollLeft,top=scroller.scrollTop;
+ if(prefs.follow==='center'){
+  if(canX)left+=rect.left+rect.width/2-(frame.left+frame.width/2);
+  if(canY)top+=rect.top+rect.height/2-(frame.top+frame.height/2);
+ }else{
+  if(canX){if(rect.left<frame.left)left+=rect.left-frame.left;else if(rect.right>frame.right)left+=rect.right-frame.right;}
+  if(canY){if(rect.top<frame.top)top+=rect.top-frame.top;else if(rect.bottom>frame.bottom)top+=rect.bottom-frame.bottom;}
+ }
+ if(Math.abs(left-scroller.scrollLeft)>.5||Math.abs(top-scroller.scrollTop)>.5)
+  scroller.scrollTo({left,top,behavior:prefs.followSpeed==='fast'?'instant':'smooth'});
+}
 
 const standardKeys={
  up:['ArrowUp',''],down:['ArrowDown',''],left:['ArrowLeft',''],right:['ArrowRight',''],
@@ -1104,7 +1136,7 @@ function editBinding(action,slot,button){
  };
  document.addEventListener('keydown',handle,true);
 }
-function moveOne(dir,fast){moveSelection(dir,fast);if(keyboardDrag){paint(selected,keyboardDrag.to,true);keyboardDrag.steps++;dragCount=keyboardDrag.steps;render();}}
+function moveOne(dir,fast){moveSelection(dir,fast);if(keyboardDrag){paint(selected,keyboardDrag.to,true);keyboardDrag.steps++;}}
 function releaseMove(){if(moveTimer!==null)clearInterval(moveTimer);if(moveWait!==null)clearTimeout(moveWait);moveTimer=null;moveWait=null;moveHeld='';}
 function beginMove(code,dir,quick){
  if(moveHeld===code)return;
@@ -1155,14 +1187,14 @@ if(matches('toolFill',e)||matches('toolCross',e)){tool=matches('toolFill',e)?'1'
  if(to!==null){e.preventDefault();e.stopImmediatePropagation();
   if(e.repeat&&keyboardDrag&&keyboardDrag.to===to)return;
   if(!keyboardDrag)keyboardDrag={to,first:undoStack.length,steps:1};
-  paint(selected,to,false);dragCount=1;render();return;
+  paint(selected,to,false);return;
  }
 }
 function endKeyboard(e){
  if((e.key==='Alt'||e.code==='AltLeft'||e.code==='AltRight')&&altClueSelection){
   e.preventDefault();e.stopImmediatePropagation();commitAltClue();
  }
- if(e.code===moveHeld)releaseMove();if(!keyboardDrag)return;if((keyboardDrag.to==='1'&&matches('fill',e))||(keyboardDrag.to==='2'&&matches('cross',e))||(keyboardDrag.to==='0'&&matches('clear',e))){squashHistory(keyboardDrag.first);keyboardDrag=null;dragCount=0;render();}}
+ if(e.code===moveHeld)releaseMove();if(!keyboardDrag)return;if((keyboardDrag.to==='1'&&matches('fill',e))||(keyboardDrag.to==='2'&&matches('cross',e))||(keyboardDrag.to==='0'&&matches('clear',e))){squashHistory(keyboardDrag.first);keyboardDrag=null;render();}}
 function squashHistory(first){if(!['practice','record'].includes(mode)||undoStack.length<=first+1)return;undoStack.splice(first+1,undoStack.length-first-1)}
 
 /* High-performance stroke handling. The original per-cell render() and updateBoard()
@@ -1353,8 +1385,8 @@ function setupPointer(){
 const oldPaint=paint;paint=function(index,to,drag){if(drag&&dragStart!==null){if(mode==='coop'){oldPaint(index,to,true);return;}const n=puzzle.size;const ar=Math.floor(dragStart/n),ac=dragStart%n,r=Math.floor(index/n),c=index%n;if(!dragAxis){dragAxis=Math.abs(c-ac)>=Math.abs(r-ar)?'row':'col'}if((dragAxis==='row'&&r!==ar)||(dragAxis==='col'&&c!==ac))return;const from=selected;const start=dragAxis==='row'?from%n:Math.floor(from/n),end=dragAxis==='row'?c:r,step=end>=start?1:-1;for(let k=start;k!==end+step;k+=step){const at=dragAxis==='row'?ar*n+k:k*n+ac;if(prefs.dragPolicy==='skip'&&board[at]!=='0'&&at!==dragStart)continue;oldPaint(at,to,true);dragCount++}updateBoard();return;}
 const prev=board[index];oldPaint(index,to,drag);if(board[index]!==prev){lastInput=index;lastInputTime=Date.now();if(prefs.lastInput==='3'||prefs.lastInput==='5')setTimeout(()=>{if(Date.now()-lastInputTime>=Number(prefs.lastInput)*1000)updateBoard()},Number(prefs.lastInput)*1000+50);playSound('input',to);if(prefs.errorMode==='immediate'&&wrongCells().length)notifyWrong('immediate');else scheduleWrong();saveBoard();const cl=$('board').querySelectorAll('.cell')[index];if(cl&&prefs.animation!=='basic'){const style='nono-input-'+prefs.animation;cl.classList.remove(style,'nono-anim-cross','nono-anim-fill');void cl.offsetWidth;cl.classList.add(style,to==='2'?'nono-anim-cross':'nono-anim-fill');}if(prefs.feedback!=='off'&&navigator.vibrate)navigator.vibrate(prefs.feedback==='strong'?45:prefs.feedback==='normal'?25:12)}updateBoard();};
 const oldRender=render;render=function(){oldRender();updateBoard()};
-const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();manualClues[puzzle.id]=saved.manual||{};finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
-const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');return oldLeave()};
+const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();keyboardDrag=null;hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();manualClues[puzzle.id]=saved.manual||{};finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
+const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');return oldLeave()};
 const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playSound('finish');setTimeout(()=>openOverview(),300)};
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
 document.addEventListener('click',e=>{if(e.target.closest('#restart')){e.preventDefault();e.stopImmediatePropagation();if(roomCode)return;if(!confirm('퍼즐을 초기화할까요? 현재 진행 상황이 지워집니다.'))return;if(mode==='practice'){dropSave();delete manualClues[puzzle.id];}startAlone().then(saveBoard).catch(firebaseError);}},true);
@@ -1373,7 +1405,7 @@ function followPointerSelection(event){
 }
 mount();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
 $('board').addEventListener('pointermove',followPointerSelection,{passive:true});
-window.addEventListener('blur',()=>{altClueSelection=null;releaseMove();});
+window.addEventListener('blur',()=>{altClueSelection=null;releaseMove();keyboardDrag=null;});
 $('board').addEventListener('wheel',e=>{if(!prefs.zoomWheel||!e.ctrlKey)return;e.preventDefault();
  const inc={slow:.05,normal:.1,fast:.2}[prefs.zoomSpeed]||.1;
  setBoardZoom(e.deltaY<0?inc:-inc);
