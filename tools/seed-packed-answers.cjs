@@ -9,6 +9,7 @@ const codec=require('../answer-bitpack.js');
 const {answers,puzzles}=require('../tests/puzzles.cjs');
 const {curatedVoxAnswers}=require('./curated-vox-answers.cjs');
 const {curatedPlaytestAnswers}=require('./curated-playtest-answers.cjs');
+const {planMissingPackedAnswers}=require('./packed-seed-plan.cjs');
 const argv=process.argv.slice(2);
 const option=key=>{const i=argv.indexOf(key);return i<0?null:argv[i+1];};
 const apply=argv.includes('--apply'),project=option('--project'),input=option('--input');
@@ -49,14 +50,8 @@ const cli=path.join(__dirname,'../node_modules/firebase-tools/lib/bin/firebase.j
 if(!fs.existsSync(cli))throw Error('Run npm ci before deploying private packed answers');
 const base=['--project',project],read=cp.execFileSync(process.execPath,[cli,'database:get','/privateAnswersPacked',...base],{encoding:'utf8',stdio:['ignore','pipe','pipe']});
 const existing=JSON.parse(read);
-if(existing!==null&&(typeof existing!=='object'||Array.isArray(existing)))throw Error('Unexpected privateAnswersPacked root format');
-const current=existing||Object.create(null);
-for(const [id,packed] of Object.entries(packedAnswers)){
- if(Object.hasOwn(current,id)&&current[id]!==packed)
-  throw Error('Existing private packed answer differs, refusing to overwrite: '+id);
-}
-const missing=Object.entries(packedAnswers).filter(([id])=>!Object.hasOwn(current,id));
-console.log('Preflight:',Object.keys(current).length,'existing packed answers;',missing.length,'new answers to add');
+const missing=planMissingPackedAnswers(existing,packedAnswers);
+console.log('Preflight:',Object.keys(existing||{}).length,'existing packed answers;',missing.length,'new answers to add');
 if(missing.length===0){console.log('All expected packed answers are already seeded.');process.exit(0);}
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'nono-packed-'));
 try{
