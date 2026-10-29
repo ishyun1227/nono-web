@@ -165,7 +165,7 @@
       "$puzzle": {
         "$uid": {
           ".read": "auth != null && auth.uid == $uid",
-          ".write": "auth != null && auth.uid == $uid && root.child('privateAnswers').child($puzzle).exists() && newData.exists()",
+          ".write": "auth != null && auth.uid == $uid && (root.child('privateAnswers').child($puzzle).exists() || root.child('privateAnswersPacked').child($puzzle).exists()) && newData.exists()",
           ".validate": "newData.hasChildren(['name','startedAt','finishedAt','filled','changes'])",
           "name": {
             ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 18"
@@ -368,7 +368,7 @@
             ".validate": "newData.isString() && newData.val() == $puzzle"
           },
           "size": {
-            ".validate": "newData.isNumber() && newData.val() > 0 && newData.val() * newData.val() == root.child('privateAnswers').child($puzzle).val().length"
+            ".validate": "newData.isNumber() && newData.val() > 0 && (newData.val() * newData.val() == root.child('privateAnswers').child($puzzle).val().length || (newData.val() == 30 && root.child('privateAnswersPacked').child($puzzle).exists() && ($puzzle == 'vox_crabino_front' || $puzzle == 'vox_crabino_side' || $puzzle == 'vox_crabino_top')))"
           },
           "completedAt": {
             ".validate": "newData.isNumber() && newData.val() == root.child('publishedReplays').child($puzzle).child($uid).child('completedAt').val()"
