@@ -9,7 +9,8 @@
     "test:browser": "firebase emulators:exec --project demo-nono --only database,auth \"node tests/browser-multiplayer.cjs\"",
     "test:home": "node tests/home-sidebars.cjs",
     "test:community": "node tests/community-rewards.cjs",
-    "test:account": "node tests/account-auth.cjs"
+    "test:account": "node tests/account-auth.cjs",
+    "test:answers": "node tests/answer-bitpack.cjs && node tools/seed-packed-answers.cjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
