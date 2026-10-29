@@ -1061,7 +1061,9 @@ const { pathToFileURL } = require('node:url');
   if(await forestPage.locator('#forest-experience').isVisible() ||
      !await forestPage.locator('body>.shell #game').count())
     throw new Error('Switching out of forest did not restore the original game DOM');
-  await openShop(forestPage);
+  // When an in-progress puzzle is restored, the home-only store button is hidden.
+  // Open the same shop dialog through the documented NONO_THEMES API for this re-entry test.
+  await forestPage.evaluate(()=>window.NONO_THEMES.open());
   await forestPage.getByRole('button',{name:'정령의 숲 미리보기'}).click();
   await forestPage.locator('#nono-theme-use').click();
   await forestPage.setViewportSize({width:390,height:740});
@@ -1123,7 +1125,9 @@ const { pathToFileURL } = require('node:url');
   if(await terminalPage.locator('#terminal-experience').isVisible() ||
     !await terminalPage.locator('body>.shell #game').count())
     throw new Error('CRT environment did not restore original site when exiting');
-  await openShop(terminalPage);
+  // When an in-progress puzzle is restored, the home-only store button is hidden.
+  // Open the same shop dialog through the documented NONO_THEMES API for this re-entry test.
+  await terminalPage.evaluate(()=>window.NONO_THEMES.open());
   await terminalPage.getByRole('button',{name:'던전 터미널 미리보기'}).click();
   await terminalPage.locator('#nono-theme-use').click();
   await terminalPage.setViewportSize({width:390,height:740});
