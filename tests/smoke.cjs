@@ -55,6 +55,14 @@ const { pathToFileURL } = require('node:url');
   console.log('Rabbit and samurai browser playtest passed.');
 
   await page.locator('#nono-open-settings').waitFor();
+  // Legacy DOM selectors are intentionally hidden by the new launcher.
+  // Dispatch real change events to inspect compatibility without clicking hidden UI.
+  const selectUnderlying=async (id,value)=>page.evaluate(({id,value})=>{
+    const select=document.getElementById(id);
+    if(!select)throw Error('Missing underlying select '+id);
+    select.value=String(value);
+    select.dispatchEvent(new Event('change',{bubbles:true}));
+  },{id,value});
   const openShop=async target=>{
     if(await target.locator('#nono-shop-tab-top').isVisible())
       await target.locator('#nono-shop-tab-top').click();
@@ -220,27 +228,27 @@ const { pathToFileURL } = require('node:url');
     throw new Error('Solo must show only size/difficulty');
   if(!await page.locator('#nono-quick-size option[value="15"]').evaluate(option=>option.disabled))
     throw new Error('Unavailable 15x15 puzzles must not pretend to work');
-  await page.selectOption('#nono-quick-size','5');
+  await selectUnderlying('nono-quick-size','5');
   if(await page.locator('#puzzle').inputValue()!=='heart5')throw new Error('5x5 does not select real puzzle');
-  await page.selectOption('#nono-quick-size','10');
-  await page.selectOption('#nono-quick-difficulty','어려움');
+  await selectUnderlying('nono-quick-size','10');
+  await selectUnderlying('nono-quick-difficulty','어려움');
   if(await page.locator('#puzzle').inputValue()!=='rocket10')throw new Error('Difficulty does not select actual puzzle');
   // Every (size, difficulty) pair must list all matching real puzzle IDs, not
   // only the 30x30 voxel group. Keep solution thumbnails and titles hidden.
-  await page.selectOption('#nono-quick-size','30');
+  await selectUnderlying('nono-quick-size','30');
   if(!await page.locator('#setup .nono-apple-difficulty-choices').isVisible())
     throw new Error('Difficulty filter is missing for 30x30');
-  if(await page.locator('#nono-quick-variants button').allTextContents().then(x=>x.join(','))!=='01,02,03')
+  if(await page.locator('#setup .nono-apple-puzzle-choices button').allTextContents().then(x=>x.join(','))!=='01,02,03')
     throw new Error('30x30 puzzle choices should show 01 / 02 / 03');
-  await page.locator('#nono-quick-variants button').nth(2).click();
+  await page.locator('#setup .nono-apple-puzzle-choices button').nth(2).click();
   if(await page.locator('#puzzle').inputValue()!=='vox_crabino_top')
     throw new Error('30x30 puzzle 03 is not wired to the real puzzle');
   // All three large layout previews must exist, be selectable, and have coherent clues.
   for(const size of [50,75,100]){
-    await page.selectOption('#nono-quick-size',String(size));
+    await selectUnderlying('nono-quick-size',String(size));
     if(await page.locator('#puzzle').inputValue()!=='size-test-'+size)
       throw new Error('Large layout test size '+size+' cannot be selected');
-    if(await page.locator('#nono-quick-variants button').allTextContents().then(x=>x.join(','))!=='01')
+    if(await page.locator('#setup .nono-apple-puzzle-choices button').allTextContents().then(x=>x.join(','))!=='01')
       throw new Error('Each large size should offer exactly one random test puzzle');
   }
   const previewPuzzles=await page.evaluate(()=>[50,75,100].map(size=>{
@@ -252,8 +260,8 @@ const { pathToFileURL } = require('node:url');
   if(previewPuzzles.some((p,i)=>!p||p.size!==[50,75,100][i]||p.rows!==p.size||
     p.cols!==p.size||!p.rowTotal||p.rowTotal!==p.colTotal||!p.test))
     throw new Error('Large random previews have malformed clues: '+JSON.stringify(previewPuzzles));
-  await page.selectOption('#nono-quick-size','10');
-  await page.selectOption('#nono-quick-difficulty','보통');
+  await selectUnderlying('nono-quick-size','10');
+  await selectUnderlying('nono-quick-difficulty','보통');
   await page.evaluate(()=>{
     const fixture={...PUZZLES.find(p=>p.id==='cat10'),id:'cat10_extra_test',difficulty:'보통'};
     PUZZLES.push(fixture);
@@ -262,9 +270,9 @@ const { pathToFileURL } = require('node:url');
     document.querySelector('#puzzle').append(option);
     document.querySelector('#puzzle').dispatchEvent(new Event('change',{bubbles:true}));
   });
-  if(await page.locator('#nono-quick-variants button').allTextContents().then(x=>x.join(','))!=='01,02')
+  if(await page.locator('#setup .nono-apple-puzzle-choices button').allTextContents().then(x=>x.join(','))!=='01,02')
     throw new Error('All puzzles matching the size and difficulty must appear');
-  await page.locator('#nono-quick-variants button').nth(1).click();
+  await page.locator('#setup .nono-apple-puzzle-choices button').nth(1).click();
   if(await page.locator('#puzzle').inputValue()!=='cat10_extra_test')
     throw new Error('Newly registered matching puzzle was not selectable');
   await page.evaluate(()=>{
@@ -274,7 +282,7 @@ const { pathToFileURL } = require('node:url');
     document.querySelector('#puzzle').value='cat10';
     document.querySelector('#puzzle').dispatchEvent(new Event('change',{bubbles:true}));
   });
-  if(await page.locator('#nono-quick-variants button').count()!==1)
+  if(await page.locator('#setup .nono-apple-puzzle-choices button').count()!==1)
     throw new Error('Puzzle chooser was not refreshed after list changes');
   const voxelIds=await page.evaluate(()=>PUZZLES.filter(p=>p.size===30).map(p=>p.id));
   if(voxelIds.join(',')!=='vox_crabino_front,vox_crabino_side,vox_crabino_top')
@@ -282,7 +290,7 @@ const { pathToFileURL } = require('node:url');
 
   // The large random previews must show their entire grid and clues without scrolling.
   for(const size of [50,75,100]){
-    await page.selectOption('#nono-quick-size',String(size));
+    await selectUnderlying('nono-quick-size',String(size));
     if(await page.locator('#puzzle').inputValue()!=='size-test-'+size)
       throw new Error('Large layout selector failed for '+size);
     await page.click('#play-alone');
