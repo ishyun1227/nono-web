@@ -1,0 +1,24 @@
+const assert=require('node:assert/strict');
+const {prepare,parseArgs}=require('../tools/prepare-puzzle.cjs');
+const codec=require('../answer-bitpack.js');
+const {answers}=require('./puzzles.cjs');
+const mask=answers.heart5,clues=codec.hints(mask,5,5);
+const fixture={id:'heart5_trial',name:'하트 테스트',width:5,height:5,difficulty:'보통',
+  reviewStatus:'trial',uniqueProofStatus:'unique',mask,rows:clues.rows,cols:clues.cols};
+const result=prepare(fixture);
+assert.equal(result.publicData.width,5);
+assert.equal(result.publicData.height,5);
+assert.equal(result.publicData.reviewStatus,'trial');
+assert.equal(result.publicData.uniqueProofStatus,'externally-reported-unique');
+assert.equal(codec.unpack(result.privateData.packed,5,5),mask);
+assert.equal(result.bytes,4);
+assert.equal('mask' in result.publicData,false);
+assert.equal('packed' in result.publicData,false);
+assert.equal(JSON.stringify(result.publicData).includes(result.privateData.packed),false);
+assert.throws(()=>prepare({...fixture,mask:'0'.repeat(25)}),/Clues|Outer/);
+assert.throws(()=>prepare({...fixture,rows:[[0],...clues.rows.slice(1)]}),/Outer/);
+assert.throws(()=>prepare({...fixture,cols:[...clues.cols.slice(0,-1),[0]]}),/Outer/);
+assert.throws(()=>prepare({...fixture,reviewStatus:'approved',uniqueProofStatus:'not-run'}),/unique/);
+assert.throws(()=>prepare({...fixture,width:4}),/Missing row\/column clues|Missing or invalid source mask/);
+assert.throws(()=>parseArgs(['--input','x.json','--public-out','only.json']),/Both output paths/);
+console.log('PASS import validation, no outside-zero borders, public/private separation, exact packed answer');
