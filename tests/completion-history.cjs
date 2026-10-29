@@ -27,7 +27,7 @@ const {pathToFileURL}=require('node:url');
     assert.equal(await page.locator('#nono-completion-list .nono-completion-item').count(),1);
     assert.match(await page.locator('#nono-completion-list').innerText(),/내 완료/);
     await page.locator('#nono-community-tab').click();
-    assert.match(await page.locator('.nono-community-card').first().innerText(),/혼자.*5×5/);
+    assert.match(await page.locator('.nono-community-card').nth(1).innerText(),/혼자.*5×5/);
     await page.reload();
     await page.locator('#nono-completion-list').waitFor();
     assert.equal(await page.locator('#nono-completion-list .nono-completion-item').count(),1,
@@ -40,7 +40,7 @@ const {pathToFileURL}=require('node:url');
     });
     assert.equal(await page.locator('#nono-completion-list .nono-completion-item').count(),3);
     await page.locator('#nono-community-tab').click();
-    const own=await page.locator('.nono-community-card').first().innerText();
+    const own=await page.locator('.nono-community-card').nth(1).innerText();
     assert.match(own,/혼자/);
     assert.match(own,/대결/);
     assert.match(own,/협동/);
