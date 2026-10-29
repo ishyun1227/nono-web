@@ -83,3 +83,16 @@ for(const p of vox){
  assert.equal(enabled.includes(p.id),false,p.id+' must not be enabled before private migration');
 }
 console.log('PASS three additional 30x30 masks verified but not prematurely activated');
+
+ 
+// Rabbit and samurai are already 1-bit packed in their independent trial page.
+// Validate every bit; never silently publish these trial answers as official.
+const {curatedPlaytestAnswers}=require('../tools/curated-playtest-answers.cjs');
+const trials=curatedPlaytestAnswers();
+assert.deepEqual(trials.map(x=>x.id).sort(),['trial_rabbit_53x73','trial_samurai_72x72']);
+for(const p of trials){
+ const packed=codec.validateAnswer(p.mask,p.width,p.height,p.rows,p.cols);
+ assert.equal(codec.unpack(packed,p.width,p.height),p.mask,p.id+' strict roundtrip');
+ assert.equal(enabled.includes(p.id),false,p.id+' has no official record activation');
+}
+console.log('PASS rabbit/samurai independent trial masks verified without enabling online rankings');
