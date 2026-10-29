@@ -400,6 +400,14 @@ window.addEventListener('storage',e=>{
 });
 document.documentElement.lang=active;document.documentElement.dataset.nonoLang=active;
 document.title=active==='ko'?'NONO — 노노그램':active==='ja'?'NONO — ノノグラム':'NONO — Nonogram';
-window.NONO_I18N={setLanguage,get locale(){return active;},get choice(){return choice;},translate:message=>translate(message,active),refresh:()=>queue(document.body)};
+window.NONO_I18N={setLanguage,get locale(){return active;},get choice(){return choice;},translate:message=>translate(message,active),refresh:()=>queue(document.body),
+  nativeCoverage:()=>{
+    const required=[...map.en.keys()].filter(key=>/[가-힣]/.test(key));
+    return Object.fromEntries(SUPPORTED.filter(id=>id!=='ko').map(id=>[id,{
+      total:required.length,
+      missing:required.filter(key=>!map[id]?.has(key)||!String(map[id].get(key)).trim())
+    }]));
+  }
+};
 queue(document.body);
 })();
