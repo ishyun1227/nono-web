@@ -309,6 +309,9 @@ const { pathToFileURL } = require('node:url');
       }).length;
       return {board:rect(boardElement),
         card:rect(document.querySelector('.board-card')),
+        game:rect(document.querySelector('#game')),
+        playArea:rect(document.querySelector('#play-area')),
+        shell:rect(document.querySelector('.shell')),
         topbar:rect(topbar),header:rect(gameHeader),
         toolbars:['#nono-board-zoom','.board-footer','#nono-actions'].map(selector=>rect(document.querySelector('#game '+selector))),
         screen:{width:innerWidth,height:innerHeight},
