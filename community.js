@@ -85,13 +85,8 @@ function render(){
  heading.id='nono-community-title';
  const dismiss=elt('button','','닫기');dismiss.type='button';dismiss.addEventListener('click',close);
  header.append(heading,dismiss);
- const description=elt('p','nono-community-intro','완료 기록, 퍼즐별 랭킹, 나의 플레이 기록을 확인할 수 있어요.');
+ const description=elt('p','nono-community-intro','퍼즐별 랭킹과 공개 완료 기록을 확인할 수 있어요. 개인 기록은 상단 프로필에서 확인해 주세요.');
  const grid=elt('div','nono-community-grid');
- const local=elt('div','nono-community-card');
- title(local,'내 기록','이 브라우저에서 저장된 기록만 표시해요.');
- const entries=localRecords();
- if(!entries.length)local.append(elt('p','nono-community-empty','아직 저장된 시간 기록이 없어요.'));
- for(const e of entries)local.append(line(({solo:'혼자',race:'대결',coop:'협동'})[e.mode]+' · '+e.size+'×'+e.size+' · '+e.name,recordDetail(e)));
  const leaderboard=elt('div','nono-community-card');
  title(leaderboard,'퍼즐별 랭킹','현재 선택한 퍼즐의 기록을 조회해요.');
  const leaderRows=elt('div','nono-community-leaders');
@@ -120,7 +115,7 @@ function render(){
  });
  const replay=elt('p','nono-community-muted','리플레이 공개 및 공유 기능은 준비 중이에요.');
  challenge.append(button,replay);
- grid.append(local,leaderboard,communityFeed,challenge);
+ grid.append(leaderboard,communityFeed,challenge);
  panel.append(header,description,grid);
  overlay.append(panel);document.body.append(overlay);
  overlay.addEventListener('click',event=>{if(event.target===overlay)close();});
