@@ -84,6 +84,7 @@ async function main(){
     {bits:'AAY=',at:serverTimestamp(),uid:'eve'}));
   await assertFails(set(ref(a,'rooms/LMNPQR/coopMoves/bad'),
     {bits:'invalid',at:serverTimestamp(),uid:'alice'}));
+  await join(a,'LMNPQR','alice','alice');
   await assertSucceeds(set(ref(a,'userRooms/alice/LMNPQR'),true));
   await remove(ref(a,'rooms/LMNPQR/players/0'));
   await assertSucceeds(get(ref(a,'rooms/LMNPQR/coopMoves')));
