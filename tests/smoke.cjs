@@ -897,7 +897,7 @@ const { pathToFileURL } = require('node:url');
     document.querySelector('#play-area').classList.remove('hidden');
     board=answer.split('').map((value,index)=>value==='0'&&index%3===0?'2':value);
     finished=true;
-    render();openOverview();
+    render();document.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',code:'Tab',bubbles:true,cancelable:true}));
     const preview=document.querySelector('#nono-overview-grid');
     const tiles=[...preview.children];
     const sizes=tiles.map(tile=>tile.getBoundingClientRect());
@@ -913,7 +913,9 @@ const { pathToFileURL } = require('node:url');
       title:document.querySelector('#nono-overview .nono-options strong').textContent
     };
     // Manually opening the preview before completion retains marks already entered.
-    finished=false;openOverview();
+    finished=false;
+    document.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',code:'Tab',bubbles:true,cancelable:true}));
+    document.dispatchEvent(new KeyboardEvent('keydown',{key:'Tab',code:'Tab',bubbles:true,cancelable:true}));
     return {...completed,
       inProgressCrosses:[...preview.children].filter(tile=>tile.textContent==='×').length,
       inProgressTitle:document.querySelector('#nono-overview .nono-options strong').textContent};
