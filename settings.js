@@ -95,27 +95,38 @@ function E(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=c
 function persist(){profiles[device]=Object.assign({},prefs);try{localStorage.setItem(KEY,JSON.stringify(profiles))}catch{}}
 persist();
 function saveKey(){return SAVE+puzzle.id;}
-// Persist undo/redo in a compact 2-bit-per-cell format, preserving the existing save key.
-// Cache encoded snapshots because unchanged history entries are re-saved after each move.
-const historySaveCache=new WeakMap();
-function packHistoryState(state){
- if(!state||!Array.isArray(state.board)||state.board.length!==puzzle.size*puzzle.size)return null;
- const cached=historySaveCache.get(state);
- if(cached)return cached;
- let packed='';
- for(let i=0;i<state.board.length;i+=4){
-  let bits=0;
-  for(let k=0;k<4&&i+k<state.board.length;k++){
-   const value=state.board[i+k];
-   bits|=(value==='1'?1:value==='2'?2:0)<<(k*2);
-  }
-  packed+=String.fromCharCode(bits);
- }
- const encoded=[btoa(packed),Number.isFinite(state.changes)?state.changes:0,Number.isInteger(state.selected)?state.selected:0];
- historySaveCache.set(state,encoded);
- return encoded;
+// Single base board for resume + numeric change records for undo/redo.
+// Each record: [changesBefore, changesAfter, selectionBefore, selectionAfter,
+//               [[cellIndex, oldValue*3+newValue], ...]].
+const HISTORY_FORMAT=2;
+function encodeHistoryAction(action){
+ if(!action||!Array.isArray(action.cells))return null;
+ return [action.beforeChanges,action.afterChanges,action.beforeSelected,action.afterSelected,
+  action.cells.map(([index,before,after])=>[index,Number(before)*3+Number(after)])];
 }
-function unpackHistoryState(data){
+function decodeHistoryAction(data){
+ if(!Array.isArray(data)||data.length!==5||!Array.isArray(data[4]))return null;
+ const n=puzzle.size*puzzle.size;
+ const [beforeChanges,afterChanges,beforeSelected,afterSelected,items]=data;
+ if(![beforeChanges,afterChanges,beforeSelected,afterSelected].every(Number.isSafeInteger)||
+  beforeChanges<0||afterChanges<0||beforeSelected<0||beforeSelected>=n||
+  afterSelected<0||afterSelected>=n||items.length>n)return null;
+ const seen=new Set(),cells=[];
+ for(const entry of items){
+  if(!Array.isArray(entry)||entry.length!==2)return null;
+  const [index,encoded]=entry;
+  if(!Number.isSafeInteger(index)||index<0||index>=n||seen.has(index)||
+   !Number.isSafeInteger(encoded)||encoded<0||encoded>8)return null;
+  seen.add(index);
+  const before=String(Math.floor(encoded/3)),after=String(encoded%3);
+  if(before===after)return null;
+  cells.push([index,before,after]);
+ }
+ return {cells,beforeChanges,afterChanges,beforeSelected,afterSelected};
+}
+// The old save format contains whole-board snapshots. Convert it once on load;
+// all subsequent saves write only numeric per-cell changes.
+function unpackLegacyHistoryState(data){
  if(!Array.isArray(data)||data.length!==3||typeof data[0]!=='string')return null;
  const length=puzzle.size*puzzle.size;
  if(!Number.isFinite(data[1])||data[1]<0||!Number.isInteger(data[2])||data[2]<0||data[2]>=length)return null;
@@ -131,21 +142,39 @@ function unpackHistoryState(data){
   return {board:result,changes:data[1],selected:data[2]};
  }catch{return null;}
 }
-function restoredHistory(list){
- if(!Array.isArray(list))return [];
- return list.slice(-150).map(unpackHistoryState).filter(Boolean);
+function convertLegacyAction(before,after){
+ const cells=[];
+ for(let i=0;i<before.board.length;i++)
+  if(before.board[i]!==after.board[i])cells.push([i,before.board[i],after.board[i]]);
+ return {cells,beforeChanges:before.changes,afterChanges:after.changes,
+  beforeSelected:before.selected,afterSelected:after.selected};
+}
+function restoredHistory(data,kind){
+ const entries=data[kind];
+ if(!Array.isArray(entries))return [];
+ if(data.historyFormat===HISTORY_FORMAT)
+  return entries.slice(-150).map(decodeHistoryAction).filter(Boolean);
+ const states=entries.slice(-150).map(unpackLegacyHistoryState).filter(Boolean);
+ const result=new Array(states.length);
+ let current={board:data.board.split(''),changes:Number.isFinite(data.changes)?data.changes:0,
+  selected:Number.isInteger(data.selected)?data.selected:0};
+ for(let i=states.length-1;i>=0;i--){
+  const next=states[i];
+  result[i]=kind==='undo'?convertLegacyAction(next,current):convertLegacyAction(current,next);
+  current=next;
+ }
+ return result;
 }
 function saveBoard(){
  if(mode!=='practice'||roomCode||!board||!puzzle||puzzle.sizeTest)return;
  const data={board:board.join(''),startedAt,finishedAt,selected,changes,
-  manual:manualClues[puzzle.id]||{},savedAt:Date.now()};
- // If browser storage is almost full, retain the board and as much history as fits.
+  historyFormat:HISTORY_FORMAT,manual:manualClues[puzzle.id]||{},savedAt:Date.now()};
+ // Preserve the latest actions first if browser storage becomes full.
  for(const limit of [150,75,30,0]){
   try{
-   if(limit){
-    data.undo=undoStack.slice(-limit).map(packHistoryState).filter(Boolean);
-    data.redo=redoStack.slice(-limit).map(packHistoryState).filter(Boolean);
-   }else{delete data.undo;delete data.redo;}
+   data.undo=undoStack.slice(-limit||undoStack.length).map(encodeHistoryAction).filter(Boolean);
+   data.redo=redoStack.slice(-limit||redoStack.length).map(encodeHistoryAction).filter(Boolean);
+   if(!limit){data.undo=[];data.redo=[];}
    localStorage.setItem(saveKey(),JSON.stringify(data));
    return;
   }catch(error){if(limit===0)console.warn('퍼즐 진행 상태를 저장하지 못했어요.',error);}
@@ -1305,11 +1334,25 @@ function endKeyboard(e){
   e.preventDefault();e.stopImmediatePropagation();commitAltClue();
  }
  if(e.code===moveHeld)releaseMove();if(!keyboardDrag)return;if((keyboardDrag.to==='1'&&matches('fill',e))||(keyboardDrag.to==='2'&&matches('cross',e))||(keyboardDrag.to==='0'&&matches('clear',e))){squashHistory(keyboardDrag.first);keyboardDrag=null;render();}}
-function squashHistory(first){if(!['practice','record'].includes(mode)||undoStack.length<=first+1)return;undoStack.splice(first+1,undoStack.length-first-1);saveBoard()}
+function squashHistory(first){
+ if(!['practice','record'].includes(mode)||undoStack.length<=first+1)return;
+ const actions=undoStack.splice(first);
+ const merged=new Map();
+ for(const action of actions)for(const [index,before,after] of action.cells){
+  const previous=merged.get(index);
+  if(previous)previous[2]=after;
+  else merged.set(index,[index,before,after]);
+ }
+ const firstAction=actions[0],lastAction=actions[actions.length-1];
+ undoStack.push({cells:[...merged.values()].filter(([,before,after])=>before!==after),
+  beforeChanges:firstAction.beforeChanges,afterChanges:lastAction.afterChanges,
+  beforeSelected:firstAction.beforeSelected,afterSelected:lastAction.afterSelected});
+ saveBoard();
+}
 
 /* High-performance stroke handling. The original per-cell render() and updateBoard()
    crossed 10,000 cells on every mouse event. Here a stroke updates only changed DOM
-   cells and selected lines, then commits one undo snapshot + one full render on release.
+   cells and selected lines, then commits one changed-cell delta + one full render on release.
    The path is freeform: it is not locked to the first row or column. */
 function updateHighlightOverlay(index){
  const grid=$('board'),region=grid.querySelector('.cells');
@@ -1341,16 +1384,15 @@ function startFastDrag(e,index){
  if(!cells)return;
  const original=board.slice(),to=e.button===2?'2':tool;
  const value=original[index]===to&&to!=='0'?'0':to;
- const snapshot={board:original.slice(),changes,selected};
+ const initialChanges=changes,initialSelected=selected;
  const history=['practice','record'].includes(mode);
- if(history){undoStack.push(snapshot);if(undoStack.length>150)undoStack.shift();redoStack=[];}
  const n=puzzle.size,rect=$('board').querySelector('.cells').getBoundingClientRect();
  fastDrag={id:e.pointerId,cells,initial:original,target:value,
   start:index,axis:null,end:index%n,row:Math.floor(index/n),col:index%n,
   startX:e.clientX,startY:e.clientY,originX:e.clientX,originY:e.clientY,
   rect:{left:rect.left,top:rect.top,width:rect.width,height:rect.height},
   touched:new Set(),filled:original.filter(v=>v==='1').length,
-  history,count:1,hasExtended:false,initialSelected:snapshot.selected};
+  history,count:1,hasExtended:false,initialChanges,initialSelected};
  pointerDown=false;dragCount=1;lastInput=-1;
  setFastDragValue(index,value);
  updateLiveSelection(index,cells);
@@ -1454,10 +1496,12 @@ function endFastDrag(e){
  const dragHud=$('nono-drag-hud');
  if(dragHud){dragHud.hidden=true;dragHud.classList.remove('nono-drag-active');}
  try{if($('board').hasPointerCapture(d.id))$('board').releasePointerCapture(d.id);}catch{}
- let modified=0;for(const index of d.touched)if(board[index]!==d.initial[index])modified++;
- if(!modified&&d.history)undoStack.pop();
- if(modified){
-  changes+=modified;
+ const changedCells=[];
+ for(const index of d.touched)
+  if(board[index]!==d.initial[index])changedCells.push([index,d.initial[index],board[index]]);
+ if(changedCells.length){
+  if(d.history)pushHistory(changedCells,d.initialChanges,changes+changedCells.length,d.initialSelected,selected);
+  changes+=changedCells.length;
   lastInput=selected;lastInputTime=Date.now();
   playSound('input',d.target);
   saveBoard();
@@ -1502,7 +1546,7 @@ restoreHistory=function(source,target){
  oldRestoreHistory(source,target);
  if(changed&&mode==='practice')saveBoard();
 };
-const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();keyboardDrag=null;hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();changes=Number.isFinite(saved.changes)?saved.changes:0;manualClues[puzzle.id]=saved.manual||{};undoStack=restoredHistory(saved.undo);redoStack=restoredHistory(saved.redo);finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
+const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();keyboardDrag=null;hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();changes=Number.isFinite(saved.changes)?saved.changes:0;manualClues[puzzle.id]=saved.manual||{};undoStack=restoredHistory(saved,'undo');redoStack=restoredHistory(saved,'redo');finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
 const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');return oldLeave()};
 const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playSound('finish');setTimeout(()=>openOverview(),300)};
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
