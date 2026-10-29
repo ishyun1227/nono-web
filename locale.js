@@ -210,6 +210,7 @@ japaneseAuditFixes.push(
  ['크기 테스트','サイズテスト'],['퍼즐 선택:','パズル選択：']
 );
 for(const [source,translation] of japaneseAuditFixes)map.ja.set(source,translation);
+for(const [source,translation] of Object.entries(window.NONO_JA_EXTRA||{}))map.ja.set(source,translation);
 
 for(const locale of SUPPORTED.filter(l=>!['ko','en','ja'].includes(l))){map[locale]=new Map(Object.entries(window.NONO_LOCALE_PACKS?.[locale]||{}));}
 // Apply live multiplayer/controller strings before translation begins, for every target locale.
