@@ -848,6 +848,35 @@ const { pathToFileURL } = require('node:url');
   await page.click('#play-alone');
   const restoredAt=await page.evaluate(()=>finishedAt);
   if(restoredAt!==completedAt)throw new Error('Completed practice time changed on resume');
+  // Undo/redo history must survive "이어서 풀기", not just restore the painted cells.
+  const undoResumePage=await browser.newPage({viewport:{width:1440,height:900}});
+  await undoResumePage.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
+  await undoResumePage.goto(pathToFileURL(path.resolve(__dirname,'..','dist','index.html')).href);
+  await undoResumePage.locator('#nono-open-settings').waitFor();
+  await undoResumePage.selectOption('#puzzle','heart5');
+  await undoResumePage.click('#play-alone');
+  await undoResumePage.locator('#board .cell').first().waitFor();
+  await undoResumePage.evaluate(()=>{paint(0,'1',false);paint(1,'2',false);});
+  await undoResumePage.reload();
+  await undoResumePage.locator('#nono-resume-items .nono-resume-continue').first().click();
+  await undoResumePage.locator('#board .cell').first().waitFor();
+  let resumeState=await undoResumePage.evaluate(()=>({cells:board.slice(0,2).join(''),undo:undoStack.length,redo:redoStack.length}));
+  if(resumeState.cells!=='12'||resumeState.undo!==2||resumeState.redo!==0)
+    throw new Error('Solo resume failed to restore undo history: '+JSON.stringify(resumeState));
+  await undoResumePage.click('#undo');
+  resumeState=await undoResumePage.evaluate(()=>({cells:board.slice(0,2).join(''),undo:undoStack.length,redo:redoStack.length}));
+  if(resumeState.cells!=='10'||resumeState.undo!==1||resumeState.redo!==1)
+    throw new Error('Undo after solo resume failed: '+JSON.stringify(resumeState));
+  await undoResumePage.reload();
+  await undoResumePage.locator('#nono-resume-items .nono-resume-continue').first().click();
+  await undoResumePage.locator('#board .cell').first().waitFor();
+  resumeState=await undoResumePage.evaluate(()=>({cells:board.slice(0,2).join(''),undo:undoStack.length,redo:redoStack.length}));
+  if(resumeState.cells!=='10'||resumeState.undo!==1||resumeState.redo!==1)
+    throw new Error('Redo history was lost on second resume: '+JSON.stringify(resumeState));
+  await undoResumePage.click('#redo');
+  if(await undoResumePage.evaluate(()=>board.slice(0,2).join(''))!=='12')
+    throw new Error('Redo after a second solo resume failed');
+  await undoResumePage.close();
   // The moonlit forest must be an independent website layer, not altered colors on the default home.
   const forestPage=await browser.newPage({viewport:{width:1440,height:900}});
   const forestErrors=[];
