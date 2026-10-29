@@ -56,3 +56,22 @@ npm run test:browser
 Chromium을 설치하려면 `npx playwright install chromium`을 실행합니다. 이미 설치된 Edge를 사용하려면 Windows PowerShell에서 `$env:BROWSER_CHANNEL='msedge'`를 지정합니다.
 
 서버 테스트는 비인증 접근, 답안 비공개, 방 인원, 협동 충돌, 방장 권한, 시작 후 입장, 타인 보드 수정, 허위 완료, 기록 변조, 제한된 순위 조회를 확인합니다. 브라우저 테스트는 별도 브라우저 계정 두 개로 초대·동시 협동·대결 시작과 완료 전파·기록 저장을 확인하며 `test-results/`에 화면을 저장합니다. 모든 자동 테스트는 `demo-nono` 에뮬레이터를 사용합니다.
+
+## 바이너리 정답 단계적 운영 전환
+
+배포는 자동 실행되지 않으며 GitHub Actions의 `Manual Firebase packed-answer migration`
+워크플로를 관리자가 **직접 실행**할 때만 진행한다.
+
+1. `phase: validate_only`로 무손실 정답 검증·기존/새 Firebase 규칙·두 브라우저 대결/협동 검사 수행. **서버 쓰기 없음**.
+2. 운영 변경 전에 GitHub 저장소 Secrets에 `FIREBASE_SERVICE_ACCOUNT_JSON`을 등록한다.
+   값은 NONO Firebase 프로젝트의 적절히 제한한 서비스 계정 JSON이며, 소스·이슈·채팅·로그에 공개하면 안 된다.
+3. `phase: rules_only`와 `confirm_project: nono-web-ishyun-20261020`으로 규칙을 먼저 배포한다.
+4. 검증 후 `phase: rules_and_seed`와 동일한 확인값으로 운영 `privateAnswersPacked`에
+   기존 퍼즐 정답을 추가한다. `privateAnswers`와 기존 사용자 기록은 보존한다.
+5. 운영 서버에서 정답 읽기 거부, 정상·허위 완료 판정 및 과거 기록 유지 여부를 확인한다.
+6. 마지막에만 `NONO_PACKED_ANSWERS_READY` 클라이언트 설정을 명시적으로 켜서
+   Cloudflare에 배포하고, 바로 혼자하기·대결·협동·이어하기를 점검한다.
+
+**현재 운영 완료로 간주할 수 없다:** 보안 규칙과 데이터베이스의 실제 배포 결과,
+GitHub Secret의 존재 여부, Cloudflare 배포는 별도로 확인해야 한다.
+새 워크플로는 절대로 클라이언트 플래그를 자동으로 켜거나 구버전 정답을 삭제하지 않는다.
