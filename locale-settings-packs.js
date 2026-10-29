@@ -1,0 +1,80 @@
+/* Curated, native-language control labels for all nine expansion locales.
+ * Source keys are the stable Korean setting labels; option values and game logic are unchanged.
+ */
+(()=>{'use strict';
+const ids=['zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
+const rows=[
+['셀 이동키','移动按键','移動按鍵','Teclas de movimiento','Teclas de movimento','Touches de déplacement','Bewegungstasten','Tombol gerak','Phím di chuyển','ปุ่มเคลื่อนที่'],
+['빠른 셀 이동','快速移动','快速移動','Movimiento rápido','Movimento rápido','Déplacement rapide','Schnell bewegen','Gerak cepat','Di chuyển nhanh','เคลื่อนที่เร็ว'],
+['셀 반복 속도','连续移动速度','連續移動速度','Velocidad de repetición','Velocidade de repetição','Vitesse de répétition','Wiederholrate','Kecepatan pengulangan','Tốc độ lặp','ความเร็วการเลื่อนซ้ำ'],
+['연속 이동 시작 대기','按住延迟','長按延遲','Retraso de repetición','Atraso da repetição','Délai de répétition','Wiederholverzögerung','Jeda pengulangan','Độ trễ lặp','หน่วงก่อนเลื่อนซ้ำ'],
+['끝에서 반대편 이동','边缘循环','邊緣循環','Volver por el otro lado','Voltar pelo lado oposto','Boucler aux bords','Am Rand umschlagen','Putar di tepi','Vòng qua mép','วนข้ามขอบ'],
+['Alt + ←/→ 힌트 흐림','Alt + ←/→ 淡化提示','Alt + ←/→ 淡化提示','Alt + ←/→ atenuar pistas','Alt + ←/→ esmaecer dicas','Alt + ←/→ estomper les indices','Alt + ←/→ Hinweise ausblenden','Alt + ←/→ samarkan petunjuk','Alt + ←/→ làm mờ gợi ý','Alt + ←/→ จางคำใบ้'],
+['드래그의 기존 표시','拖动时已有标记','拖曳時現有標記','Marcas existentes al arrastrar','Marcas existentes ao arrastar','Marques existantes au glissement','Vorhandene Markierungen beim Ziehen','Tanda saat menyeret','Dấu đã có khi kéo','เครื่องหมายเดิมขณะลาก'],
+['조작 도움말','操作说明','操作說明','Ayuda de controles','Ajuda de controles','Aide des commandes','Steuerungshilfe','Bantuan kontrol','Hướng dẫn điều khiển','วิธีควบคุม'],
+['현재 행·열 강조','高亮当前行列','醒目顯示目前行列','Resaltar fila y columna','Destacar linha e coluna','Surligner ligne et colonne','Zeile und Spalte hervorheben','Sorot baris dan kolom','Tô sáng hàng và cột','เน้นแถวและคอลัมน์'],
+['마우스 실시간 선택','鼠标实时选择','滑鼠即時選取','Seguir el ratón','Seguir o mouse','Suivre la souris','Mauszeiger folgen','Ikuti kursor','Theo con trỏ chuột','เลือกตามเมาส์'],
+['강조 색상','高亮颜色','強調色彩','Color de resaltado','Cor de destaque','Couleur de surbrillance','Hervorhebungsfarbe','Warna sorotan','Màu tô sáng','สีเน้น'],
+['HUD 크기','HUD 大小','HUD 大小','Tamaño del HUD','Tamanho do HUD','Taille du HUD','HUD-Größe','Ukuran HUD','Kích thước HUD','ขนาด HUD'],
+['HUD 배경','HUD 背景','HUD 背景','Fondo del HUD','Fundo do HUD','Fond du HUD','HUD-Hintergrund','Latar HUD','Nền HUD','พื้นหลัง HUD'],
+['완료된 숫자 자동 흐림','自动淡化已完成提示','自動淡化已完成提示','Atenuar pistas completadas','Esmaecer dicas concluídas','Estomper les indices terminés','Erfüllte Hinweise ausblenden','Samarkan petunjuk selesai','Làm mờ gợi ý đã xong','จางตัวเลขที่เสร็จแล้ว'],
+['완료된 행·열 표시','标记完成的行列','標記完成的行列','Marcar líneas completadas','Marcar linhas concluídas','Marquer les lignes terminées','Gelöste Zeilen markieren','Tandai baris selesai','Đánh dấu hàng cột đã xong','แสดงแถวที่เสร็จแล้ว'],
+['현재 행·열 숫자 HUD','当前行列提示 HUD','目前行列提示 HUD','HUD de pistas de fila/columna','HUD de dicas de linha/coluna','HUD des indices ligne/colonne','Zeilen-/Spaltenhinweise im HUD','HUD petunjuk baris/kolom','HUD gợi ý hàng/cột','HUD คำใบ้แถว/คอลัมน์'],
+['드래그 칸 수 HUD','拖动格数 HUD','拖曳格數 HUD','HUD de celdas arrastradas','HUD de células arrastadas','HUD des cases glissées','HUD: gezogene Felder','HUD jumlah sel terseret','HUD số ô kéo','HUD จำนวนช่องที่ลาก'],
+['연속 색칠 칸 수 표시','显示连续填充数','顯示連續填滿數','Mostrar longitud de trazo','Mostrar sequência preenchida','Afficher longueur des séries','Länge gefüllter Gruppen anzeigen','Tampilkan panjang isian','Hiện độ dài chuỗi tô','แสดงจำนวนช่องต่อเนื่อง'],
+['Undo / Redo 버튼','撤销/重做按钮','復原/重做按鈕','Botones deshacer/rehacer','Botões desfazer/refazer','Boutons annuler/rétablir','Rückgängig-/Wiederholen-Tasten','Tombol urung/ulang','Nút hoàn tác/làm lại','ปุ่มย้อนกลับ/ทำซ้ำ'],
+['진행도 표시 형식','进度显示格式','進度顯示格式','Formato de progreso','Formato de progresso','Affichage de la progression','Fortschrittsanzeige','Tampilan kemajuan','Kiểu hiển thị tiến độ','รูปแบบความคืบหน้า'],
+['내 최근 입력 강조','高亮最近操作','強調最近操作','Resaltar última jugada','Destacar última jogada','Surligner le dernier coup','Letzten Zug hervorheben','Sorot langkah terakhir','Tô sáng ô vừa nhập','เน้นการลงช่องล่าสุด'],
+['도움 힌트: 풀 수 있는 줄','提示：可解的行列','提示：可解的行列','Pista: línea resoluble','Dica: linha solucionável','Indice : ligne résoluble','Tipp: lösbare Linie','Petunjuk: baris terpecahkan','Gợi ý: hàng có thể giải','คำใบ้: แถวที่แก้ได้'],
+['도움 힌트: 풀이 설명','提示：解法说明','提示：解法說明','Pista: explicación','Dica: explicação','Indice : explication','Tipp: Erklärung','Petunjuk: penjelasan','Gợi ý: giải thích','คำใบ้: คำอธิบาย'],
+['도움 힌트: 확실한 한 칸','提示：确定的一格','提示：แน่นอน一格','Pista: celda segura','Dica: célula certa','Indice : case certaine','Tipp: sicheres Feld','Petunjuk: sel pasti','Gợi ý: ô chắc chắn','คำใบ้: ช่องที่แน่นอน'],
+['오답 알림 방식','错误提示模式','錯誤提示模式','Avisos de errores','Avisos de erros','Alertes d’erreur','Fehlerwarnmodus','Mode peringatan kesalahan','Chế độ báo lỗi','รูปแบบเตือนข้อผิดพลาด'],
+['오답 알림 대기(초)','错误提示延迟（秒）','錯誤提示延遲（秒）','Retraso de errores (s)','Atraso de erros (s)','Délai d’alerte (s)','Fehlerwarnung nach (s)','Jeda peringatan (dtk)','Độ trễ báo lỗi (giây)','หน่วงเวลาเตือน (วินาที)'],
+['단계형 오답 알림','分级错误提示','分級錯誤提示','Avisos de error progresivos','Alertas progressivos','Alertes d’erreur progressives','Stufenweise Fehlerwarnung','Peringatan bertahap','Cảnh báo lỗi theo bước','เตือนข้อผิดพลาดแบบเป็นขั้น'],
+['정확한 오답 칸 표시','显示错误格位置','顯示錯誤格位置','Mostrar celda errónea','Mostrar célula incorreta','Afficher la case erronée','Falsches Feld anzeigen','Tampilkan sel salah','Hiện ô sai chính xác','แสดงช่องที่ผิด'],
+['오답 경고 강도','错误警告强度','錯誤警告強度','Intensidad de aviso','Intensidade do aviso','Intensité de l’alerte','Stärke der Fehlerwarnung','Kekuatan peringatan','Mức cảnh báo lỗi','ระดับการเตือน'],
+['일반 격자선 두께','普通网格线宽','ความหนาเส้นปกติ','Grosor de cuadrícula','Espessura da grade','Épaisseur de la grille','Rasterlinienbreite','Ketebalan garis kisi','Độ dày đường kẻ','ความหนาเส้นตาราง'],
+['굵은 구분선 강조','粗分隔线强度','粗分隔線強度','Grosor de separadores','Destaque dos separadores','Force des séparateurs','Trennlinien hervorheben','Sorot garis pembatas','Độ nổi đường chia','เน้นเส้นแบ่งหนา'],
+['굵은 구분선 간격','粗分隔线间距','粗分隔線間距','Intervalo de separadores','Intervalo dos separadores','Intervalle des séparateurs','Abstand der Trennlinien','Jarak garis pembatas','Khoảng cách đường chia','ระยะเส้นแบ่งหนา'],
+['힌트 숫자 양쪽 표시','双侧显示提示','兩側顯示提示','Pistas a ambos lados','Dicas dos dois lados','Indices des deux côtés','Hinweise beidseitig','Petunjuk di kedua sisi','Gợi ý ở hai bên','แสดงคำใบ้สองด้าน'],
+['진행 시간 표시','显示计时器','顯示計時器','Mostrar tiempo','Mostrar tempo','Afficher le temps','Zeit anzeigen','Tampilkan waktu','Hiển thị thời gian','แสดงเวลา'],
+['줄 번호 표시','显示行列编号','顯示行列編號','Mostrar números de líneas','Mostrar números das linhas','Numéroter les lignes','Zeilen-/Spaltennummern','Nomor baris/kolom','Hiện số hàng/cột','แสดงเลขแถว/คอลัมน์'],
+['줄 번호 표시 간격','编号显示间距','編號顯示間距','Intervalo de numeración','Intervalo da numeração','Fréquence des numéros','Nummernabstand','Interval nomor','Khoảng cách hiện số','ระยะการแสดงเลข'],
+['가장자리 고정 힌트','固定边缘提示','固定邊緣提示','Fijar pistas al borde','Fixar dicas nas bordas','Fixer les indices aux bords','Randhinweise fixieren','Petunjuk tepi tetap','Cố định gợi ý ở mép','ตรึงคำใบ้ที่ขอบ'],
+['상시 미니맵','常显缩略图','常駐縮圖','Minimapa permanente','Minimapa sempre visível','Mini-carte permanente','Minikarte immer anzeigen','Minimap selalu aktif','Bản đồ nhỏ thường trực','แผนที่ย่อตลอดเวลา'],
+['전체보기 진행정보','全图进度信息','全圖進度資訊','Progreso en vista general','Progresso na visão geral','Progrès dans la vue globale','Fortschritt in Gesamtansicht','Info kemajuan ikhtisar','Thông tin tiến độ tổng quan','ความคืบหน้าในภาพรวม'],
+['키보드 셀 따라가기','键盘选格跟随','鍵盤選格跟隨','Seguir selección del teclado','Seguir seleção do teclado','Suivre sélection au clavier','Tastaturauswahl folgen','Ikuti pilihan keyboard','Theo ô bàn phím chọn','ตามช่องที่เลือกด้วยคีย์บอร์ด'],
+['따라가기 속도 (시험/보류)','跟随速度（实验）','跟隨速度（實驗）','Velocidad de seguimiento (prueba)','Velocidade de seguimento (teste)','Vitesse de suivi (test)','Folgegeschwindigkeit (Test)','Kecepatan ikuti (uji coba)','Tốc độ theo (thử nghiệm)','ความเร็วติดตาม (ทดลอง)'],
+['전체보기 크기 (시험/보류)','全图大小（实验）','全圖大小（實驗）','Tamaño de vista general (prueba)','Tamanho da visão geral (teste)','Taille de vue globale (test)','Größe der Gesamtansicht (Test)','Ukuran ikhtisar (uji coba)','Kích thước tổng quan (thử nghiệm)','ขนาดภาพรวม (ทดลอง)'],
+['전체보기 위치 (시험/보류)','全图位置（实验）','全圖位置（實驗）','Posición de vista general (prueba)','Posição da visão geral (teste)','Position de vue globale (test)','Position der Gesamtansicht (Test)','Posisi ikhtisar (uji coba)','Vị trí tổng quan (thử nghiệm)','ตำแหน่งภาพรวม (ทดลอง)'],
+['휠 확대 (시험/보류)','滚轮缩放（实验）','滾輪縮放（實驗）','Zoom con rueda (prueba)','Zoom pela roda (teste)','Zoom à la molette (test)','Mausrad-Zoom (Test)','Zoom roda (uji coba)','Thu phóng bằng cuộn (thử nghiệm)','ซูมด้วยล้อเมาส์ (ทดลอง)'],
+['휠 확대 속도 (시험/보류)','滚轮缩放速度（实验）','滾輪縮放速度（實驗）','Velocidad del zoom (prueba)','Velocidade do zoom (teste)','Vitesse du zoom (test)','Zoomgeschwindigkeit (Test)','Kecepatan zoom (uji coba)','Tốc độ thu phóng (thử nghiệm)','ความเร็วซูม (ทดลอง)'],
+['전체보기 시작 위치 (시험/보류)','全图初始位置（实验）','全圖起始位置（實驗）','Inicio de vista general (prueba)','Início da visão geral (teste)','Point de départ (test)','Startposition der Übersicht (Test)','Awal ikhtisar (uji coba)','Vị trí bắt đầu tổng quan (thử nghiệm)','ตำแหน่งเริ่มภาพรวม (ทดลอง)'],
+['입력 소리 테마','输入音效主题','輸入音效主題','Estilo de sonidos','Tema de sons','Style sonore','Klangstil','Tema suara','Kiểu âm thanh','รูปแบบเสียง'],
+['퍼즐 완료음','完成音效','完成音效','Sonido de victoria','Som de conclusão','Son de réussite','Lösungston','Suara selesai','Âm thanh hoàn thành','เสียงเมื่อชนะ'],
+['오답 경고음','错误警告音','錯誤警告音','Sonido de error','Som de erro','Son d’erreur','Fehlerton','Suara kesalahan','Âm báo lỗi','เสียงเตือนผิด'],
+['도움 힌트 사용음','提示音效','提示音效','Sonido de pista','Som de dica','Son d’indice','Hinweiston','Suara petunjuk','Âm thanh gợi ý','เสียงคำใบ้'],
+['UI Hover 소리','悬停音效','游標停留音效','Sonido al pasar el cursor','Som ao passar o mouse','Son au survol','Hover-Ton','Suara saat diarahkan','Âm khi rê chuột','เสียงเมื่อชี้เมาส์'],
+['UI 효과음 음량','界面音量','介面音量','Volumen de interfaz','Volume da interface','Volume d’interface','UI-Lautstärke','Volume antarmuka','Âm lượng giao diện','เสียง UI'],
+['힌트·완료 음량','提示和完成音量','提示與完成音量','Volumen de pistas y victoria','Volume de dicas e conclusão','Volume indices/réussite','Hinweis-/Lösungston','Volume petunjuk/selesai','Âm lượng gợi ý/hoàn thành','เสียงคำใบ้/จบเกม'],
+['셀 입력 애니메이션 테마','填格动画样式','填格動畫樣式','Animación de celdas','Animação das células','Animation des cases','Zellenanimation','Animasi sel','Hiệu ứng ô','แอนิเมชันช่อง'],
+['진동 느낌 (시험/보류)','振动反馈（实验）','震動回饋（實驗）','Vibración (prueba)','Vibração (teste)','Vibration (test)','Haptik (Test)','Getaran (uji coba)','Rung (thử nghiệm)','การสั่น (ทดลอง)'],
+['다른 플레이어 커서 (온라인 연동 예정)','其他玩家光标（待上线）','其他玩家游標（規劃中）','Cursor de otros jugadores (próximamente)','Cursor de outros jogadores (em breve)','Curseurs des autres joueurs (à venir)','Cursor anderer Spieler (geplant)','Kursor pemain lain (segera)','Con trỏ người khác (sắp có)','เคอร์เซอร์ผู้เล่นอื่น (เร็ว ๆ นี้)'],
+['다른 플레이어 이름 (온라인 연동 예정)','其他玩家名称（待上线）','其他玩家名稱（規劃中）','Nombres de jugadores (próximamente)','Nomes dos jogadores (em breve)','Noms des joueurs (à venir)','Namen anderer Spieler (geplant)','Nama pemain lain (segera)','Tên người chơi khác (sắp có)','ชื่อผู้เล่นอื่น (เร็ว ๆ นี้)'],
+['다른 플레이어 최근 입력 (온라인 연동 예정)','其他玩家最近操作（待上线）','其他玩家最近操作（規劃中）','Último movimiento ajeno (próximamente)','Última jogada alheia (em breve)','Dernier coup des autres (à venir)','Letzter Zug anderer (geplant)','Langkah terakhir pemain lain (segera)','Thao tác gần đây của người khác (sắp có)','การลงช่องล่าสุดของคนอื่น (เร็ว ๆ นี้)'],
+// Cross-component gameplay, shop and settings controls
+['전체보기','全图','全圖','Vista general','Visão geral','Vue d’ensemble','Gesamtansicht','Ikhtisar','Toàn cảnh','ภาพรวม'],
+['행','行','行','Fila','Linha','Ligne','Zeile','Baris','Hàng','แถว'],
+['열','列','列','Columna','Coluna','Colonne','Spalte','Kolom','Cột','คอลัมน์'],
+['방향키','方向键','方向鍵','Flechas','Setas','Flèches','Pfeiltasten','Tombol panah','Phím mũi tên','ปุ่มลูกศร'],
+['크기 테스트','尺寸测试','尺寸測試','Prueba de tamaño','Teste de tamanho','Test de taille','Größentest','Tes ukuran','Thử kích thước','ทดสอบขนาด'],
+['오프라인 체험','离线体验','離線體驗','Prueba sin conexión','Teste offline','Aperçu hors ligne','Offline-Vorschau','Pratinjau offline','Chơi thử ngoại tuyến','ทดลองออฟไลน์'],
+['퍼즐 플레이','解谜游戏','解謎遊戲','Juego de nonogramas','Jogo de nonogramas','Jeu de nonogrammes','Nonogramm-Spiel','Main nonogram','Chơi nonogram','เล่นโนโนแกรม'],
+['노노그램 퍼즐판','数织棋盘','數織盤面','Tablero de nonograma','Tabuleiro de nonograma','Grille de nonogramme','Nonogramm-Raster','Papan nonogram','Bàn nonogram','กระดานโนโนแกรม']
+];
+const dict=window.NONO_LOCALE_PACKS;
+for(const row of rows){
+ if(row.length!==ids.length+1)throw Error('Locale settings pack bad row '+row[0]);
+ ids.forEach((id,i)=>{dict[id][row[0]]=row[i+1];});
+}
+})();
