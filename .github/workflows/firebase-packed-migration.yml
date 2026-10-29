@@ -1,0 +1,89 @@
+name: Manual Firebase packed-answer migration
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: Choose validation, rules, or rules and private packed answer seed
+        required: true
+        type: choice
+        default: validate_only
+        options:
+          - validate_only
+          - rules_only
+          - rules_and_seed
+      confirm_project:
+        description: Type Firebase project ID for production write phases
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: nono-production-firebase-migration
+  cancel-in-progress: false
+jobs:
+  validate-and-migrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PROJECT_ID: nono-web-ishyun-20261020
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Require explicit project confirmation for writes
+        env:
+          PHASE: ${{ inputs.phase }}
+          CONFIRM: ${{ inputs.confirm_project }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$PHASE" != "validate_only" && "$CONFIRM" != "$PROJECT_ID" ]]; then
+            echo 'Production writes blocked: exact project ID confirmation required.' >&2
+            exit 1
+          fi
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify answer roundtrip and puzzle import
+        run: npm run test:answers
+      - name: Verify Firebase rules for legacy and packed answers
+        run: npm run test:multiplayer
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify two-browser multiplayer and packed completion
+        run: npm run test:browser
+      - name: Prepare temporary service account credentials
+        if: ${{ inputs.phase != 'validate_only' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]]; then
+            echo 'Missing FIREBASE_SERVICE_ACCOUNT_JSON GitHub secret; nothing deployed.' >&2
+            exit 1
+          fi
+          umask 077
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/nono-firebase-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/nono-firebase-sa.json" >> "$GITHUB_ENV"
+      - name: Deploy rules while preserving legacy answer data
+        if: ${{ inputs.phase == 'rules_only' || inputs.phase == 'rules_and_seed' }}
+        run: npx firebase deploy --only database --project "$PROJECT_ID" --non-interactive
+      - name: Seed private packed answers in separate path
+        if: ${{ inputs.phase == 'rules_and_seed' }}
+        run: node tools/seed-packed-answers.cjs --apply --project "$PROJECT_ID"
+      - name: Remove ephemeral credential file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/nono-firebase-sa.json"
+      - name: Report staged migration boundary
+        if: always()
+        env:
+          PHASE: ${{ inputs.phase }}
+        run: |
+          echo "Selected phase: $PHASE"
+          echo "Legacy /privateAnswers and user records are preserved."
+          echo "Client flag NONO_PACKED_ANSWERS_READY remains OFF."
+          echo "A separate release must validate and enable client migration."
