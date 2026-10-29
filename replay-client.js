@@ -49,10 +49,23 @@
     close:['닫기','Close','閉じる'],
     share:['완료 기록을 다른 사람에게 공개','Share completed replays','完成したリプレイを公開']
   };
+  const labels=['recent','help','empty','solo','record','full','partial','public','locked','replay','close','share'];
+  const locales={
+    'zh-CN':['最近游玩','已完成谜题的动态回放 · 未完成的谜题可能锁定以防剧透','还没有完成的谜题。完成后即可查看回放。','单人解谜','计时挑战','完整解题','部分回放','公开回放','完成后解锁回放','解题回放','关闭','向其他玩家公开完成记录'],
+    'zh-TW':['最近遊玩','已完成謎題的動態重播 · 未完成的謎題可能鎖定以防劇透','尚無已完成的謎題。完成後即可觀看重播。','單人解謎','計時挑戰','完整解題','部分重播','公開重播','完成後解鎖重播','解題重播','關閉','向其他玩家公開完成紀錄'],
+    es:['Partidas recientes','Repeticiones animadas de puzles completados · Los pendientes pueden estar bloqueados','Aún no has completado ningún puzle. Al terminar uno verás su repetición.','Solo','Contrarreloj','Solución completa','Repetición parcial','Repetición pública','Se desbloquea al completar','Repetición','Cerrar','Compartir partidas completadas'],
+    'pt-BR':['Jogadas recentes','Replays animados de puzzles concluídos · Puzzles não concluídos podem ficar bloqueados','Você ainda não concluiu puzzles. Termine um para ver o replay.','Solo','Contra o tempo','Resolução completa','Replay parcial','Replay público','Desbloqueie ao concluir','Replay da solução','Fechar','Compartilhar partidas concluídas'],
+    fr:['Parties récentes','Replays animés des grilles terminées · Les autres peuvent être verrouillées','Aucune grille terminée. Terminez-en une pour voir le replay.','Solo','Contre-la-montre','Solution complète','Replay partiel','Replay public','À débloquer après réussite','Replay de la solution','Fermer','Partager les parties terminées'],
+    de:['Letzte Spiele','Animierte Wiederholungen gelöster Rätsel · Ungelöste Rätsel können gesperrt sein','Noch keine Rätsel gelöst. Schließe eines ab, um die Wiederholung anzusehen.','Solo','Zeitrennen','Vollständige Lösung','Teilweise Wiederholung','Öffentliche Wiederholung','Nach Abschluss freischalten','Lösungswiederholung','Schließen','Abgeschlossene Spiele teilen'],
+    id:['Permainan terbaru','Putar ulang animasi puzzle selesai · Puzzle yang belum selesai dapat dikunci','Belum ada puzzle selesai. Selesaikan puzzle untuk melihat putar ulang.','Solo','Tantangan waktu','Penyelesaian penuh','Putar ulang sebagian','Putar ulang publik','Terbuka setelah selesai','Putar ulang solusi','Tutup','Bagikan permainan selesai'],
+    vi:['Lượt chơi gần đây','Xem lại diễn biến giải đố đã hoàn thành · Câu đố chưa xong có thể bị khóa','Chưa có câu đố hoàn thành. Hoàn thành một câu để xem lại.','Chơi đơn','Thử thách thời gian','Lời giải đầy đủ','Phát lại một phần','Phát lại công khai','Mở khóa khi hoàn thành','Phát lại lời giải','Đóng','Chia sẻ lượt chơi đã hoàn thành'],
+    th:['การเล่นล่าสุด','ดูการเล่นย้อนหลังแบบเคลื่อนไหวของปริศนาที่ผ่านแล้ว · ปริศนาที่ยังไม่ผ่านอาจถูกล็อก','ยังไม่มีปริศนาที่ผ่าน เล่นให้สำเร็จเพื่อดูย้อนหลัง','เล่นคนเดียว','แข่งทำเวลา','เฉลยทั้งหมด','เล่นย้อนหลังบางส่วน','เล่นย้อนหลังสาธารณะ','ปลดล็อกเมื่อเล่นสำเร็จ','เล่นย้อนหลังวิธีแก้','ปิด','แชร์การเล่นที่สำเร็จ']
+  };
   const t = key => {
-    const l=document.documentElement.lang||'ko';
-    const idx=l.startsWith('ko')?0:l.startsWith('ja')?2:1;
-    return (words[key]||[])[idx]||key;
+    const lang=window.NONO_I18N?.locale||document.documentElement.lang||'ko';
+    const idx=lang.startsWith('ko')?0:lang.startsWith('ja')?2:1;
+    const extra=locales[lang],position=labels.indexOf(key);
+    return position>=0&&extra?extra[position]:(words[key]||[])[idx]||key;
   };
   const date = ms=>new Date(ms).toLocaleDateString(document.documentElement.lang||'ko-KR');
   let session = null, saveTimer = 0, warned = false;
@@ -316,6 +329,6 @@
     }
   }
   window.addEventListener('nono:account-changed',event=>{try{moveGuestReplays(event.detail?.previous,event.detail?.target);}catch(error){console.warn('게스트 리플레이 이전 실패',error);}renderRecent();});
-  window.addEventListener('nono:languagechange',renderRecent);
+  window.addEventListener('nono:languagechange',()=>{consentLabel.textContent=t('share');renderRecent();});
   renderRecent();
 })();
