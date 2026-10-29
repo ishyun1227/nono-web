@@ -54,7 +54,7 @@
   <div class="shell">
     <header class="topbar">
       <a href="#home-view" class="brand" id="brand-home" aria-label="NONO 홈"><span class="brand-box" aria-hidden="true">▦</span>NONO<span class="brand-dot">.</span></a>
-      <div class="header-right"><span id="connection" class="connection" aria-live="polite">로컬 체험</span><button id="profile-button" class="profile-chip" type="button" title="닉네임 변경"><span class="profile-avatar" aria-hidden="true">◈</span><span id="profile-name">플레이어</span></button></div>
+      <div class="header-right"><span id="connection" class="connection" aria-live="polite">로컬 체험</span><button id="profile-button" class="profile-chip" type="button" title="내 프로필"><span class="profile-avatar" aria-hidden="true">◈</span><span id="profile-name">플레이어</span></button></div>
     </header>
     <main>
       <div id="home-view">
@@ -72,7 +72,7 @@
           </div>
           <section class="setup card" id="setup" aria-labelledby="setup-heading">
             <div class="setup-description"><h3 id="setup-heading">혼자 연습</h3><p id="setup-description">퍼즐을 골라 바로 시작해 보세요.</p></div>
-            <div class="controls"><label>퍼즐 선택 <select id="puzzle"></select></label><label>닉네임 <input id="nickname" maxlength="18" placeholder="플레이어" autocomplete="nickname" /></label></div>
+            <div class="controls"><label>퍼즐 선택 <select id="puzzle"></select></label><input id="nickname" type="hidden" value="플레이어" /></div>
             <div class="setup-actions"><button id="play-alone" class="button primary" type="button">게임 시작 <span aria-hidden="true">→</span></button>
               <div id="room-controls" class="room-controls hidden"><button id="create-room" class="button primary" type="button">방 만들기 <span aria-hidden="true">→</span></button><div class="join-row"><input id="room-code" maxlength="6" placeholder="초대 코드 6자리" aria-label="방 코드"/><button id="join-room" class="button outline" type="button">참가</button></div></div>
             </div>
@@ -242,7 +242,7 @@ const topScores=id=>query(ref(database,`scores/${id}`),orderByChild("duration"),
 let globalTimer=setInterval(tick,300);
 const totalBlack=p=>p.rows.reduce((a,line)=>a+line.reduce((x,y)=>x+y,0),0);
 function toast(msg){const box=$('toast');box.textContent=msg;box.classList.remove('hidden');clearTimeout(toast.timeout);toast.timeout=setTimeout(()=>box.classList.add('hidden'),3600);}
-function nickname(){return ($('nickname').value.trim()||'플레이어').slice(0,18);}
+function nickname(){return '플레이어';}
 function currentId(){return currentUser?.uid||'local';}
 function clearListeners(){unsubscribe.forEach(fn=>fn());unsubscribe=[];}
 function firebaseError(e){console.error(e);toast(e?.code==='PERMISSION_DENIED'||e?.code==='permission-denied'?'권한이 거부됐어요. Firebase 규칙과 방 상태를 확인하세요.':`문제가 발생했어요: ${e.message||String(e)}`);}
@@ -294,17 +294,15 @@ function checkBoard(){
 }
 function attachNavigation(){
   $('brand-home').addEventListener('click',e=>{e.preventDefault();if(!$('game').classList.contains('hidden'))leaveGame();window.scrollTo({top:0,behavior:'smooth'});});
-  $('profile-button').addEventListener('click',()=>{if(!$('game').classList.contains('hidden'))leaveGame();$('nickname').focus();$('nickname').select();});
   $('undo').addEventListener('click',()=>restoreHistory(undoStack,redoStack));
   $('redo').addEventListener('click',()=>restoreHistory(redoStack,undoStack));
   $('share-room-side').addEventListener('click',()=>$('copy-room-header').click());
 }
 function initHome(){
   const options=PUZZLES.map((p,i)=>`<option value="${p.id}">${p.size}×${p.size} · ${p.sizeTest?'크기 테스트':'퍼즐 '+String(i+1).padStart(2,'0')}</option>`).join('');$('puzzle').innerHTML=options;
-  $('nickname').value=storage.getItem('nono-nickname')||'';updateProfileLabel();
+  $('nickname').value='플레이어';updateProfileLabel();
   document.querySelectorAll('.mode-card[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
   $('puzzle').addEventListener('change',()=>{if(roomCode){$('puzzle').value=puzzle.id;return;}puzzle=PUZZLES.find(p=>p.id===$('puzzle').value)||PUZZLES[0];refreshHomepageScores();});
-  $('nickname').addEventListener('input',()=>{storage.setItem('nono-nickname',nickname());updateProfileLabel();});
   $('create-room').addEventListener('click',createRoom);
   $('quick-match').addEventListener('click',quickMatch);
   $('public-lobby-create').addEventListener('click',()=>createRoom());
@@ -355,6 +353,7 @@ async function leaveGame(){
   if(wasPublicHost&&metaModeBeforeLeave==='race')await removePublicListing(oldRoom);
 }
 async function startAlone(){
+  if(mode==='record'&&!window.NONO_ACCOUNT?.require())return;
   if(startingAlone||!['practice','record'].includes(mode))return;
   if(puzzle.size>=30&&mode!=='practice'){toast('큰 퍼즐은 현재 혼자 풀기에서만 지원해요.');return;}
   startingAlone=true;$('play-alone').disabled=true;$('restart').disabled=true;
@@ -550,6 +549,7 @@ async function removePublicListing(code){
 async function quickMatch(){
   if(busyMatch||busyRoom)return;
   if(!onlineReady()){toast('온라인 연결 후 빠른 매칭을 이용할 수 있어요.');return;}
+  if(!window.NONO_ACCOUNT?.require())return;
   if(publicRoomError){toast('공개 로비 규칙을 먼저 배포해야 해요.');return;}
   if(mode!=='race'&&mode!=='coop')return;
   busyMatch=true;$('quick-match').disabled=true;
@@ -564,7 +564,7 @@ async function quickMatch(){
   }catch(error){firebaseError(error);}
   finally{busyMatch=false;$('quick-match').disabled=false;}
 }
-async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toast('멀티플레이를 사용하려면 먼저 Firebase를 연결해야 해요.');return;}if(!['race','coop'].includes(mode))return false;if(puzzle.size>=30){toast('큰 퍼즐은 현재 혼자 풀기에서만 지원해요.');return false;}const makePublic=typeof options.publicRoom==='boolean'?options.publicRoom:Boolean($('public-room-toggle')?.checked);const autoMatch=options.autoMatch===true;busyRoom=true;try{
+async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toast('멀티플레이를 사용하려면 먼저 Firebase를 연결해야 해요.');return;}if(!window.NONO_ACCOUNT?.require())return false;if(!['race','coop'].includes(mode))return false;if(puzzle.size>=30){toast('큰 퍼즐은 현재 혼자 풀기에서만 지원해요.');return false;}const makePublic=typeof options.publicRoom==='boolean'?options.publicRoom:Boolean($('public-room-toggle')?.checked);const autoMatch=options.autoMatch===true;busyRoom=true;try{
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='';for(const value of crypto.getRandomValues(new Uint8Array(6)))code+=chars[value%chars.length];
   const metaData={host:currentId(),mode,puzzleId:puzzle.id,size:puzzle.size,status:mode==='race'?'lobby':'playing',createdAt:serverTimestamp(),startedAt:mode==='coop'?serverTimestamp():0,format:2};
   const result=await runTransaction(ref(database,`rooms/${code}/meta`),current=>current?undefined:metaData);
@@ -584,7 +584,7 @@ async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toas
   if(autoStartMatch&&Object.keys(players).length>=2){autoStartMatch=false;startRace();}
   return true;
 }catch(e){firebaseError(e);return false;}finally{busyRoom=false;}}
-async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자리 방 코드를 확인해 주세요.');return;}if(!onlineReady()){toast('Firebase가 연결되지 않았어요.');return;}
+async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자리 방 코드를 확인해 주세요.');return;}if(!onlineReady()){toast('Firebase가 연결되지 않았어요.');return;}if(!window.NONO_ACCOUNT?.require())return;
   try{
     const snap=await get(ref(database,`rooms/${code}/meta`));if(!snap.exists()){toast('존재하지 않는 방이에요.');return;}
     const info=snap.val(),p=PUZZLES.find(p=>p.id===info.puzzleId);if(!p){toast('지원하지 않는 퍼즐이에요.');return;}
@@ -707,7 +707,7 @@ async function connectFirebase(){
     ]);
     ({initializeApp}=firebaseApp);({getAuth,signInAnonymously}=firebaseAuth);
     ({getDatabase,ref,get,set,remove,onValue,onDisconnect,runTransaction,serverTimestamp,query,orderByChild,limitToFirst,limitToLast,push}=firebaseDatabase);
-    const app=initializeApp(firebaseConfig),auth=getAuth(app);database=getDatabase(app);if(window.NONO_FIREBASE_EMULATORS&&['localhost','127.0.0.1'].includes(location.hostname)){firebaseAuth.connectAuthEmulator(auth,'http://127.0.0.1:9099',{disableWarnings:true});firebaseDatabase.connectDatabaseEmulator(database,'127.0.0.1',9000);}onValue(ref(database,'.info/serverTimeOffset'),s=>{serverOffset=s.val()||0;});onValue(ref(database,'.info/connected'),s=>{if(currentUser)$('connection').textContent=s.val()?'● 온라인 연결':'연결 끊김 · 재연결 중';if(s.val()&&roomCode){const p=ref(database,`rooms/${roomCode}/players/${mySlot}`);onDisconnect(p).remove().then(()=>get(p).then(s=>s.exists()?undefined:set(p,{uid:currentId(),name:nickname(),joinedAt:serverTimestamp()}))).catch(firebaseError);}});const credential=await signInAnonymously(auth);currentUser=credential.user;window.dispatchEvent(new Event('nono:firebase-ready'));$('connection').textContent='● 온라인 연결';refreshHomepageScores();watchPublicLobby();const params=new URL(location.href).searchParams;const code=params.get('room');if(code)await enterRoom(code.toUpperCase());resumeHub.watch();}
+    const app=initializeApp(firebaseConfig),auth=getAuth(app);database=getDatabase(app);if(window.NONO_FIREBASE_EMULATORS&&['localhost','127.0.0.1'].includes(location.hostname)){firebaseAuth.connectAuthEmulator(auth,'http://127.0.0.1:9099',{disableWarnings:true});firebaseDatabase.connectDatabaseEmulator(database,'127.0.0.1',9000);}onValue(ref(database,'.info/serverTimeOffset'),s=>{serverOffset=s.val()||0;});onValue(ref(database,'.info/connected'),s=>{if(currentUser)$('connection').textContent=s.val()?'● 온라인 연결':'연결 끊김 · 재연결 중';if(s.val()&&roomCode){const p=ref(database,`rooms/${roomCode}/players/${mySlot}`);onDisconnect(p).remove().then(()=>get(p).then(s=>s.exists()?undefined:set(p,{uid:currentId(),name:nickname(),joinedAt:serverTimestamp()}))).catch(firebaseError);}});await auth.authStateReady();const credential=auth.currentUser?{user:auth.currentUser}:await signInAnonymously(auth);currentUser=credential.user;window.NONO_AUTH_READY_DETAIL={auth,sdk:firebaseAuth,database,databaseSdk:firebaseDatabase};window.dispatchEvent(new CustomEvent('nono:auth-ready',{detail:window.NONO_AUTH_READY_DETAIL}));window.dispatchEvent(new Event('nono:firebase-ready'));$('connection').textContent='● 온라인 연결';refreshHomepageScores();watchPublicLobby();const params=new URL(location.href).searchParams;const code=params.get('room');if(code)await enterRoom(code.toUpperCase());resumeHub.watch();}
   catch(e){$('connection').textContent='연결 실패 · 오프라인';firebaseError(e);}
 }
 function installResume(){
@@ -724,7 +724,7 @@ function installResume(){
     '<div id="nono-resume-items" class="nono-resume-items" aria-live="polite"></div>'
   ].join('');
   setup.after(view);
-  let shared=[],stop=null,epoch=0;
+  let shared=[],stop=null,epoch=0,watchedUid=null;
   const puzzleOf=id=>PUZZLES.find(item=>item.id===id);
   const progressFor=(value,p)=>{
     if(!p||typeof value!=='string')return 0;
@@ -827,7 +827,8 @@ function installResume(){
     if(request===epoch)render();
   }
   function watch(){
-    if(!onlineReady()||stop)return;
+    if(!onlineReady()||(stop&&watchedUid===currentId()))return;
+    if(stop){stop();stop=null;}watchedUid=currentId();shared=[];
     stop=onValue(ref(database,`userRooms/${currentId()}`),()=>{refresh().catch(console.warn);},
       error=>console.warn('내 퍼즐 목록 접근 실패: Firebase 규칙 확인',error));
   }
@@ -870,29 +871,8 @@ initHome();resumeHub=installResume();connectFirebase();
 <script src="./daily-rewards.js?v=1"></script>
 <script src="./shop.js?v=1"></script>
 <script src="./home-sidebars.js?v=1"></script>
+<script src="./account.js?v=1"></script>
 <script src="./community.js?v=1"></script>
-<script>
-/* Dedicated trial entry copy must follow the user's 12-language selector. */
-(function(){
-  const labels={
-    'ko':['❄ 겨울 눈사람 · 63×59 체험 퍼즐 풀기','혼자하기 전용 테스트 · 원본 크기 유지 · 저장 및 이어하기 가능 · 정식 기록 제외'],
-    'en':['❄ Winter Snowman · Play 63×59 Trial','Solo playtest · Exact grid · Save and resume · Excluded from official records'],
-    'ja':['❄ 冬の雪だるま · 63×59 体験パズル','ひとり用テスト · 元のサイズ · 保存と再開が可能 · 公式記録の対象外'],
-    'zh-CN':['❄ 冬日雪人 · 63×59 试玩谜题','单人测试 · 原始尺寸 · 可保存续玩 · 不计入正式记录'],
-    'zh-TW':['❄ 冬日雪人 · 63×59 試玩謎題','單人測試 · 原始尺寸 · 可儲存續玩 · 不計入正式紀錄'],
-    'es':['❄ Muñeco de nieve · Prueba 63×59','Prueba individual · Cuadrícula original · Guardar y continuar · Sin récord oficial'],
-    'pt-BR':['❄ Boneco de neve · Teste 63×59','Teste solo · Grade original · Salvar e continuar · Fora dos recordes oficiais'],
-    'fr':['❄ Bonhomme de neige · Essai 63×59','Test solo · Grille exacte · Sauvegarde et reprise · Hors scores officiels'],
-    'de':['❄ Schneemann · 63×59-Testpuzzle','Solotest · Originalraster · Speichern und fortsetzen · Keine offiziellen Rekorde'],
-    'id':['❄ Boneka salju · Uji teka-teki 63×59','Uji solo · Kisi asli · Simpan dan lanjutkan · Tidak masuk rekor resmi'],
-    'vi':['❄ Người tuyết · Câu đố thử 63×59','Chơi thử một mình · Giữ nguyên lưới · Lưu và tiếp tục · Không tính thành tích chính thức'],
-    'th':['❄ มนุษย์หิมะ · ทดลองเล่น 63×59','ทดสอบเล่นคนเดียว · ตารางขนาดเดิม · บันทึกและเล่นต่อได้ · ไม่รวมสถิติทางการ']
-  };
-  const title=document.getElementById('snowman-trial-link'),note=document.getElementById('snowman-trial-desc');
-  function render(){const lang=window.NONO_I18N?.locale||document.documentElement.lang||'ko',copy=labels[lang]||labels.en;title.textContent=copy[0];note.textContent=copy[1];}
-  window.addEventListener('nono:languagechange',render);render();
-})();
-</script>
 <script>
 /* Optional developer preview, never downloaded during ordinary play. */
 if(new URLSearchParams(location.search).get('test')==='1'){
