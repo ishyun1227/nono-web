@@ -714,6 +714,36 @@ const { pathToFileURL } = require('node:url');
   if(colorBorder===premiumBorder)throw new Error('Changing to cheap color theme did not restore base board structure');
   await page.click('#nono-theme-close');
   if(await page.locator('#nono-drag-hud').isVisible())throw new Error('Idle drag counter must be hidden');
+  // Keyboard marks must not be mistaken for pointer drags or shift the board.
+  const keyboardLayout=await page.evaluate(()=>{
+    selected=Math.floor(puzzle.size/2)*puzzle.size;
+    render();
+    return {top:document.querySelector('#board').getBoundingClientRect().top,scrollY:window.scrollY};
+  });
+  for(const key of ['Space','x','Backspace']){
+    await page.keyboard.down(key);
+    const state=await page.evaluate(()=>({
+      visible:!document.querySelector('#nono-drag-hud').hidden,
+      top:document.querySelector('#board').getBoundingClientRect().top,
+      scrollY:window.scrollY
+    }));
+    if(state.visible||Math.abs(state.top-keyboardLayout.top)>1||Math.abs(state.scrollY-keyboardLayout.scrollY)>1)
+      throw new Error('Keyboard '+key+' showed drag HUD or moved puzzle: '+JSON.stringify({keyboardLayout,state}));
+    await page.keyboard.up(key);
+  }
+  // One arrow press moves one square. Holding repeats after the configured delay;
+  // releasing stops repeated moves even without native OS key-repeat events.
+  const moveStart=await page.evaluate(()=>selected);
+  await page.keyboard.down('ArrowRight');
+  const moveFirst=await page.evaluate(()=>selected);
+  if(moveFirst!==moveStart+1)throw new Error('Arrow press must move exactly one square');
+  await page.waitForTimeout(440);
+  const moveHeld=await page.evaluate(()=>selected);
+  if(moveHeld===moveFirst)throw new Error('Held arrow did not auto-repeat');
+  await page.keyboard.up('ArrowRight');
+  const moveReleased=await page.evaluate(()=>selected);
+  await page.waitForTimeout(180);
+  if(await page.evaluate(()=>selected)!==moveReleased)throw new Error('Arrow repeated after key release');
   await page.keyboard.press('Space');
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('x');
