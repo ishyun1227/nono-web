@@ -329,6 +329,6 @@
     }
   }
   window.addEventListener('nono:account-changed',event=>{try{moveGuestReplays(event.detail?.previous,event.detail?.target);}catch(error){console.warn('게스트 리플레이 이전 실패',error);}renderRecent();});
-  window.addEventListener('nono:languagechange',()=>{consentLabel.textContent=t('share');renderRecent();});
+  window.addEventListener('nono:languagechange',()=>{const translated=t('share');consentLabel.textContent=translated;consentInput.setAttribute('aria-label',translated);renderRecent();});
   renderRecent();
 })();
