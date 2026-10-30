@@ -881,10 +881,14 @@ body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
  body.nono-mobile-app #game .game-header h1{font-size:13px!important;white-space:nowrap!important;margin:0!important}
  body.nono-mobile-app #game .game-header .game-crumb,
  body.nono-mobile-app #game .game-header .game-quick{display:none!important}
+ body.nono-mobile-app.nono-fit-playing.nono-touch-pad-visible #game .board-scroll,
+ body.nono-mobile-app.nono-fit-playing.nono-touch-pad-visible #game .board-scroll.nono-zoomed,
  body.nono-mobile-app #game .board-scroll,
  body.nono-mobile-app #game .board-scroll.nono-zoomed{
   box-sizing:border-box!important;position:absolute!important;
   inset:var(--nono-mobile-top,48px) 0 var(--nono-mobile-pad-reserve,178px) 0!important;
+  top:var(--nono-mobile-top,48px)!important;
+  bottom:var(--nono-mobile-pad-reserve,178px)!important;
   width:100vw!important;max-width:100vw!important;
   height:auto!important;min-height:0!important;max-height:none!important;
   padding:6px!important;margin:0!important;
