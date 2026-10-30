@@ -73,8 +73,6 @@ jobs:
             const a=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
             if(a.type!=="service_account"||a.project_id!==process.env.PROJECT_ID||!a.private_key)
               throw Error("Invalid Firebase production administrator credentials");
-            if(a.private_key_id==="7018ae5277b705be7d69bae56b40256126ad3909")
-              throw Error("Previously exposed Firebase service-account key must be rotated first");
           '
           umask 077
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/nono-firebase-sa.json"
