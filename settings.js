@@ -821,6 +821,116 @@ body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
 .nono-guide-sample svg{display:block;width:100%;height:auto;max-height:100px}
 @media(max-width:530px){.nono-settings-head{gap:8px;padding:12px}.nono-settings-head h2{font-size:16px}
  .nono-guide-items{grid-template-columns:1fr}.nono-visual-help-button{padding:7px;font-size:11px}}
+
+/* Mobile game viewport: the original board, never a separate player.
+   No document scrolling, no duplicate toolbars. Gesture panning stays inside
+   the board pane only when the player zooms past screen fit. */
+@media (max-width:900px) and (pointer:coarse){
+ html:has(body.nono-mobile-app),body.nono-mobile-app{
+  width:100%!important;height:100dvh!important;
+  max-height:100dvh!important;overflow:hidden!important;
+  overscroll-behavior:none!important;
+ }
+ body.nono-mobile-app .shell{height:100dvh!important;max-height:100dvh!important;
+  padding:0!important;overflow:hidden!important}
+ body.nono-mobile-app .shell>footer,body.nono-mobile-app .shell>.home-content{display:none!important}
+ body.nono-mobile-app #game{
+  box-sizing:border-box!important;position:fixed!important;inset:0!important;
+  width:100vw!important;min-width:0!important;max-width:100vw!important;
+  height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;
+  background:#0b1120!important
+ }
+ body.nono-mobile-app #game #play-area,body.nono-mobile-app #game .board-card{
+  box-sizing:border-box!important;position:absolute!important;inset:0!important;
+  width:100vw!important;min-width:0!important;max-width:100vw!important;
+  height:100dvh!important;min-height:0!important;max-height:100dvh!important;
+  margin:0!important;padding:0!important;overflow:hidden!important;
+  border:0!important;border-radius:0!important;background:transparent!important
+ }
+ body.nono-mobile-app .topbar{
+  position:fixed!important;top:0!important;left:0!important;right:0!important;
+  transform:none!important;width:100vw!important;max-width:100vw!important;
+  height:var(--nono-mobile-top,48px)!important;min-height:0!important;
+  padding:0 10px!important;margin:0!important;
+  display:flex!important;align-items:center!important;justify-content:flex-end!important;
+  z-index:165!important;background:#111c33d9!important;border:0!important
+ }
+ body.nono-mobile-app .topbar .brand,
+ body.nono-mobile-app .topbar nav,
+ body.nono-mobile-app .topbar .connection,
+ body.nono-mobile-app .topbar .profile-chip{display:none!important}
+ body.nono-mobile-app .topbar .header-right{margin-left:auto!important}
+ body.nono-mobile-app #nono-open-settings{
+  min-height:32px!important;padding:5px 10px!important;font-size:12px!important
+ }
+ body.nono-mobile-app #game .game-header{
+  position:fixed!important;top:0!important;left:8px!important;
+  transform:none!important;width:auto!important;max-width:calc(100vw - 140px)!important;
+  height:var(--nono-mobile-top,48px)!important;min-height:0!important;
+  margin:0!important;padding:0!important;z-index:166!important;
+  display:flex!important;align-items:center!important;pointer-events:none!important
+ }
+ body.nono-mobile-app #game .game-header>div:first-child{
+  display:flex!important;flex-wrap:nowrap!important;gap:7px!important;align-items:center!important
+ }
+ body.nono-mobile-app #game .game-header #leave-game{
+  display:inline-flex!important;pointer-events:auto!important;font-size:12px!important;
+  padding:5px 3px!important;min-width:0!important
+ }
+ body.nono-mobile-app #game .game-header h1{font-size:13px!important;white-space:nowrap!important;margin:0!important}
+ body.nono-mobile-app #game .game-header .game-crumb,
+ body.nono-mobile-app #game .game-header .game-quick{display:none!important}
+ body.nono-mobile-app #game .board-scroll,
+ body.nono-mobile-app #game .board-scroll.nono-zoomed{
+  box-sizing:border-box!important;position:absolute!important;
+  inset:var(--nono-mobile-top,48px) 0 var(--nono-mobile-pad-reserve,178px) 0!important;
+  width:100vw!important;max-width:100vw!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  padding:6px!important;margin:0!important;
+  display:flex!important;align-items:safe center!important;justify-content:safe center!important;
+  overflow:hidden!important;overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch;
+ }
+ body.nono-mobile-app.nono-zoom-exceeded #game .board-scroll,
+ body.nono-mobile-app.nono-zoom-exceeded #game .board-scroll.nono-zoomed{
+  overflow:auto!important;overflow-x:auto!important;overflow-y:auto!important;
+  touch-action:pan-x pan-y!important;
+  scrollbar-width:none!important
+ }
+ body.nono-mobile-app #game .board-scroll::-webkit-scrollbar{display:none!important}
+ body.nono-mobile-app #board,body.nono-mobile-app #board .cells,
+ body.nono-mobile-app #board .cell{touch-action:pan-x pan-y!important}
+ body.nono-mobile-app #game .board-footer,
+ body.nono-mobile-app #game .bottom-row,
+ body.nono-mobile-app #game #nono-check-action,
+ body.nono-mobile-app #game #nono-hud,
+ body.nono-mobile-app #game #nono-drag-hud,
+ body.nono-mobile-app #game .board-top .mini-stat,
+ body.nono-mobile-app #game .board-top .timer-stat{display:none!important}
+ body.nono-mobile-app #game #nono-actions{
+  position:fixed!important;z-index:164!important;top:51px!important;right:6px!important;
+  left:auto!important;bottom:auto!important;width:auto!important;
+  padding:0!important;margin:0!important;display:flex!important
+ }
+ body.nono-mobile-app #game #nono-hint-action{
+  padding:5px 7px!important;font-size:11px!important;opacity:.85!important
+ }
+ body.nono-mobile-app #game #nono-board-zoom{
+  position:fixed!important;z-index:164!important;
+  top:auto!important;bottom:calc(var(--nono-mobile-pad-reserve,178px) + 3px)!important;
+  right:7px!important;left:auto!important;
+  display:flex!important;flex-direction:row!important;gap:3px!important;
+  width:auto!important;background:#111c33d6!important;border-radius:9px!important
+ }
+ body.nono-mobile-app #game #nono-board-zoom :is(#nono-zoom-center,#nono-zoom-label){display:none!important}
+ body.nono-mobile-app #game #nono-board-zoom button{
+  min-height:26px!important;min-width:27px!important;width:auto!important;
+  font-size:11px!important;padding:4px 6px!important
+ }
+ body.nono-mobile-app #game #nono-board-zoom #nono-zoom-fit{min-width:44px!important}
+}
+
 `;document.head.append(css);
 const top=document.querySelector('.header-right');const b=E('button','nono-settings-toggle','⚙ 설정');b.id='nono-open-settings';top.insertBefore(b,top.firstChild);b.addEventListener('click',openSettings);
 const bar=E('div','nono-actions');bar.id='nono-actions';bar.innerHTML='<button type="button" id="nono-hint-action">💡 도움 힌트</button><button type="button" id="nono-check-action">✓ 오답 검사</button><span id="nono-hint-status" class="nono-keys-hint" aria-live="polite"></span>';
@@ -1169,7 +1279,10 @@ function fitBoardToViewport(){
  if($('game').classList.contains('hidden'))return;
  const grid=$('board'),area=document.querySelector('#game .board-scroll'),card=document.querySelector('#game .board-card');
  if(!grid||!area||!card)return;
- const n=puzzle.size,h=puzzle.height||n,isLarge=Math.max(n,h)>=30;
+ const n=puzzle.size,h=puzzle.height||n;
+ const mobileApp=window.matchMedia('(max-width:900px) and (pointer:coarse)').matches;
+ const isLarge=Math.max(n,h)>=30||mobileApp;
+ document.body.classList.toggle('nono-mobile-app',mobileApp);
  document.body.classList.toggle('nono-fit-playing',isLarge);
  document.body.classList.toggle('nono-zoom-exceeded',isLarge&&boardZoom>1.000001);
  grid.classList.add('nono-board-fit');
@@ -1205,7 +1318,11 @@ function fitBoardToViewport(){
   reservedControls=Math.min(Math.max(0,viewportH-120),reservedControls);
  }
  document.documentElement.style.setProperty('--nono-mobile-pad-reserve',reservedControls+'px');
- const availH=Math.max(1,viewportH-padH-reservedControls-fitGutter*2);
+ // Mobile is one fixed app viewport. The header and the floating touch pad
+ // occupy dedicated rails; only the puzzle pane may pan after zooming.
+ const mobileTop=mobileApp?48:0;
+ document.documentElement.style.setProperty('--nono-mobile-top',mobileTop+'px');
+ const availH=Math.max(1,viewportH-padH-reservedControls-mobileTop-fitGutter*2);
  const cap=n<=5?60:n<=10?41:n<=25?34:26;
  function dimensions(cell){
   // A two-digit hint must be contained by its own dedicated slot. The old
@@ -1233,8 +1350,8 @@ function fitBoardToViewport(){
   else high=mid;
  }
  let fit=Math.max(.25,low),cell=fit*boardZoom,d=dimensions(cell);
- const pageWidth=boardZoom<=1?Math.ceil(viewportW):Math.ceil(Math.max(viewportW,d.fullWidth+fitGutter*2));
- const pageHeight=boardZoom<=1?Math.ceil(viewportH):Math.ceil(Math.max(viewportH,d.fullHeight+fitGutter*2));
+ const pageWidth=mobileApp||boardZoom<=1?Math.ceil(viewportW):Math.ceil(Math.max(viewportW,d.fullWidth+fitGutter*2));
+ const pageHeight=mobileApp||boardZoom<=1?Math.ceil(viewportH):Math.ceil(Math.max(viewportH,d.fullHeight+fitGutter*2));
  // Page scrolling is supported only when the user intentionally zooms PAST
  // fit. At 100% the entire grid AND every clue should remain visible.
  if(isLarge){
@@ -1242,7 +1359,7 @@ function fitBoardToViewport(){
   game.style.setProperty('--nono-page-width',pageWidth+'px');
   game.style.setProperty('--nono-page-height',pageHeight+'px');
  }
- area.classList.remove('nono-zoomed');
+ area.classList.toggle('nono-zoomed',mobileApp&&boardZoom>1);
  area.style.setProperty('--nono-fit-scroller-height',availH.toFixed(2)+'px');
  area.style.removeProperty('--nono-visible-board-height');
  function applyGeometry(){
@@ -1733,7 +1850,7 @@ restoreHistory=function(source,target){
  if(changed&&mode==='practice')saveBoard();
 };
 const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();keyboardDrag=null;hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();changes=Number.isFinite(saved.changes)?saved.changes:0;manualClues[puzzle.id]=saved.manual||{};undoStack=restoredHistory(saved,'undo');redoStack=restoredHistory(saved,'redo');finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
-const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');frozenRow&&(frozenRow.style.display='none');frozenCol&&(frozenCol.style.display='none');return oldLeave()};
+const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-mobile-app','nono-fit-playing','nono-zoom-exceeded');frozenRow&&(frozenRow.style.display='none');frozenCol&&(frozenCol.style.display='none');return oldLeave()};
 const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playSound('finish');setTimeout(()=>openOverview(),300)};
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
 window.addEventListener('blur',releaseMove);
