@@ -4,7 +4,7 @@ const pad=document.getElementById('nono-mobile-pad');
 if(!pad)return;
 const $=id=>document.getElementById(id);
 const storageKey='nono-input-settings-v1';
-const defaults=()=>({mode:'fixed',opacity:80,size:100,
+const defaults=()=>({mode:'fixed',opacity:80,size:100,trackpadSensitivity:100,
  dpad:{x:.21,y:.83},actions:{x:.79,y:.83},
  offsets:{fill:[0,0],cross:[0,0],clear:[0,0],undo:[0,0]},
  controllerEnabled:true,deadzone:55,stick:true,
@@ -14,7 +14,8 @@ const clone=v=>JSON.parse(JSON.stringify(v));
 function validate(src){
  const d=defaults(),s=src&&typeof src==='object'?src:{};
  const out={...d,...s,offsets:{...d.offsets,...s.offsets},mapping:{...d.mapping,...s.mapping}};
- out.mode=out.mode==='floating'?'floating':'fixed';
+ out.mode=['fixed','floating','trackpad'].includes(out.mode)?out.mode:'fixed';
+ out.trackpadSensitivity=clamp(Number(out.trackpadSensitivity)||100,50,200);
  out.opacity=clamp(Number(out.opacity)||80,20,100);out.size=clamp(Number(out.size)||100,65,150);
  out.deadzone=clamp(Number(out.deadzone)||55,20,85);out.stick=out.stick!==false;
  out.controllerEnabled=out.controllerEnabled!==false;
@@ -52,7 +53,7 @@ const settingsButton=document.createElement('button');
 settingsButton.id='nono-pad-preferences';settingsButton.type='button';settingsButton.textContent='⚙ 설정';
 top.insertBefore(settingsButton,top.querySelector('#nono-pad-collapse'));
 const zone=document.createElement('div');zone.id='nono-floating-zone';
-zone.setAttribute('aria-label','이동할 위치를 누르고 손가락을 움직이세요');
+zone.setAttribute('aria-label','손가락을 움직인 거리만큼 퍼즐 선택 칸 이동');
 const joystick=document.createElement('div');joystick.id='nono-floating-stick';
 joystick.innerHTML='<span id="nono-floating-knob"></span>';
 pad.prepend(zone,joystick);
@@ -60,10 +61,12 @@ const knob=$('nono-floating-knob');
 const editbar=document.createElement('div');editbar.id='nono-pad-editbar';editbar.hidden=true;
 editbar.innerHTML='<strong>버튼 배치 편집</strong><small>✥ 이동을 끌면 그룹, 동작 버튼을 끌면 개별 위치가 바뀝니다.</small><button data-pad-edit="reset" type="button">기본 위치</button><button data-pad-edit="cancel" type="button">취소</button><button data-pad-edit="save" type="button">저장</button>';
 document.body.append(editbar);
-let editing=false,beforeEdit=null,drag=null,floatingPointer=null,stickDirection=null;
+let editing=false,beforeEdit=null,drag=null,floatingPointer=null,stickDirection=null,trackpadActive=null;
 function apply(){
  const opacity=state.opacity/100,scale=state.size/100;
  pad.classList.toggle('nono-floating-mode',state.mode==='floating');
+ pad.classList.toggle('nono-trackpad-mode',state.mode==='trackpad');
+ if(state.mode!=='trackpad'||editing)trackpadActive=null;
  pad.classList.toggle('nono-pad-editing',editing);
  pad.style.setProperty('--nono-pad-opacity',opacity);
  pad.style.setProperty('--nono-pad-scale',scale);
@@ -124,6 +127,58 @@ function floatEnd(e){
  if(stickDirection)nativeSend(stickDirection,false);stickDirection=null;
 }
 for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,floatEnd);
+
+// Notebook-like relative trackpad (touchscreen only). Unlike the floating
+// joystick, cursor movement is proportional to finger travel, without
+// waiting at an edge or triggering key auto-repeat while stationary.
+function trackpadAvailable(){
+ return state.mode==='trackpad'&&!editing&&
+  matchMedia('(max-width:900px) and (pointer:coarse)').matches&&
+  !pad.hidden&&!$('game')?.classList.contains('hidden')&&
+  $('lobby')?.classList.contains('hidden')&&!$('nono-settings-overlay');
+}
+zone.addEventListener('pointerdown',e=>{
+ if(!trackpadAvailable()||trackpadActive||e.button!==0)return;
+ e.preventDefault();trackpadActive={id:e.pointerId,x:e.clientX,y:e.clientY,
+  residualX:0,residualY:0};
+ try{zone.setPointerCapture(e.pointerId)}catch(_){}
+});
+zone.addEventListener('pointermove',e=>{
+ const a=trackpadActive;
+ if(!a||a.id!==e.pointerId)return;
+ if(!trackpadAvailable()){trackpadActive=null;return}
+ e.preventDefault();
+ const dx=e.clientX-a.x,dy=e.clientY-a.y;
+ a.x=e.clientX;a.y=e.clientY;
+ // Store fractional travel independently for both axes. A sequence of tiny
+ // pointer movements can still move a cell; lifting the finger resets drift.
+ const pxPerCell=12*100/state.trackpadSensitivity;
+ a.residualX+=dx;a.residualY+=dy;
+ const rawX=Math.trunc(a.residualX/pxPerCell);
+ const rawY=Math.trunc(a.residualY/pxPerCell);
+ // Bound pathological synthetic events without losing the remaining delta.
+ const mx=Math.sign(rawX)*Math.min(Math.abs(rawX),50);
+ const my=Math.sign(rawY)*Math.min(Math.abs(rawY),50);
+ a.residualX-=mx*pxPerCell;a.residualY-=my*pxPerCell;
+ // Interleave axes proportionally so a diagonal finger stroke follows the
+ // finger's path rather than taking an L-shaped detour.
+ const count=Math.max(Math.abs(mx),Math.abs(my));
+ for(let i=0;i<count;i++){
+  if(Math.floor((i+1)*Math.abs(mx)/count)>Math.floor(i*Math.abs(mx)/count)){
+   const dir=mx>0?'right':'left';nativeSend(dir,true);nativeSend(dir,false);
+  }
+  if(Math.floor((i+1)*Math.abs(my)/count)>Math.floor(i*Math.abs(my)/count)){
+   const dir=my>0?'down':'up';nativeSend(dir,true);nativeSend(dir,false);
+  }
+ }
+});
+const trackpadEnd=e=>{
+ if(trackpadActive?.id!==e.pointerId)return;
+ trackpadActive=null;
+ if(zone.hasPointerCapture?.(e.pointerId))try{zone.releasePointerCapture(e.pointerId)}catch(_){}
+};
+for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,trackpadEnd);
+
 function beginEdit(){
  if(!matchMedia('(pointer:coarse)').matches||$('game')?.classList.contains('hidden'))return false;
  beforeEdit=clone(state);editing=true;
@@ -212,8 +267,11 @@ function touchSettings(root){
  const intro=document.createElement('p');intro.className='nono-controller-intro';
  intro.textContent='모바일 화면의 방향 패드와 동작 버튼을 원하는 스타일로 조정할 수 있어요.';
  root.append(intro);
- addRow(root,'이동 방식','고정형은 십자키, 플로팅형은 손가락이 닿는 위치에 조이스틱이 나타납니다.',
-  select([['fixed','고정 십자키'],['floating','손가락 따라오는 조이스틱']],state.mode,v=>setValue('mode',v)));
+ addRow(root,'이동 방식','트랙패드는 손가락 이동 거리에 따라 칸을 즉시 이동합니다. 손가락을 멈추면 칸도 멈춥니다.',
+  select([['fixed','고정 십자키'],['floating','플로팅 조이스틱'],['trackpad','노트북형 트랙패드']],state.mode,v=>{setValue('mode',v);renderExtras()}));
+ if(state.mode==='trackpad')
+  addRow(root,'트랙패드 민감도','100%는 약 12px 움직일 때 한 칸. 200%는 더 빠르게, 50%는 더 세밀하게 움직입니다.',
+   range(50,200,10,state.trackpadSensitivity,v=>setValue('trackpadSensitivity',v)));
  addRow(root,'투명도','배경과 버튼의 표시 농도',
   range(20,100,5,state.opacity,v=>setValue('opacity',v)));
  addRow(root,'크기','방향 패드 및 동작 버튼 전체 크기',
