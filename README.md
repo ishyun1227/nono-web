@@ -4,11 +4,10 @@
 `main`에 반영하는 즉시 GitHub Actions가 Firebase 정답 저장을 자동으로 처리합니다.
 매번 `Run workflow`를 누를 필요가 없습니다.
 
-- [자동 등록 방법, 개인정보 보호, 최초 1회 Firebase Secret 교체](docs/AUTO_PUZZLE_UPLOAD.md)
+- [자동 등록 방법과 Firebase Secret 보안 안내](docs/AUTO_PUZZLE_UPLOAD.md)
 - [자동 등록 실행 내역](https://github.com/ishyun1227/nono-web/actions/workflows/auto-puzzle-answers.yml)
 
-> 이 기능은 **Firebase 관리자 키가 안전한 새 키로 교체되어야 운영 쓰기가 실행**됩니다.
-> 과거 채팅에 공개된 이전 키는 자동 등록에서 거부합니다. 새 퍼즐은 서버에 정답을 저장하더라도 검수 전에는 정식 출시되지 않습니다.
+> 사용자 요청에 따라 기존 GitHub Secret의 Firebase 키를 사용해 자동 등록합니다. 이미 대화에 노출된 키는 추후 교체를 권장합니다. 새 퍼즐은 서버에 정답을 저장하더라도 검수 전에는 정식 출시되지 않습니다.
 
 ## 퍼즐 데이터와 퀄리티 검수
 
