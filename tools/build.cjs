@@ -147,7 +147,8 @@ for(const filename of (fs.existsSync(trialDir)?fs.readdirSync(trialDir):[]).filt
     p.width*p.height>16384||!Array.isArray(p.rows)||!Array.isArray(p.cols)||
     p.rows.length!==p.height||p.cols.length!==p.width)
    throw Error('Invalid trial puzzle dimensions/name: '+filename);
- if(['mask','packed','answer','solution','grid','bitmap'].some(key=>Object.prototype.hasOwnProperty.call(p,key)))
+ if(['mask','packed','b64','solution','grid','bitmap'].some(key=>Object.prototype.hasOwnProperty.call(p,key))||
+    (p.answer&&(['mask','packed','b64','solution'].some(key=>Object.prototype.hasOwnProperty.call(p.answer,key)))))
    throw Error('PRIVATE ANSWER in public trial catalog: '+filename);
  const sum=lines=>{
    let total=0;
