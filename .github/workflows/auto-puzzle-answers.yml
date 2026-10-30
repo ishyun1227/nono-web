@@ -1,0 +1,83 @@
+name: Auto-save verified private puzzle answers to Firebase
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'puzzles/catalog.json'
+      - 'puzzles/trial/**'
+      - 'puzzles/sealed/**'
+      - 'tools/seed-packed-answers.cjs'
+      - 'tools/sealed-puzzle-codec.cjs'
+      - 'tools/curated-vox-answers.cjs'
+      - 'tools/curated-playtest-answers.cjs'
+      - 'tools/packed-seed-plan.cjs'
+      - 'tools/register-puzzle.cjs'
+      - '.github/workflows/auto-puzzle-answers.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: nono-production-firebase-migration
+  cancel-in-progress: false
+jobs:
+  verify-and-auto-seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PROJECT_ID: nono-web-ishyun-20261020
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install dependencies and generate public puzzle pages
+        run: npm ci
+      - name: Validate every public puzzle, encrypted answer, and lossless codec
+        run: |
+          npm run test:catalog
+          npm run test:answers
+          npm run test:migrate
+      - name: Verify Firebase database security rules
+        run: npm run test:multiplayer
+      - name: Verify current two-player browser compatibility
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:browser
+      - name: Require a rotated and valid Firebase service account key
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]]; then
+            echo 'Firebase admin secret not installed. Set FIREBASE_SERVICE_ACCOUNT_JSON once in GitHub Actions Secrets.' >&2
+            exit 1
+          fi
+          # This service account key was disclosed in a past conversation.
+          # Never run an unattended production write with that compromised key.
+          node -e '
+            const a=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+            if(a.type!=="service_account"||a.project_id!==process.env.PROJECT_ID||
+               !a.private_key||!a.private_key_id)
+              throw Error("Missing/incorrect service-account credentials");
+            if(a.private_key_id==="7018ae5277b705be7d69bae56b40256126ad3909")
+              throw Error("The previously exposed Firebase key must be rotated before automatic deployments");
+          '
+          umask 077
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/nono-firebase-sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/nono-firebase-sa.json" >> "$GITHUB_ENV"
+      - name: Insert only absent, independently verified answers in protected Firebase
+        run: node tools/seed-packed-answers.cjs --apply --project "$PROJECT_ID"
+      - name: Remove ephemeral administrator credentials
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/nono-firebase-sa.json"
+      - name: Summarize result without publishing private answers
+        if: success()
+        shell: bash
+        run: |
+          echo 'Private answer sync complete. Existing puzzle answers and player records were preserved.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Quality review is separate. New encrypted puzzles stay on trial pages, not official rankings.' >> "$GITHUB_STEP_SUMMARY"
