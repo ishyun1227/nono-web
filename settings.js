@@ -730,6 +730,11 @@ body.nono-fit-playing:not(.nono-zoom-exceeded){overflow-x:hidden!important;overf
  .nono-setting-run .nono-run-controls input[type="range"]{flex:1}}
 body.nono-fit-playing #game{padding-top:0!important;margin-top:0!important}
 body.nono-fit-playing{overflow-x:auto!important;overflow-y:auto!important}
+/* The BODY used to become a nested horizontal scroller while the frozen
+   panes listen to window scrolling. Let the root own both scroll axes when
+   zoom exceeds fit; otherwise window.scrollX stayed zero on wide boards. */
+html:has(body.nono-fit-playing.nono-zoom-exceeded){overflow-x:auto!important;overflow-y:auto!important}
+body.nono-fit-playing.nono-zoom-exceeded{overflow:visible!important}
 body.nono-fit-playing #game{
  position:relative!important;
  min-height:var(--nono-page-height,100dvh)!important;
