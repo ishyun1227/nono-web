@@ -185,7 +185,7 @@ for(const filename of (fs.existsSync(trialDir)?fs.readdirSync(trialDir):[]).filt
  const route='trials/'+p.id+'.html';
  fs.writeFileSync(path.join(output,route),html);
  trialIndex.push({id:p.id,name:p.name,width:p.width,height:p.height,
-   difficulty:p.difficulty||'미지정',reviewStatus:p.reviewStatus,route:'./'+route});
+   difficulty:p.difficulty||'미지정',reviewStatus:p.review.status,release:'trial',route:'./'+route});
 }
 fs.writeFileSync(path.join(output,'trial-index.json'),JSON.stringify(trialIndex));
 console.log('Generated '+trialIndex.length+' clue-only trial nonograms without publishing answers');
