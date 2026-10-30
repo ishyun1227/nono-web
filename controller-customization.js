@@ -54,6 +54,12 @@ settingsButton.id='nono-pad-preferences';settingsButton.type='button';settingsBu
 top.insertBefore(settingsButton,top.querySelector('#nono-pad-collapse'));
 const zone=document.createElement('div');zone.id='nono-floating-zone';
 zone.setAttribute('aria-label','손가락을 움직인 거리만큼 퍼즐 선택 칸 이동');
+function updateTrackpadLabel(){
+ const t=key=>window.NONO_I18N?.translate?.(key)||key;
+ zone.dataset.trackpadText=t('트랙패드')+'\n'+t('손가락을 밀어 이동');
+}
+window.addEventListener('nono:languagechange',updateTrackpadLabel);
+updateTrackpadLabel();
 const joystick=document.createElement('div');joystick.id='nono-floating-stick';
 joystick.innerHTML='<span id="nono-floating-knob"></span>';
 pad.prepend(zone,joystick);
