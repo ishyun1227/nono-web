@@ -272,6 +272,63 @@ const {pathToFileURL}=require('node:url');
   if(!zoom.zoomed||!zoom.overflow.includes('auto')||zoom.body>846||
      zoom.paneScroll<=zoom.paneClient+1)
     throw Error('Mobile zoom should pan the pane but not the page: '+JSON.stringify(zoom));
+  // New laptop-style trackpad: relative finger travel moves immediately,
+  // including diagonals, with no auto-repeat when the finger stops.
+  await mobile.evaluate(()=>{
+   window.NONO_INPUT_CUSTOM.set('mode','trackpad');
+   selected=20*53+20;render();
+  });
+  await mobile.locator('#nono-floating-zone').waitFor({state:'visible'});
+  const trackpad=await mobile.evaluate(()=>{
+   const zone=document.querySelector('#nono-floating-zone'),input=window.NONO_INPUT_CUSTOM;
+   const init={pointerType:'touch',pointerId:456,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
+   const fire=(type,x,y,extra={})=>zone.dispatchEvent(new PointerEvent(type,{...init,clientX:x,clientY:y,...extra}));
+   const start=selected,initialFilled=board.filter(v=>v==='1').length;
+   fire('pointerdown',95,690);
+   fire('pointermove',102,695);  // under 12px per axis: no jump
+   const tiny=selected;
+   fire('pointermove',108,695);  // accumulated 13px right: +1 cell
+   const one=selected;
+   fire('pointermove',132,719);  // +2 columns and +2 rows
+   const diagonal=selected;
+   const hold=selected;          // finger stopped: no timed auto-repeat
+   fire('pointerup',132,719,{buttons:0});
+   fire('pointerdown',95,690);   // second stroke is relative to current cell
+   fire('pointermove',82,690);   // one cell left
+   const back=selected;
+   fire('pointercancel',82,690,{buttons:0});
+   const final=selected;
+   return {start,tiny,one,diagonal,hold,back,final,
+    initialFilled,filled:board.filter(v=>v==='1').length,
+    mode:input.settings.mode,
+    sensitivity:input.settings.trackpadSensitivity,
+    oldJoystickHidden:getComputedStyle(document.querySelector('#nono-floating-stick')).display,
+    dpadHidden:getComputedStyle(document.querySelector('#nono-mobile-pad .nono-dpad')).display,
+    zoneAction:getComputedStyle(zone).touchAction};
+  });
+  if(trackpad.tiny!==trackpad.start||
+     trackpad.one!==trackpad.start+1||
+     trackpad.diagonal!==trackpad.start+3+2*53||
+     trackpad.back!==trackpad.diagonal-1||
+     trackpad.final!==trackpad.back||
+     trackpad.initialFilled!==trackpad.filled||
+     trackpad.mode!=='trackpad'||trackpad.sensitivity!==100||
+     trackpad.dpadHidden!=='none'||trackpad.zoneAction!=='none')
+   throw Error('Mobile relative trackpad mismatch: '+JSON.stringify(trackpad));
+  // Sensitivity persists while switching modes; existing modes are preserved.
+  await mobile.evaluate(()=>{
+    window.NONO_INPUT_CUSTOM.set('trackpadSensitivity',150);
+    window.NONO_INPUT_CUSTOM.set('mode','fixed');
+    window.NONO_INPUT_CUSTOM.set('mode','trackpad');
+  });
+  const persisted=await mobile.evaluate(()=>({
+   mode:window.NONO_INPUT_CUSTOM.settings.mode,
+   sensitivity:window.NONO_INPUT_CUSTOM.settings.trackpadSensitivity,
+   stored:JSON.parse(localStorage.getItem('nono-input-settings-v1')).trackpadSensitivity
+  }));
+  if(persisted.mode!=='trackpad'||persisted.sensitivity!==150||persisted.stored!==150)
+   throw Error('Relative trackpad preferences did not persist: '+JSON.stringify(persisted));
+  console.log('Mobile relative trackpad, diagonal travel, lift/retry and sensitivity passed.',JSON.stringify(trackpad));
   if(mobileErrors.length)throw Error('Mobile game exceptions: '+mobileErrors.join(' | '));
   await mobileContext.close();
   console.log('Mobile app viewport, tap-vs-swipe and internal zoom panning passed.');
