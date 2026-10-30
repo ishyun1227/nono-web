@@ -261,11 +261,11 @@ function translateDynamic(original,locale){
  const localTrial=trialTranslations[locale]||trialTranslations.en;
  const direct=trialSource.indexOf(original);
  if(direct>=0)return localTrial[direct];
- if((m=/^(\\d+×\\d+) · (토끼|사무라이|겨울 눈사람) \\(검수 대기\\)$/.exec(original)))
+ if((m=/^(\d+×\d+) · (토끼|사무라이|겨울 눈사람) \(검수 대기\)$/.exec(original)))
    return m[1]+' · '+localTrial[trialSource.indexOf(m[2])]+' ('+localTrial[5]+')';
  if((m=/^(토끼|사무라이|겨울 눈사람)$/.exec(original)))
    return localTrial[trialSource.indexOf(m[1])];
- if((m=/^(토끼|사무라이|겨울 눈사람) \\(검수 대기\\)$/.exec(original)))
+ if((m=/^(토끼|사무라이|겨울 눈사람) \(검수 대기\)$/.exec(original)))
    return localTrial[trialSource.indexOf(m[1])]+' ('+localTrial[5]+')';
 
  const t=value=>translate(value,locale);
