@@ -164,7 +164,7 @@ for(const filename of (fs.existsSync(trialDir)?fs.readdirSync(trialDir):[]).filt
  if([p.rows[0],p.rows[p.height-1],p.cols[0],p.cols[p.width-1]]
    .some(line=>line.length===1&&line[0]===0))
    throw Error('Outer zero line not trimmed: '+filename);
- if(!['trial','approved'].includes(p.reviewStatus))throw Error('Missing review status: '+filename);
+ if(!p.review||!['pending','approved','rejected'].includes(p.review.status))throw Error('Missing review status: '+filename);
  const publicData={id:p.id,width:p.width,height:p.height,rows:p.rows,cols:p.cols};
  let html=winterTemplate;
  const title=htmlEscape(p.name);
