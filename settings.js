@@ -479,6 +479,24 @@ body.nono-fit-playing #board.nono-board-fit.nono-both{
  font-size:var(--nono-fit-font)!important;letter-spacing:-.025em!important;
  font-variant-numeric:tabular-nums!important;line-height:1!important
 }
+/* Major hint separators must not take actual font-slot width/height.
+   A 3px border consumed almost half a 7px high row clue on smaller screens. */
+#board.nono-board-fit .row-clue{
+ border-bottom:0!important;
+ box-shadow:inset 0 -0.55px 0 #354766;
+}
+#board.nono-board-fit .row-clue.nono-clue-major{
+ border-bottom:0!important;
+ box-shadow:inset 0 -1.6px 0 #8695d4;
+}
+#board.nono-board-fit .col-clue{
+ border-right:0!important;
+ box-shadow:inset -0.55px 0 0 #354766;
+}
+#board.nono-board-fit .col-clue.nono-clue-major{
+ border-right:0!important;
+ box-shadow:inset -1.6px 0 0 #8695d4;
+}
 #board.nono-board-fit .nono-fit-clue-ink{
  display:inline-block;min-width:0;font-weight:inherit;font-size:inherit;line-height:1;
  white-space:nowrap;
