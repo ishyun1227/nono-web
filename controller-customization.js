@@ -175,15 +175,13 @@ zone.addEventListener('pointermove',e=>{
  if(!a||a.id!==e.pointerId)return;
  if(!touchAllowed('trackpad')){trackpadActive=null;return}
  e.preventDefault();
- const dx=e.clientX-a.x,dy=e.clientY-a.y;
- a.x=e.clientX;a.y=e.clientY;
  if(!a.axis){
   const totalX=e.clientX-a.originX,totalY=e.clientY-a.originY;
   if(Math.max(Math.abs(totalX),Math.abs(totalY))<5)return;
   a.axis=Math.abs(totalX)>=Math.abs(totalY)?'x':'y';
   a.residual=0;
   // Keep the initial travel (after threshold) rather than dropping steps.
-  a.x=a.originX;a.y=a.originY;
+  // The origin remains the start of the stroke until axis lock.
  }
  const distance=a.axis==='x'?e.clientX-a.x:e.clientY-a.y;
  a.residual+=distance;
