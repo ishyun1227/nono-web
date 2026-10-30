@@ -1358,6 +1358,11 @@ function moveSelection(dir,quick){
 }
 function keepSelectionInsideBoard(cell){
  if(!cell)return;
+ // On a screen-fitted board there is nowhere to scroll. Avoid even reading
+ // computed style / scrollWidth: those force layout across 5k–10k buttons
+ // after the two active classes have changed and caused 30ms key stutter.
+ if(document.body.classList.contains('nono-fit-playing')&&
+    !document.body.classList.contains('nono-zoom-exceeded'))return;
  const scroller=cell.closest('.board-scroll');
  if(!scroller)return;
  const style=getComputedStyle(scroller);
