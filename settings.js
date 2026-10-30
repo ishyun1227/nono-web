@@ -1484,6 +1484,32 @@ function moveSelection(dir,quick){
  else selected=next;
  keepSelectionInsideBoard(cells?.[next]);
 }
+// Mobile touch surfaces must move the real selected cell without
+// synthesizing Arrow keys. Key emulation obeyed user wrap preferences,
+// unexpectedly jumping from the far edge to the opposite side.
+function mobileTouchSelect(row,column){
+ if(!puzzle||!board||$('game').classList.contains('hidden')||
+  !$('lobby').classList.contains('hidden')||settingsOpen||overviewOpen)return false;
+ const width=puzzle.size,height=puzzle.height||width;
+ const r=Math.max(0,Math.min(height-1,Math.trunc(row)));
+ const c=Math.max(0,Math.min(width-1,Math.trunc(column)));
+ if(!Number.isFinite(r)||!Number.isFinite(c))return false;
+ const index=r*width+c;
+ if(index===selected)return true;
+ const cells=$('board').querySelector('.cells')?.children;
+ if(!cells?.length)return false;
+ updateLiveSelection(index,cells);
+ keepSelectionInsideBoard(cells[index]);
+ return true;
+}
+window.NONO_TOUCH_CURSOR={
+ get position(){if(!puzzle)return null;return {row:Math.floor(selected/puzzle.size),col:selected%puzzle.size};},
+ get dimensions(){return puzzle?{width:puzzle.size,height:puzzle.height||puzzle.size}:null;},
+ move(dx,dy){const current=this.position;if(!current)return false;
+  return mobileTouchSelect(current.row+dy,current.col+dx);
+ },
+ select(row,col){return mobileTouchSelect(row,col);}
+};
 function keepSelectionInsideBoard(cell){
  if(!cell)return;
  // On a screen-fitted board there is nowhere to scroll. Avoid even reading
