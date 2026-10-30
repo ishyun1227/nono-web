@@ -92,6 +92,19 @@ const {pathToFileURL}=require('node:url');
        crowded:crowded.slice(0,5),clueCount:clues.length,
        overflow:getComputedStyle(document.querySelector('#game .board-scroll')).overflow};
     });
+    console.log('CLUE_BASELINE',id,viewport.width,JSON.stringify(await page.evaluate(()=>{
+      const grid=document.querySelector('#board'),span=grid.querySelector('.col-clue span'),ink=span?.querySelector('.nono-fit-clue-ink');
+      const style=getComputedStyle(ink),sn=getComputedStyle(span);
+      const numbers=[...grid.querySelectorAll('.col-clue .nono-fit-clue-ink')];
+      const sample=numbers.find(e=>e.textContent.length>1)||numbers[0];
+      return {cell:grid.dataset.fitCellSize,font:style.fontSize,scale:grid.style.getPropertyValue('--nono-fit-glyph-scale'),
+       slot:[span.getBoundingClientRect().width,span.getBoundingClientRect().height],
+       inkHeight:ink.getBoundingClientRect().height,sampleDigit:sample.textContent,
+       sampleHeight:sample.getBoundingClientRect().height,sampleWidth:sample.getBoundingClientRect().width,
+       rowWidth:grid.style.getPropertyValue('--nono-fit-row-width'),colHeight:grid.style.getPropertyValue('--nono-fit-col-height'),
+       gridSize:[grid.getBoundingClientRect().width,grid.getBoundingClientRect().height],
+       computedFont:sn.fontSize};
+    })));
     if(fit.board[0]<8||fit.board[1]<8||
        fit.board[2]>viewport.width-8||fit.board[3]>viewport.height-8||
        fit.offscreen.length||fit.protruding.length||fit.crowded.length||
