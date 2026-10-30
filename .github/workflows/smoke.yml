@@ -63,9 +63,12 @@ jobs:
           node --check answer-bitpack.js
           node --check tools/seed-packed-answers.cjs
           node --check tests/answer-bitpack.cjs
+          node --check tests/puzzle-catalog.cjs
           node --check tests/seed-packed-migration.cjs
           node --check tools/curated-vox-answers.cjs
           node --check tools/curated-playtest-answers.cjs
+      - name: Verify canonical catalog and pending quality reviews for all 12 puzzles
+        run: npm run test:catalog
       - name: Verify lossless private answer packing and dry-run seeding
         run: npm run test:answers
       - name: Verify nondestructive packed-answer migration planner offline
