@@ -111,6 +111,32 @@ const {pathToFileURL}=require('node:url');
        fullFontPixels:parseFloat(style.fontSize),
        independentScales:[...new Set(numbers.slice(0,50).map(x=>x.style.getPropertyValue('--nono-fit-glyph-scale')))]};
     })));
+    // Hint labels must NOT contain the grid's interior separators.
+    // Also prove that LEFT row-hint slots no longer waste ~1.78em per digit.
+    const hintLayout=await page.evaluate(()=>{
+      const grid=document.getElementById('board');
+      const row=grid.querySelector('.row-clue'),col=grid.querySelector('.col-clue');
+      const rowSpan=row?.querySelector('span'),colSpan=col?.querySelector('span');
+      const measure=el=>getComputedStyle(el);
+      const r=measure(row),c=measure(col),rs=measure(rowSpan),cs=measure(colSpan);
+      const font=parseFloat(r.fontSize),slot=rowSpan.getBoundingClientRect().width;
+      return {
+        rowBorder:r.borderBottomWidth,colBorder:c.borderRightWidth,
+        rowShadow:r.boxShadow,colShadow:c.boxShadow,
+        innerRowBorder:rs.borderLeftWidth,innerColBorder:cs.borderBottomWidth,
+        outerRowBorder:measure(grid.querySelector('.row-clues')).borderRightWidth,
+        outerColBorder:measure(grid.querySelector('.col-clues')).borderBottomWidth,
+        font,slot,
+        rowWidth:grid.querySelector('.row-clues').getBoundingClientRect().width
+      };
+    });
+    if(hintLayout.rowBorder!=='0px'||hintLayout.colBorder!=='0px'||
+       hintLayout.rowShadow!=='none'||hintLayout.colShadow!=='none'||
+       hintLayout.innerRowBorder!=='0px'||hintLayout.innerColBorder!=='0px'||
+       parseFloat(hintLayout.outerRowBorder)<=0||parseFloat(hintLayout.outerColBorder)<=0||
+       hintLayout.slot>hintLayout.font*1.5+2.5)
+      throw Error('Clue separators or excessive left-hint spacing remain: '+
+        id+' '+JSON.stringify({viewport,hintLayout}));
     if(viewport.width>=700){
       const readability=await page.evaluate(()=>{
        const nodes=[...document.querySelectorAll('#board .col-clue .nono-fit-clue-ink')];
