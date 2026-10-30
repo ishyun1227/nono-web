@@ -99,7 +99,7 @@
     safeSave(true);
     // The local numeric history is authoritative for rendering; cloud publish
     // is best-effort and never delays finishing the puzzle.
-    window.NONO_REPLAY_CLOUD?.publish(session).catch(error=>console.warn('클라우드 리플레이 전송 실패',error));
+    if(!puzzle.trialOnly)window.NONO_REPLAY_CLOUD?.publish(session).catch(error=>console.warn('클라우드 리플레이 전송 실패',error));
     renderRecent();
     session = null;
   }
