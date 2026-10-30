@@ -105,6 +105,8 @@ function apply(){
  editbar.hidden=!editing;
  zone.style.setProperty('--zone-x',state.dpad.x*100+'vw');
  zone.style.setProperty('--zone-y',state.dpad.y*100+'dvh');
+ zone.style.setProperty('--nono-trackpad-gutter',(80*scale+8)+'px');
+ mini.style.setProperty('--nono-mini-gutter',(76*scale+8)+'px');
  mini.style.setProperty('--zone-x',state.dpad.x*100+'vw');
  mini.style.setProperty('--zone-y',state.dpad.y*100+'dvh');
  updateMiniCursor();
