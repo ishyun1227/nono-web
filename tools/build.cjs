@@ -72,6 +72,52 @@ console.log('Built NONO static assets and restored six original grid characters'
 
 
  
+// Canonical catalog: every published / trial / dynamically generated puzzle has
+// the SAME public metadata shape. Only the six existing fixed main puzzles are
+// loaded into the existing square-grid engine. Review metadata is not gameplay.
+const registry=JSON.parse(fs.readFileSync(path.join(root,'puzzles/catalog.json'),'utf8'));
+if(registry.schemaVersion!==1||!Array.isArray(registry.puzzles)||
+   registry.puzzles.length!==12||new Set(registry.puzzles.map(p=>p.id)).size!==12)
+ throw Error('Puzzle catalog must contain all 12 distinct existing entries');
+const fixedMain=registry.puzzles.filter(p=>p.origin==='main'&&p.kind==='fixed');
+const dynamicMain=registry.puzzles.filter(p=>p.origin==='main'&&p.kind==='generated');
+if(fixedMain.length!==6||dynamicMain.length!==3)throw Error('Unexpected published puzzle registry coverage');
+for(const p of registry.puzzles){
+ if(!p.id||!p.name||!Number.isInteger(p.width)||!Number.isInteger(p.height)||
+    !p.review||p.review.status!=='pending'||
+    !p.answer||p.width*p.height>16384)
+  throw Error('Invalid normalized puzzle entry '+p.id);
+ if(p.kind==='fixed'){
+  if(!Array.isArray(p.rows)||p.rows.length!==p.height||
+     !Array.isArray(p.cols)||p.cols.length!==p.width)
+   throw Error('Incomplete fixed puzzle clues '+p.id);
+  let totals=[];
+  for(const [lines,max] of [[p.rows,p.width],[p.cols,p.height]]){
+   let total=0;
+   for(const line of lines){
+    if(!Array.isArray(line)||!line.length||line.some((n,i)=>!Number.isInteger(n)||n<0||n>max||(n===0&&line.length>1))||
+       line.reduce((a,b)=>a+b,0)+line.length-1>max)
+     throw Error('Invalid clue or impossible line in '+p.id);
+    total+=line.reduce((a,b)=>a+b,0);
+   }
+   totals.push(total);
+  }
+  if(totals[0]!==totals[1])throw Error('Clue total mismatch '+p.id);
+ }else if(p.kind==='generated'){
+  if(p.rows!==null||p.cols!==null||p.answer.format!=='session-generated')
+    throw Error('Dynamic test must have per-session clues, not invented fixed answer: '+p.id);
+ }else throw Error('Unknown catalog kind '+p.id);
+ if(Object.keys(p).some(key=>['mask','packed','b64','solution','bitmap'].includes(key)))
+  throw Error('Private answer accidentally exposed in catalog '+p.id);
+}
+const mainSource=fixedMain.map(p=>({id:p.id,name:p.name,size:p.width,rows:p.rows,cols:p.cols}));
+if(mainSource.some(p=>p.size!==p.cols.length||p.size!==p.rows.length))
+ throw Error('Current main engine is square-only');
+fs.writeFileSync(path.join(output,'puzzles-public-catalog.js'),
+ 'window.NONO_PUBLIC_PUZZLES='+JSON.stringify(mainSource).replace(/</g,'\\u003c')+';'+
+ 'window.NONO_DYNAMIC_PUZZLE_DEFS='+JSON.stringify(dynamicMain.map(p=>({id:p.id,size:p.width})))+';\\n');
+console.log('Published canonical 6 fixed / 3 random-size main puzzles; tracked 3 independent trial puzzles');
+
 // Generate trial puzzle pages from clue-only JSON, using one shared puzzle
 // play engine template. This avoids writing a new game page for each puzzle.
 // DO NOT ever copy private masks, packed answers, or source art into dist.
