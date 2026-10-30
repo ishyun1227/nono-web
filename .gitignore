@@ -5,3 +5,14 @@ test-results/
 tests/live-generated.cjs
 dist/
 .wrangler/
+
+# Never commit plaintext puzzle answers, service account keys, or private inputs.
+private/
+secrets/
+puzzles/raw/
+puzzles/private/
+puzzles/source-private/
+*service-account*.json
+*firebase-adminsdk*.json
+*private-answer*.json
+# puzzles/sealed/*.json is intentionally COMMITTABLE: AES-GCM ciphertext only.
