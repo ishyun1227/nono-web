@@ -132,7 +132,14 @@ const winterTemplate=fs.readFileSync(path.join(root,'winter-snowman-test.html'),
 const htmlEscape=x=>String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;')
   .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 for(const filename of (fs.existsSync(trialDir)?fs.readdirSync(trialDir):[]).filter(n=>n.endsWith('.json')).sort()){
- const p=JSON.parse(fs.readFileSync(path.join(trialDir,filename),'utf8'));
+ const legacy=JSON.parse(fs.readFileSync(path.join(trialDir,filename),'utf8'));
+ // The shared catalog owns the published trial clues. The original JSON must
+ // still match byte-for-byte in meaning, so previous trial saves remain valid.
+ const p=registry.puzzles.find(item=>item.id===legacy.id&&item.origin==='trial'&&item.kind==='fixed');
+ if(!p||p.width!==legacy.width||p.height!==legacy.height||
+    JSON.stringify(p.rows)!==JSON.stringify(legacy.rows)||
+    JSON.stringify(p.cols)!==JSON.stringify(legacy.cols))
+   throw Error('Trial page source and canonical catalog mismatch: '+filename);
  if(!p||typeof p!=='object'||!/^[a-z][a-z0-9_-]{2,78}$/.test(p.id)||filename!==p.id+'.json')
    throw Error('Invalid trial puzzle file/id: '+filename);
  if(typeof p.name!=='string'||p.name.length<1||p.name.length>90||/[<>]/.test(p.name)||
