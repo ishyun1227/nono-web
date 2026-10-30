@@ -172,7 +172,7 @@
  pointer-events:none!important;
 }
 #nono-mobile-pad.nono-trackpad-mode #nono-floating-zone::after{
- content:"트랙패드\\a 손가락을 밀어 이동"!important;
+ content:"트랙패드\a 손가락을 밀어 이동"!important;
  white-space:pre!important;font-size:11px!important;line-height:1.6!important;
  color:#e2f6ff!important;letter-spacing:-.02em;
  text-shadow:0 1px 4px #0a172a!important;
