@@ -384,7 +384,7 @@ async function startAlone(){
 }
 function buildBoard(){
   const target=$('board'),n=puzzle.size,h=puzzle.height||puzzle.size,maxRow=Math.max(...puzzle.rows.map(a=>a.length)),maxCol=Math.max(...puzzle.cols.map(a=>a.length));
-  target.innerHTML='';target.classList.toggle('board-small',n<=5);if(n>=30)target.style.setProperty('--cell-size','26px');else target.style.removeProperty('--cell-size');target.style.setProperty('--clue-size',`${Math.max(35,12+maxRow*17)}px`);
+  target.innerHTML='';target.dataset.fitGlyphKey='';target.classList.toggle('board-small',n<=5);if(n>=30)target.style.setProperty('--cell-size','26px');else target.style.removeProperty('--cell-size');target.style.setProperty('--clue-size',`${Math.max(35,12+maxRow*17)}px`);
   const corner=document.createElement('div');corner.className='corner';corner.style.width=`${Math.max(38,15+maxRow*22)}px`;corner.style.height=`${Math.max(34,9+maxCol*19)}px`;
   const col=document.createElement('div');col.className='col-clues';col.style.gridTemplateColumns=`repeat(${n},var(--cell-size))`;
   const row=document.createElement('div');row.className='row-clues';

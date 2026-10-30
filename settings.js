@@ -479,9 +479,28 @@ body.nono-fit-playing #board.nono-board-fit.nono-both{
  font-size:var(--nono-fit-font)!important;letter-spacing:-.025em!important;
  font-variant-numeric:tabular-nums!important;line-height:1!important
 }
+/* Major hint separators must not take actual font-slot width/height.
+   A 3px border consumed almost half a 7px high row clue on smaller screens. */
+#board.nono-board-fit .row-clue{
+ border-bottom:0!important;
+ box-shadow:inset 0 -0.55px 0 #354766;
+}
+#board.nono-board-fit .row-clue.nono-clue-major{
+ border-bottom:0!important;
+ box-shadow:inset 0 -1.6px 0 #8695d4;
+}
+#board.nono-board-fit .col-clue{
+ border-right:0!important;
+ box-shadow:inset -0.55px 0 0 #354766;
+}
+#board.nono-board-fit .col-clue.nono-clue-major{
+ border-right:0!important;
+ box-shadow:inset -1.6px 0 0 #8695d4;
+}
 #board.nono-board-fit .nono-fit-clue-ink{
  display:inline-block;min-width:0;font-weight:inherit;font-size:inherit;line-height:1;
- white-space:nowrap;transform:scale(var(--nono-fit-glyph-scale,1));
+ white-space:nowrap;
+ transform:scale(var(--nono-fit-glyph-scale-x,1),var(--nono-fit-glyph-scale-y,1));
  transform-origin:center center;
 }
 #board.nono-board-fit .row-clue>span,#board.nono-board-fit .col-clue>span{
@@ -1187,9 +1206,12 @@ function fitBoardToViewport(){
   // Reserve dedicated room for each glyph, including the two-digit clues.
   // Previously the text and the grid technically fit but some values sat
   // against their slot borders and looked visually cropped on narrow screens.
-  const font=Math.max(2.5,Math.min(14,cell*.78));
-  const slotWidth=Math.max(4,Math.min(28,font*(digits>=3?2.25:digits===2?1.68:1.17)+2.2));
-  const slotHeight=Math.max(4,Math.min(22,cell*.96,font*1.15+2));
+  // Hint typography must remain readable: column hint slots are NOT the
+  // same height as a puzzle cell, and must not be capped by cell size.
+  const minFont=viewportW>=700?8.5:viewportW>=500?7:5;
+  const font=Math.max(minFont,Math.min(14,cell*.94));
+  const slotWidth=Math.max(5,font*(digits>=3?2.35:digits===2?1.78:1.2)+1.5);
+  const slotHeight=Math.max(5,font*1.26+1.5);
   const rowWidth=maxRow*slotWidth+8,colHeight=maxCol*slotHeight+8;
   return {font,slotWidth,slotHeight,rowWidth,colHeight,
    fullWidth:cell*n+rowWidth*sides,fullHeight:cell*h+colHeight*sides};
@@ -1242,31 +1264,38 @@ function fitBoardToViewport(){
   }
   fit=cell/boardZoom;
  }
- // Browsers can impose a minimum rendered text height below 5px. Scale only
- // the glyph (not its clue slot or border) so dense two-digit hints never
- // overlap the neighboring row/column even on a narrow phone.
- // Layout measuring clue numbers is expensive for large boards. Reuse the
- // result across keyboard moves/drag strokes until cell or clue sizing changes.
+ // Fit each number inside its own slot. The old implementation took the
+ // smallest scale of ALL hints and applied it to ALL hints. A single two-digit
+ // value in a narrow column could shrink every digit on the board to 2px.
+ // Only recompute on geometry changes; keyboard and drag updates stay fast.
  const glyphKey=[puzzle.id,n,h,cell.toFixed(3),d.slotWidth.toFixed(3),
   d.slotHeight.toFixed(3),d.font.toFixed(3),maxRow,maxCol,maxNumber,sides,
   document.body.dataset.nonoTheme||''].join(':');
  if(isLarge&&grid.dataset.fitGlyphKey!==glyphKey){
-  grid.style.setProperty('--nono-fit-glyph-scale','1','important');
-  let glyphScale=1;
-  const range=document.createRange();
-  for(const slot of grid.querySelectorAll('.row-clue>span,.col-clue>span')){
+  const slots=[...grid.querySelectorAll('.row-clue>span,.col-clue>span')];
+  // First remove prior transforms so measurements are of natural ink.
+  grid.style.removeProperty('--nono-fit-glyph-scale');
+  for(const slot of slots){
    const ink=slot.querySelector('.nono-fit-clue-ink');
-   if(!ink)continue;
-   const slotRect=slot.getBoundingClientRect();
-   range.selectNodeContents(ink);
-   const glyphRect=range.getBoundingClientRect();
-   if(glyphRect.width>0&&glyphRect.height>0){
-    const horizontal=Math.max(.1,(slotRect.width-2)/glyphRect.width);
-    const vertical=Math.max(.1,(slotRect.height-2)/glyphRect.height);
-    glyphScale=Math.min(glyphScale,horizontal,vertical);
-   }
+   ink?.style.removeProperty('--nono-fit-glyph-scale-x');
+   ink?.style.removeProperty('--nono-fit-glyph-scale-y');
   }
-  grid.style.setProperty('--nono-fit-glyph-scale',Math.max(.1,Math.min(1,glyphScale)).toFixed(3),'important');
+  const measurements=slots.map(slot=>{
+   const ink=slot.querySelector('.nono-fit-clue-ink');
+   return ink?{ink,slot:slot.getBoundingClientRect(),glyph:ink.getBoundingClientRect()}:null;
+  });
+  for(const item of measurements){
+   if(!item)continue;
+   const {slot,glyph,ink}=item;
+   if(!glyph.width||!glyph.height)continue;
+   // Fit two-digit hints horizontally without reducing their readable height.
+   // The number always keeps its full vertical font size unless the actual
+   // slot height itself is smaller than the glyph.
+   const horizontal=Math.max(.05,Math.min(1,(slot.width-1)/glyph.width));
+   const vertical=Math.max(.05,Math.min(1,(slot.height-1)/glyph.height));
+   ink.style.setProperty('--nono-fit-glyph-scale-x',horizontal.toFixed(3));
+   ink.style.setProperty('--nono-fit-glyph-scale-y',vertical.toFixed(3));
+  }
   grid.dataset.fitGlyphKey=glyphKey;
  }
  grid.dataset.fitCellSize=cell.toFixed(2);
