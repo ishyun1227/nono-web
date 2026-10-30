@@ -481,7 +481,8 @@ body.nono-fit-playing #board.nono-board-fit.nono-both{
 }
 #board.nono-board-fit .nono-fit-clue-ink{
  display:inline-block;min-width:0;font-weight:inherit;font-size:inherit;line-height:1;
- white-space:nowrap;transform:scale(var(--nono-fit-glyph-scale,1));
+ white-space:nowrap;
+ transform:scale(var(--nono-fit-glyph-scale-x,1),var(--nono-fit-glyph-scale-y,1));
  transform-origin:center center;
 }
 #board.nono-board-fit .row-clue>span,#board.nono-board-fit .col-clue>span{
@@ -1256,8 +1257,11 @@ function fitBoardToViewport(){
   const slots=[...grid.querySelectorAll('.row-clue>span,.col-clue>span')];
   // First remove prior transforms so measurements are of natural ink.
   grid.style.removeProperty('--nono-fit-glyph-scale');
-  for(const slot of slots)slot.querySelector('.nono-fit-clue-ink')
-   ?.style.removeProperty('--nono-fit-glyph-scale');
+  for(const slot of slots){
+   const ink=slot.querySelector('.nono-fit-clue-ink');
+   ink?.style.removeProperty('--nono-fit-glyph-scale-x');
+   ink?.style.removeProperty('--nono-fit-glyph-scale-y');
+  }
   const measurements=slots.map(slot=>{
    const ink=slot.querySelector('.nono-fit-clue-ink');
    return ink?{ink,slot:slot.getBoundingClientRect(),glyph:ink.getBoundingClientRect()}:null;
@@ -1266,10 +1270,13 @@ function fitBoardToViewport(){
    if(!item)continue;
    const {slot,glyph,ink}=item;
    if(!glyph.width||!glyph.height)continue;
-   const horizontal=(slot.width-1)/glyph.width;
-   const vertical=(slot.height-1)/glyph.height;
-   const scale=Math.max(.05,Math.min(1,horizontal,vertical));
-   ink.style.setProperty('--nono-fit-glyph-scale',scale.toFixed(3));
+   // Fit two-digit hints horizontally without reducing their readable height.
+   // The number always keeps its full vertical font size unless the actual
+   // slot height itself is smaller than the glyph.
+   const horizontal=Math.max(.05,Math.min(1,(slot.width-1)/glyph.width));
+   const vertical=Math.max(.05,Math.min(1,(slot.height-1)/glyph.height));
+   ink.style.setProperty('--nono-fit-glyph-scale-x',horizontal.toFixed(3));
+   ink.style.setProperty('--nono-fit-glyph-scale-y',vertical.toFixed(3));
   }
   grid.dataset.fitGlyphKey=glyphKey;
  }
