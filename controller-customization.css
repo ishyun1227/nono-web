@@ -155,8 +155,8 @@
  display:block!important;
  box-sizing:border-box!important;
  /* Clamp using the scaled width; 150% formerly pushed the pad offscreen. */
- left:clamp(calc(80px * var(--nono-pad-scale,1) + 8px),
-  var(--zone-x,21vw),calc(100vw - 80px * var(--nono-pad-scale,1) - 8px))!important;
+ left:clamp(var(--nono-trackpad-gutter,88px),
+  var(--zone-x,21vw),calc(100vw - var(--nono-trackpad-gutter,88px)))!important;
  top:var(--zone-y,83dvh)!important;
  width:160px!important;height:132px!important;
  transform:translate(-50%,-50%) scale(var(--nono-pad-scale,1))!important;
@@ -198,10 +198,10 @@
  box-sizing:border-box!important;
  position:fixed!important;z-index:6!important;
  width:152px!important;height:152px!important;
- left:clamp(calc(76px * var(--nono-pad-scale,1) + 8px),var(--zone-x,21vw),
-  calc(100vw - 76px * var(--nono-pad-scale,1) - 8px))!important;
- top:clamp(calc(76px * var(--nono-pad-scale,1) + 8px),var(--zone-y,83dvh),
-  calc(100dvh - 76px * var(--nono-pad-scale,1) - 48px))!important;
+ left:clamp(var(--nono-mini-gutter,84px),var(--zone-x,21vw),
+  calc(100vw - var(--nono-mini-gutter,84px)))!important;
+ top:clamp(var(--nono-mini-gutter,84px),var(--zone-y,83dvh),
+  calc(100dvh - var(--nono-mini-gutter,84px) - 48px))!important;
  transform:translate(-50%,-50%) scale(var(--nono-pad-scale,1))!important;
  transform-origin:center center!important;
  border-radius:17px!important;border:2px solid #92b6d9!important;
