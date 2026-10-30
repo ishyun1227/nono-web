@@ -115,6 +115,7 @@
   <div id="toast" role="status" aria-live="polite" class="toast hidden"></div>
   <script src="./firebase-config.js"></script>
   <script src="./puzzles-brainrot.js?v=1"></script>
+  <script src="./puzzles-public-catalog.js?v=1"></script>
   <script src="./answer-bitpack.js?v=1"></script>
   <script>
 const firebaseConfig=window.NONO_FIREBASE_CONFIG||{};
@@ -135,12 +136,11 @@ function createSizeTestPuzzle(size) {
   const cols=Array.from({length:size},(_,c)=>lineHints(Array.from({length:size},(_,r)=>mask[r*size+c])));
   return {id:'size-test-'+size,name:size+'×'+size+' 크기 테스트',size,rows,cols,sizeTest:true};
 }
+// Public catalog is the single source of truth for all fixed main puzzles.
+// IDs and local save keys are unchanged, preserving existing user progress.
 const PUZZLES = [
-  {id:'heart5',name:'작은 하트',size:5, rows:[[1,1],[5],[5],[3],[1]], cols:[[2], [4], [4], [4], [2]]},
-  {id:'cat10',name:'고양이',size:10,rows:[[2, 2], [8], [10], [2, 4, 2], [10], [2, 2, 2], [6], [4], [1, 1], [2, 2]],cols:[[3], [5], [3, 3, 1], [5, 4], [7], [7], [5, 4], [3, 3, 1], [5], [3]]},
-  {id:'rocket10',name:'우주선',size:10,rows:[[2], [4], [4], [4], [6], [6], [8], [2, 4, 2], [1, 4, 1], [4]],cols:[[2], [2], [3], [9], [10], [10], [9], [3], [2], [2]]},
-  ...(window.NONO_VOX_PUZZLES||[]),
-  ...[50,75,100].map(createSizeTestPuzzle)
+  ...(window.NONO_PUBLIC_PUZZLES||[]),
+  ...(window.NONO_DYNAMIC_PUZZLE_DEFS||[]).map(def=>createSizeTestPuzzle(def.size))
 ];
 function lineHints(bits) {
   const out=[];let count=0;
