@@ -388,8 +388,8 @@ function buildBoard(){
   const corner=document.createElement('div');corner.className='corner';corner.style.width=`${Math.max(38,15+maxRow*22)}px`;corner.style.height=`${Math.max(34,9+maxCol*19)}px`;
   const col=document.createElement('div');col.className='col-clues';col.style.gridTemplateColumns=`repeat(${n},var(--cell-size))`;
   const row=document.createElement('div');row.className='row-clues';
-  puzzle.cols.forEach(clue=>{const el=document.createElement('div');el.className='col-clue';for(const v of clue){const span=document.createElement('span');span.textContent=v;el.append(span);}col.append(el);});
-  puzzle.rows.forEach(clue=>{const el=document.createElement('div');el.className='row-clue';for(const v of clue){const span=document.createElement('span');span.textContent=v;el.append(span);}row.append(el);});
+  puzzle.cols.forEach(clue=>{const el=document.createElement('div');el.className='col-clue';for(const v of clue){const span=document.createElement('span');const ink=document.createElement('b');ink.className='nono-fit-clue-ink';ink.textContent=v;span.append(ink);el.append(span);}col.append(el);});
+  puzzle.rows.forEach(clue=>{const el=document.createElement('div');el.className='row-clue';for(const v of clue){const span=document.createElement('span');const ink=document.createElement('b');ink.className='nono-fit-clue-ink';ink.textContent=v;span.append(ink);el.append(span);}row.append(el);});
   const cells=document.createElement('div');cells.className='cells';cells.style.gridTemplateColumns=`repeat(${n},var(--cell-size))`;
   for(let i=0;i<n*h;i++){
     const b=document.createElement('button');b.type='button';b.className='cell';b.dataset.index=i;b.setAttribute('role','gridcell');b.setAttribute('aria-label',`${Math.floor(i/n)+1}행 ${i%n+1}열`);
