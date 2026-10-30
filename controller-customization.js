@@ -218,8 +218,11 @@ for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEve
 function miniatureCoordinates(e){
  const r=mini.getBoundingClientRect(),d=cursor()?.dimensions;
  if(!d||r.width<=0||r.height<=0)return null;
- const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
- const y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+ // The outer 3px border is a touch-friendly edge zone. Touching near a
+ // miniature corner should select the exact puzzle corner, not row 1/col 51.
+ const inset=3;
+ const x=Math.max(0,Math.min(1,(e.clientX-r.left-inset)/Math.max(1,r.width-inset*2)));
+ const y=Math.max(0,Math.min(1,(e.clientY-r.top-inset)/Math.max(1,r.height-inset*2)));
  return {row:Math.min(d.height-1,Math.floor(y*d.height)),
   col:Math.min(d.width-1,Math.floor(x*d.width))};
 }
