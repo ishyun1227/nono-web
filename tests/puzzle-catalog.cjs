@@ -22,11 +22,12 @@ const checks=['subjectRecognition','visualQuality','smallDetailsAndSpikes','oute
  'logicalSolvability','uniqueSolution','difficultyCalibration','humanPlaytest'];
 for(const item of catalog.puzzles){
  assert.match(item.id,/^[a-z][a-z0-9_-]+$/);
- assert.equal(item.difficulty,'미평가');
+ assert(['미평가','쉬움','보통','어려움','매우 어려움','전문가'].includes(item.difficulty));
  assert(item.width>0&&item.height>0);
- assert(item.review&&item.review.status==='pending');
+ assert(item.review&&['pending','approved','rejected'].includes(item.review.status));
  assert.deepEqual(Object.keys(item.review.checks).sort(),checks.slice().sort());
- assert(Object.values(item.review.checks).every(v=>v==='pending'));
+ assert(Object.values(item.review.checks).every(v=>['pending','passed','failed'].includes(v)));
+ if(item.review.status==='approved')assert(Object.values(item.review.checks).every(v=>v==='passed'),'An approved puzzle needs all eight passing quality checks');
  assert(!('mask' in item)&&!('packed' in item)&&!('b64' in item)&&!('solution' in item));
  assert(!('answer' in item&&('packed' in item.answer||'mask' in item.answer||'b64' in item.answer)));
  if(item.kind==='fixed'){
