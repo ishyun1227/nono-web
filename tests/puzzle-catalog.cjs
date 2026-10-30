@@ -11,12 +11,18 @@ const bits=require('../answer-bitpack.js');
 const {curatedVoxAnswers}=require('../tools/curated-vox-answers.cjs');
 const {curatedPlaytestAnswers}=require('../tools/curated-playtest-answers.cjs');
 assert.equal(catalog.schemaVersion,1);
-assert.equal(catalog.puzzles.length,12);
+assert(catalog.puzzles.length>=12,'Existing twelve puzzle entries must remain present');
 assert.equal(new Set(catalog.puzzles.map(p=>p.id)).size,12);
 const expectedIds=['heart5','cat10','rocket10','vox_crabino_front','vox_crabino_side','vox_crabino_top',
  'trial_rabbit_53x73','trial_samurai_72x72','winter-snowman-trial-v1',
  'size-test-50','size-test-75','size-test-100'];
-assert.deepEqual(catalog.puzzles.map(p=>p.id),expectedIds);
+assert.deepEqual(catalog.puzzles.slice(0,12).map(p=>p.id),expectedIds,'Existing puzzle IDs or order modified');
+for(const entry of catalog.puzzles.slice(12)){
+ assert.equal(entry.kind,'fixed');assert.equal(entry.origin,'trial');
+ assert.equal(entry.answer.deployment,'pending-auto-seed');
+ assert(fs.existsSync(path.join(root,'puzzles/trial',entry.id+'.json')),'Missing public trial data '+entry.id);
+ assert(fs.existsSync(path.join(root,'puzzles/sealed',entry.id+'.json')),'Missing encrypted private answer '+entry.id);
+}
 const lookup=new Map(catalog.puzzles.map(p=>[p.id,p]));
 const checks=['subjectRecognition','visualQuality','smallDetailsAndSpikes','outerZeroBorder',
  'logicalSolvability','uniqueSolution','difficultyCalibration','humanPlaytest'];
