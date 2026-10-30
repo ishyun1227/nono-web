@@ -730,6 +730,11 @@ body.nono-fit-playing:not(.nono-zoom-exceeded){overflow-x:hidden!important;overf
  .nono-setting-run .nono-run-controls input[type="range"]{flex:1}}
 body.nono-fit-playing #game{padding-top:0!important;margin-top:0!important}
 body.nono-fit-playing{overflow-x:auto!important;overflow-y:auto!important}
+/* The BODY used to become a nested horizontal scroller while the frozen
+   panes listen to window scrolling. Let the root own both scroll axes when
+   zoom exceeds fit; otherwise window.scrollX stayed zero on wide boards. */
+html:has(body.nono-fit-playing.nono-zoom-exceeded){overflow-x:auto!important;overflow-y:auto!important}
+body.nono-fit-playing.nono-zoom-exceeded{overflow:visible!important}
 body.nono-fit-playing #game{
  position:relative!important;
  min-height:var(--nono-page-height,100dvh)!important;
@@ -1024,23 +1029,30 @@ $('progress').textContent=hud;$('progress').style.display=prefs.progress==='off'
 $('undo').style.display=prefs.undoButtons?'':'none';$('redo').style.display=prefs.undoButtons?'':'none';
 $('nono-hint-action').style.display=(prefs.hintLine||prefs.hintExplanation||prefs.hintCell)?'':'none';
 const hintGuide=document.querySelector('.board-caption');if(hintGuide)hintGuide.hidden=prefs.guide==='off';
-cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',false);c.classList.toggle('nono-done-line',!!prefs.completeLines&&(lineSolved('row',r)||lineSolved('col',col)));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<h-1);
+// Evaluate line completion once per ROW/COLUMN, not once for EACH CELL.
+ // Without this memoization a 100x100 repaint recalculated the same lines
+ // 10,000 times and blocked the keyboard event loop.
+ const rowDone=prefs.completeLines?Array.from({length:h},(_,i)=>lineSolved('row',i)):[];
+ const colDone=prefs.completeLines?Array.from({length:n},(_,i)=>lineSolved('col',i)):[];
+ cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',false);c.classList.toggle('nono-done-line',!!prefs.completeLines&&(rowDone[r]||colDone[col]));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<h-1);
 const atEdge=col===n-1&&prefs.lineNumbers&&(r+1)%Math.max(1,Number(prefs.lineInterval)||5)===0;
 if(atEdge)c.dataset.rowCoordinate=String(r+1);else delete c.dataset.rowCoordinate;});
 for(const axis of ['row','col']){const elems=$('board').querySelectorAll(axis==='row'?'#board > .row-clues:not(.nono-extra-row) .row-clue':'#board > .col-clues:not(.nono-extra-col) .col-clue');elems.forEach((el,i)=>{el.querySelectorAll('span').forEach((span,j)=>{const stored=(manualClues[puzzle.id]||{})[axis+':'+i+':'+j];span.classList.toggle('nono-fade-clue',stored===true||(stored!==false&&prefs.autoHintFade&&canFade(axis,i,j)));span.classList.toggle('nono-hint-target',hintMode&&hintAxis===axis&&hintIndex===i&&j===hintNumber);});});}
 const hints='행 '+hintsForLine('row',Math.floor(selected/n)).join(' ')+' · 열 '+hintsForLine('col',selected%n).join(' ');
 $('nono-hud').textContent=hints;
-$('nono-hud').hidden=!hudEdit&&!(prefs.hintHud||prefs.pinnedClues||getHudConfig('hints').show===true)||getHudConfig('hints').show===false&&!hudEdit;
+$('nono-hud').hidden=!hudEdit&&!(prefs.hintHud||getHudConfig('hints').show===true)||getHudConfig('hints').show===false&&!hudEdit;
 $('nono-drag-hud').textContent=dragCount>0?'드래그 '+dragCount+'칸':'드래그 칸 수';
 $('nono-drag-hud').hidden=!hudEdit&&(!prefs.dragHud||dragCount===0)||getHudConfig('drag').show===false&&!hudEdit;
 $('nono-hud').style.fontSize=prefs.hudSize==='large'?'16px':prefs.hudSize==='small'?'10px':'12px';
 $('nono-hud').style.background=prefs.hudBg==='weak'?'#1b284866':prefs.hudBg==='strong'?'#111b33':'#1b2848db';
-$('nono-hud').style.position=prefs.pinnedClues?'sticky':'';$('nono-hud').style.top=prefs.pinnedClues?'0':'';$('nono-hud').style.zIndex=prefs.pinnedClues?'30':'';
+// The Excel-style pinnedClues setting pins the actual ROW/COLUMN hints,
+// not this unrelated current-cell HUD.
 for(const key of ['hints','drag','progress'])applyHudConfig(key);
 updateClueDecor();
 updateHighlightOverlay(selected);
 renderFilledRunCounts();
 drawMinimap();
+if(prefs.pinnedClues)scheduleFrozenClues();
 }
 
 
@@ -1307,8 +1319,9 @@ function fitBoardToViewport(){
  $('nono-zoom-out').disabled=boardZoom<=.4;
  $('nono-zoom-in').disabled=boardZoom>=3;
  if(isLarge)centerBoard();
+ scheduleFrozenClues();
 }
-function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();}
+function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();scheduleFrozenClues();}
 function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size,h=puzzle.height||n;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+h+'</b>';const g=E('div','nono-minimap-grid');g.style.aspectRatio=n+' / '+h;g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
 function openOverview(){
  if($('game').classList.contains('hidden'))return;
@@ -1339,18 +1352,40 @@ function moveSelection(dir,quick){
  else if(dir==='left')col-=delta;else col+=delta;
  row=prefs.wrap?(row+h*5)%h:Math.max(0,Math.min(h-1,row));
  col=prefs.wrap?(col+n*5)%n:Math.max(0,Math.min(n-1,col));
- selected=row*n+col;
- render();
- keepSelectionInsideBoard($('board').querySelectorAll('.cell')[selected]);
+ const next=row*n+col;
+ if(next===selected)return;
+ // Movement must be O(1): never call render()/updateBoard() for arrow repeats.
+ // Those paths scan thousands of cells and every hint on each key press.
+ const cells=$('board').querySelector('.cells')?.children;
+ if(cells)updateLiveSelection(next,cells);
+ else selected=next;
+ keepSelectionInsideBoard(cells?.[next]);
 }
 function keepSelectionInsideBoard(cell){
  if(!cell)return;
+ // On a screen-fitted board there is nowhere to scroll. Avoid even reading
+ // computed style / scrollWidth: those force layout across 5k–10k buttons
+ // after the two active classes have changed and caused 30ms key stutter.
+ if(document.body.classList.contains('nono-fit-playing')&&
+    !document.body.classList.contains('nono-zoom-exceeded'))return;
  const scroller=cell.closest('.board-scroll');
  if(!scroller)return;
  const style=getComputedStyle(scroller);
  const canX=/auto|scroll/.test(style.overflowX)&&scroller.scrollWidth>scroller.clientWidth+1;
  const canY=/auto|scroll/.test(style.overflowY)&&scroller.scrollHeight>scroller.clientHeight+1;
- if(!canX&&!canY)return; // A fitted puzzle must never scroll the entire page.
+ if(!canX&&!canY){
+  // At deliberate zoom > 100%, the document (not the game board) scrolls.
+  // Keep the keyboard-selected cell visible below the frozen hint rails.
+  if(document.body.classList.contains('nono-zoom-exceeded')){
+   const rect=cell.getBoundingClientRect();
+   const marginLeft=prefs.pinnedClues?(parseFloat($('board').style.getPropertyValue('--nono-fit-row-width'))||0)+8:8;
+   const marginTop=prefs.pinnedClues?(parseFloat($('board').style.getPropertyValue('--nono-fit-col-height'))||0)+8:8;
+   const dx=rect.left<marginLeft?rect.left-marginLeft:rect.right>innerWidth-8?rect.right-innerWidth+8:0;
+   const dy=rect.top<marginTop?rect.top-marginTop:rect.bottom>innerHeight-8?rect.bottom-innerHeight+8:0;
+   if(dx||dy)window.scrollBy({left:dx,top:dy,behavior:'instant'});
+  }
+  return;
+ }
  const frame=scroller.getBoundingClientRect(),rect=cell.getBoundingClientRect();
  let left=scroller.scrollLeft,top=scroller.scrollTop;
  if(prefs.follow==='center'){
@@ -1521,6 +1556,7 @@ function updateLiveSelection(next,cells){
  cells[next]?.classList.add('active');
  cells[next]?.setAttribute('aria-selected','true');
  updateHighlightOverlay(next);
+ if(prefs.pinnedClues)scheduleFrozenClues();
  const hud=$('nono-hud');
  if(hud)hud.textContent='행 '+hintsForLine('row',Math.floor(next/puzzle.size)).join(' ')+' · 열 '+hintsForLine('col',next%puzzle.size).join(' ');
 }
@@ -1687,7 +1723,7 @@ function setupPointer(){
  window.addEventListener('blur',()=>{if(fastDrag)endFastDrag();});
 }
 const oldPaint=paint;paint=function(index,to,drag){if(drag&&dragStart!==null){if(mode==='coop'){oldPaint(index,to,true);return;}const n=puzzle.size;const ar=Math.floor(dragStart/n),ac=dragStart%n,r=Math.floor(index/n),c=index%n;if(!dragAxis){dragAxis=Math.abs(c-ac)>=Math.abs(r-ar)?'row':'col'}if((dragAxis==='row'&&r!==ar)||(dragAxis==='col'&&c!==ac))return;const from=selected;const start=dragAxis==='row'?from%n:Math.floor(from/n),end=dragAxis==='row'?c:r,step=end>=start?1:-1;for(let k=start;k!==end+step;k+=step){const at=dragAxis==='row'?ar*n+k:k*n+ac;if(prefs.dragPolicy==='skip'&&board[at]!=='0'&&at!==dragStart)continue;oldPaint(at,to,true);dragCount++}updateBoard();return;}
-const prev=board[index];oldPaint(index,to,drag);if(board[index]!==prev){lastInput=index;lastInputTime=Date.now();if(prefs.lastInput==='3'||prefs.lastInput==='5')setTimeout(()=>{if(Date.now()-lastInputTime>=Number(prefs.lastInput)*1000)updateBoard()},Number(prefs.lastInput)*1000+50);playSound('input',to);if(prefs.errorMode==='immediate'&&wrongCells().length)notifyWrong('immediate');else scheduleWrong();saveBoard();const cl=$('board').querySelectorAll('.cell')[index];if(cl&&prefs.animation!=='basic'){const style='nono-input-'+prefs.animation;cl.classList.remove(style,'nono-anim-cross','nono-anim-fill');void cl.offsetWidth;cl.classList.add(style,to==='2'?'nono-anim-cross':'nono-anim-fill');}if(prefs.feedback!=='off'&&navigator.vibrate)navigator.vibrate(prefs.feedback==='strong'?45:prefs.feedback==='normal'?25:12)}updateBoard();};
+const prev=board[index];oldPaint(index,to,drag);if(board[index]!==prev){lastInput=index;lastInputTime=Date.now();if(prefs.lastInput==='3'||prefs.lastInput==='5')setTimeout(()=>{if(Date.now()-lastInputTime>=Number(prefs.lastInput)*1000)updateBoard()},Number(prefs.lastInput)*1000+50);playSound('input',to);if(prefs.errorMode==='immediate'&&wrongCells().length)notifyWrong('immediate');else scheduleWrong();saveBoard();const cl=$('board').querySelectorAll('.cell')[index];if(cl&&prefs.animation!=='basic'){const style='nono-input-'+prefs.animation;cl.classList.remove(style,'nono-anim-cross','nono-anim-fill');void cl.offsetWidth;cl.classList.add(style,to==='2'?'nono-anim-cross':'nono-anim-fill');}if(prefs.feedback!=='off'&&navigator.vibrate)navigator.vibrate(prefs.feedback==='strong'?45:prefs.feedback==='normal'?25:12)}};
 const oldRender=render;render=function(){oldRender();updateBoard()};
 // Undo/redo must update the persistent resume snapshot, not only the live board.
 const oldRestoreHistory=restoreHistory;
@@ -1697,13 +1733,122 @@ restoreHistory=function(source,target){
  if(changed&&mode==='practice')saveBoard();
 };
 const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();keyboardDrag=null;hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();changes=Number.isFinite(saved.changes)?saved.changes:0;manualClues[puzzle.id]=saved.manual||{};undoStack=restoredHistory(saved,'undo');redoStack=restoredHistory(saved,'redo');finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
-const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');return oldLeave()};
+const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');frozenRow&&(frozenRow.style.display='none');frozenCol&&(frozenCol.style.display='none');return oldLeave()};
 const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playSound('finish');setTimeout(()=>openOverview(),300)};
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
 window.addEventListener('blur',releaseMove);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseMove()});
 document.addEventListener('click',e=>{if(e.target.closest('#restart')){e.preventDefault();e.stopImmediatePropagation();if(roomCode)return;if(!confirm('퍼즐을 초기화할까요? 현재 진행 상황이 지워집니다.'))return;if(mode==='practice'){dropSave();delete manualClues[puzzle.id];}startAlone().then(saveBoard).catch(firebaseError);}},true);
 document.addEventListener('click',e=>{if(e.target.closest('#leave-game')){e.preventDefault();e.stopImmediatePropagation();if(!confirm('로비로 나갈까요? 진행 상황은 자동 저장됩니다.'))return;leaveGame()}},true);
+
+
+// Excel-like freeze panes: render ONLY the visible hint labels on two small,
+// fixed overlay canvases when document scrolling moves the original hints
+// out of view. The puzzle grid itself remains a single canonical player.
+let frozenRaf=0,frozenRow=null,frozenCol=null;
+function initializeFrozenClues(){
+ if(frozenRow)return;
+ for(const kind of ['row','col']){
+  const canvas=document.createElement('canvas');
+  canvas.className='nono-frozen-clues';
+  canvas.dataset.clueAxis=kind;
+  Object.assign(canvas.style,{
+   position:'fixed',top:'0',left:'0',pointerEvents:'none',
+   display:'none',zIndex:'10',background:'transparent'
+  });
+  document.body.append(canvas);
+  if(kind==='row')frozenRow=canvas;else frozenCol=canvas;
+ }
+ window.addEventListener('scroll',scheduleFrozenClues,{passive:true});
+ window.addEventListener('resize',scheduleFrozenClues,{passive:true});
+}
+function scheduleFrozenClues(){
+ if(frozenRaf)return;
+ frozenRaf=requestAnimationFrame(()=>{frozenRaf=0;drawFrozenClues()});
+}
+function paintFrozen(canvas,width,height,draw){
+ const dpr=Math.min(2,window.devicePixelRatio||1);
+ const w=Math.max(1,Math.ceil(width)),h=Math.max(1,Math.ceil(height));
+ if(canvas.width!==Math.ceil(w*dpr))canvas.width=Math.ceil(w*dpr);
+ if(canvas.height!==Math.ceil(h*dpr))canvas.height=Math.ceil(h*dpr);
+ canvas.style.width=w+'px';canvas.style.height=h+'px';
+ const ctx=canvas.getContext('2d');
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.clearRect(0,0,w,h);
+ draw(ctx,w,h);
+}
+function drawFrozenClues(){
+ if(!frozenRow)return;
+ const hide=()=>{frozenRow.style.display='none';frozenCol.style.display='none'};
+ if(!prefs.pinnedClues||$('game').classList.contains('hidden')||
+  !document.body.classList.contains('nono-zoom-exceeded')){hide();return}
+ const grid=$('board'),cells=grid.querySelector('.cells');
+ const rowClues=grid.querySelector('.row-clues'),colClues=grid.querySelector('.col-clues');
+ if(!cells||!rowClues||!colClues){hide();return}
+ const cr=cells.getBoundingClientRect(),rr=rowClues.getBoundingClientRect(),
+  tr=colClues.getBoundingClientRect(),vw=innerWidth,vh=innerHeight;
+ const width=puzzle.size,height=puzzle.height||puzzle.size;
+ const cw=cr.width/width,ch=cr.height/height;
+ const hintW=rr.width,hintH=tr.height;
+ const slotW=parseFloat(grid.style.getPropertyValue('--nono-fit-item-width'))||12;
+ const slotH=parseFloat(grid.style.getPropertyValue('--nono-fit-line-height'))||12;
+ const font=parseFloat(grid.style.getPropertyValue('--nono-fit-font'))||12;
+ // All painter positions are based on the real cell DOM bounds, so zoom and
+ // rectangular boards remain aligned while the page scrolls diagonally.
+ const ink=(ctx,value,x,y,dim,fade)=>{
+  ctx.save();ctx.translate(x,y);
+  ctx.font='750 '+font+'px system-ui, sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  const text=String(value),natural=ctx.measureText(text).width;
+  const scaleX=Math.min(1,(dim-1)/Math.max(1,natural));
+  ctx.scale(Math.max(.08,scaleX),1);
+  ctx.fillStyle=fade?'rgba(217,199,255,.34)':'#d8c7ff';
+  ctx.fillText(text,0,0);
+  ctx.restore();
+ };
+ if(tr.top<0&&cr.right>0&&cr.left<vw&&cr.bottom>0&&tr.bottom<vh&&hintH>0){
+  frozenCol.style.display='block';
+  const h=Math.min(vh,Math.ceil(hintH)),w=vw;
+  paintFrozen(frozenCol,w,h,(ctx)=>{
+   const minX=Math.max(0,cr.left),maxX=Math.min(vw,cr.right);
+   ctx.fillStyle='#131f37';ctx.fillRect(minX,0,maxX-minX,h);
+   ctx.beginPath();ctx.rect(minX,0,Math.max(0,maxX-minX),h);ctx.clip();
+   const first=Math.max(0,Math.floor((minX-cr.left)/cw)-1);
+   const last=Math.min(width,Math.ceil((maxX-cr.left)/cw)+1);
+   for(let c=first;c<last;c++){
+    const clue=puzzle.cols[c],x=cr.left+(c+.5)*cw;
+    const spans=colClues.children[c]?.children;
+    for(let j=0;j<clue.length;j++){
+     const y=h-(clue.length-j-.5)*slotH-2;
+     if(y>-font&&y<h+font)ink(ctx,clue[j],x,y,cw,spans?.[j]?.classList.contains('nono-fade-clue'));
+    }
+   }
+   ctx.strokeStyle='#6074ae';ctx.lineWidth=1;
+   ctx.beginPath();ctx.moveTo(minX,h-.5);ctx.lineTo(maxX,h-.5);ctx.stroke();
+  });
+ }else frozenCol.style.display='none';
+ if(rr.left<0&&cr.right>0&&cr.left<vw&&cr.bottom>0&&cr.top<vh&&hintW>0){
+  frozenRow.style.display='block';
+  const w=Math.min(vw,Math.ceil(hintW)),h=vh;
+  paintFrozen(frozenRow,w,h,(ctx)=>{
+   const minY=Math.max(0,cr.top),maxY=Math.min(vh,cr.bottom);
+   ctx.fillStyle='#131f37';ctx.fillRect(0,minY,w,maxY-minY);
+   ctx.beginPath();ctx.rect(0,minY,w,Math.max(0,maxY-minY));ctx.clip();
+   const first=Math.max(0,Math.floor((minY-cr.top)/ch)-1);
+   const last=Math.min(height,Math.ceil((maxY-cr.top)/ch)+1);
+   for(let row=first;row<last;row++){
+    const clue=puzzle.rows[row],y=cr.top+(row+.5)*ch;
+    const spans=rowClues.children[row]?.children;
+    for(let j=0;j<clue.length;j++){
+     const x=w-(clue.length-j-.5)*slotW-2;
+     if(x>-font&&x<w+font)ink(ctx,clue[j],x,y,slotW,spans?.[j]?.classList.contains('nono-fade-clue'));
+    }
+   }
+   ctx.strokeStyle='#6074ae';ctx.lineWidth=1;
+   ctx.beginPath();ctx.moveTo(w-.5,minY);ctx.lineTo(w-.5,maxY);ctx.stroke();
+  });
+ }else frozenRow.style.display='none';
+}
 
 const oldCheck=checkBoard;checkBoard=function(){notifyWrong('direct')};
 // Pointer hover updates only the selection and intersecting rows/columns.
@@ -1716,7 +1861,7 @@ function followPointerSelection(event){
  if(!cells||!Number.isInteger(next)||next<0||next>=puzzle.size*(puzzle.height||puzzle.size))return;
  updateLiveSelection(next,cells);
 }
-mount();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
+mount();initializeFrozenClues();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
 $('board').addEventListener('pointermove',followPointerSelection,{passive:true});
 window.addEventListener('blur',()=>{altClueSelection=null;releaseMove();keyboardDrag=null;});
 $('board').addEventListener('wheel',e=>{if(!prefs.zoomWheel||!e.ctrlKey)return;e.preventDefault();
