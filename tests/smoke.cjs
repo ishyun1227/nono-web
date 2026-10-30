@@ -112,7 +112,7 @@ const { pathToFileURL } = require('node:url');
       difficultyRow:document.querySelector('#nono-quick-difficulties').getBoundingClientRect().top
     };
   });
-  if(!base.heroHidden || !base.nativePickerHidden || base.controls!==9 || base.difficulties!==3 ||
+  if(!base.heroHidden || !base.nativePickerHidden || base.controls!==12 || base.difficulties!==4 ||
       base.tabs.x<base.header.x || base.tabs.right>base.header.right ||
       base.panel.y<base.header.bottom || base.panel.width<400 ||
       base.documentWidth>base.viewportWidth+2 ||
