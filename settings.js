@@ -1723,13 +1723,122 @@ restoreHistory=function(source,target){
  if(changed&&mode==='practice')saveBoard();
 };
 const oldShow=showGame;showGame=function(){boardZoom=1;oldShow();cellZoom=41;releaseMove();keyboardDrag=null;hintMode=false;altClueSelection=null;hintStage=0;lastInput=-1;const saved=mode==='practice'&&!puzzle.sizeTest?readBoard():null;if(saved){board=saved.board.split('');selected=saved.selected||0;startedAt=saved.startedAt||Date.now();changes=Number.isFinite(saved.changes)?saved.changes:0;manualClues[puzzle.id]=saved.manual||{};undoStack=restoredHistory(saved,'undo');redoStack=restoredHistory(saved,'redo');finished=isSolved(board,puzzle);finishedAt=finished?(saved.finishedAt||saved.savedAt||Date.now()):0;oldRender();toast('저장된 퍼즐을 이어서 시작했어요.');}apply();scheduleBoardFit();if(prefs.guide==='start')setTimeout(()=>{if(prefs.guide==='start'&&!$('game').classList.contains('hidden'))document.querySelector('.board-caption').hidden=true},10000);};
-const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');return oldLeave()};
+const oldLeave=leaveGame;leaveGame=async function(){altClueSelection=null;releaseMove();keyboardDrag=null;saveBoard();closeOverview();document.body.classList.remove('nono-fit-playing');frozenRow&&(frozenRow.style.display='none');frozenCol&&(frozenCol.style.display='none');return oldLeave()};
 const oldFinish=finishLocal;finishLocal=function(){oldFinish();saveBoard();playSound('finish');setTimeout(()=>openOverview(),300)};
 document.addEventListener('keydown',keyDown,true);document.addEventListener('keyup',endKeyboard,true);
 window.addEventListener('blur',releaseMove);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseMove()});
 document.addEventListener('click',e=>{if(e.target.closest('#restart')){e.preventDefault();e.stopImmediatePropagation();if(roomCode)return;if(!confirm('퍼즐을 초기화할까요? 현재 진행 상황이 지워집니다.'))return;if(mode==='practice'){dropSave();delete manualClues[puzzle.id];}startAlone().then(saveBoard).catch(firebaseError);}},true);
 document.addEventListener('click',e=>{if(e.target.closest('#leave-game')){e.preventDefault();e.stopImmediatePropagation();if(!confirm('로비로 나갈까요? 진행 상황은 자동 저장됩니다.'))return;leaveGame()}},true);
+
+
+// Excel-like freeze panes: render ONLY the visible hint labels on two small,
+// fixed overlay canvases when document scrolling moves the original hints
+// out of view. The puzzle grid itself remains a single canonical player.
+let frozenRaf=0,frozenRow=null,frozenCol=null;
+function initializeFrozenClues(){
+ if(frozenRow)return;
+ for(const kind of ['row','col']){
+  const canvas=document.createElement('canvas');
+  canvas.className='nono-frozen-clues';
+  canvas.dataset.clueAxis=kind;
+  Object.assign(canvas.style,{
+   position:'fixed',top:'0',left:'0',pointerEvents:'none',
+   display:'none',zIndex:'10',background:'transparent'
+  });
+  document.body.append(canvas);
+  if(kind==='row')frozenRow=canvas;else frozenCol=canvas;
+ }
+ window.addEventListener('scroll',scheduleFrozenClues,{passive:true});
+ window.addEventListener('resize',scheduleFrozenClues,{passive:true});
+}
+function scheduleFrozenClues(){
+ if(frozenRaf)return;
+ frozenRaf=requestAnimationFrame(()=>{frozenRaf=0;drawFrozenClues()});
+}
+function paintFrozen(canvas,width,height,draw){
+ const dpr=Math.min(2,window.devicePixelRatio||1);
+ const w=Math.max(1,Math.ceil(width)),h=Math.max(1,Math.ceil(height));
+ if(canvas.width!==Math.ceil(w*dpr))canvas.width=Math.ceil(w*dpr);
+ if(canvas.height!==Math.ceil(h*dpr))canvas.height=Math.ceil(h*dpr);
+ canvas.style.width=w+'px';canvas.style.height=h+'px';
+ const ctx=canvas.getContext('2d');
+ ctx.setTransform(dpr,0,0,dpr,0,0);
+ ctx.clearRect(0,0,w,h);
+ draw(ctx,w,h);
+}
+function drawFrozenClues(){
+ if(!frozenRow)return;
+ const hide=()=>{frozenRow.style.display='none';frozenCol.style.display='none'};
+ if(!prefs.pinnedClues||$('game').classList.contains('hidden')||
+  !document.body.classList.contains('nono-zoom-exceeded')){hide();return}
+ const grid=$('board'),cells=grid.querySelector('.cells');
+ const rowClues=grid.querySelector('.row-clues'),colClues=grid.querySelector('.col-clues');
+ if(!cells||!rowClues||!colClues){hide();return}
+ const cr=cells.getBoundingClientRect(),rr=rowClues.getBoundingClientRect(),
+  tr=colClues.getBoundingClientRect(),vw=innerWidth,vh=innerHeight;
+ const width=puzzle.size,height=puzzle.height||puzzle.size;
+ const cw=cr.width/width,ch=cr.height/height;
+ const hintW=rr.width,hintH=tr.height;
+ const slotW=parseFloat(grid.style.getPropertyValue('--nono-fit-item-width'))||12;
+ const slotH=parseFloat(grid.style.getPropertyValue('--nono-fit-line-height'))||12;
+ const font=parseFloat(grid.style.getPropertyValue('--nono-fit-font'))||12;
+ // All painter positions are based on the real cell DOM bounds, so zoom and
+ // rectangular boards remain aligned while the page scrolls diagonally.
+ const ink=(ctx,value,x,y,dim,fade)=>{
+  ctx.save();ctx.translate(x,y);
+  ctx.font='750 '+font+'px system-ui, sans-serif';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  const text=String(value),natural=ctx.measureText(text).width;
+  const scaleX=Math.min(1,(dim-1)/Math.max(1,natural));
+  ctx.scale(Math.max(.08,scaleX),1);
+  ctx.fillStyle=fade?'rgba(217,199,255,.34)':'#d8c7ff';
+  ctx.fillText(text,0,0);
+  ctx.restore();
+ };
+ if(tr.top<0&&cr.right>0&&cr.left<vw&&cr.bottom>0&&tr.bottom<vh&&hintH>0){
+  frozenCol.style.display='block';
+  const h=Math.min(vh,Math.ceil(hintH)),w=vw;
+  paintFrozen(frozenCol,w,h,(ctx)=>{
+   const minX=Math.max(0,cr.left),maxX=Math.min(vw,cr.right);
+   ctx.fillStyle='#131f37';ctx.fillRect(minX,0,maxX-minX,h);
+   ctx.beginPath();ctx.rect(minX,0,Math.max(0,maxX-minX),h);ctx.clip();
+   const first=Math.max(0,Math.floor((minX-cr.left)/cw)-1);
+   const last=Math.min(width,Math.ceil((maxX-cr.left)/cw)+1);
+   for(let c=first;c<last;c++){
+    const clue=puzzle.cols[c],x=cr.left+(c+.5)*cw;
+    const spans=colClues.children[c]?.children;
+    for(let j=0;j<clue.length;j++){
+     const y=h-(clue.length-j-.5)*slotH-2;
+     if(y>-font&&y<h+font)ink(ctx,clue[j],x,y,cw,spans?.[j]?.classList.contains('nono-fade-clue'));
+    }
+   }
+   ctx.strokeStyle='#6074ae';ctx.lineWidth=1;
+   ctx.beginPath();ctx.moveTo(minX,h-.5);ctx.lineTo(maxX,h-.5);ctx.stroke();
+  });
+ }else frozenCol.style.display='none';
+ if(rr.left<0&&cr.right>0&&cr.left<vw&&cr.bottom>0&&cr.top<vh&&hintW>0){
+  frozenRow.style.display='block';
+  const w=Math.min(vw,Math.ceil(hintW)),h=vh;
+  paintFrozen(frozenRow,w,h,(ctx)=>{
+   const minY=Math.max(0,cr.top),maxY=Math.min(vh,cr.bottom);
+   ctx.fillStyle='#131f37';ctx.fillRect(0,minY,w,maxY-minY);
+   ctx.beginPath();ctx.rect(0,minY,w,Math.max(0,maxY-minY));ctx.clip();
+   const first=Math.max(0,Math.floor((minY-cr.top)/ch)-1);
+   const last=Math.min(height,Math.ceil((maxY-cr.top)/ch)+1);
+   for(let row=first;row<last;row++){
+    const clue=puzzle.rows[row],y=cr.top+(row+.5)*ch;
+    const spans=rowClues.children[row]?.children;
+    for(let j=0;j<clue.length;j++){
+     const x=w-(clue.length-j-.5)*slotW-2;
+     if(x>-font&&x<w+font)ink(ctx,clue[j],x,y,slotW,spans?.[j]?.classList.contains('nono-fade-clue'));
+    }
+   }
+   ctx.strokeStyle='#6074ae';ctx.lineWidth=1;
+   ctx.beginPath();ctx.moveTo(w-.5,minY);ctx.lineTo(w-.5,maxY);ctx.stroke();
+  });
+ }else frozenRow.style.display='none';
+}
 
 const oldCheck=checkBoard;checkBoard=function(){notifyWrong('direct')};
 // Pointer hover updates only the selection and intersecting rows/columns.
@@ -1742,7 +1851,7 @@ function followPointerSelection(event){
  if(!cells||!Number.isInteger(next)||next<0||next>=puzzle.size*(puzzle.height||puzzle.size))return;
  updateLiveSelection(next,cells);
 }
-mount();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
+mount();initializeFrozenClues();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
 $('board').addEventListener('pointermove',followPointerSelection,{passive:true});
 window.addEventListener('blur',()=>{altClueSelection=null;releaseMove();keyboardDrag=null;});
 $('board').addEventListener('wheel',e=>{if(!prefs.zoomWheel||!e.ctrlKey)return;e.preventDefault();
