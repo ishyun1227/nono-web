@@ -479,6 +479,11 @@ body.nono-fit-playing #board.nono-board-fit.nono-both{
  font-size:var(--nono-fit-font)!important;letter-spacing:-.025em!important;
  font-variant-numeric:tabular-nums!important;line-height:1!important
 }
+#board.nono-board-fit .nono-fit-clue-ink{
+ display:inline-block;min-width:0;font-weight:inherit;font-size:inherit;line-height:1;
+ white-space:nowrap;transform:scale(var(--nono-fit-glyph-scale,1));
+ transform-origin:center center;
+}
 #board.nono-board-fit .row-clue>span,#board.nono-board-fit .col-clue>span{
  box-sizing:border-box!important;overflow:visible!important;white-space:nowrap!important;
  min-width:0!important;font-size:inherit!important;line-height:1!important;
@@ -1146,8 +1151,11 @@ function fitBoardToViewport(){
  const maxCol=Math.max(1,...puzzle.cols.map(a=>a.length));
  const maxNumber=Math.max(1,...puzzle.rows.flat(),...puzzle.cols.flat());
  const digits=String(maxNumber).length,sides=prefs.bothClues?2:1;
- const css=getComputedStyle(area),padW=parseFloat(css.paddingLeft)+parseFloat(css.paddingRight);
- const padH=parseFloat(css.paddingTop)+parseFloat(css.paddingBottom);
+ // Calculate the space occupied by the ENTIRE rendered board, not its cell
+ // matrix. CSS can keep additional intrinsic sizing and borders, so the final
+ // geometry is verified again after applying the computed size.
+ const css=getComputedStyle(area),padW=(parseFloat(css.paddingLeft)||0)+(parseFloat(css.paddingRight)||0);
+ const padH=(parseFloat(css.paddingTop)||0)+(parseFloat(css.paddingBottom)||0);
  // Fullscreen board gets 100% of the viewport; toolbars float in the side gutters.
  // Use visualViewport when available so browser zoom/resizing is reflected.
  const viewportW=window.visualViewport?.width||window.innerWidth;
@@ -1155,7 +1163,10 @@ function fitBoardToViewport(){
  // A landscape control deck sits to the left, a portrait deck sits below.
  const touchDock=document.body.classList.contains('nono-touch-pad-visible');
  const sideDock=touchDock&&window.matchMedia('(max-height:470px) and (orientation:landscape) and (pointer:coarse)').matches;
- const availW=Math.max(30,viewportW-padW-(sideDock?235:0)-2);
+ // Keep a small visible edge around the LEFT clues and TOP clues, too.
+ // Larger edge space is reserved when a landscape touch pad is beside the grid.
+ const fitGutter=4;
+ const availW=Math.max(1,viewportW-padW-(sideDock?235:0)-fitGutter*2);
  let reservedControls=touchDock&&!sideDock?178:0;
  if(reservedControls){
   const controls=['#nono-mobile-pad .nono-dpad','#nono-mobile-pad .nono-pad-actions','#nono-floating-zone']
@@ -1168,27 +1179,29 @@ function fitBoardToViewport(){
   reservedControls=Math.min(Math.max(0,viewportH-120),reservedControls);
  }
  document.documentElement.style.setProperty('--nono-mobile-pad-reserve',reservedControls+'px');
- const availH=Math.max(30,viewportH-padH-reservedControls-2);
+ const availH=Math.max(1,viewportH-padH-reservedControls-fitGutter*2);
  const cap=n<=5?60:n<=10?41:n<=25?34:26;
  function dimensions(cell){
-  const font=Math.max(2.8,Math.min(14,cell*.69));
-  const slotWidth=Math.max(3.5,Math.min(24,font*(digits===3?1.95:digits===2?1.38:1.05)+1));
-  const slotHeight=Math.max(3.5,Math.min(22,cell*.90,font+1));
-  return {font,slotWidth,slotHeight,rowWidth:maxRow*slotWidth+10,colHeight:maxCol*slotHeight+10};
+  // A two-digit hint must be contained by its own dedicated slot. The old
+  // 1.38em width could let numbers protrude past a column boundary.
+  const font=Math.max(2.5,Math.min(14,cell*.67));
+  const slotWidth=Math.max(3.5,Math.min(28,font*(digits>=3?2.2:digits===2?1.7:1.12)+1));
+  const slotHeight=Math.max(3.5,Math.min(22,cell*.90,font*1.12+1));
+  const rowWidth=maxRow*slotWidth+6,colHeight=maxCol*slotHeight+6;
+  return {font,slotWidth,slotHeight,rowWidth,colHeight,
+   fullWidth:cell*n+rowWidth*sides,fullHeight:cell*h+colHeight*sides};
  }
  let low=.5,high=cap;
  for(let k=0;k<35;k++){
   const mid=(low+high)/2,d=dimensions(mid);
-  if(n*mid+d.rowWidth*sides+4<=availW&&h*mid+d.colHeight*sides+4<=availH)low=mid;
+  if(d.fullWidth<=availW&&d.fullHeight<=availH)low=mid;
   else high=mid;
  }
- const fit=Math.max(.5,low),cell=fit*boardZoom,d=dimensions(cell);
- const renderedWidth=n*cell+d.rowWidth*sides+8;
- const renderedHeight=h*cell+d.colHeight*sides+8;
- const pageWidth=boardZoom<=1?Math.ceil(viewportW):Math.ceil(Math.max(viewportW,renderedWidth+4));
- const pageHeight=boardZoom<=1?Math.ceil(viewportH):Math.ceil(Math.max(viewportH,renderedHeight+4));
- // Scroll the DOCUMENT, never the puzzle container.
- // Keep fit centered and allow extra-zoom content to extend the document.
+ let fit=Math.max(.25,low),cell=fit*boardZoom,d=dimensions(cell);
+ const pageWidth=boardZoom<=1?Math.ceil(viewportW):Math.ceil(Math.max(viewportW,d.fullWidth+fitGutter*2));
+ const pageHeight=boardZoom<=1?Math.ceil(viewportH):Math.ceil(Math.max(viewportH,d.fullHeight+fitGutter*2));
+ // Page scrolling is supported only when the user intentionally zooms PAST
+ // fit. At 100% the entire grid AND every clue should remain visible.
  if(isLarge){
   const game=$('game');
   game.style.setProperty('--nono-page-width',pageWidth+'px');
@@ -1197,21 +1210,66 @@ function fitBoardToViewport(){
  area.classList.remove('nono-zoomed');
  area.style.setProperty('--nono-fit-scroller-height',availH.toFixed(2)+'px');
  area.style.removeProperty('--nono-visible-board-height');
- const props={
-  '--cell-size':cell.toFixed(3)+'px',
-  '--nono-fit-size':String(n),
-  '--nono-fit-height':String(h),
-  '--nono-fit-grid-width':(cell*n).toFixed(3)+'px',
-  '--nono-fit-grid-height':(cell*h).toFixed(3)+'px',
-  '--nono-fit-item-width':d.slotWidth.toFixed(3)+'px',
-  '--nono-fit-line-height':d.slotHeight.toFixed(3)+'px',
-  '--nono-fit-font':d.font.toFixed(3)+'px',
-  '--nono-fit-row-width':d.rowWidth.toFixed(3)+'px',
-  '--nono-fit-col-height':d.colHeight.toFixed(3)+'px'
- };
- for(const [key,value] of Object.entries(props))grid.style.setProperty(key,value,'important');
+ function applyGeometry(){
+  const props={
+   '--cell-size':cell.toFixed(3)+'px',
+   '--nono-fit-size':String(n),
+   '--nono-fit-height':String(h),
+   '--nono-fit-grid-width':(cell*n).toFixed(3)+'px',
+   '--nono-fit-grid-height':(cell*h).toFixed(3)+'px',
+   '--nono-fit-item-width':d.slotWidth.toFixed(3)+'px',
+   '--nono-fit-line-height':d.slotHeight.toFixed(3)+'px',
+   '--nono-fit-font':d.font.toFixed(3)+'px',
+   '--nono-fit-row-width':d.rowWidth.toFixed(3)+'px',
+   '--nono-fit-col-height':d.colHeight.toFixed(3)+'px'
+  };
+  for(const [key,value] of Object.entries(props))grid.style.setProperty(key,value,'important');
+ }
+ applyGeometry();
+ // The mathematical estimate is not sufficient: intrinsic CSS min sizes,
+ // borders and browser rounding can make the ACTUAL clue+grid larger.
+ // Reduce the cell size until the measured complete board fits both axes.
+ if(isLarge&&boardZoom<=1){
+  for(let attempt=0;attempt<3;attempt++){
+   const actual=grid.getBoundingClientRect();
+   const ratio=Math.min(1,availW/Math.max(1,actual.width),availH/Math.max(1,actual.height));
+   if(ratio>=.998)break;
+   cell=Math.max(.25,cell*ratio*.995);
+   d=dimensions(cell);applyGeometry();
+  }
+  fit=cell/boardZoom;
+ }
+ // Browsers can impose a minimum rendered text height below 5px. Scale only
+ // the glyph (not its clue slot or border) so dense two-digit hints never
+ // overlap the neighboring row/column even on a narrow phone.
+ // Layout measuring clue numbers is expensive for large boards. Reuse the
+ // result across keyboard moves/drag strokes until cell or clue sizing changes.
+ const glyphKey=[puzzle.id,n,h,cell.toFixed(3),d.slotWidth.toFixed(3),
+  d.slotHeight.toFixed(3),d.font.toFixed(3),maxRow,maxCol,maxNumber,sides,
+  document.body.dataset.nonoTheme||''].join(':');
+ if(isLarge&&grid.dataset.fitGlyphKey!==glyphKey){
+  grid.style.setProperty('--nono-fit-glyph-scale','1','important');
+  let glyphScale=1;
+  const range=document.createRange();
+  for(const slot of grid.querySelectorAll('.row-clue>span,.col-clue>span')){
+   const ink=slot.querySelector('.nono-fit-clue-ink');
+   if(!ink)continue;
+   const slotRect=slot.getBoundingClientRect();
+   range.selectNodeContents(ink);
+   const glyphRect=range.getBoundingClientRect();
+   if(glyphRect.width>0&&glyphRect.height>0){
+    const horizontal=Math.max(.1,(slotRect.width-.7)/glyphRect.width);
+    const vertical=Math.max(.1,(slotRect.height-.7)/glyphRect.height);
+    glyphScale=Math.min(glyphScale,horizontal,vertical);
+   }
+  }
+  grid.style.setProperty('--nono-fit-glyph-scale',Math.max(.1,Math.min(1,glyphScale)).toFixed(3),'important');
+  grid.dataset.fitGlyphKey=glyphKey;
+ }
  grid.dataset.fitCellSize=cell.toFixed(2);
  grid.dataset.fitMax=fit.toFixed(2);
+ grid.dataset.fitBoardWidth=d.fullWidth.toFixed(2);
+ grid.dataset.fitBoardHeight=d.fullHeight.toFixed(2);
  updateHighlightOverlay(selected);
  renderFilledRunCounts();
  $('nono-zoom-label').textContent=boardZoom===1?'맞춤':Math.round(boardZoom*100)+'%';

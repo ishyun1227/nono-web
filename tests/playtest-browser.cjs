@@ -43,6 +43,54 @@ const {pathToFileURL}=require('node:url');
   await open('trial_rabbit_53x73',53,73);
   if(!await page.locator('#board .cells .cell').first().evaluate(el=>el.classList.contains('filled')))
    throw Error('Rabbit progress lost when switching puzzles');
+  // 'Screen fit' includes every top/left clue, not only the filled grid.
+  // Run at the user's reported near-square viewport and a narrow phone.
+  for(const viewport of [{width:937,height:971},{width:390,height:844}]){
+   await page.setViewportSize(viewport);
+   for(const [id,w,h] of [
+    ['trial_rabbit_53x73',53,73],
+    ['trial_samurai_72x72',72,72],
+    ['winter-snowman-trial-v1',59,63]
+   ]){
+    await open(id,w,h);
+    await page.evaluate(async()=>{
+      document.getElementById('nono-zoom-fit').click();
+      await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    });
+    const fit=await page.evaluate(()=>{
+      const el=document.getElementById('board'),frame=el.getBoundingClientRect();
+      const cells=el.querySelector('.cells').getBoundingClientRect();
+      const row=el.querySelector('.row-clues').getBoundingClientRect();
+      const col=el.querySelector('.col-clues').getBoundingClientRect();
+      const clues=[...el.querySelectorAll('.row-clue span,.col-clue span')];
+      const offscreen=[],protruding=[];
+      for(const span of clues){
+       const r=span.getBoundingClientRect();
+       if(r.left<-1||r.top<-1||r.right>innerWidth+1||r.bottom>innerHeight+1)
+        offscreen.push(span.textContent);
+       // A number's glyph must fit INSIDE its own hint slot, not simply
+       // escape a visible span while overlapping the adjacent number.
+       const range=document.createRange();range.selectNodeContents(span);
+       const ink=range.getBoundingClientRect();
+       if(ink.width>r.width+1.8||ink.height>r.height+1.8)
+        protruding.push({n:span.textContent,slot:r.width,ink:ink.width});
+      }
+      return {viewport:[innerWidth,innerHeight],board:[frame.left,frame.top,frame.right,frame.bottom],
+       grid:[cells.width,cells.height],rowWidth:row.width,colHeight:col.height,
+       expectedWidth:Number(el.dataset.fitBoardWidth),expectedHeight:Number(el.dataset.fitBoardHeight),
+       offscreen:offscreen.slice(0,5),protruding:protruding.slice(0,5),
+       clueCount:clues.length,
+       overflow:getComputedStyle(document.querySelector('#game .board-scroll')).overflow};
+    });
+    if(fit.board[0]<-2||fit.board[1]<-2||
+       fit.board[2]>viewport.width+2||fit.board[3]>viewport.height+2||
+       fit.offscreen.length||fit.protruding.length||
+       Math.abs(fit.rowWidth+fit.grid[0]-fit.expectedWidth)>8||
+       Math.abs(fit.colHeight+fit.grid[1]-fit.expectedHeight)>8)
+      throw Error('Full clue-and-grid screen fit failed: '+id+' '+JSON.stringify(fit));
+   }
+  }
+  await page.setViewportSize({width:1280,height:850});
   if(errors.length)throw Error('Main-player errors: '+errors.join(' | '));
   console.log('PLAYTEST_PASS: original editor; rabbit 53x73, samurai 72x72, paint, undo, redo, resume and switch');
  }finally{await browser.close();}
