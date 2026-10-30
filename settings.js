@@ -180,9 +180,57 @@ function saveBoard(){
   }catch(error){if(limit===0)console.warn('퍼즐 진행 상태를 저장하지 못했어요.',error);}
  }
 }
+// Migrate legacy standalone playtest progress once, without deleting its
+// original localStorage entry. All new play uses the canonical numeric history.
+function importOldTrialSave(){
+ const id=puzzle.id,n=puzzle.size*(puzzle.height||puzzle.size);
+ const legacyKey=id==='winter-snowman-trial-v1'?'nono-winter-snowman-trial-v1':
+  id==='trial_rabbit_53x73'?'nono-source-playtest-20261029-rabbit':
+  id==='trial_samurai_72x72'?'nono-source-playtest-20261029-samurai':null;
+ if(!legacyKey)return null;
+ try{
+  const old=JSON.parse(localStorage.getItem(legacyKey)||'null');
+  if(!old)return null;
+  let values=Array(n).fill('0'),actions=[],future=[],started=Date.now(),done=0;
+  const validAction=([i,b,a])=>Number.isInteger(i)&&i>=0&&i<n&&
+   Number.isInteger(b)&&b>=0&&b<=2&&Number.isInteger(a)&&a>=0&&a<=2&&b!==a;
+  if(id==='winter-snowman-trial-v1'){
+   if(old.version!==1)return null;
+   const decode=b64=>{
+    const bytes=atob(b64||'');if(bytes.length%3||bytes.length>n*30)throw Error('Invalid old snowman moves');
+    const arr=[];for(let k=0;k<bytes.length;k+=3){
+     const i=bytes.charCodeAt(k)*256+bytes.charCodeAt(k+1),x=bytes.charCodeAt(k+2);
+     const step=[i,x>>2,x&3];if(!validAction(step))throw Error('Invalid old snowman move');
+     arr.push(step);
+    }return arr;
+   };
+   actions=decode(old.undo);future=decode(old.redo);
+   for(const [i,b,a] of actions){if(values[i]!==String(b))throw Error('Old snowman history mismatch');values[i]=String(a);}
+   started=Number(old.startedAt)||Date.now();done=Number(old.finishedAt)||0;
+  }else{
+   if(old.v!==1||typeof old.marks!=='string')return null;
+   const bytes=atob(old.marks);if(bytes.length!==Math.ceil(n/4))return null;
+   values=Array.from({length:n},(_,i)=>String((bytes.charCodeAt(i>>2)>>((i&3)*2))&3));
+   if(values.some(v=>v==='3'))return null;
+   actions=Array.isArray(old.undo)?old.undo.filter(validAction):[];
+   future=Array.isArray(old.redo)?old.redo.filter(validAction):[];
+   const elapsed=Number.isFinite(old.elapsed)?Math.max(0,old.elapsed):0;
+   started=Date.now()-elapsed;done=old.completed?Date.now():0;
+  }
+  const convert=(list)=>list.slice(-150).map(([i,b,a],k)=>[
+   k,k+1,i,i,[[i,b*3+a]]
+  ]);
+  const data={board:values.join(''),startedAt:started,finishedAt:done,selected:0,
+   changes:actions.length,historyFormat:HISTORY_FORMAT,undo:convert(actions),
+   redo:convert(future),manual:{},savedAt:Date.now()};
+  // Never mutate the old playtest save and never expose its original solutions.
+  localStorage.setItem(saveKey(),JSON.stringify(data));
+  return data;
+ }catch(error){console.warn('옛 퍼즐 진행 데이터 이전 실패',error);return null;}
+}
 function readBoard(){
  try{
-  const data=JSON.parse(localStorage.getItem(saveKey())||'null');
+  const data=JSON.parse(localStorage.getItem(saveKey())||'null')||importOldTrialSave();
   return data&&typeof data.board==='string'&&data.board.length===puzzle.size*(puzzle.height||puzzle.size)&&/^[012]+$/.test(data.board)?data:null;
  }catch{return null;}
 }
