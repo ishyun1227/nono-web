@@ -235,7 +235,8 @@ mini.addEventListener('pointerdown',e=>{
  const p=miniatureCoordinates(e);if(!p)return;
  e.preventDefault();
  const action=heldMiniAction();
- miniActive={id:e.pointerId,x:e.clientX,y:e.clientY,axis:null,action,
+ miniActive={id:e.pointerId,x:e.clientX,y:e.clientY,
+  originX:e.clientX,originY:e.clientY,axis:null,action,
   startRow:p.row,startCol:p.col,lastRow:p.row,lastCol:p.col};
  cursor()?.select(p.row,p.col);
  if(action)cursor()?.paintAt?.(p.row,p.col,action);
@@ -255,6 +256,7 @@ mini.addEventListener('pointermove',e=>{
   const here=cursor()?.position;
   a.startRow=here?.row??a.lastRow;a.startCol=here?.col??a.lastCol;
   a.lastRow=a.startRow;a.lastCol=a.startCol;
+  a.originX=a.x;a.originY=a.y;
   a.axis=null;a.action=action;
  }
  if(!action){
@@ -262,7 +264,7 @@ mini.addEventListener('pointermove',e=>{
   a.lastRow=p.row;a.lastCol=p.col;
  }else{
   if(!a.axis){
-   const dx=e.clientX-a.x,dy=e.clientY-a.y;
+   const dx=e.clientX-a.originX,dy=e.clientY-a.originY;
    if(Math.max(Math.abs(dx),Math.abs(dy))>=5)
     a.axis=Math.abs(dx)>=Math.abs(dy)?'x':'y';
   }
