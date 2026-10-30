@@ -25,6 +25,17 @@ const specs=[
  ...curatedVoxAnswers(),
  ...curatedPlaytestAnswers()
 ];
+// Read current server children BEFORE decrypting archived bundles. After an
+// admin key is rotated, already-uploaded bundles can be safely skipped.
+// Every missing bundle must still decrypt and match its public hints.
+const cli=path.join(__dirname,'../node_modules/firebase-tools/lib/bin/firebase.js');
+const base=['--project',project];
+if(apply&&!fs.existsSync(cli))throw Error('Run npm ci before uploading protected answers');
+const existing=apply
+ ? JSON.parse(cp.execFileSync(process.execPath,[cli,'database:get','/privateAnswersPacked',...base],
+   {encoding:'utf8',stdio:['ignore','pipe','pipe']}))
+ : null;
+
 // A private answer can be committed only as an encrypted, opaque bundle.
  // The public catalog contains dimensions and hints but never the solution.
 const catalog=JSON.parse(fs.readFileSync(path.join(__dirname,'../puzzles/catalog.json'),'utf8'));
@@ -47,6 +58,11 @@ for(const filename of files){
   const credential=process.env.GOOGLE_APPLICATION_CREDENTIALS;
   if(!credential||!fs.existsSync(credential))throw Error('Private service account credentials are not available for sealed answer decryption');
   const account=JSON.parse(fs.readFileSync(credential,'utf8'));
+  if(!encrypted.keys.some(k=>k.keyId===account.private_key_id)&&
+     existing&&Object.hasOwn(existing,encrypted.id)){
+   console.log('Preserved already-uploaded encrypted answer after credential rotation:',encrypted.id);
+   continue;
+  }
   const privatePuzzle=unseal(encrypted,account);
   const mask=codec.unpack(privatePuzzle.packed,encrypted.width,encrypted.height);
   specs.push({id:encrypted.id,width:encrypted.width,height:encrypted.height,
@@ -82,10 +98,6 @@ if(!apply){
 }
 // Read first and never silently destroy existing answers. Firebase's database:update
 // at /privateAnswersPacked replaces the entire branch, so write only missing child IDs.
-const cli=path.join(__dirname,'../node_modules/firebase-tools/lib/bin/firebase.js');
-if(!fs.existsSync(cli))throw Error('Run npm ci before deploying private packed answers');
-const base=['--project',project],read=cp.execFileSync(process.execPath,[cli,'database:get','/privateAnswersPacked',...base],{encoding:'utf8',stdio:['ignore','pipe','pipe']});
-const existing=JSON.parse(read);
 const missing=planMissingPackedAnswers(existing,packedAnswers);
 console.log('Preflight:',Object.keys(existing||{}).length,'existing packed answers;',missing.length,'new answers to add');
 if(missing.length===0){console.log('All expected packed answers are already seeded.');process.exit(0);}
