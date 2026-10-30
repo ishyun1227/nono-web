@@ -146,6 +146,47 @@
   display:grid!important;opacity:.7!important;
 }
 #nono-mobile-pad.nono-floating-mode.nono-pad-editing #nono-floating-zone{display:none!important}
+
+/* Relative finger-motion mode: a laptop touchpad instead of joystick edges.
+   Reuse the existing left-side zone; the action buttons and persisted position
+   editor remain untouched. */
+#nono-mobile-pad.nono-trackpad-mode .nono-dpad{display:none!important}
+#nono-mobile-pad.nono-trackpad-mode #nono-floating-zone{
+ display:block!important;
+ box-sizing:border-box!important;
+ left:clamp(82px,var(--zone-x,21vw),calc(100vw - 82px))!important;
+ top:var(--zone-y,83dvh)!important;
+ width:160px!important;height:132px!important;
+ transform:translate(-50%,-50%) scale(var(--nono-pad-scale,1))!important;
+ background:linear-gradient(145deg,#253b58e6,#14263beb)!important;
+ border:1.5px solid #83b4d4b5!important;border-radius:23px!important;
+ box-shadow:inset 0 1px 2px #ffffff29,0 10px 22px #06102480!important;
+ opacity:var(--nono-pad-opacity,.8)!important;
+ cursor:crosshair!important;touch-action:none!important;
+ -webkit-user-select:none;user-select:none;
+}
+#nono-mobile-pad.nono-trackpad-mode #nono-floating-zone::before{
+ content:"";position:absolute;inset:15px;
+ background-image:radial-gradient(#bbd8ec57 1px,transparent 1px);
+ background-size:12px 12px;opacity:.6;
+ pointer-events:none!important;
+}
+#nono-mobile-pad.nono-trackpad-mode #nono-floating-zone::after{
+ content:"트랙패드\\a 손가락을 밀어 이동"!important;
+ white-space:pre!important;font-size:11px!important;line-height:1.6!important;
+ color:#e2f6ff!important;letter-spacing:-.02em;
+ text-shadow:0 1px 4px #0a172a!important;
+ pointer-events:none!important;position:absolute;inset:auto!important;
+ left:50%!important;top:50%!important;
+ transform:translate(-50%,-50%)!important;text-align:center!important;
+}
+#nono-mobile-pad.nono-trackpad-mode.nono-pad-editing .nono-dpad{
+ display:grid!important;opacity:.7!important;
+}
+#nono-mobile-pad.nono-trackpad-mode.nono-pad-editing #nono-floating-zone{
+ display:none!important;
+}
+
 #nono-pad-editbar{
   position:fixed;z-index:10100;left:50%;top:calc(9px + env(safe-area-inset-top,0px));
   transform:translateX(-50%);width:min(95vw,680px);
