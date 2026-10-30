@@ -1242,8 +1242,13 @@ function fitBoardToViewport(){
  // Browsers can impose a minimum rendered text height below 5px. Scale only
  // the glyph (not its clue slot or border) so dense two-digit hints never
  // overlap the neighboring row/column even on a narrow phone.
- grid.style.setProperty('--nono-fit-glyph-scale','1','important');
- if(isLarge){
+ // Layout measuring clue numbers is expensive for large boards. Reuse the
+ // result across keyboard moves/drag strokes until cell or clue sizing changes.
+ const glyphKey=[puzzle.id,n,h,cell.toFixed(3),d.slotWidth.toFixed(3),
+  d.slotHeight.toFixed(3),d.font.toFixed(3),maxRow,maxCol,maxNumber,sides,
+  document.body.dataset.nonoTheme||''].join(':');
+ if(isLarge&&grid.dataset.fitGlyphKey!==glyphKey){
+  grid.style.setProperty('--nono-fit-glyph-scale','1','important');
   let glyphScale=1;
   const range=document.createRange();
   for(const slot of grid.querySelectorAll('.row-clue>span,.col-clue>span')){
@@ -1259,6 +1264,7 @@ function fitBoardToViewport(){
    }
   }
   grid.style.setProperty('--nono-fit-glyph-scale',Math.max(.1,Math.min(1,glyphScale)).toFixed(3),'important');
+  grid.dataset.fitGlyphKey=glyphKey;
  }
  grid.dataset.fitCellSize=cell.toFixed(2);
  grid.dataset.fitMax=fit.toFixed(2);
