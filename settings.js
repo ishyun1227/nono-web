@@ -896,6 +896,8 @@ body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
   overflow:hidden!important;overscroll-behavior:contain!important;
   -webkit-overflow-scrolling:touch;
  }
+ body.nono-mobile-app.nono-fit-playing.nono-touch-pad-visible.nono-zoom-exceeded #game .board-scroll,
+ body.nono-mobile-app.nono-fit-playing.nono-touch-pad-visible.nono-zoom-exceeded #game .board-scroll.nono-zoomed,
  body.nono-mobile-app.nono-zoom-exceeded #game .board-scroll,
  body.nono-mobile-app.nono-zoom-exceeded #game .board-scroll.nono-zoomed{
   overflow:auto!important;overflow-x:auto!important;overflow-y:auto!important;
