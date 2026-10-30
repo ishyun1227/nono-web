@@ -26,7 +26,6 @@ jobs:
     timeout-minutes: 20
     env:
       PROJECT_ID: nono-web-ishyun-20261020
-      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -61,6 +60,8 @@ jobs:
         run: npm run test:browser
       - name: Prepare temporary service account credentials
         if: ${{ inputs.phase != 'validate_only' }}
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         shell: bash
         run: |
           set -euo pipefail
@@ -68,6 +69,13 @@ jobs:
             echo 'Missing FIREBASE_SERVICE_ACCOUNT_JSON GitHub secret; nothing deployed.' >&2
             exit 1
           fi
+          node -e '
+            const a=JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+            if(a.type!=="service_account"||a.project_id!==process.env.PROJECT_ID||!a.private_key)
+              throw Error("Invalid Firebase production administrator credentials");
+            if(a.private_key_id==="7018ae5277b705be7d69bae56b40256126ad3909")
+              throw Error("Previously exposed Firebase service-account key must be rotated first");
+          '
           umask 077
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/nono-firebase-sa.json"
           echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/nono-firebase-sa.json" >> "$GITHUB_ENV"
@@ -87,5 +95,5 @@ jobs:
         run: |
           echo "Selected phase: $PHASE"
           echo "Legacy /privateAnswers and user records are preserved."
-          echo "Client flag NONO_PACKED_ANSWERS_READY remains OFF."
+          echo "Automatic main-branch private answer sync is available; the client rollout flag is managed separately."
           echo "A separate release must validate and enable client migration."
