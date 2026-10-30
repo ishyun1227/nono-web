@@ -108,13 +108,13 @@
     session = null;
     if (!isSolo() || finished) return;
     const existing = API.readPending(local, puzzle.id, mode);
-    if (existing && existing.size === puzzle.size && API.boardAtEnd(existing) === getBoard()) {
+    if (existing && existing.size === puzzle.size && (existing.height||existing.size)===(puzzle.height||puzzle.size) && API.boardAtEnd(existing) === getBoard()) {
       session = existing;
     } else {
       // Old unfinished saves do not contain their earlier steps.
       // Begin with the actual restored board, never fabricate earlier input.
       session = API.makeSession({
-        puzzleId: puzzle.id, mode, size: puzzle.size,
+        puzzleId: puzzle.id, mode, size: puzzle.size, height:puzzle.height||puzzle.size,
         initial: getBoard(), startedAt: startedAt || Date.now()
       });
       safeSave(false);
@@ -218,11 +218,11 @@
     setAccount(rows) {accountRows = Array.isArray(rows) ? rows.slice(0,5) : [];renderRecent();},
     setPublicPreference(value) {consentInput.disabled=false;consentInput.checked=Boolean(value);consentLabel.textContent=t('share');}
   };
-  function draw(canvas, grid, size) {
+  function draw(canvas, grid, size, height=size) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    canvas.width = size; canvas.height = size;
-    const img = ctx.createImageData(size, size);
+    canvas.width = size; canvas.height = height;
+    const img = ctx.createImageData(size, height);
     for (let i = 0; i < grid.length; i++) {
       const value = Number(grid[i]);
       const base = i * 4;
@@ -249,7 +249,7 @@
           const step = steps[position++];
           grid[step.cell] = step.value;
         }
-        draw(canvas, grid, replay.size);
+        draw(canvas, grid, replay.size,replay.height||replay.size);
       }
       frame = requestAnimationFrame(tick);
     }
@@ -265,7 +265,7 @@
     const head = document.createElement('div');
     head.className = 'nono-replay-dialog-head';
     const title = document.createElement('strong');
-    title.textContent = t(/[12]/.test(replay.initial)?'partial':'replay') + ' · ' + replay.size + '×' + replay.size;
+    title.textContent = t(/[12]/.test(replay.initial)?'partial':'replay') + ' · ' + replay.size + '×' + (replay.height||replay.size);
     const close = document.createElement('button');
     close.type = 'button'; close.textContent = t('close');
     head.append(title, close); dialog.appendChild(head);
