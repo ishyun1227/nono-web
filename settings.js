@@ -1819,6 +1819,42 @@ function endFastDrag(e){
 }
 function setupPointer(){
  const target=$('board');
+ // On a touchscreen, gesture panning takes priority over drag-to-paint.
+ // A short stationary TAP still paints one cell; swipe never paints cells.
+ // This capture listener runs before the legacy mouse drag capture listener.
+ const touchPointers=new Map(),touchMode=()=>document.body.classList.contains('nono-mobile-app');
+ target.addEventListener('pointerdown',e=>{
+  if(!touchMode()||e.pointerType!=='touch')return;
+  const cell=e.target.closest('.cell');
+  if(!cell||e.button!==0)return;
+  touchPointers.set(e.pointerId,{index:Number(cell.dataset.index),x:e.clientX,y:e.clientY,moved:false});
+  // Do not preventDefault or capture the pointer: browser must own panning.
+  e.stopImmediatePropagation();
+ },true);
+ target.addEventListener('pointermove',e=>{
+  if(!touchMode()||e.pointerType!=='touch')return;
+  const touch=touchPointers.get(e.pointerId);
+  if(touch&&Math.hypot(e.clientX-touch.x,e.clientY-touch.y)>9)touch.moved=true;
+  e.stopImmediatePropagation();
+ },true);
+ target.addEventListener('pointerup',e=>{
+  if(!touchMode()||e.pointerType!=='touch')return;
+  const touch=touchPointers.get(e.pointerId);
+  touchPointers.delete(e.pointerId);
+  e.stopImmediatePropagation();
+  if(!touch||touch.moved||Math.hypot(e.clientX-touch.x,e.clientY-touch.y)>9)return;
+  if(finished||finishing||startingAlone||$('play-area').classList.contains('hidden'))return;
+  // Touchdown + touchdown at the same spot qualifies as an intentional tap.
+  // The original paint pipeline retains undo, co-op and replay semantics.
+  e.preventDefault();
+  paint(touch.index,tool,false);
+ },true);
+ target.addEventListener('pointercancel',e=>{
+  if(touchMode()&&e.pointerType==='touch'){
+   touchPointers.delete(e.pointerId);
+   e.stopImmediatePropagation();
+  }
+ },true);
  // Suppress the legacy per-cell pointerenter renderer during the optimized stroke.
  target.addEventListener('pointerenter',e=>{if(fastDrag)e.stopImmediatePropagation();},true);
  target.addEventListener('pointerdown',e=>{
