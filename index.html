@@ -896,28 +896,7 @@ initHome();resumeHub=installResume();connectFirebase();
 <script src="./home-sidebars.js?v=1"></script>
 <script src="./account.js?v=1"></script>
 <script src="./community.js?v=1"></script>
-<script>
-/* Dedicated trial entry copy must follow the user's 12-language selector. */
-(function(){
-  const labels={
-    'ko':['❄ 겨울 눈사람 · 63×59 체험 퍼즐 풀기','혼자하기 전용 테스트 · 원본 크기 유지 · 저장 및 이어하기 가능 · 정식 기록 제외'],
-    'en':['❄ Winter Snowman · Play 63×59 Trial','Solo playtest · Exact grid · Save and resume · Excluded from official records'],
-    'ja':['❄ 冬の雪だるま · 63×59 体験パズル','ひとり用テスト · 元のサイズ · 保存と再開が可能 · 公式記録の対象外'],
-    'zh-CN':['❄ 冬日雪人 · 63×59 试玩谜题','单人测试 · 原始尺寸 · 可保存续玩 · 不计入正式记录'],
-    'zh-TW':['❄ 冬日雪人 · 63×59 試玩謎題','單人測試 · 原始尺寸 · 可儲存續玩 · 不計入正式紀錄'],
-    'es':['❄ Muñeco de nieve · Prueba 63×59','Prueba individual · Cuadrícula original · Guardar y continuar · Sin récord oficial'],
-    'pt-BR':['❄ Boneco de neve · Teste 63×59','Teste solo · Grade original · Salvar e continuar · Fora dos recordes oficiais'],
-    'fr':['❄ Bonhomme de neige · Essai 63×59','Test solo · Grille exacte · Sauvegarde et reprise · Hors scores officiels'],
-    'de':['❄ Schneemann · 63×59-Testpuzzle','Solotest · Originalraster · Speichern und fortsetzen · Keine offiziellen Rekorde'],
-    'id':['❄ Boneka salju · Uji teka-teki 63×59','Uji solo · Kisi asli · Simpan dan lanjutkan · Tidak masuk rekor resmi'],
-    'vi':['❄ Người tuyết · Câu đố thử 63×59','Chơi thử một mình · Giữ nguyên lưới · Lưu và tiếp tục · Không tính thành tích chính thức'],
-    'th':['❄ มนุษย์หิมะ · ทดลองเล่น 63×59','ทดสอบเล่นคนเดียว · ตารางขนาดเดิม · บันทึกและเล่นต่อได้ · ไม่รวมสถิติทางการ']
-  };
-  const title=document.getElementById('snowman-trial-link'),note=document.getElementById('snowman-trial-desc');
-  function render(){const lang=window.NONO_I18N?.locale||document.documentElement.lang||'ko',copy=labels[lang]||labels.en;title.textContent=copy[0];note.textContent=copy[1];}
-  window.addEventListener('nono:languagechange',render);render();
-})();
-</script>
+
 <script>
 /* Optional developer preview, never downloaded during ordinary play. */
 if(new URLSearchParams(location.search).get('test')==='1'){
