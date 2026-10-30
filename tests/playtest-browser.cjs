@@ -158,6 +158,56 @@ const {pathToFileURL}=require('node:url');
       throw Error('Full clue-and-grid screen fit failed: '+id+' '+JSON.stringify(fit));
    }
   }
+  // The prior arrow path performed a complete 5,184-cell repaint for each
+  // stroke. Keyboard movement now updates only old/new active cells.
+  await page.setViewportSize({width:937,height:971});
+  await open('trial_samurai_72x72',72,72);
+  const navigation=await page.evaluate(()=>{
+   const grid=document.querySelector('#board');
+   const before=grid.querySelectorAll('.cell.active')[0]?.dataset.index;
+   const start=performance.now();
+   for(let i=0;i<60;i++){
+    document.dispatchEvent(new KeyboardEvent('keydown',{bubbles:true,code:'ArrowRight',key:'ArrowRight'}));
+    document.dispatchEvent(new KeyboardEvent('keyup',{bubbles:true,code:'ArrowRight',key:'ArrowRight'}));
+   }
+   const elapsed=performance.now()-start;
+   const active=[...grid.querySelectorAll('.cell.active')].map(e=>e.dataset.index);
+   return {before,active,elapsed};
+  });
+  if(navigation.active.length!==1||Number(navigation.active[0])!==60||
+     navigation.elapsed>1500)
+   throw Error('Arrow navigation still blocks on full board updates: '+JSON.stringify(navigation));
+
+  // The pre-existing '가장자리 고정 힌트' setting used to only make the HUD
+  // sticky. Exercise actual frozen ROW and COLUMN hint canvases when zoomed
+  // and scrolling the document, as with Excel freeze panes.
+  await page.setViewportSize({width:760,height:660});
+  await open('trial_samurai_72x72',72,72);
+  await page.locator('#nono-open-settings').click();
+  await page.locator('.nono-settings-tabs [role="tab"]').filter({hasText:'보드·화면'}).click();
+  await page.locator('input[aria-label="가장자리 고정 힌트"]').check();
+  await page.locator('#nono-settings-close').click();
+  for(let k=0;k<8;k++)await page.locator('#nono-zoom-in').click();
+  await page.evaluate(async()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const scrollResult=await page.evaluate(async()=>{
+   window.scrollTo({left:500,top:500,behavior:'instant'});
+   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+   const row=document.querySelector('canvas[data-clue-axis="row"]');
+   const col=document.querySelector('canvas[data-clue-axis="col"]');
+   return {scrollX,scrollY,row:row&&getComputedStyle(row).display,col:col&&getComputedStyle(col).display,
+    cells:document.querySelectorAll('#board .cells .cell').length};
+  });
+  if(scrollResult.scrollX<5||scrollResult.scrollY<5||
+     scrollResult.row!=='block'||scrollResult.col!=='block'||scrollResult.cells!==5184)
+   throw Error('Excel-style frozen hints not visible when zoom scrolling: '+JSON.stringify(scrollResult));
+  await page.locator('#nono-open-settings').click();
+  await page.locator('.nono-settings-tabs [role="tab"]').filter({hasText:'보드·화면'}).click();
+  await page.locator('input[aria-label="가장자리 고정 힌트"]').uncheck();
+  await page.locator('#nono-settings-close').click();
+  await page.evaluate(async()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const hidden=await page.evaluate(()=>[...document.querySelectorAll('canvas.nono-frozen-clues')].every(x=>getComputedStyle(x).display==='none'));
+  if(!hidden)throw Error('Pinned hints did not turn off');
+  console.log('Keyboard navigation and Excel-style frozen hint rails passed.',navigation.elapsed.toFixed(1)+'ms');
   await page.setViewportSize({width:1280,height:850});
   if(errors.length)throw Error('Main-player errors: '+errors.join(' | '));
   console.log('PLAYTEST_PASS: original editor; rabbit 53x73, samurai 72x72, paint, undo, redo, resume and switch');
