@@ -84,7 +84,7 @@ const dynamicMain=registry.puzzles.filter(p=>p.origin==='main'&&p.kind==='genera
 if(fixedMain.length!==6||dynamicMain.length!==3)throw Error('Unexpected published puzzle registry coverage');
 for(const p of registry.puzzles){
  if(!p.id||!p.name||!Number.isInteger(p.width)||!Number.isInteger(p.height)||
-    !p.review||p.review.status!=='pending'||
+    !p.review||!['pending','approved','rejected'].includes(p.review.status)||
     !p.answer||p.width*p.height>16384)
   throw Error('Invalid normalized puzzle entry '+p.id);
  if(p.kind==='fixed'){
