@@ -76,7 +76,7 @@ const trial=lookup.get(snow.id);
 assert.deepEqual(trial.rows,snow.rows);assert.deepEqual(trial.cols,snow.cols);
 assert.equal(trial.width,snow.width);assert.equal(trial.height,snow.height);
 assert.equal(trial.answer.deployment,'private-answer-not-available');
-assert.deepEqual(puzzles.filter(p=>p.sizeTest).map(p=>p.size),[50,75,100]);
+assert.deepEqual(Array.from(puzzles.filter(p=>p.sizeTest),p=>p.size),[50,75,100]);
 // The bundled runtime must read exactly these fixed main puzzles from catalog.
 const dist=path.join(root,'dist'),script=fs.readFileSync(path.join(dist,'puzzles-public-catalog.js'),'utf8');
 const ctx={window:{}};vm.runInNewContext(script,ctx);
