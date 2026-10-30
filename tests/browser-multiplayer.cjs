@@ -20,6 +20,11 @@ async function main(){
  const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{})});
  try{
   const contexts=await Promise.all([browser.newContext(),browser.newContext()]);
+  // The first-visit welcome dialog is not part of multiplayer gameplay.
+  // Mark it as acknowledged before loading the test page (production stays unchanged).
+  for(const c of contexts)await c.addInitScript(()=>{
+    localStorage.setItem('nono-account-intro-v1','1');
+  });
   for(const c of contexts)await c.route(/https:\/\/www.gstatic.com\/firebasejs\/[\d.]+\/(firebase-[\w-]+\.js)/,route=>{const name=route.request().url().split('/').pop();return route.fulfill({path:path.join(process.cwd(),'node_modules/firebase',name),contentType:'text/javascript'});});
   const [a,b]=await Promise.all(contexts.map(c=>c.newPage()));const errors=[];
   for(const p of [a,b])p.setDefaultTimeout(20000);
