@@ -1499,7 +1499,7 @@ function mobileTouchSelect(row,column){
  const cells=$('board').querySelector('.cells')?.children;
  if(!cells?.length)return false;
  updateLiveSelection(index,cells);
- keepSelectionInsideBoard(cells[index]);
+ keepSelectionInsideBoard(cells[index],true);
  return true;
 }
 window.NONO_TOUCH_CURSOR={
@@ -1510,7 +1510,7 @@ window.NONO_TOUCH_CURSOR={
  },
  select(row,col){return mobileTouchSelect(row,col);}
 };
-function keepSelectionInsideBoard(cell){
+function keepSelectionInsideBoard(cell,immediate=false){
  if(!cell)return;
  // On a screen-fitted board there is nowhere to scroll. Avoid even reading
  // computed style / scrollWidth: those force layout across 5k–10k buttons
@@ -1545,7 +1545,7 @@ function keepSelectionInsideBoard(cell){
   if(canY){if(rect.top<frame.top)top+=rect.top-frame.top;else if(rect.bottom>frame.bottom)top+=rect.bottom-frame.bottom;}
  }
  if(Math.abs(left-scroller.scrollLeft)>.5||Math.abs(top-scroller.scrollTop)>.5)
-  scroller.scrollTo({left,top,behavior:prefs.followSpeed==='fast'?'instant':'smooth'});
+  scroller.scrollTo({left,top,behavior:immediate||prefs.followSpeed==='fast'?'instant':'smooth'});
 }
 
 const standardKeys={
