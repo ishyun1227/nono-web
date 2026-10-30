@@ -83,6 +83,28 @@ const trial=lookup.get(snow.id);
 assert.deepEqual(trial.rows,snow.rows);assert.deepEqual(trial.cols,snow.cols);
 assert.equal(trial.width,snow.width);assert.equal(trial.height,snow.height);
 assert.equal(trial.answer.deployment,'private-answer-not-available');
+// Rabbit, samurai and snowman must all be playable through the same trial
+// editor without exposing an answer mask or forcing a square board.
+const trialIds=['trial_rabbit_53x73','trial_samurai_72x72','winter-snowman-trial-v1'];
+const builtHome=fs.readFileSync(path.join(dist,'index.html'),'utf8');
+const builtTrials=JSON.parse(fs.readFileSync(path.join(dist,'trial-index.json'),'utf8'));
+for(const id of trialIds){
+ const item=lookup.get(id),entry=builtTrials.find(p=>p.id===id);
+ assert(item&&entry,id+' is missing from shared trial gallery');
+ assert.equal(entry.width,item.width);
+ assert.equal(entry.height,item.height);
+ const source=JSON.parse(fs.readFileSync(path.join(root,'puzzles/trial',id+'.json'),'utf8'));
+ assert.deepEqual(source.rows,item.rows);
+ assert.deepEqual(source.cols,item.cols);
+ assert(!Object.hasOwn(source,'mask')&&!Object.hasOwn(source,'packed'));
+ const page=fs.readFileSync(path.join(dist,'trials',id+'.html'),'utf8');
+ assert(page.includes('const d=JSON.parse(document.getElementById(\'data\').textContent)'));
+ assert(page.includes('"id":"'+id+'"'));
+ assert(page.includes('const KEY=d.id==='));
+ assert(!page.includes('sourceMask')&&!page.includes('"mask":'));
+ if(id!=='winter-snowman-trial-v1')assert(builtHome.includes('🧩 '+item.name+' · '+item.width+'×'+item.height));
+ else assert(builtHome.includes('href="./trials/winter-snowman-trial-v1.html"'));
+}
 assert.deepEqual(Array.from(puzzles.filter(p=>p.sizeTest),p=>p.size),[50,75,100]);
 // The bundled runtime must read exactly these fixed main puzzles from catalog.
 const dist=path.join(root,'dist'),script=fs.readFileSync(path.join(dist,'puzzles-public-catalog.js'),'utf8');
