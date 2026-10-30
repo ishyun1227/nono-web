@@ -115,7 +115,7 @@ if(mainSource.some(p=>p.size!==p.cols.length||p.size!==p.rows.length))
  throw Error('Current main engine is square-only');
 fs.writeFileSync(path.join(output,'puzzles-public-catalog.js'),
  'window.NONO_PUBLIC_PUZZLES='+JSON.stringify(mainSource).replace(/</g,'\\u003c')+';'+
- 'window.NONO_DYNAMIC_PUZZLE_DEFS='+JSON.stringify(dynamicMain.map(p=>({id:p.id,size:p.width})))+';\\n');
+ 'window.NONO_DYNAMIC_PUZZLE_DEFS='+JSON.stringify(dynamicMain.map(p=>({id:p.id,size:p.width})))+';\n');
 console.log('Published canonical 6 fixed / 3 random-size main puzzles; tracked 3 independent trial puzzles');
 
 // Generate trial puzzle pages from clue-only JSON, using one shared puzzle
