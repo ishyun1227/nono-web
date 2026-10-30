@@ -364,33 +364,47 @@ const {pathToFileURL}=require('node:url');
   if(!maxSize.visible||maxSize.padHidden||maxSize.left<0||maxSize.right>maxSize.width+1)
    throw Error('Resized trackpad disappeared or exceeded mobile width: '+JSON.stringify(maxSize));
 
-  // Absolute miniature is a fourth mode at the same location. Upper right
-  // touch jumps to the TOP-RIGHT puzzle cell, without filling any cells.
+  // Absolute miniature: unrestricted two-axis navigation until an edit
+  // action is held; only editing should lock the row or column.
   const miniResult=await mobile.evaluate(()=>{
    const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
    api.set('size',100);api.set('mode','minimap');
    const el=document.getElementById('nono-absolute-pad'),r=el.getBoundingClientRect();
    const init={pointerType:'touch',pointerId:977,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
    const fire=(kind,x,y,other={})=>el.dispatchEvent(new PointerEvent(kind,{...init,clientX:x,clientY:y,...other}));
-   const before=board.filter(x=>x==='1').length;
+   const at=(x,y)=>[r.left+r.width*x,r.top+r.height*y];
    fire('pointerdown',r.right-3,r.top+3);const corner={...nav.position};
    fire('pointerup',r.right-3,r.top+3,{buttons:0});
-   const endCorner={...nav.position};
-   // A new stroke starts in the middle and locks to its first horizontal drag.
-   fire('pointerdown',r.left+r.width/2,r.top+r.height/2);
-   const initial={...nav.position};
+   fire('pointerdown',...at(.5,.5));const freeStart={...nav.position};
+   fire('pointermove',r.right-4,r.top+4);const freeTopRight={...nav.position};
+   fire('pointermove',r.left+4,r.bottom-4);const freeBottomLeft={...nav.position};
+   fire('pointerup',r.left+4,r.bottom-4,{buttons:0});
+   const width=nav.dimensions.width;
+   // Ensure both ends of the forthcoming paint stroke are empty.
+   const centerRow=Math.floor(nav.dimensions.height/2),centerCol=Math.floor(width/2);
+   board[centerRow*width+centerCol]='0';board[centerRow*width+width-1]='0';render();
+   fire('pointerdown',...at(.5,.5));const paintStart={...nav.position};
+   const fillButton=document.querySelector('#nono-mobile-pad [data-nono-input="fill"]');
+   const fillInit={...init,pointerId:978};
+   fillButton.dispatchEvent(new PointerEvent('pointerdown',{...fillInit,clientX:350,clientY:670}));
+   const filledAtStart=board[centerRow*width+centerCol];
    fire('pointermove',r.right-4,r.top+4);const locked={...nav.position};
-   fire('pointerup',r.right-4,r.top+4,{buttons:0});
-   return {corner,endCorner,initial,locked,filledBefore:before,filledAfter:board.filter(x=>x==='1').length,
-    rectangle:[r.left,r.top,r.right,r.bottom],mode:api.settings.mode,selected:nav.position};
+   const filledAtEnd=board[centerRow*width+width-1];
+   fillButton.dispatchEvent(new PointerEvent('pointerup',{...fillInit,clientX:350,clientY:670,buttons:0}));
+   fire('pointermove',r.left+4,r.top+4);const afterRelease={...nav.position};
+   fire('pointerup',r.left+4,r.top+4,{buttons:0});
+   return {corner,freeStart,freeTopRight,freeBottomLeft,paintStart,locked,
+    filledAtStart,filledAtEnd,afterRelease,mode:api.settings.mode};
   });
   if(miniResult.corner.row!==0||miniResult.corner.col!==52||
-     miniResult.endCorner.row!==0||miniResult.endCorner.col!==52||
-     miniResult.locked.row!==miniResult.initial.row||
-     miniResult.locked.col!==52||miniResult.filledBefore!==miniResult.filledAfter||
-     miniResult.mode!=='minimap')
-   throw Error('Miniature absolute touch or axis lock failed: '+JSON.stringify(miniResult));
-  console.log('Trackpad size restoration, edge clamping and fourth absolute miniature passed.');
+     miniResult.freeTopRight.row!==0||miniResult.freeTopRight.col!==52||
+     miniResult.freeBottomLeft.row!==72||miniResult.freeBottomLeft.col!==0||
+     miniResult.locked.row!==miniResult.paintStart.row||
+     miniResult.locked.col!==52||miniResult.filledAtStart!=='1'||
+     miniResult.filledAtEnd!=='1'||miniResult.afterRelease.row!==0||
+     miniResult.afterRelease.col!==0||miniResult.mode!=='minimap')
+    throw Error('Miniature free navigation or action-only paint lock failed: '+JSON.stringify(miniResult));
+  console.log('Trackpad sizing and free miniature navigation versus locked editing passed.');
   if(mobileErrors.length)throw Error('Mobile game exceptions: '+mobileErrors.join(' | '));
   await mobileContext.close();
   console.log('Mobile app viewport, tap-vs-swipe and internal zoom panning passed.');
