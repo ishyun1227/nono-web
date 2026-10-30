@@ -212,6 +212,69 @@ const {pathToFileURL}=require('node:url');
   const hidden=await page.evaluate(()=>[...document.querySelectorAll('canvas.nono-frozen-clues')].every(x=>getComputedStyle(x).display==='none'));
   if(!hidden)throw Error('Pinned hints did not turn off');
   console.log('Keyboard navigation and Excel-style frozen hint rails passed.',navigation.elapsed.toFixed(1)+'ms');
+  // App-like mobile view: screen itself does not scroll; swipe gestures
+  // are never painted into cells; on zoom, only the puzzle pane can pan.
+  const mobileContext=await browser.newContext({
+   viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2
+  });
+  const mobile=await mobileContext.newPage();
+  const mobileErrors=[];mobile.on('pageerror',error=>mobileErrors.push(error.message));
+  await mobile.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
+  await mobile.goto(pathToFileURL(path.resolve(__dirname,'..','dist','index.html')).href);
+  await mobile.locator('#nono-open-settings').waitFor();
+  await mobile.evaluate(async()=>{
+   setMode('practice');
+   const picker=document.querySelector('#puzzle');picker.value='trial_rabbit_53x73';
+   picker.dispatchEvent(new Event('change',{bubbles:true}));await startAlone();
+  });
+  await mobile.locator('#nono-mobile-pad .nono-dpad').waitFor({state:'visible'});
+  await mobile.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const layout=await mobile.evaluate(()=>{
+   const box=sel=>{const r=document.querySelector(sel).getBoundingClientRect();return [r.left,r.top,r.right,r.bottom]};
+   return {
+    viewport:[innerWidth,innerHeight],documentHeight:document.documentElement.scrollHeight,
+    documentWidth:document.documentElement.scrollWidth,
+    isApp:document.body.classList.contains('nono-mobile-app'),
+    board:box('#board'),pane:box('#game .board-scroll'),
+    dpad:box('#nono-mobile-pad .nono-dpad'),actions:box('#nono-mobile-pad .nono-pad-actions'),
+    duplicateToolbar:getComputedStyle(document.querySelector('#game .board-footer')).display,
+    pad:document.getElementById('nono-mobile-pad').hidden,
+    pointerAction:getComputedStyle(document.querySelector('#board .cell')).touchAction
+   };
+  });
+  if(!layout.isApp||layout.pad||layout.duplicateToolbar!=='none'||
+     layout.documentHeight>layout.viewport[1]+2||layout.documentWidth>layout.viewport[0]+2||
+     layout.pane[1]<39||layout.pane[3]>Math.min(layout.dpad[1],layout.actions[1])+2||
+     layout.board[0]<-2||layout.board[2]>layout.viewport[0]+2||
+     layout.board[1]<layout.pane[1]-2||layout.board[3]>layout.pane[3]+2||
+     !/pan-x/.test(layout.pointerAction))
+   throw Error('Mobile app layout failed: '+JSON.stringify(layout));
+  const first=await mobile.locator('#board .cells .cell').first().boundingBox();
+  await mobile.touchscreen.tap(first.x+first.width/2,first.y+first.height/2);
+  if(!await mobile.evaluate(()=>board[0]==='1'))throw Error('Touch tap did not paint cell 0');
+  await mobile.evaluate(()=>{
+    const el=document.querySelector('#board .cells .cell');
+    const init={bubbles:true,cancelable:true,pointerType:'touch',pointerId:75,isPrimary:true,button:0,buttons:1};
+    el.dispatchEvent(new PointerEvent('pointerdown',{...init,clientX:100,clientY:250}));
+    el.dispatchEvent(new PointerEvent('pointermove',{...init,clientX:100,clientY:285}));
+    el.dispatchEvent(new PointerEvent('pointerup',{...init,clientX:100,clientY:305,buttons:0}));
+  });
+  if(await mobile.evaluate(()=>board.filter(v=>v==='1').length)!==1)
+   throw Error('Touch drag unexpectedly painted');
+  for(let k=0;k<8;k++)await mobile.locator('#nono-zoom-in').click({force:true});
+  await mobile.evaluate(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+  const zoom=await mobile.evaluate(()=>{
+   const pane=document.querySelector('#game .board-scroll');
+   return {body:document.documentElement.scrollHeight,paneScroll:pane.scrollHeight,
+    paneClient:pane.clientHeight,overflow:getComputedStyle(pane).overflow,
+    pageScroll:scrollY,zoomed:document.body.classList.contains('nono-zoom-exceeded')};
+  });
+  if(!zoom.zoomed||!zoom.overflow.includes('auto')||zoom.body>846||
+     zoom.paneScroll<=zoom.paneClient+1)
+    throw Error('Mobile zoom should pan the pane but not the page: '+JSON.stringify(zoom));
+  if(mobileErrors.length)throw Error('Mobile game exceptions: '+mobileErrors.join(' | '));
+  await mobileContext.close();
+  console.log('Mobile app viewport, tap-vs-swipe and internal zoom panning passed.');
   await page.setViewportSize({width:1280,height:850});
   if(errors.length)throw Error('Main-player errors: '+errors.join(' | '));
   console.log('PLAYTEST_PASS: original editor; rabbit 53x73, samurai 72x72, paint, undo, redo, resume and switch');
