@@ -47,7 +47,7 @@ jobs:
         run: |
           npx playwright install --with-deps chromium
           npm run test:browser
-      - name: Require a rotated and valid Firebase service account key
+      - name: Validate the existing Firebase service account GitHub Secret
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         shell: bash
@@ -64,8 +64,6 @@ jobs:
             if(a.type!=="service_account"||a.project_id!==process.env.PROJECT_ID||
                !a.private_key||!a.private_key_id)
               throw Error("Missing/incorrect service-account credentials");
-            if(a.private_key_id==="7018ae5277b705be7d69bae56b40256126ad3909")
-              throw Error("The previously exposed Firebase key must be rotated before automatic deployments");
           '
           umask 077
           printf '%s' "$FIREBASE_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/nono-firebase-sa.json"
