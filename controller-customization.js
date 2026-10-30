@@ -14,7 +14,7 @@ const clone=v=>JSON.parse(JSON.stringify(v));
 function validate(src){
  const d=defaults(),s=src&&typeof src==='object'?src:{};
  const out={...d,...s,offsets:{...d.offsets,...s.offsets},mapping:{...d.mapping,...s.mapping}};
- out.mode=['fixed','floating','trackpad'].includes(out.mode)?out.mode:'fixed';
+ out.mode=['fixed','floating','trackpad','minimap'].includes(out.mode)?out.mode:'fixed';
  out.trackpadSensitivity=clamp(Number(out.trackpadSensitivity)||100,50,200);
  out.opacity=clamp(Number(out.opacity)||80,20,100);out.size=clamp(Number(out.size)||100,65,150);
  out.deadzone=clamp(Number(out.deadzone)||55,20,85);out.stick=out.stick!==false;
@@ -64,15 +64,31 @@ const joystick=document.createElement('div');joystick.id='nono-floating-stick';
 joystick.innerHTML='<span id="nono-floating-knob"></span>';
 pad.prepend(zone,joystick);
 const knob=$('nono-floating-knob');
+// Fixed miniature of the whole puzzle. A touch jumps to the same normalized
+// row/column; it never paints. Dragging locks onto the first chosen axis.
+const mini=document.createElement('div');mini.id='nono-absolute-pad';
+mini.setAttribute('role','group');mini.setAttribute('aria-label','축소 퍼즐 위치 선택');
+mini.innerHTML='<span class="nono-absolute-label">퍼즐 축소판</span><span class="nono-absolute-cursor" aria-hidden="true"></span>';
+pad.prepend(mini);
+const miniCursor=mini.querySelector('.nono-absolute-cursor');
+function updateMiniCursor(){
+ const p=window.NONO_TOUCH_CURSOR?.position,d=window.NONO_TOUCH_CURSOR?.dimensions;
+ if(!p||!d)return;
+ miniCursor.style.left=((p.col+.5)/d.width*100)+'%';
+ miniCursor.style.top=((p.row+.5)/d.height*100)+'%';
+}
+window.addEventListener('nono:touch-cursor',updateMiniCursor);
 const editbar=document.createElement('div');editbar.id='nono-pad-editbar';editbar.hidden=true;
 editbar.innerHTML='<strong>버튼 배치 편집</strong><small>✥ 이동을 끌면 그룹, 동작 버튼을 끌면 개별 위치가 바뀝니다.</small><button data-pad-edit="reset" type="button">기본 위치</button><button data-pad-edit="cancel" type="button">취소</button><button data-pad-edit="save" type="button">저장</button>';
 document.body.append(editbar);
-let editing=false,beforeEdit=null,drag=null,floatingPointer=null,stickDirection=null,trackpadActive=null;
+let editing=false,beforeEdit=null,drag=null,floatingPointer=null,stickDirection=null,trackpadActive=null,miniActive=null;
 function apply(){
  const opacity=state.opacity/100,scale=state.size/100;
  pad.classList.toggle('nono-floating-mode',state.mode==='floating');
  pad.classList.toggle('nono-trackpad-mode',state.mode==='trackpad');
+ pad.classList.toggle('nono-minimap-mode',state.mode==='minimap');
  if(state.mode!=='trackpad'||editing)trackpadActive=null;
+ if(state.mode!=='minimap'||editing)miniActive=null;
  pad.classList.toggle('nono-pad-editing',editing);
  pad.style.setProperty('--nono-pad-opacity',opacity);
  pad.style.setProperty('--nono-pad-scale',scale);
@@ -89,6 +105,9 @@ function apply(){
  editbar.hidden=!editing;
  zone.style.setProperty('--zone-x',state.dpad.x*100+'vw');
  zone.style.setProperty('--zone-y',state.dpad.y*100+'dvh');
+ mini.style.setProperty('--zone-x',state.dpad.x*100+'vw');
+ mini.style.setProperty('--zone-y',state.dpad.y*100+'dvh');
+ updateMiniCursor();
  // Changes to on-screen controls do not require recalculating the board on each drag.
 }
 function nativeSend(name,down){
@@ -134,49 +153,57 @@ function floatEnd(e){
 }
 for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,floatEnd);
 
-// Notebook-like relative trackpad (touchscreen only). Unlike the floating
-// joystick, cursor movement is proportional to finger travel, without
-// waiting at an edge or triggering key auto-repeat while stationary.
-function trackpadAvailable(){
- return state.mode==='trackpad'&&!editing&&
+// Cursor-only touch navigation. Never use synthetic key-repeat or user
+// wrap preferences: reaching the end of the puzzle stops at that edge.
+const cursor=()=>window.NONO_TOUCH_CURSOR;
+function touchAllowed(mode){
+ return state.mode===mode&&!editing&&
   matchMedia('(max-width:900px) and (pointer:coarse)').matches&&
   !pad.hidden&&!$('game')?.classList.contains('hidden')&&
   $('lobby')?.classList.contains('hidden')&&!$('nono-settings-overlay');
 }
+// Relative laptop-style trackpad. The first definite drag axis is locked
+// until lift (no diagonal jumps), matching regular row/column puzzle drags.
 zone.addEventListener('pointerdown',e=>{
- if(!trackpadAvailable()||trackpadActive||e.button!==0)return;
+ if(!touchAllowed('trackpad')||trackpadActive||e.button!==0)return;
  e.preventDefault();trackpadActive={id:e.pointerId,x:e.clientX,y:e.clientY,
-  residualX:0,residualY:0};
+  originX:e.clientX,originY:e.clientY,axis:null,residual:0};
  try{zone.setPointerCapture(e.pointerId)}catch(_){}
 });
 zone.addEventListener('pointermove',e=>{
  const a=trackpadActive;
  if(!a||a.id!==e.pointerId)return;
- if(!trackpadAvailable()){trackpadActive=null;return}
+ if(!touchAllowed('trackpad')){trackpadActive=null;return}
  e.preventDefault();
  const dx=e.clientX-a.x,dy=e.clientY-a.y;
  a.x=e.clientX;a.y=e.clientY;
- // Store fractional travel independently for both axes. A sequence of tiny
- // pointer movements can still move a cell; lifting the finger resets drift.
- const pxPerCell=12*100/state.trackpadSensitivity;
- a.residualX+=dx;a.residualY+=dy;
- const rawX=Math.trunc(a.residualX/pxPerCell);
- const rawY=Math.trunc(a.residualY/pxPerCell);
- // Bound pathological synthetic events without losing the remaining delta.
- const mx=Math.sign(rawX)*Math.min(Math.abs(rawX),50);
- const my=Math.sign(rawY)*Math.min(Math.abs(rawY),50);
- a.residualX-=mx*pxPerCell;a.residualY-=my*pxPerCell;
- // Interleave axes proportionally so a diagonal finger stroke follows the
- // finger's path rather than taking an L-shaped detour.
- const count=Math.max(Math.abs(mx),Math.abs(my));
- for(let i=0;i<count;i++){
-  if(Math.floor((i+1)*Math.abs(mx)/count)>Math.floor(i*Math.abs(mx)/count)){
-   const dir=mx>0?'right':'left';nativeSend(dir,true);nativeSend(dir,false);
-  }
-  if(Math.floor((i+1)*Math.abs(my)/count)>Math.floor(i*Math.abs(my)/count)){
-   const dir=my>0?'down':'up';nativeSend(dir,true);nativeSend(dir,false);
-  }
+ if(!a.axis){
+  const totalX=e.clientX-a.originX,totalY=e.clientY-a.originY;
+  if(Math.max(Math.abs(totalX),Math.abs(totalY))<5)return;
+  a.axis=Math.abs(totalX)>=Math.abs(totalY)?'x':'y';
+  a.residual=0;
+  // Keep the initial travel (after threshold) rather than dropping steps.
+  a.x=a.originX;a.y=a.originY;
  }
+ const distance=a.axis==='x'?e.clientX-a.x:e.clientY-a.y;
+ a.residual+=distance;
+ a.x=e.clientX;a.y=e.clientY;
+ const pxPerCell=12*100/state.trackpadSensitivity;
+ let steps=Math.trunc(a.residual/pxPerCell);
+ steps=Math.sign(steps)*Math.min(50,Math.abs(steps));
+ if(!steps)return;
+ a.residual-=steps*pxPerCell;
+ const nav=cursor();
+ if(!nav?.position)return;
+ // Atomic bounded movement: no wrap, no repeated full-board rendering.
+ const ok=a.axis==='x'?nav.move(steps,0):nav.move(0,steps);
+ if(ok===false)return;
+ // When hitting a board edge, don't bank movement that could later
+ // unexpectedly reverse or wrap to the opposite side.
+ const {position,dimensions}=nav;
+ if(a.axis==='x'&&(position.col===0||position.col===dimensions.width-1)||
+    a.axis==='y'&&(position.row===0||position.row===dimensions.height-1))
+  a.residual=0;
 });
 const trackpadEnd=e=>{
  if(trackpadActive?.id!==e.pointerId)return;
@@ -184,6 +211,49 @@ const trackpadEnd=e=>{
  if(zone.hasPointerCapture?.(e.pointerId))try{zone.releasePointerCapture(e.pointerId)}catch(_){}
 };
 for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,trackpadEnd);
+
+// Absolute miniature: initial touch jumps to the matching position in the
+// ENTIRE puzzle, regardless of current zoom or scroll. On a subsequent drag,
+// lock row or column according to the dominant first movement.
+function miniatureCoordinates(e){
+ const r=mini.getBoundingClientRect(),d=cursor()?.dimensions;
+ if(!d||r.width<=0||r.height<=0)return null;
+ const x=Math.max(0,Math.min(1,(e.clientX-r.left)/r.width));
+ const y=Math.max(0,Math.min(1,(e.clientY-r.top)/r.height));
+ return {row:Math.min(d.height-1,Math.floor(y*d.height)),
+  col:Math.min(d.width-1,Math.floor(x*d.width))};
+}
+mini.addEventListener('pointerdown',e=>{
+ if(!touchAllowed('minimap')||miniActive||e.button!==0)return;
+ const p=miniatureCoordinates(e);if(!p)return;
+ e.preventDefault();
+ miniActive={id:e.pointerId,x:e.clientX,y:e.clientY,axis:null,
+  startRow:p.row,startCol:p.col};
+ cursor()?.select(p.row,p.col);
+ updateMiniCursor();
+ try{mini.setPointerCapture(e.pointerId)}catch(_){}
+});
+mini.addEventListener('pointermove',e=>{
+ const a=miniActive;
+ if(!a||a.id!==e.pointerId)return;
+ if(!touchAllowed('minimap')){miniActive=null;return}
+ e.preventDefault();
+ const p=miniatureCoordinates(e);if(!p)return;
+ if(!a.axis){
+  const dx=e.clientX-a.x,dy=e.clientY-a.y;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<5)return;
+  a.axis=Math.abs(dx)>=Math.abs(dy)?'x':'y';
+ }
+ if(a.axis==='x')cursor()?.select(a.startRow,p.col);
+ else cursor()?.select(p.row,a.startCol);
+ updateMiniCursor();
+});
+const miniEnd=e=>{
+ if(miniActive?.id!==e.pointerId)return;
+ miniActive=null;
+ if(mini.hasPointerCapture?.(e.pointerId))try{mini.releasePointerCapture(e.pointerId)}catch(_){}
+};
+for(const name of ['pointerup','pointercancel','lostpointercapture'])mini.addEventListener(name,miniEnd);
 
 function beginEdit(){
  if(!matchMedia('(pointer:coarse)').matches||$('game')?.classList.contains('hidden'))return false;
@@ -273,8 +343,8 @@ function touchSettings(root){
  const intro=document.createElement('p');intro.className='nono-controller-intro';
  intro.textContent='모바일 화면의 방향 패드와 동작 버튼을 원하는 스타일로 조정할 수 있어요.';
  root.append(intro);
- addRow(root,'이동 방식','트랙패드는 손가락 이동 거리에 따라 칸을 즉시 이동합니다. 손가락을 멈추면 칸도 멈춥니다.',
-  select([['fixed','고정 십자키'],['floating','플로팅 조이스틱'],['trackpad','노트북형 트랙패드']],state.mode,v=>{setValue('mode',v);renderExtras()}));
+ addRow(root,'이동 방식','트랙패드는 손가락 이동 거리만큼, 축소판은 터치한 위치로 커서를 옮깁니다. 드래그는 처음 움직인 행 또는 열로 고정됩니다.',
+  select([['fixed','고정 십자키'],['floating','플로팅 조이스틱'],['trackpad','노트북형 트랙패드'],['minimap','퍼즐 축소판 터치']],state.mode,v=>{setValue('mode',v);renderExtras()}));
  if(state.mode==='trackpad')
   addRow(root,'트랙패드 민감도','100%는 약 12px 움직일 때 한 칸. 200%는 더 빠르게, 50%는 더 세밀하게 움직입니다.',
    range(50,200,10,state.trackpadSensitivity,v=>setValue('trackpadSensitivity',v)));
