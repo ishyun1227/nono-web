@@ -1508,7 +1508,28 @@ window.NONO_TOUCH_CURSOR={
  move(dx,dy){const current=this.position;if(!current)return false;
   return mobileTouchSelect(current.row+dy,current.col+dx);
  },
- select(row,col){return mobileTouchSelect(row,col);}
+ select(row,col){return mobileTouchSelect(row,col);},
+ // The absolute miniature uses the same authoritative paint/history path as
+ // keyboard and board input. A stroke only changes cells on one fixed axis;
+ // navigation without an action stays completely unrestricted.
+ paintAt(row,col,action){
+  const to={fill:'1',cross:'2',clear:'0'}[action];
+  if(!to||!this.select(row,col))return false;
+  paint(row*puzzle.size+col,to,true);
+  return true;
+ },
+ paintLine(fromRow,fromCol,toRow,toCol,action){
+  const to={fill:'1',cross:'2',clear:'0'}[action];
+  if(!to||(fromRow!==toRow&&fromCol!==toCol))return false;
+  const stepRow=Math.sign(toRow-fromRow),stepCol=Math.sign(toCol-fromCol);
+  const count=Math.max(Math.abs(toRow-fromRow),Math.abs(toCol-fromCol));
+  for(let i=1;i<=count;i++){
+   if(finished||finishing)break;
+   const row=fromRow+stepRow*i,col=fromCol+stepCol*i;
+   paint(row*puzzle.size+col,to,true);
+  }
+  return this.select(toRow,toCol);
+ }
 };
 function keepSelectionInsideBoard(cell,immediate=false){
  if(!cell)return;
