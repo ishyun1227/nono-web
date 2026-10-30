@@ -261,15 +261,20 @@ const css=E('style');css.textContent=String.raw`
 body[data-error-intensity=weak] .nono-error{outline-width:1px!important}body[data-error-intensity=strong] .nono-error{outline-width:4px!important}body[data-error-intensity=strong] .nono-error-line{box-shadow:inset 0 0 0 3px #fa6688!important}
 #board .cell.active{outline-color:var(--nono-accent,#77d5fb)}
 #board > .corner,#board > .col-clues,#board > .row-clues{background-color:var(--nono-clue-bg,#131f37)}
-#board .col-clue{border-right:1px solid #354766}
-#board .row-clue{border-bottom:1px solid #354766}
-/* Individual clue numbers also get subtle dividers, not only row/column boundaries. */
-#board .col-clue{gap:0;padding-bottom:0}
-#board .col-clue > span{display:grid;place-items:center;width:100%;height:19px;border-bottom:1px solid #354766}
-#board .row-clue{gap:0}
-#board .row-clue > span{display:grid;place-items:center;min-width:22px;height:100%;border-left:1px solid #354766}
-#board .col-clue.nono-clue-major{border-right:var(--nono-major,3px) solid #8695d4}
-#board .row-clue.nono-clue-major{border-bottom:var(--nono-major,3px) solid #8695d4}
+/* Clue numbers are text labels, not grid cells. Keep the dividing border
+   between the entire clue area and the puzzle grid, but no internal lines. */
+#board .col-clue,#board .col-clue.nono-clue-major{
+ gap:0;padding-bottom:0;border-right:0!important;box-shadow:none!important
+}
+#board .row-clue,#board .row-clue.nono-clue-major{
+ gap:0;border-bottom:0!important;box-shadow:none!important
+}
+#board .col-clue > span{
+ display:grid;place-items:center;width:100%;height:19px;border-bottom:0!important
+}
+#board .row-clue > span{
+ display:grid;place-items:center;min-width:0;height:100%;border-left:0!important
+}
 #board .nono-alt-hint-target{background:#504785b8!important;outline:2px solid #75dbff;outline-offset:1px;border-radius:4px}
 
 .nono-last{box-shadow:inset 0 0 0 3px var(--nono-accent,#77d5fb)!important}
@@ -353,11 +358,11 @@ body.nono-fit-playing #game .rules{margin:4px 0!important}
 }
 #board.nono-board-fit .row-clue>span{
   box-sizing:border-box;flex:0 0 var(--nono-fit-item-width);min-width:0!important;height:100%;
-  border-left:1px solid #354766;display:grid;place-items:center
+  border-left:0!important;display:grid;place-items:center
 }
 #board.nono-board-fit .col-clue>span{
   box-sizing:border-box;flex:0 0 var(--nono-fit-line-height);height:var(--nono-fit-line-height)!important;
-  border-bottom:1px solid #354766;display:grid;place-items:center;width:100%
+  border-bottom:0!important;display:grid;place-items:center;width:100%
 }
 #board.nono-board-fit .cell{width:var(--cell-size)!important;height:var(--cell-size)!important;min-width:0!important;
   font-size:clamp(7px,calc(var(--cell-size)*.65),21px)!important;border-right-width:.65px!important;border-bottom-width:.65px!important}
@@ -479,23 +484,13 @@ body.nono-fit-playing #board.nono-board-fit.nono-both{
  font-size:var(--nono-fit-font)!important;letter-spacing:-.025em!important;
  font-variant-numeric:tabular-nums!important;line-height:1!important
 }
-/* Major hint separators must not take actual font-slot width/height.
-   A 3px border consumed almost half a 7px high row clue on smaller screens. */
-#board.nono-board-fit .row-clue{
- border-bottom:0!important;
- box-shadow:inset 0 -0.55px 0 #354766;
-}
-#board.nono-board-fit .row-clue.nono-clue-major{
- border-bottom:0!important;
- box-shadow:inset 0 -1.6px 0 #8695d4;
-}
-#board.nono-board-fit .col-clue{
- border-right:0!important;
- box-shadow:inset -0.55px 0 0 #354766;
-}
+/* The thick 5-line separators belong on grid cells only.
+   A previous inset box-shadow reintroduced lines across the hint area. */
+#board.nono-board-fit .row-clue,
+#board.nono-board-fit .row-clue.nono-clue-major,
+#board.nono-board-fit .col-clue,
 #board.nono-board-fit .col-clue.nono-clue-major{
- border-right:0!important;
- box-shadow:inset -1.6px 0 0 #8695d4;
+ border:0!important;box-shadow:none!important
 }
 #board.nono-board-fit .nono-fit-clue-ink{
  display:inline-block;min-width:0;font-weight:inherit;font-size:inherit;line-height:1;
@@ -510,11 +505,11 @@ body.nono-fit-playing #board.nono-board-fit.nono-both{
 }
 #board.nono-board-fit .row-clue>span{
  flex:0 0 var(--nono-fit-item-width)!important;width:var(--nono-fit-item-width)!important;
- height:100%!important;padding:0!important;border-left-width:.5px!important
+ height:100%!important;padding:0!important;border-left:0!important
 }
 #board.nono-board-fit .col-clue>span{
  flex:0 0 var(--nono-fit-line-height)!important;width:100%!important;
- height:var(--nono-fit-line-height)!important;padding:0!important;border-bottom-width:.5px!important
+ height:var(--nono-fit-line-height)!important;padding:0!important;border-bottom:0!important
 }
 body.nono-fit-playing .topbar,body.nono-fit-playing #game .game-header{
  box-sizing:border-box!important;position:relative!important;left:50%!important;
@@ -1210,9 +1205,12 @@ function fitBoardToViewport(){
   // same height as a puzzle cell, and must not be capped by cell size.
   const minFont=viewportW>=700?8.5:viewportW>=500?7:5;
   const font=Math.max(minFont,Math.min(14,cell*.94));
-  const slotWidth=Math.max(5,font*(digits>=3?2.35:digits===2?1.78:1.2)+1.5);
+  // Two digits typically need ~1.2em, not 1.78em. The old oversized
+  // horizontal slots created very wide gaps between the LEFT row clues.
+  // The existing per-glyph fit still guards unusually wide fonts.
+  const slotWidth=Math.max(5,font*(digits>=3?1.90:digits===2?1.28:.86)+1.3);
   const slotHeight=Math.max(5,font*1.26+1.5);
-  const rowWidth=maxRow*slotWidth+8,colHeight=maxCol*slotHeight+8;
+  const rowWidth=maxRow*slotWidth+4,colHeight=maxCol*slotHeight+8;
   return {font,slotWidth,slotHeight,rowWidth,colHeight,
    fullWidth:cell*n+rowWidth*sides,fullHeight:cell*h+colHeight*sides};
  }
