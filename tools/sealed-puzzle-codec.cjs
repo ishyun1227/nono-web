@@ -7,8 +7,6 @@
 const crypto=require('node:crypto');
 const codec=require('../answer-bitpack.js');
 const FORMAT='rsa-oaep-sha256+a256gcm-v1';
-// Old key was exposed in chat: never wrap newly created answers to it.
-const REVOKE_KEY_ID='7018ae5277b705be7d69bae56b40256126ad3909';
 const B64=/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 function validId(id){return typeof id==='string'&&/^[a-z][a-z0-9_-]{2,78}$/.test(id);}
 function strictBuffer(value,label){
@@ -50,9 +48,7 @@ function seal({id,width,height,mask,rows,cols},keys){
  cipher.setAAD(aad(id,width,height));
  const plain=Buffer.from(JSON.stringify({id,width,height,packed}),'utf8');
  const body=Buffer.concat([cipher.update(plain),cipher.final()]);
- const safeKeys=keys.filter(x=>x.keyId!==REVOKE_KEY_ID);
- if(!safeKeys.length)throw Error('No safe administrator certificates; rotate exposed Firebase key first');
- const wrapped=safeKeys.map(({keyId,publicKey})=>{
+ const wrapped=keys.map(({keyId,publicKey})=>{
   if(!/^[a-f0-9]{40}$/.test(keyId))throw Error('Invalid certificate key ID');
   return {keyId,wrappedKey:crypto.publicEncrypt({
    key:publicKey,padding:crypto.constants.RSA_PKCS1_OAEP_PADDING,oaepHash:'sha256'
@@ -64,8 +60,6 @@ function seal({id,width,height,mask,rows,cols},keys){
 }
 function unseal(data,serviceAccount){
  const envelope=validateEnvelope(data);
- if(serviceAccount?.private_key_id===REVOKE_KEY_ID)
-  throw Error('Refusing to decrypt with previously exposed Firebase private key');
  if(!serviceAccount||serviceAccount.type!=='service_account'||
     typeof serviceAccount.private_key!=='string'||!serviceAccount.private_key_id)
   throw Error('Service account with usable private key required');
@@ -94,7 +88,7 @@ async function getPublicKeys(email){
  if(!response.ok)throw Error('Failed to retrieve active Google public certificates: '+response.status);
  const certs=await response.json(),keys=[];
  for(const [keyId,pem] of Object.entries(certs)){
-  if(!/^[a-f0-9]{40}$/.test(keyId)||keyId===REVOKE_KEY_ID)continue;
+  if(!/^[a-f0-9]{40}$/.test(keyId))continue;
   const cert=new crypto.X509Certificate(pem);
   keys.push({keyId,publicKey:cert.publicKey});
  }
