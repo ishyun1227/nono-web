@@ -26,19 +26,21 @@ function args(values){
  return result;
 }
 async function register(flags,dependencies={}){
+ const repositoryRoot=path.resolve(dependencies.root||root);
  const sourcePath=path.resolve(flags['--input']);
- if(exclude(sourcePath))throw Error('Unencrypted puzzle input MUST remain outside the public repository');
+ if(exclude(sourcePath)||sourcePath===repositoryRoot||sourcePath.startsWith(repositoryRoot+path.sep))
+  throw Error('Unencrypted puzzle input MUST remain outside the public repository');
  const original=JSON.parse(fs.readFileSync(sourcePath,'utf8'));
  // Even when a creator proposes "approved", a new puzzle MUST enter review.
  original.reviewStatus='trial';
  const result=prepare(original);
  const {id,width,height}=result.publicData;
- const catalogPath=path.join(root,'puzzles/catalog.json');
+ const catalogPath=path.join(repositoryRoot,'puzzles/catalog.json');
  const catalog=JSON.parse(fs.readFileSync(catalogPath,'utf8'));
  if(catalog.schemaVersion!==1||!Array.isArray(catalog.puzzles))throw Error('Unexpected puzzle catalog format');
  if(catalog.puzzles.some(p=>p.id===id))throw Error('Duplicate public puzzle ID '+id);
- const publicPath=path.join(root,'puzzles/trial',id+'.json');
- const privatePath=path.join(root,'puzzles/sealed',id+'.json');
+ const publicPath=path.join(repositoryRoot,'puzzles/trial',id+'.json');
+ const privatePath=path.join(repositoryRoot,'puzzles/sealed',id+'.json');
  if(fs.existsSync(publicPath)||fs.existsSync(privatePath))throw Error('Puzzle already exists on disk');
  let keys=dependencies.keys;
  if(!keys){
