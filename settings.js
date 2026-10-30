@@ -1165,7 +1165,7 @@ function fitBoardToViewport(){
  const sideDock=touchDock&&window.matchMedia('(max-height:470px) and (orientation:landscape) and (pointer:coarse)').matches;
  // Keep a small visible edge around the LEFT clues and TOP clues, too.
  // Larger edge space is reserved when a landscape touch pad is beside the grid.
- const fitGutter=4;
+ const fitGutter=12; // Keep actual text and its borders safely away from viewport edges.
  const availW=Math.max(1,viewportW-padW-(sideDock?235:0)-fitGutter*2);
  let reservedControls=touchDock&&!sideDock?178:0;
  if(reservedControls){
@@ -1184,10 +1184,13 @@ function fitBoardToViewport(){
  function dimensions(cell){
   // A two-digit hint must be contained by its own dedicated slot. The old
   // 1.38em width could let numbers protrude past a column boundary.
-  const font=Math.max(2.5,Math.min(14,cell*.67));
-  const slotWidth=Math.max(3.5,Math.min(28,font*(digits>=3?2.2:digits===2?1.7:1.12)+1));
-  const slotHeight=Math.max(3.5,Math.min(22,cell*.90,font*1.12+1));
-  const rowWidth=maxRow*slotWidth+6,colHeight=maxCol*slotHeight+6;
+  // Reserve dedicated room for each glyph, including the two-digit clues.
+  // Previously the text and the grid technically fit but some values sat
+  // against their slot borders and looked visually cropped on narrow screens.
+  const font=Math.max(2.5,Math.min(14,cell*.78));
+  const slotWidth=Math.max(4,Math.min(28,font*(digits>=3?2.25:digits===2?1.68:1.17)+2.2));
+  const slotHeight=Math.max(4,Math.min(22,cell*.96,font*1.15+2));
+  const rowWidth=maxRow*slotWidth+8,colHeight=maxCol*slotHeight+8;
   return {font,slotWidth,slotHeight,rowWidth,colHeight,
    fullWidth:cell*n+rowWidth*sides,fullHeight:cell*h+colHeight*sides};
  }
@@ -1258,8 +1261,8 @@ function fitBoardToViewport(){
    range.selectNodeContents(ink);
    const glyphRect=range.getBoundingClientRect();
    if(glyphRect.width>0&&glyphRect.height>0){
-    const horizontal=Math.max(.1,(slotRect.width-.7)/glyphRect.width);
-    const vertical=Math.max(.1,(slotRect.height-.7)/glyphRect.height);
+    const horizontal=Math.max(.1,(slotRect.width-2)/glyphRect.width);
+    const vertical=Math.max(.1,(slotRect.height-2)/glyphRect.height);
     glyphScale=Math.min(glyphScale,horizontal,vertical);
    }
   }
