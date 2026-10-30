@@ -257,7 +257,7 @@ function translateDynamic(original,locale){
   vi:['Chuyên gia','Chưa đánh giá','Thỏ','Võ sĩ đạo','Người tuyết','Chờ kiểm duyệt'],
   th:['ผู้เชี่ยวชาญ','ยังไม่ประเมิน','กระต่าย','ซามูไร','มนุษย์หิมะ','รอตรวจสอบ']
  };
- const trialSource=['전문가','미평가','토끼','사무라이','겨울 눈사람','검수 대기'];
+ const trialSource='전문가|미평가|토끼|사무라이|겨울 눈사람|검수 대기'.split('|');
  const localTrial=trialTranslations[locale]||trialTranslations.en;
  const direct=trialSource.indexOf(original);
  if(direct>=0)return localTrial[direct];
