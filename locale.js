@@ -242,6 +242,32 @@ const patterns=[
 // instead of relying on Korean interpolation matching a static dictionary entry.
 function translateDynamic(original,locale){
  let m;
+// New reviewed-later trial names are content, not new game controls.
+ // Translate their labels in every supported language without changing IDs.
+ const trialTranslations={
+  en:['Expert','Not rated','Rabbit','Samurai','Winter Snowman','Pending review'],
+  ja:['エキスパート','未評価','うさぎ','侍','冬の雪だるま','レビュー待ち'],
+  'zh-CN':['专家','未评估','兔子','武士','冬日雪人','待审核'],
+  'zh-TW':['專家','未評估','兔子','武士','冬日雪人','待審核'],
+  es:['Experto','Sin evaluar','Conejo','Samurái','Muñeco de nieve','Pendiente de revisión'],
+  'pt-BR':['Especialista','Não avaliado','Coelho','Samurai','Boneco de neve','Aguardando revisão'],
+  fr:['Expert','Non évalué','Lapin','Samouraï','Bonhomme de neige','En attente de validation'],
+  de:['Experte','Nicht bewertet','Hase','Samurai','Schneemann','Prüfung ausstehend'],
+  id:['Pakar','Belum dinilai','Kelinci','Samurai','Boneka salju','Menunggu peninjauan'],
+  vi:['Chuyên gia','Chưa đánh giá','Thỏ','Võ sĩ đạo','Người tuyết','Chờ kiểm duyệt'],
+  th:['ผู้เชี่ยวชาญ','ยังไม่ประเมิน','กระต่าย','ซามูไร','มนุษย์หิมะ','รอตรวจสอบ']
+ };
+ const trialSource='전문가|미평가|토끼|사무라이|겨울 눈사람|검수 대기'.split('|');
+ const localTrial=trialTranslations[locale]||trialTranslations.en;
+ const direct=trialSource.indexOf(original);
+ if(direct>=0)return localTrial[direct];
+ if((m=/^(\d+×\d+) · (토끼|사무라이|겨울 눈사람) \(검수 대기\)$/.exec(original)))
+   return m[1]+' · '+localTrial[trialSource.indexOf(m[2])]+' ('+localTrial[5]+')';
+ if((m=/^(토끼|사무라이|겨울 눈사람)$/.exec(original)))
+   return localTrial[trialSource.indexOf(m[1])];
+ if((m=/^(토끼|사무라이|겨울 눈사람) \(검수 대기\)$/.exec(original)))
+   return localTrial[trialSource.indexOf(m[1])]+' ('+localTrial[5]+')';
+
  const t=value=>translate(value,locale);
  if((m=/^(.+?) 이미지로 설명보기$/.exec(original)))
    return (locale==='ja'?'画像で説明：':locale.startsWith('zh')?'查看示例：':'View example: ')+t(m[1]);

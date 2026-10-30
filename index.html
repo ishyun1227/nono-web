@@ -54,7 +54,7 @@
   <div class="shell">
     <header class="topbar">
       <a href="#home-view" class="brand" id="brand-home" aria-label="NONO 홈"><span class="brand-box" aria-hidden="true">▦</span>NONO<span class="brand-dot">.</span></a>
-      <div class="header-right"><a href="./playtest-rabbit-samurai.html" style="display:inline-flex;align-items:center;text-decoration:none;border:1px solid #8b75c4;border-radius:9px;padding:7px 10px;color:#e2d7ff;background:#343052;font-size:12px;font-weight:700;white-space:nowrap">🐰⚔ Playtest</a><span id="connection" class="connection" aria-live="polite">로컬 체험</span><button id="profile-button" class="profile-chip" type="button" title="내 프로필"><span class="profile-avatar" aria-hidden="true">◈</span><span id="profile-name">플레이어</span></button></div>
+      <div class="header-right"><span id="connection" class="connection" aria-live="polite">로컬 체험</span><button id="profile-button" class="profile-chip" type="button" title="내 프로필"><span class="profile-avatar" aria-hidden="true">◈</span><span id="profile-name">플레이어</span></button></div>
     </header>
     <main>
       <div id="home-view">
@@ -76,7 +76,6 @@
             <div class="setup-actions"><button id="play-alone" class="button primary" type="button">게임 시작 <span aria-hidden="true">→</span></button>
               <div id="room-controls" class="room-controls hidden"><button id="create-room" class="button primary" type="button">방 만들기 <span aria-hidden="true">→</span></button><div class="join-row"><input id="room-code" maxlength="6" placeholder="초대 코드 6자리" aria-label="방 코드"/><button id="join-room" class="button outline" type="button">참가</button></div></div>
             </div>
-            <div id="winter-snowman-playtest" style="margin:12px 0 3px;padding:11px 13px;background:rgba(107,177,222,.12);border:1px solid rgba(122,181,219,.45);border-radius:12px"><a id="snowman-trial-link" href="./trials/winter-snowman-trial-v1.html" style="color:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px">❄ 겨울 눈사람 · 63×59 체험 퍼즐 풀기</a><div id="snowman-trial-desc" style="font-size:12px;opacity:.8;margin-top:4px">혼자하기 전용 테스트 · 원본 크기 유지 · 저장 및 이어하기 가능 · 정식 기록 제외</div><div id="nono-trial-generated" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px"></div></div>
             <section id="public-lobby" class="public-lobby hidden" aria-label="공개 멀티플레이 로비">
               <button id="quick-match" type="button" class="button primary public-lobby-match">⚡ 빠른 매칭</button>
               <div class="public-lobby-heading"><strong>공개 방 목록</strong><span class="public-lobby-live">● 실시간 갱신</span></div>
@@ -134,12 +133,12 @@ function createSizeTestPuzzle(size) {
   });
   const rows=Array.from({length:size},(_,r)=>lineHints(mask.slice(r*size,(r+1)*size)));
   const cols=Array.from({length:size},(_,c)=>lineHints(Array.from({length:size},(_,r)=>mask[r*size+c])));
-  return {id:'size-test-'+size,name:size+'×'+size+' 크기 테스트',size,rows,cols,sizeTest:true};
+  return {id:'size-test-'+size,name:size+'×'+size+' 크기 테스트',size,width:size,height:size,rows,cols,sizeTest:true};
 }
 // Public catalog is the single source of truth for all fixed main puzzles.
 // IDs and local save keys are unchanged, preserving existing user progress.
 const PUZZLES = [
-  ...(window.NONO_PUBLIC_PUZZLES||[]),
+  ...(window.NONO_PUBLIC_PUZZLES||[]).map(p=>({...p,size:p.width||p.size,width:p.width||p.size,height:p.height||p.size})),
   ...(window.NONO_DYNAMIC_PUZZLE_DEFS||[]).map(def=>createSizeTestPuzzle(def.size))
 ];
 function lineHints(bits) {
@@ -149,12 +148,13 @@ function lineHints(bits) {
   return out.length?out:[0];
 }
 function isSolved(board,puzzle){
-  const n=puzzle.size;
-  for(let r=0;r<n;r++){
-    if(lineHints(board.slice(r*n,(r+1)*n).map(v=>v==='1'?'1':'0')).join(',')!==puzzle.rows[r].join(','))return false;
+  const w=puzzle.width||puzzle.size,h=puzzle.height||puzzle.size;
+  if(!board||board.length!==w*h)return false;
+  for(let r=0;r<h;r++){
+    if(lineHints(board.slice(r*w,(r+1)*w).map(v=>v==='1'?'1':'0')).join(',')!==puzzle.rows[r].join(','))return false;
   }
-  for(let c=0;c<n;c++){
-    const line=[];for(let r=0;r<n;r++)line.push(board[r*n+c]==='1'?'1':'0');
+  for(let c=0;c<w;c++){
+    const line=[];for(let r=0;r<h;r++)line.push(board[r*w+c]==='1'?'1':'0');
     if(lineHints(line).join(',')!==puzzle.cols[c].join(','))return false;
   }
   return true;
@@ -179,7 +179,7 @@ function packMoveCells(cells){
   let bytes='';
   for(const [index,,after] of cells){
     const code=index*4+Number(after);
-    if(!Number.isInteger(index)||index<0||index>=puzzle.size*puzzle.size||code>65535||!['0','1','2'].includes(String(after)))
+    if(!Number.isInteger(index)||index<0||index>=puzzle.size*(puzzle.height||puzzle.size)||code>65535||!['0','1','2'].includes(String(after)))
       throw new Error('Invalid multiplayer cell delta');
     bytes+=String.fromCharCode(code>>8,code&255);
   }
@@ -206,7 +206,7 @@ function applyMoveLog(log,p,initial=null){
   return current;
 }
 
-function emptyBoard(p){return Array(p.size*p.size).fill('0');}
+function emptyBoard(p){return Array((p.width||p.size)*(p.height||p.size)).fill('0');}
 function elapsedFormat(ms){const total=Math.max(0,Math.floor(ms/1000));return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`;}
 
 // Firebase가 설정된 경우에만 SDK를 가져옵니다. 별도 설정 없이도 로컬 체험이 가능합니다.
@@ -312,7 +312,7 @@ function attachNavigation(){
   $('share-room-side').addEventListener('click',()=>$('copy-room-header').click());
 }
 function initHome(){
-  const options=PUZZLES.map((p,i)=>`<option value="${p.id}">${p.size}×${p.size} · ${p.sizeTest?'크기 테스트':'퍼즐 '+String(i+1).padStart(2,'0')}</option>`).join('');$('puzzle').innerHTML=options;
+  const options=PUZZLES.map((p,i)=>`<option value="${p.id}">${p.width||p.size}×${p.height||p.size} · ${p.sizeTest?'크기 테스트':p.trialOnly?p.name+' (검수 대기)':'퍼즐 '+String(i+1).padStart(2,'0')}</option>`).join('');$('puzzle').innerHTML=options;
   $('nickname').value='플레이어';updateProfileLabel();
   document.querySelectorAll('.mode-card[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
   $('puzzle').addEventListener('change',()=>{if(roomCode){$('puzzle').value=puzzle.id;return;}puzzle=PUZZLES.find(p=>p.id===$('puzzle').value)||PUZZLES[0];refreshHomepageScores();});
@@ -343,7 +343,7 @@ function updateToolButtons(){for(const [id,val] of [['tool-fill','1'],['tool-cro
 function showGame(){
   $('home-view').classList.add('hidden');$('game').classList.remove('hidden');
   $('game-title').textContent='노노그램';
-  $('game-subtitle').textContent=roomCode?`방 코드 ${roomCode} · ${puzzle.size}×${puzzle.size}`:`${puzzle.size}×${puzzle.size} · 방향키 / Space / X`;
+  $('game-subtitle').textContent=roomCode?`방 코드 ${roomCode} · ${puzzle.width||puzzle.size}×${puzzle.height||puzzle.size}`:`${puzzle.width||puzzle.size}×${puzzle.height||puzzle.size} · 방향키 / Space / X`;
 
 
   $('game-mode-badge').textContent=modes[mode][0];
@@ -383,7 +383,7 @@ async function startAlone(){
   }finally{startingAlone=false;$('play-alone').disabled=false;$('restart').disabled=false;}
 }
 function buildBoard(){
-  const target=$('board'),n=puzzle.size,maxRow=Math.max(...puzzle.rows.map(a=>a.length)),maxCol=Math.max(...puzzle.cols.map(a=>a.length));
+  const target=$('board'),n=puzzle.size,h=puzzle.height||puzzle.size,maxRow=Math.max(...puzzle.rows.map(a=>a.length)),maxCol=Math.max(...puzzle.cols.map(a=>a.length));
   target.innerHTML='';target.classList.toggle('board-small',n<=5);if(n>=30)target.style.setProperty('--cell-size','26px');else target.style.removeProperty('--cell-size');target.style.setProperty('--clue-size',`${Math.max(35,12+maxRow*17)}px`);
   const corner=document.createElement('div');corner.className='corner';corner.style.width=`${Math.max(38,15+maxRow*22)}px`;corner.style.height=`${Math.max(34,9+maxCol*19)}px`;
   const col=document.createElement('div');col.className='col-clues';col.style.gridTemplateColumns=`repeat(${n},var(--cell-size))`;
@@ -391,7 +391,7 @@ function buildBoard(){
   puzzle.cols.forEach(clue=>{const el=document.createElement('div');el.className='col-clue';for(const v of clue){const span=document.createElement('span');span.textContent=v;el.append(span);}col.append(el);});
   puzzle.rows.forEach(clue=>{const el=document.createElement('div');el.className='row-clue';for(const v of clue){const span=document.createElement('span');span.textContent=v;el.append(span);}row.append(el);});
   const cells=document.createElement('div');cells.className='cells';cells.style.gridTemplateColumns=`repeat(${n},var(--cell-size))`;
-  for(let i=0;i<n*n;i++){
+  for(let i=0;i<n*h;i++){
     const b=document.createElement('button');b.type='button';b.className='cell';b.dataset.index=i;b.setAttribute('role','gridcell');b.setAttribute('aria-label',`${Math.floor(i/n)+1}행 ${i%n+1}열`);
     b.addEventListener('pointerdown',e=>{if(e.button!==0&&e.button!==2)return;e.preventDefault();selected=i;pointerDown=true;dragTool=e.button===2?'2':tool;paint(i,dragTool,false);render();target.focus({preventScroll:true});});
     b.addEventListener('pointerenter',e=>{if(pointerDown&&e.buttons)paint(i,dragTool,true);});
@@ -421,7 +421,7 @@ function handleKeyboard(e){
   const n=puzzle.size;let dest=selected;
   switch(e.key){
     case 'ArrowUp':dest=Math.max(0,selected-n);break;
-    case 'ArrowDown':dest=Math.min(n*n-1,selected+n);break;
+    case 'ArrowDown':dest=selected+n<n*(puzzle.height||n)?selected+n:selected;break;
     case 'ArrowLeft':dest=selected%n===0?selected:selected-1;break;
     case 'ArrowRight':dest=selected%n===n-1?selected:selected+1;break;
     case ' ':case 'Spacebar':e.preventDefault();paint(selected,'1',false);return;
@@ -449,7 +449,7 @@ function paint(index,to,drag){
           emitDailyActivity('coop-action');
         }}).catch(firebaseError);
     }else{
-      runTransaction(ref(database,`rooms/${roomCode}/board`),current=>{const old=(typeof current==='string'&&current.length===puzzle.size*puzzle.size)?current:'0'.repeat(puzzle.size*puzzle.size);return old.slice(0,index)+next+old.slice(index+1);}).then(result=>{if(result.committed&&roomCode===activeRoom){contributedCoopRooms.add(activeRoom);emitDailyActivity('coop-action');if(finished)emitDailyActivity('puzzle-complete');}}).catch(firebaseError);
+      runTransaction(ref(database,`rooms/${roomCode}/board`),current=>{const old=(typeof current==='string'&&current.length===puzzle.size*(puzzle.height||puzzle.size))?current:'0'.repeat(puzzle.size*(puzzle.height||puzzle.size));return old.slice(0,index)+next+old.slice(index+1);}).then(result=>{if(result.committed&&roomCode===activeRoom){contributedCoopRooms.add(activeRoom);emitDailyActivity('coop-action');if(finished)emitDailyActivity('puzzle-complete');}}).catch(firebaseError);
     }
     return;
   }
@@ -462,7 +462,7 @@ function paint(index,to,drag){
   if(mode==='practice')renderLive();
 }
 function tick(){if($('game').classList.contains('hidden'))return;let start=mode==='race'?meta?.startedAt:startedAt;let end=finishedAt||(onlineReady()?serverNow():Date.now());$('timer').textContent=elapsedFormat(start?end-start:0);}
-function finishLocal(){if(finishing||finished)return;if(mode==='record'&&onlineReady()){finishRecord();return;}finishedAt=Date.now();finished=true;render();emitDailyActivity('puzzle-complete');window.dispatchEvent(new CustomEvent('nono:completion-confirmed',{detail:{mode:'solo',puzzleId:puzzle.id,size:puzzle.size,name:nickname(),roomCode:'',finishedAt}}));toast('퍼즐 완성!');if(mode==='record'){const key=`nono-records-${puzzle.id}`,scores=JSON.parse(storage.getItem(key)||'[]'),duration=finishedAt-startedAt;scores.push({name:nickname(),duration,changes,finishedAt});storage.setItem(key,JSON.stringify(scores.sort((a,b)=>a.duration-b.duration).slice(0,50)));refreshHomepageScores();}renderLive();}
+function finishLocal(){if(finishing||finished)return;if(mode==='record'&&onlineReady()){finishRecord();return;}finishedAt=Date.now();finished=true;render();if(!puzzle.trialOnly){emitDailyActivity('puzzle-complete');window.dispatchEvent(new CustomEvent('nono:completion-confirmed',{detail:{mode:'solo',puzzleId:puzzle.id,size:puzzle.size,name:nickname(),roomCode:'',finishedAt}}));}toast(puzzle.trialOnly?'체험 퍼즐 완성! (검수 대기 · 포인트 미지급)':'퍼즐 완성!');if(mode==='record'){const key=`nono-records-${puzzle.id}`,scores=JSON.parse(storage.getItem(key)||'[]'),duration=finishedAt-startedAt;scores.push({name:nickname(),duration,changes,finishedAt});storage.setItem(key,JSON.stringify(scores.sort((a,b)=>a.duration-b.duration).slice(0,50)));refreshHomepageScores();}renderLive();}
 async function finishRecord(){if(finishing)return;finishing=true;try{
   const path=`runs/${puzzle.id}/${currentId()}`;await set(ref(database,path),{name:nickname(),startedAt,finishedAt:serverTimestamp(),filled:serverAnswerMask(board,puzzle),changes});
   const data=(await get(ref(database,path))).val();finishedAt=data.finishedAt;finished=true;emitDailyActivity('puzzle-complete');window.dispatchEvent(new CustomEvent('nono:completion-confirmed',{detail:{mode:'solo',puzzleId:puzzle.id,size:puzzle.size,name:nickname(),roomCode:'',finishedAt:data.finishedAt}}));const duration=data.finishedAt-data.startedAt;
@@ -481,7 +481,7 @@ function renderLive(){
     renderScores(Object.fromEntries(scores.map((v,i)=>[i,v])),true);return;
   }
   if(mode==='practice'){
-    $('live-results').innerHTML=rankLine('현재 퍼즐',`${puzzle.size}×${puzzle.size}`,0)+rankLine('수정한 칸',`${changes}회`,1)+(finished?rankLine('완료 시간',elapsedFormat(finishedAt-startedAt),2):'');
+    $('live-results').innerHTML=rankLine('현재 퍼즐',`${puzzle.width||puzzle.size}×${puzzle.height||puzzle.size}`,0)+rankLine('수정한 칸',`${changes}회`,1)+(finished?rankLine('완료 시간',elapsedFormat(finishedAt-startedAt),2):'');
   }else if(mode==='coop'){
     $('live-results').innerHTML=Object.values(players).map((p,i)=>rankLine(p.name,'참여 중',i)).join('')||'<p class="muted">참가자를 불러오는 중…</p>';
   }else if(mode==='race'){
@@ -515,7 +515,7 @@ function renderPublicLobby(){
     const p=PUZZLES.find(p=>p.id===item.puzzleId),count=publicCounts[code];
     const amount=Number.isInteger(count)?(item.mode==='coop'?'현재 '+count+'명':count+'/4'):'인원 확인 중';
     return '<div class="public-room-item"><div class="public-room-info"><strong>'+
-      escapeHTML(item.name||'플레이어')+'의 방</strong><small>'+escapeHTML(p.size+'×'+p.size+' · '+({heart5:'쉬움',cat10:'보통',rocket10:'어려움'}[p.id]||'미지정')+' · '+amount)+
+      escapeHTML(item.name||'플레이어')+'의 방</strong><small>'+escapeHTML((p.width||p.size)+'×'+(p.height||p.size)+' · '+({heart5:'쉬움',cat10:'보통',rocket10:'어려움'}[p.id]||'미지정')+' · '+amount)+
       '</small></div><button type="button" data-room-code="'+code+'" class="button outline">참가</button></div>';
   }).join('');
 }
@@ -547,7 +547,7 @@ function watchPublicLobby(){
       const stop=onValue(ref(database,'rooms/'+code+'/'+(item.format===2?'coopMoves':'board')),snapshot=>{
         const p=PUZZLES.find(value=>value.id===item.puzzleId),value=snapshot.val();
         const cells=p?(item.format===2?applyMoveLog(value,p):
-          typeof value==='string'&&value.length===p.size*p.size?value.split(''):null):null;
+          typeof value==='string'&&value.length===p.size*(p.height||p.size)?value.split(''):null):null;
         publicSolved[code]=Boolean(cells&&isSolved(cells,p));
         renderPublicLobby();
       },error=>console.warn('공개 협동방 진행 상태 조회 실패',error));
@@ -586,7 +586,7 @@ async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toas
   const result=await runTransaction(ref(database,`rooms/${code}/meta`),current=>current?undefined:metaData);
   if(!result.committed)throw new Error('방 코드가 겹쳤어요. 다시 만들어 주세요.');
   if(!await enterRoom(code))return false;
-  if(roomCode===code&&mode==='coop'&&meta?.format!==2)await runTransaction(ref(database,'rooms/'+code+'/board'),current=>current===null?'0'.repeat(puzzle.size*puzzle.size):undefined);
+  if(roomCode===code&&mode==='coop'&&meta?.format!==2)await runTransaction(ref(database,'rooms/'+code+'/board'),current=>current===null?'0'.repeat(puzzle.size*(puzzle.height||puzzle.size)):undefined);
   if(makePublic){
     try{
       const info=(await get(ref(database,'rooms/'+code+'/meta'))).val();
@@ -661,7 +661,7 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
       if(roomCode!==code)return;
       const value=s.val();
       const next=info.format===2?applyMoveLog(value,p):
-        typeof value==='string'&&value.length===p.size*p.size?value.split(''):null;
+        typeof value==='string'&&value.length===p.size*(p.height||p.size)?value.split(''):null;
       if(next){
         board=next;roomBoard=board.join('');const wasFinished=finished;
         finished=isSolved(board,p);finishedAt=finished?(finishedAt||serverNow()):0;
@@ -681,7 +681,7 @@ async function ensureRaceState(){
   if(!meta||meta.status!=='playing'||!roomCode)return;
   const path=`rooms/${roomCode}/states/${currentId()}`,start=meta.startedAt,format=meta.format;
   if(raceSetup?.path===path)return raceSetup.promise;
-  const blank='0'.repeat(puzzle.size*puzzle.size);
+  const blank='0'.repeat(puzzle.size*(puzzle.height||puzzle.size));
   settingBoard=true;
   const promise=runTransaction(ref(database,path),current=>current?undefined:
     format===2?{startedAt:start,finishedAt:0}:{board:blank,filled:blank,startedAt:start,finishedAt:0})
@@ -755,7 +755,7 @@ function installResume(){
       if(p.sizeTest)continue;
       try{
         const saved=JSON.parse(storage.getItem('nono-web-puzzle-v1:'+p.id)||'null');
-        if(!saved||typeof saved.board!=='string'||!/^[012]+$/.test(saved.board)||saved.board.length!==p.size*p.size||saved.finishedAt||!/[12]/.test(saved.board)||isSolved(saved.board.split(''),p))continue;
+        if(!saved||typeof saved.board!=='string'||!/^[012]+$/.test(saved.board)||saved.board.length!==p.size*(p.height||p.size)||saved.finishedAt||!/[12]/.test(saved.board)||isSolved(saved.board.split(''),p))continue;
         list.push({kind:'solo',id:p.id,p,size:p.size,code:null,time:Number(saved.savedAt)||0,progress:progressFor(saved.board,p)});
       }catch(_){}
     }
@@ -819,7 +819,7 @@ function installResume(){
         if(!p||info.mode!=='coop')return null;
         const boardSnap=await get(ref(database,`rooms/${code}/${info.format===2?'coopMoves':'board'}`)),value=boardSnap.val();
         const progressBoard=info.format===2?applyMoveLog(value,p):
-          typeof value==='string'&&value.length===p.size*p.size?value.split(''):null;
+          typeof value==='string'&&value.length===p.size*(p.height||p.size)?value.split(''):null;
         if(!progressBoard||isSolved(progressBoard,p))return null;
         const valueString=progressBoard.join('');
         if(!/[12]/.test(valueString))return null;
@@ -896,28 +896,7 @@ initHome();resumeHub=installResume();connectFirebase();
 <script src="./home-sidebars.js?v=1"></script>
 <script src="./account.js?v=1"></script>
 <script src="./community.js?v=1"></script>
-<script>
-/* Dedicated trial entry copy must follow the user's 12-language selector. */
-(function(){
-  const labels={
-    'ko':['❄ 겨울 눈사람 · 63×59 체험 퍼즐 풀기','혼자하기 전용 테스트 · 원본 크기 유지 · 저장 및 이어하기 가능 · 정식 기록 제외'],
-    'en':['❄ Winter Snowman · Play 63×59 Trial','Solo playtest · Exact grid · Save and resume · Excluded from official records'],
-    'ja':['❄ 冬の雪だるま · 63×59 体験パズル','ひとり用テスト · 元のサイズ · 保存と再開が可能 · 公式記録の対象外'],
-    'zh-CN':['❄ 冬日雪人 · 63×59 试玩谜题','单人测试 · 原始尺寸 · 可保存续玩 · 不计入正式记录'],
-    'zh-TW':['❄ 冬日雪人 · 63×59 試玩謎題','單人測試 · 原始尺寸 · 可儲存續玩 · 不計入正式紀錄'],
-    'es':['❄ Muñeco de nieve · Prueba 63×59','Prueba individual · Cuadrícula original · Guardar y continuar · Sin récord oficial'],
-    'pt-BR':['❄ Boneco de neve · Teste 63×59','Teste solo · Grade original · Salvar e continuar · Fora dos recordes oficiais'],
-    'fr':['❄ Bonhomme de neige · Essai 63×59','Test solo · Grille exacte · Sauvegarde et reprise · Hors scores officiels'],
-    'de':['❄ Schneemann · 63×59-Testpuzzle','Solotest · Originalraster · Speichern und fortsetzen · Keine offiziellen Rekorde'],
-    'id':['❄ Boneka salju · Uji teka-teki 63×59','Uji solo · Kisi asli · Simpan dan lanjutkan · Tidak masuk rekor resmi'],
-    'vi':['❄ Người tuyết · Câu đố thử 63×59','Chơi thử một mình · Giữ nguyên lưới · Lưu và tiếp tục · Không tính thành tích chính thức'],
-    'th':['❄ มนุษย์หิมะ · ทดลองเล่น 63×59','ทดสอบเล่นคนเดียว · ตารางขนาดเดิม · บันทึกและเล่นต่อได้ · ไม่รวมสถิติทางการ']
-  };
-  const title=document.getElementById('snowman-trial-link'),note=document.getElementById('snowman-trial-desc');
-  function render(){const lang=window.NONO_I18N?.locale||document.documentElement.lang||'ko',copy=labels[lang]||labels.en;title.textContent=copy[0];note.textContent=copy[1];}
-  window.addEventListener('nono:languagechange',render);render();
-})();
-</script>
+
 <script>
 /* Optional developer preview, never downloaded during ordinary play. */
 if(new URLSearchParams(location.search).get('test')==='1'){

@@ -21,7 +21,7 @@ const legacyDifficulty={
 const supportedPuzzleModes=new Set(['practice','record','race','coop']);
 const puzzleCatalog=()=>Array.isArray(PUZZLES)?PUZZLES.filter(p=>p&&p.id&&Number.isInteger(p.size)&&p.size>0):[];
 function difficultyOf(p){
-  const raw=p.difficulty||legacyDifficulty[p.id];
+  const raw=p.difficulty==='미평가'&&legacyDifficulty[p.id]?legacyDifficulty[p.id]:p.difficulty||legacyDifficulty[p.id];
   return difficulties.includes(raw)?raw:'미지정';
 }
 function availablePuzzles(size,difficulty){

@@ -20,15 +20,16 @@
     }
     return value;
   }
-  function normalizedBoard(board, size) {
+  function normalizedBoard(board, size, height=size) {
     const value = Array.isArray(board) ? board.join('') : board;
-    if (typeof value !== 'string' || value.length !== size * size || /[^012]/.test(value)) {
+    if (typeof value !== 'string' || value.length !== size * height || /[^012]/.test(value)) {
       throw new TypeError('Invalid replay board');
     }
     return value;
   }
   function makeSession(options) {
     const size = integer(options.size, 'size', 1, 150);
+    const height=integer(options.height??size,'height',1,150);
     const mode = options.mode;
     if (!['practice', 'record', 'race', 'coop'].includes(mode)) throw new TypeError('Invalid mode');
     if (typeof options.puzzleId !== 'string' || !/^[a-zA-Z0-9_-]{1,90}$/.test(options.puzzleId)) {
@@ -40,8 +41,9 @@
       id: String(options.id || (start + '-' + Math.random().toString(36).slice(2, 11))),
       puzzleId: options.puzzleId,
       size,
+      ...(height===size?{}:{height}),
       mode,
-      initial: normalizedBoard(options.initial || '0'.repeat(size * size), size),
+      initial: normalizedBoard(options.initial || '0'.repeat(size * height), size,height),
       startedAt: start,
       completedAt: 0,
       actors: Array.isArray(options.actors) ? options.actors.slice() : [],
@@ -55,7 +57,7 @@
       throw new TypeError('Unsupported replay version');
     }
     integer(session.size, 'size', 1, 150);
-    normalizedBoard(session.initial, session.size);
+    normalizedBoard(session.initial, session.size,session.height||session.size);
   }
   function getCursor(session) {
     let cursor = activeCache.get(session);
@@ -140,6 +142,7 @@
   // for instant editing; localStorage/RTDB persist this representation directly.
   // This is a binary encoding, not an additional general-purpose compression pass.
   const PACKED_PREFIX = 'NR3:';
+  const PACKED_V4_PREFIX='NR4:'; // Rectangular boards; legacy square bytes stay NR3.
   const PACKED_V2_PREFIX = 'NR2:';
   const CHANGE_PREFIX = 'NRC1:';
   const encoder = new TextEncoder();
@@ -236,11 +239,11 @@
     for(let i=0;i<board.length;i++) result[i>>2]|=Number(board[i])<<((i%4)*2);
     return result;
   }
-  function unpackBoard(data,cursor,size) {
-    const length=Math.ceil(size*size/4);
+  function unpackBoard(data,cursor,size,height=size) {
+    const length=Math.ceil(size*height/4);
     if(cursor.i+length>data.length)throw new TypeError('Truncated replay board');
     const out=[];
-    for(let i=0;i<size*size;i++){
+    for(let i=0;i<size*height;i++){
       const value=(data[cursor.i+(i>>2)]>>((i%4)*2))&3;
       if(value>2)throw new TypeError('Invalid packed board state');
       out.push(String(value));
@@ -250,13 +253,15 @@
   function serialize(session) {
     assertSession(session);
     getCursor(session); // Validate every transition before storing it.
-    const out=[78,82,3];
+    const rectangular=!!(session.height&&session.height!==session.size);
+    const out=[78,82,rectangular?4:3];
     pushString(out,session.id);
     pushString(out,session.puzzleId);
     const mode=MODE_IDS.indexOf(session.mode);
     if(mode<0)throw new TypeError('Unsupported replay mode');
     out.push(mode);
     pushVar(out,session.size);
+    if(rectangular)pushVar(out,session.height);
     pushVar(out,session.startedAt);
     pushVar(out,session.completedAt||0);
     for(const b of packBoard(session.initial))out.push(b);
@@ -279,32 +284,34 @@
       // Zero means last change; one means another change follows.
       const changes=action[3];
       for(let i=0;i<changes.length;i++){
-        pushChange([],changes[i],session.size); // validate cell/state and non-no-op
+        pushChange([],changes[i],Math.ceil(Math.sqrt(session.size*(session.height||session.size)))); // exact board was validated above
         const cell=changes[i][0],before=changes[i][1],after=changes[i][2];
         pushVar(out,(cell*9+before*3+after)*2+(i<changes.length-1?1:0));
       }
       prevId=action[0];prevTime=action[2];
     }
-    return PACKED_PREFIX+asBase64(Uint8Array.from(out));
+    return (rectangular?PACKED_V4_PREFIX:PACKED_PREFIX)+asBase64(Uint8Array.from(out));
   }
   function parsePacked(raw) {
-    const isV3=raw.startsWith(PACKED_PREFIX);
-    const prefix=isV3?PACKED_PREFIX:PACKED_V2_PREFIX;
+    const isV4=raw.startsWith(PACKED_V4_PREFIX),isV3=raw.startsWith(PACKED_PREFIX);
+    const modern=isV3||isV4;
+    const prefix=isV4?PACKED_V4_PREFIX:isV3?PACKED_PREFIX:PACKED_V2_PREFIX;
     const data=fromBase64(raw.slice(prefix.length)),cursor={i:0};
-    const codecVersion=isV3?3:2;
+    const codecVersion=isV4?4:isV3?3:2;
     if(data[cursor.i++]!==78||data[cursor.i++]!==82||data[cursor.i++]!==codecVersion)
       throw new TypeError('Unsupported packed replay version');
     const id=takeString(data,cursor),puzzleId=takeString(data,cursor);
     const mode=MODE_IDS[data[cursor.i++]];
     if(!mode)throw new TypeError('Invalid packed replay mode');
     const size=integer(takeVar(data,cursor),'size',1,150);
+    const height=isV4?integer(takeVar(data,cursor),'height',1,150):size;
     const startedAt=integer(takeVar(data,cursor),'startedAt',1,Number.MAX_SAFE_INTEGER);
     const completedAt=integer(takeVar(data,cursor),'completedAt',0,Number.MAX_SAFE_INTEGER);
-    const initial=unpackBoard(data,cursor,size);
+    const initial=unpackBoard(data,cursor,size,height);
     const actors=JSON.parse(takeString(data,cursor));
     if(!Array.isArray(actors))throw new TypeError('Invalid replay actors');
-    const flags=isV3?data[cursor.i++]:0;
-    if(isV3 && (!Number.isInteger(flags)||flags>3))throw new TypeError('Invalid replay flags');
+    const flags=modern?data[cursor.i++]:0;
+    if(modern && (!Number.isInteger(flags)||flags>3))throw new TypeError('Invalid replay flags');
     const defaultActor=(flags&2)?takeVar(data,cursor):null;
     const actionCount=takeVar(data,cursor);
     if(actionCount>1000000)throw new TypeError('Replay action count too large');
@@ -318,7 +325,7 @@
       const nextId=prevId+idDelta,nextTime=prevTime+delta;
       if(!Number.isSafeInteger(nextId)||!Number.isSafeInteger(nextTime))throw new TypeError('Replay action overflow');
       const changes=[];
-      if(isV3){
+      if(modern){
         let more=1;
         while(more){
           if(changes.length>=22500)throw new TypeError('Replay stroke too large');
@@ -327,7 +334,7 @@
           const code=Math.floor(word/2);
           const cell=Math.floor(code/9),rest=code%9;
           const before=Math.floor(rest/3),after=rest%3;
-          integer(cell,'cell',0,size*size-1);
+          integer(cell,'cell',0,size*height-1);
           if(before===after)throw new TypeError('Invalid replay no-op');
           changes.push([cell,before,after]);
         }
@@ -340,13 +347,13 @@
       prevId=nextId;prevTime=nextTime;
     }
     if(cursor.i!==data.length)throw new TypeError('Trailing replay bytes');
-    const session={version:VERSION,id,puzzleId,size,mode,initial,startedAt,completedAt,actors,actions};
+    const session={version:VERSION,id,puzzleId,size,...(isV4?{height}:{}),mode,initial,startedAt,completedAt,actors,actions};
     assertSession(session);getCursor(session);
     return session;
   }
   function parse(raw) {
     if (typeof raw !== 'string') throw new TypeError('Replay must be a string');
-    if(raw.startsWith(PACKED_PREFIX)||raw.startsWith(PACKED_V2_PREFIX))return parsePacked(raw);
+    if(raw.startsWith(PACKED_V4_PREFIX)||raw.startsWith(PACKED_PREFIX)||raw.startsWith(PACKED_V2_PREFIX))return parsePacked(raw);
     const data=JSON.parse(raw); // Legacy NR1 JSON is read-only compatible.
     assertSession(data);getCursor(data);
     return data;

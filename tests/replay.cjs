@@ -87,4 +87,17 @@ for(const size of [25,45,75,100]){
 }
 console.log('Replay size measurements:',JSON.stringify(currentSize));
 
+
+const rectangular=replay.makeSession({puzzleId:'trial_rabbit_53x73',size:53,height:73,mode:'practice',startedAt:12000});
+assert.equal(rectangular.initial.length,53*73);
+replay.record(rectangular,{actor:1,elapsedMs:10,changes:[[53*73-1,0,1]]});
+const savedRectangle=replay.serialize(rectangular);
+assert(savedRectangle.startsWith('NR4:'),'rectangular replay must use new compatible version');
+const restoredRectangle=replay.parse(savedRectangle);
+assert.equal(restoredRectangle.size,53);
+assert.equal(restoredRectangle.height,73);
+assert.equal(replay.boardAtEnd(restoredRectangle).length,53*73);
+assert.equal(replay.boardAtEnd(restoredRectangle).at(-1),'1');
+assert.deepEqual(restoredRectangle.actions,rectangular.actions);
+
 console.log('Numeric replay unit tests passed');

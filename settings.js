@@ -106,7 +106,7 @@ function encodeHistoryAction(action){
 }
 function decodeHistoryAction(data){
  if(!Array.isArray(data)||data.length!==5||!Array.isArray(data[4]))return null;
- const n=puzzle.size*puzzle.size;
+ const n=puzzle.size*(puzzle.height||puzzle.size);
  const [beforeChanges,afterChanges,beforeSelected,afterSelected,items]=data;
  if(![beforeChanges,afterChanges,beforeSelected,afterSelected].every(Number.isSafeInteger)||
   beforeChanges<0||afterChanges<0||beforeSelected<0||beforeSelected>=n||
@@ -128,7 +128,7 @@ function decodeHistoryAction(data){
 // all subsequent saves write only numeric per-cell changes.
 function unpackLegacyHistoryState(data){
  if(!Array.isArray(data)||data.length!==3||typeof data[0]!=='string')return null;
- const length=puzzle.size*puzzle.size;
+ const length=puzzle.size*(puzzle.height||puzzle.size);
  if(!Number.isFinite(data[1])||data[1]<0||!Number.isInteger(data[2])||data[2]<0||data[2]>=length)return null;
  try{
   const bytes=atob(data[0]);
@@ -180,10 +180,58 @@ function saveBoard(){
   }catch(error){if(limit===0)console.warn('퍼즐 진행 상태를 저장하지 못했어요.',error);}
  }
 }
+// Migrate legacy standalone playtest progress once, without deleting its
+// original localStorage entry. All new play uses the canonical numeric history.
+function importOldTrialSave(){
+ const id=puzzle.id,n=puzzle.size*(puzzle.height||puzzle.size);
+ const legacyKey=id==='winter-snowman-trial-v1'?'nono-winter-snowman-trial-v1':
+  id==='trial_rabbit_53x73'?'nono-source-playtest-20261029-rabbit':
+  id==='trial_samurai_72x72'?'nono-source-playtest-20261029-samurai':null;
+ if(!legacyKey)return null;
+ try{
+  const old=JSON.parse(localStorage.getItem(legacyKey)||'null');
+  if(!old)return null;
+  let values=Array(n).fill('0'),actions=[],future=[],started=Date.now(),done=0;
+  const validAction=([i,b,a])=>Number.isInteger(i)&&i>=0&&i<n&&
+   Number.isInteger(b)&&b>=0&&b<=2&&Number.isInteger(a)&&a>=0&&a<=2&&b!==a;
+  if(id==='winter-snowman-trial-v1'){
+   if(old.version!==1)return null;
+   const decode=b64=>{
+    const bytes=atob(b64||'');if(bytes.length%3||bytes.length>n*30)throw Error('Invalid old snowman moves');
+    const arr=[];for(let k=0;k<bytes.length;k+=3){
+     const i=bytes.charCodeAt(k)*256+bytes.charCodeAt(k+1),x=bytes.charCodeAt(k+2);
+     const step=[i,x>>2,x&3];if(!validAction(step))throw Error('Invalid old snowman move');
+     arr.push(step);
+    }return arr;
+   };
+   actions=decode(old.undo);future=decode(old.redo);
+   for(const [i,b,a] of actions){if(values[i]!==String(b))throw Error('Old snowman history mismatch');values[i]=String(a);}
+   started=Number(old.startedAt)||Date.now();done=Number(old.finishedAt)||0;
+  }else{
+   if(old.v!==1||typeof old.marks!=='string')return null;
+   const bytes=atob(old.marks);if(bytes.length!==Math.ceil(n/4))return null;
+   values=Array.from({length:n},(_,i)=>String((bytes.charCodeAt(i>>2)>>((i&3)*2))&3));
+   if(values.some(v=>v==='3'))return null;
+   actions=Array.isArray(old.undo)?old.undo.filter(validAction):[];
+   future=Array.isArray(old.redo)?old.redo.filter(validAction):[];
+   const elapsed=Number.isFinite(old.elapsed)?Math.max(0,old.elapsed):0;
+   started=Date.now()-elapsed;done=old.completed?Date.now():0;
+  }
+  const convert=(list)=>list.slice(-150).map(([i,b,a],k)=>[
+   k,k+1,i,i,[[i,b*3+a]]
+  ]);
+  const data={board:values.join(''),startedAt:started,finishedAt:done,selected:0,
+   changes:actions.length,historyFormat:HISTORY_FORMAT,undo:convert(actions),
+   redo:convert(future),manual:{},savedAt:Date.now()};
+  // Never mutate the old playtest save and never expose its original solutions.
+  localStorage.setItem(saveKey(),JSON.stringify(data));
+  return data;
+ }catch(error){console.warn('옛 퍼즐 진행 데이터 이전 실패',error);return null;}
+}
 function readBoard(){
  try{
-  const data=JSON.parse(localStorage.getItem(saveKey())||'null');
-  return data&&typeof data.board==='string'&&data.board.length===puzzle.size*puzzle.size&&/^[012]+$/.test(data.board)?data:null;
+  const data=JSON.parse(localStorage.getItem(saveKey())||'null')||importOldTrialSave();
+  return data&&typeof data.board==='string'&&data.board.length===puzzle.size*(puzzle.height||puzzle.size)&&/^[012]+$/.test(data.board)?data:null;
  }catch{return null;}
 }
 function dropSave(){try{localStorage.removeItem(saveKey())}catch{}}
@@ -415,15 +463,15 @@ body.nono-fit-playing #game .board-scroll,body.nono-fit-playing #game .board-scr
 body.nono-fit-playing #board.nono-board-fit{
  width:max-content!important;min-width:0!important;max-width:none!important;margin:auto!important;
  grid-template-columns:var(--nono-fit-row-width) var(--nono-fit-grid-width)!important;
- grid-template-rows:var(--nono-fit-col-height) var(--nono-fit-grid-width)!important
+ grid-template-rows:var(--nono-fit-col-height) var(--nono-fit-grid-height)!important
 }
 body.nono-fit-playing #board.nono-board-fit.nono-both{
  grid-template-columns:var(--nono-fit-row-width) var(--nono-fit-grid-width) var(--nono-fit-row-width)!important;
- grid-template-rows:var(--nono-fit-col-height) var(--nono-fit-grid-width) var(--nono-fit-col-height)!important
+ grid-template-rows:var(--nono-fit-col-height) var(--nono-fit-grid-height) var(--nono-fit-col-height)!important
 }
 #board.nono-board-fit .row-clues{
- height:var(--nono-fit-grid-width)!important;align-self:start;
- grid-template-rows:repeat(var(--nono-fit-size),var(--cell-size))!important
+ height:var(--nono-fit-grid-height)!important;align-self:start;
+ grid-template-rows:repeat(var(--nono-fit-height),var(--cell-size))!important
 }
 #board.nono-board-fit .col-clues{height:var(--nono-fit-col-height)!important;align-items:end}
 #board.nono-board-fit .row-clue,#board.nono-board-fit .col-clue{
@@ -949,15 +997,15 @@ function wrongCells(){
 function notifyWrong(kind){if(puzzle.sizeTest){if(kind==='direct')toast('크기 테스트 퍼즐은 오답 검사를 제공하지 않습니다.');return;}const bad=wrongCells();if(!bad.length){if(kind==='direct')toast('현재 표시된 오답이 없어요.');return}let detail=kind==='direct'||kind==='immediate'||prefs.errorExact?'정확한 칸':kind==='line'?'행·열':'전체';if(!prefs.errorExact&&detail==='정확한 칸')detail='개수';toast('오답 '+bad.length+'개 · '+detail+' 알림');const until=performance.now()+1250;const cells=document.querySelectorAll('#board .cell');if(prefs.errorExact){for(const i of bad)cells[i]?.classList.add('nono-error');setTimeout(()=>bad.forEach(i=>cells[i]?.classList.remove('nono-error')),1200)}else if(kind==='line'){for(const i of bad){cells[i]?.classList.add('nono-error-line');setTimeout(()=>cells[i]?.classList.remove('nono-error-line'),1200)}}else{$('board').classList.add('nono-error');setTimeout(()=>$('board').classList.remove('nono-error'),800)}if(kind==='immediate')playSound('wrong');}
 function scheduleWrong(){if(prefs.errorMode!=='delay')return;clearTimeout(autoTimer);const original=wrongCells().join(',');if(!original)return;autoTimer=setTimeout(()=>{if(wrongCells().join(',')!==original)return;notifyWrong('delayed');if(prefs.errorStages){setTimeout(()=>{if(wrongCells().join(',')===original)notifyWrong('line')},prefs.errorDelay*1000);if(prefs.errorExact)setTimeout(()=>{if(wrongCells().join(',')===original)notifyWrong('direct')},prefs.errorDelay*2000)}},prefs.errorDelay*1000);}
 function hintsForLine(axis,i){return axis==='row'?puzzle.rows[i]:puzzle.cols[i]}
-function lineValues(axis,i){const n=puzzle.size;return Array.from({length:n},(_,j)=>axis==='row'?board[i*n+j]:board[j*n+i]);}
+function lineValues(axis,i){const n=puzzle.size,len=axis==='row'?n:(puzzle.height||n);return Array.from({length:len},(_,j)=>axis==='row'?board[i*n+j]:board[j*n+i]);}
 function lineSolved(axis,i){const bits=lineValues(axis,i);return lineHints(bits.map(v=>v==='1'?1:0)).join(',')===hintsForLine(axis,i).join(',')}
 function canFade(axis,i,j){const values=lineValues(axis,i),clues=hintsForLine(axis,i);let segments=[],start=-1;for(let k=0;k<=values.length;k++){if(values[k]==='1'&&start<0)start=k;if(values[k]!=='1'&&start>=0){segments.push({start,len:k-start,end:k-1});start=-1}}const segment=segments[j];if(!segment||segment.len!==clues[j])return false;if(segment.start>0&&values[segment.start-1]!=='2')return false;if(segment.end<values.length-1&&values[segment.end+1]!=='2')return false;for(let k=0;k<segment.start;k++)if(values[k]==='0')return false;return segments.slice(0,j).every((seg,k)=>seg.len===clues[k]);}
-function updateBoard(){if($('game').classList.contains('hidden'))return;const n=puzzle.size,cells=$('board').querySelectorAll('.cell'),hi=String(prefs.majorEvery);$('board').style.setProperty('--nono-accent',prefs.color);$('board').style.setProperty('--nono-major',prefs.majorStrength==='strong'?'4px':prefs.majorStrength==='weak'?'2px':'3px');$('board').classList.toggle('nono-thin',prefs.gridWidth==='thin');$('board').classList.toggle('nono-thick',prefs.gridWidth==='thick');let ratio=board.filter(x=>x==='1').length,black=totalBlack(puzzle),progress=Math.min(100,Math.round(ratio/Math.max(1,black)*100));let hud= prefs.progress==='off'?'':prefs.progress==='percent'?progress+'%':prefs.progress==='cells'?ratio+'/'+black:progress+'% · '+ratio+'/'+black;
+function updateBoard(){if($('game').classList.contains('hidden'))return;const n=puzzle.size,h=puzzle.height||n,cells=$('board').querySelectorAll('.cell'),hi=String(prefs.majorEvery);$('board').style.setProperty('--nono-accent',prefs.color);$('board').style.setProperty('--nono-major',prefs.majorStrength==='strong'?'4px':prefs.majorStrength==='weak'?'2px':'3px');$('board').classList.toggle('nono-thin',prefs.gridWidth==='thin');$('board').classList.toggle('nono-thick',prefs.gridWidth==='thick');let ratio=board.filter(x=>x==='1').length,black=totalBlack(puzzle),progress=Math.min(100,Math.round(ratio/Math.max(1,black)*100));let hud= prefs.progress==='off'?'':prefs.progress==='percent'?progress+'%':prefs.progress==='cells'?ratio+'/'+black:progress+'% · '+ratio+'/'+black;
 $('progress').textContent=hud;$('progress').style.display=prefs.progress==='off'?'none':'';
 $('undo').style.display=prefs.undoButtons?'':'none';$('redo').style.display=prefs.undoButtons?'':'none';
 $('nono-hint-action').style.display=(prefs.hintLine||prefs.hintExplanation||prefs.hintCell)?'':'none';
 const hintGuide=document.querySelector('.board-caption');if(hintGuide)hintGuide.hidden=prefs.guide==='off';
-cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',false);c.classList.toggle('nono-done-line',!!prefs.completeLines&&(lineSolved('row',r)||lineSolved('col',col)));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<n-1);
+cells.forEach((c,i)=>{const r=Math.floor(i/n),col=i%n;c.classList.toggle('nono-selected-row',false);c.classList.toggle('nono-done-line',!!prefs.completeLines&&(lineSolved('row',r)||lineSolved('col',col)));c.classList.toggle('nono-last',i===lastInput&&(prefs.lastInput==='always'||(prefs.lastInput!=='off'&&Date.now()-lastInputTime<Number(prefs.lastInput)*1000)));c.classList.toggle('nono-lines-bold',(col+1)%Number(hi)===0&&col<n-1);c.classList.toggle('nono-lines-bottom',(r+1)%Number(hi)===0&&r<h-1);
 const atEdge=col===n-1&&prefs.lineNumbers&&(r+1)%Math.max(1,Number(prefs.lineInterval)||5)===0;
 if(atEdge)c.dataset.rowCoordinate=String(r+1);else delete c.dataset.rowCoordinate;});
 for(const axis of ['row','col']){const elems=$('board').querySelectorAll(axis==='row'?'#board > .row-clues:not(.nono-extra-row) .row-clue':'#board > .col-clues:not(.nono-extra-col) .col-clue');elems.forEach((el,i)=>{el.querySelectorAll('span').forEach((span,j)=>{const stored=(manualClues[puzzle.id]||{})[axis+':'+i+':'+j];span.classList.toggle('nono-fade-clue',stored===true||(stored!==false&&prefs.autoHintFade&&canFade(axis,i,j)));span.classList.toggle('nono-hint-target',hintMode&&hintAxis===axis&&hintIndex===i&&j===hintNumber);});});}
@@ -1029,7 +1077,7 @@ function renderFilledRunCounts(){
  if(!prefs.filledRunCount){layer?.remove();return;}
  if(!layer){layer=E('div','nono-run-labels');layer.setAttribute('aria-hidden','true');cells.append(layer);}
  layer.replaceChildren();
- const n=puzzle.size,threshold=Math.max(1,Number(prefs.filledRunThreshold)||10);
+ const n=puzzle.size,h=puzzle.height||n,threshold=Math.max(1,Number(prefs.filledRunThreshold)||10);
  const cellPx=parseFloat($('board').dataset.fitCellSize)||parseFloat($('board').style.getPropertyValue('--cell-size'))||41;
  const font=Math.max(4,Math.min(14,cellPx*.72));
  const add=(axis,line,start,length)=>{
@@ -1042,11 +1090,12 @@ function renderFilledRunCounts(){
   label.style.fontSize=font.toFixed(1)+'px';
   layer.append(label);
  };
- for(const axis of ['row','col'])for(let line=0;line<n;line++){
+ for(const axis of ['row','col'])for(let line=0;line<(axis==='row'?h:n);line++){
   let begin=-1;
-  for(let i=0;i<=n;i++){
+  const length=axis==='row'?n:h;
+  for(let i=0;i<=length;i++){
    const at=axis==='row'?line*n+i:i*n+line;
-   const painted=i<n&&board[at]==='1';
+   const painted=i<length&&board[at]==='1';
    if(painted&&begin<0)begin=i;
    if(!painted&&begin>=0){add(axis,line,begin,i-begin);begin=-1;}
   }
@@ -1054,12 +1103,12 @@ function renderFilledRunCounts(){
 }
 
 function updateClueDecor(){
- const target=$('board'),n=puzzle.size;
+ const target=$('board'),n=puzzle.size,h=puzzle.height||n;
  target.classList.toggle('nono-both',!!prefs.bothClues);
  target.querySelector('.nono-extra-row')?.remove();target.querySelector('.nono-extra-col')?.remove();
  const r=target.querySelector('.row-clues'),c=target.querySelector('.col-clues');
  if(!r||!c)return;
- r.querySelectorAll('.row-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-major',(i+1)%Number(prefs.majorEvery)===0&&i<n-1);el.classList.toggle('nono-clue-index',false);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
+ r.querySelectorAll('.row-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-major',(i+1)%Number(prefs.majorEvery)===0&&i<h-1);el.classList.toggle('nono-clue-index',false);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
  c.querySelectorAll('.col-clue').forEach((el,i)=>{el.classList.toggle('nono-clue-major',(i+1)%Number(prefs.majorEvery)===0&&i<n-1);el.classList.toggle('nono-clue-index',false);el.dataset.lineNumber=(i+1)%prefs.lineInterval===0?String(i+1):'';});
  if(prefs.bothClues){const rc=r.cloneNode(true),cc=c.cloneNode(true);rc.classList.add('nono-extra-row');cc.classList.add('nono-extra-col');target.append(rc,cc);}
   if(altClueSelection){
@@ -1089,7 +1138,7 @@ function fitBoardToViewport(){
  if($('game').classList.contains('hidden'))return;
  const grid=$('board'),area=document.querySelector('#game .board-scroll'),card=document.querySelector('#game .board-card');
  if(!grid||!area||!card)return;
- const n=puzzle.size,isLarge=n>=30;
+ const n=puzzle.size,h=puzzle.height||n,isLarge=Math.max(n,h)>=30;
  document.body.classList.toggle('nono-fit-playing',isLarge);
  document.body.classList.toggle('nono-zoom-exceeded',isLarge&&boardZoom>1.000001);
  grid.classList.add('nono-board-fit');
@@ -1130,12 +1179,12 @@ function fitBoardToViewport(){
  let low=.5,high=cap;
  for(let k=0;k<35;k++){
   const mid=(low+high)/2,d=dimensions(mid);
-  if(n*mid+d.rowWidth*sides+4<=availW&&n*mid+d.colHeight*sides+4<=availH)low=mid;
+  if(n*mid+d.rowWidth*sides+4<=availW&&h*mid+d.colHeight*sides+4<=availH)low=mid;
   else high=mid;
  }
  const fit=Math.max(.5,low),cell=fit*boardZoom,d=dimensions(cell);
  const renderedWidth=n*cell+d.rowWidth*sides+8;
- const renderedHeight=n*cell+d.colHeight*sides+8;
+ const renderedHeight=h*cell+d.colHeight*sides+8;
  const pageWidth=boardZoom<=1?Math.ceil(viewportW):Math.ceil(Math.max(viewportW,renderedWidth+4));
  const pageHeight=boardZoom<=1?Math.ceil(viewportH):Math.ceil(Math.max(viewportH,renderedHeight+4));
  // Scroll the DOCUMENT, never the puzzle container.
@@ -1151,7 +1200,9 @@ function fitBoardToViewport(){
  const props={
   '--cell-size':cell.toFixed(3)+'px',
   '--nono-fit-size':String(n),
+  '--nono-fit-height':String(h),
   '--nono-fit-grid-width':(cell*n).toFixed(3)+'px',
+  '--nono-fit-grid-height':(cell*h).toFixed(3)+'px',
   '--nono-fit-item-width':d.slotWidth.toFixed(3)+'px',
   '--nono-fit-line-height':d.slotHeight.toFixed(3)+'px',
   '--nono-fit-font':d.font.toFixed(3)+'px',
@@ -1170,7 +1221,7 @@ function fitBoardToViewport(){
  if(isLarge)centerBoard();
 }
 function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();}
-function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+n+'</b>';const g=E('div','nono-minimap-grid');g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
+function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size,h=puzzle.height||n;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+h+'</b>';const g=E('div','nono-minimap-grid');g.style.aspectRatio=n+' / '+h;g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
 function openOverview(){
  if($('game').classList.contains('hidden'))return;
  overviewOpen=true;
@@ -1185,20 +1236,20 @@ function openOverview(){
  const g=$('nono-overview-grid');
  g.replaceChildren();
  g.style.gridTemplateColumns='repeat('+n+',minmax(0,1fr))';
- g.style.gridTemplateRows='repeat('+n+',minmax(0,1fr))';
+ g.style.gridTemplateRows='repeat('+(puzzle.height||n)+',minmax(0,1fr))';g.style.aspectRatio=n+' / '+(puzzle.height||n);
  board.forEach(v=>{g.append(E('i',v==='1'?'is-filled':'',!completed&&v==='2'?'×':''))});
  apply();
 }
 function closeOverview(){overviewOpen=false;$('nono-overview').hidden=true;apply();}
 function enumerateLine(hints,values){const n=values.length,states=[],out=[];function go(i,at){if(i===hints.length){const row=Array(n).fill('2');for(const [start,end] of states)for(let k=start;k<end;k++)row[k]='1';if(row.every((v,k)=>values[k]==='0'||values[k]===v))out.push(row);return}const remaining=hints.slice(i+1).reduce((s,v)=>s+v+1,0);for(let start=at;start<=n-hints[i]-remaining;start++){states.push([start,start+hints[i]]);go(i+1,start+hints[i]+1);states.pop();if(out.length>30000)return}}go(0,0);return out}
-function logicHint(){if(puzzle.sizeTest){toast('크기 테스트 퍼즐은 풀이 힌트를 제공하지 않습니다.');return;}hintStage++;let found=null;for(let axis of ['row','col']){for(let i=0;i<puzzle.size;i++){const values=lineValues(axis,i),poss=enumerateLine(hintsForLine(axis,i),values);if(!poss.length)continue;for(let j=0;j<puzzle.size;j++){if(values[j]!=='0')continue;const v=poss[0][j];if(poss.every(line=>line[j]===v)){found={axis,i,j,v,count:poss.length};break}}if(found)break}if(found)break}if(!found){toast('현재 논리적으로 확실한 칸이 없어요.');return;}
+function logicHint(){if(puzzle.sizeTest){toast('크기 테스트 퍼즐은 풀이 힌트를 제공하지 않습니다.');return;}hintStage++;let found=null;for(let axis of ['row','col']){for(let i=0;i<(axis==='row'?(puzzle.height||puzzle.size):puzzle.size);i++){const values=lineValues(axis,i),poss=enumerateLine(hintsForLine(axis,i),values);if(!poss.length)continue;for(let j=0;j<values.length;j++){if(values[j]!=='0')continue;const v=poss[0][j];if(poss.every(line=>line[j]===v)){found={axis,i,j,v,count:poss.length};break}}if(found)break}if(found)break}if(!found){toast('현재 논리적으로 확실한 칸이 없어요.');return;}
 const phase=[];if(prefs.hintLine)phase.push('line');if(prefs.hintExplanation)phase.push('explain');if(prefs.hintCell)phase.push('cell');if(!phase.length)return;const step=phase[(hintStage-1)%phase.length];helpTarget=found.axis==='row'?found.i*puzzle.size+found.j:found.j*puzzle.size+found.i;helpLine=found;const text=step==='line'?(found.axis==='row'?'행 ':'열 ')+(found.i+1)+'번에 확실한 칸이 있어요.':step==='explain'?'힌트 숫자를 놓는 가능한 '+found.count+'가지 배치 모두에 공통되는 칸이 있어요.':(found.v==='1'?'채울':'X 표시할')+' 수 있는 확실한 칸을 강조했어요.';toast(text);$('nono-hint-status').textContent=text;if(step==='cell'){document.querySelectorAll('#board .cell')[helpTarget]?.classList.add('nono-highlight-now');setTimeout(()=>document.querySelectorAll('#board .cell')[helpTarget]?.classList.remove('nono-highlight-now'),4500)}playSound('hint');}
 function moveSelection(dir,quick){
- const n=puzzle.size,r=Math.floor(selected/n),c=selected%n,delta=quick?5:1;
+ const n=puzzle.size,h=puzzle.height||n,r=Math.floor(selected/n),c=selected%n,delta=quick?5:1;
  let row=r,col=c;
  if(dir==='up')row-=delta;else if(dir==='down')row+=delta;
  else if(dir==='left')col-=delta;else col+=delta;
- row=prefs.wrap?(row+n*5)%n:Math.max(0,Math.min(n-1,row));
+ row=prefs.wrap?(row+h*5)%h:Math.max(0,Math.min(h-1,row));
  col=prefs.wrap?(col+n*5)%n:Math.max(0,Math.min(n-1,col));
  selected=row*n+col;
  render();
@@ -1306,7 +1357,7 @@ if(!hintMode&&prefs.altClueQuickFade&&e.altKey&&!ctrl&&(matches('left',e)||match
   if(!e.repeat||altClueSelection)beginAltClue(matches('left',e)?'left':'right');
   return;
  }
- if(hintMode){if(key===' '||key==='spacebar'){e.preventDefault();e.stopImmediatePropagation();const k=hintAxis+':'+hintIndex+':'+hintNumber;manualClues[puzzle.id]=manualClues[puzzle.id]||{};manualClues[puzzle.id][k]=!manualClues[puzzle.id][k];saveBoard();render();return}if(key.startsWith('arrow')){e.preventDefault();e.stopImmediatePropagation();if(key==='arrowleft'||key==='arrowright'){hintNumber=(hintNumber+(key==='arrowright'?1:-1)+hintsForLine(hintAxis,hintIndex).length)%hintsForLine(hintAxis,hintIndex).length;}else{hintIndex=(hintIndex+(key==='arrowdown'?1:-1)+puzzle.size)%puzzle.size;hintNumber=0;}if(e.shiftKey){hintAxis=hintAxis==='row'?'col':'row';hintNumber=0;}render();return}}
+ if(hintMode){if(key===' '||key==='spacebar'){e.preventDefault();e.stopImmediatePropagation();const k=hintAxis+':'+hintIndex+':'+hintNumber;manualClues[puzzle.id]=manualClues[puzzle.id]||{};manualClues[puzzle.id][k]=!manualClues[puzzle.id][k];saveBoard();render();return}if(key.startsWith('arrow')){e.preventDefault();e.stopImmediatePropagation();if(key==='arrowleft'||key==='arrowright'){hintNumber=(hintNumber+(key==='arrowright'?1:-1)+hintsForLine(hintAxis,hintIndex).length)%hintsForLine(hintAxis,hintIndex).length;}else{hintIndex=(hintIndex+(key==='arrowdown'?1:-1)+(hintAxis==='row'?(puzzle.height||puzzle.size):puzzle.size))%(hintAxis==='row'?(puzzle.height||puzzle.size):puzzle.size);hintNumber=0;}if(e.shiftKey){hintAxis=hintAxis==='row'?'col':'row';hintNumber=0;}render();return}}
 if(ctrl&&(key==='z'||key==='y')){e.preventDefault();e.stopImmediatePropagation();restoreHistory(key==='y'||e.shiftKey?redoStack:undoStack,key==='y'||e.shiftKey?undoStack:redoStack);return}
 if(matches('undo',e)||matches('redo',e)){e.preventDefault();e.stopImmediatePropagation();restoreHistory(matches('undo',e)?undoStack:redoStack,matches('undo',e)?redoStack:undoStack);return}
 if(matches('toolFill',e)||matches('toolCross',e)){tool=matches('toolFill',e)?'1':'2';updateToolButtons();e.preventDefault();e.stopImmediatePropagation();return}
@@ -1484,8 +1535,8 @@ function moveFastDrag(e){
  // Only its projection onto the locked axis matters.
  const raw=d.axis==='row'?
   (e.clientX-d.rect.left)/(d.rect.width/n):
-  (e.clientY-d.rect.top)/(d.rect.height/n);
- const end=Math.max(0,Math.min(n-1,Math.floor(raw)));
+  (e.clientY-d.rect.top)/(d.rect.height/(puzzle.height||n));
+ const end=Math.max(0,Math.min((d.axis==='row'?n:(puzzle.height||n))-1,Math.floor(raw)));
  const originCoord=d.axis==='row'?d.col:d.row;
  if(end!==d.end){
   updateFastDragEndpoint(end);
@@ -1574,7 +1625,7 @@ function followPointerSelection(event){
  const cell=event.target.closest('.cell');
  if(!cell||!cell.closest('#board'))return;
  const next=Number(cell.dataset.index),cells=$('board').querySelector('.cells')?.children;
- if(!cells||!Number.isInteger(next)||next<0||next>=puzzle.size*puzzle.size)return;
+ if(!cells||!Number.isInteger(next)||next<0||next>=puzzle.size*(puzzle.height||puzzle.size))return;
  updateLiveSelection(next,cells);
 }
 mount();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});

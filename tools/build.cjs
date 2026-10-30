@@ -1,7 +1,7 @@
 const fs=require('node:fs'),path=require('node:path');
 const root=path.join(__dirname,'..'),output=path.join(root,'dist');
 fs.mkdirSync(output,{recursive:true});
-for(const name of ['index.html','playtest-rabbit-samurai.html','winter-snowman-test.html','locale.js','locale-packs.js','locale-en-extra.js','locale-sidebars.js','locale-ja-advanced.js','locale-ja-navigation.js','locale-settings-packs.js','locale-descriptions-packs.js','locale-core-packs.js','locale-controls-packs.js','locale-options-packs.js','locale-navigation-packs.js','locale-world-packs.js','locale-dynamics.js','locale-community-rewards.js','locale-runtime-messages.js','locale-firebase-messages.js','locale-controller-messages.js','puzzles-brainrot.js','numeric-replay.js','replay-client.js','cloud-replays.js','multiplayer-replay.js','answer-bitpack.js','voxel-test-preview.js','settings.js','firebase-config.js','themes.css','themes.js','premium-themes.css','theme-extras.css','library-precision.css','theme-world-ui.js','library-ui.js','forest-world.css','forest-world.js','assets/forest-world.svg','terminal-world.css','terminal-world.js','assets/terminal-wallpaper.svg','default-home.css','default-home.js','apple-home.css','apple-home.js','home-sidebars.css','home-sidebars.js','reward-policy.css','reward-policy.js','community.css','community.js','account.js','controller-input.css','controller-input.js','controller-customization.css','controller-customization.js','daily-rewards.js','daily-rewards.css','shop.js','shop.css','public-lobby.css','pixel-friends.css','assets/friends-parade.svg','assets/library-scene.svg','assets/library-world.svg','assets/library-mode-practice.svg','assets/library-mode-race.svg','assets/library-mode-coop.svg','assets/library-mode-record.svg','assets/arcade-scene.svg','assets/enchanted-scene.svg','assets/cosmos-scene.svg','assets/setting-guides/row-highlight.svg','assets/setting-guides/pointer-follow.svg','assets/setting-guides/hint-hud.svg','assets/setting-guides/filled-run.svg','assets/setting-guides/drag-hud.svg']){
+for(const name of ['index.html','locale.js','locale-packs.js','locale-en-extra.js','locale-sidebars.js','locale-ja-advanced.js','locale-ja-navigation.js','locale-settings-packs.js','locale-descriptions-packs.js','locale-core-packs.js','locale-controls-packs.js','locale-options-packs.js','locale-navigation-packs.js','locale-world-packs.js','locale-dynamics.js','locale-community-rewards.js','locale-runtime-messages.js','locale-firebase-messages.js','locale-controller-messages.js','puzzles-brainrot.js','numeric-replay.js','replay-client.js','cloud-replays.js','multiplayer-replay.js','answer-bitpack.js','voxel-test-preview.js','settings.js','firebase-config.js','themes.css','themes.js','premium-themes.css','theme-extras.css','library-precision.css','theme-world-ui.js','library-ui.js','forest-world.css','forest-world.js','assets/forest-world.svg','terminal-world.css','terminal-world.js','assets/terminal-wallpaper.svg','default-home.css','default-home.js','apple-home.css','apple-home.js','home-sidebars.css','home-sidebars.js','reward-policy.css','reward-policy.js','community.css','community.js','account.js','controller-input.css','controller-input.js','controller-customization.css','controller-customization.js','daily-rewards.js','daily-rewards.css','shop.js','shop.css','public-lobby.css','pixel-friends.css','assets/friends-parade.svg','assets/library-scene.svg','assets/library-world.svg','assets/library-mode-practice.svg','assets/library-mode-race.svg','assets/library-mode-coop.svg','assets/library-mode-record.svg','assets/arcade-scene.svg','assets/enchanted-scene.svg','assets/cosmos-scene.svg','assets/setting-guides/row-highlight.svg','assets/setting-guides/pointer-follow.svg','assets/setting-guides/hint-hud.svg','assets/setting-guides/filled-run.svg','assets/setting-guides/drag-hud.svg']){
   const target=path.join(output,name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(root,name),target);
 }
 
@@ -110,9 +110,14 @@ for(const p of registry.puzzles){
  if(Object.keys(p).some(key=>['mask','packed','b64','solution','bitmap'].includes(key)))
   throw Error('Private answer accidentally exposed in catalog '+p.id);
 }
-const mainSource=fixedMain.map(p=>({id:p.id,name:p.name,size:p.width,rows:p.rows,cols:p.cols}));
-if(mainSource.some(p=>p.size!==p.cols.length||p.size!==p.rows.length))
- throw Error('Current main engine is square-only');
+const trialMain=registry.puzzles.filter(p=>p.origin==='trial'&&p.kind==='fixed');
+if(trialMain.length<3)throw Error('The three trial puzzles must remain in the canonical catalog');
+const mainSource=[...fixedMain,...trialMain].map(p=>({
+ id:p.id,name:p.name,size:p.width,width:p.width,height:p.height,rows:p.rows,cols:p.cols,
+ trialOnly:p.origin==='trial',difficulty:p.difficulty||'미평가'
+}));
+if(mainSource.some(p=>p.width!==p.cols.length||p.height!==p.rows.length))
+ throw Error('Invalid main puzzle width/height');
 const generatedCatalogScript=
  'window.NONO_PUBLIC_PUZZLES='+JSON.stringify(mainSource).replace(/</g,'\\u003c')+';'+
  'window.NONO_DYNAMIC_PUZZLE_DEFS='+JSON.stringify(dynamicMain.map(p=>({id:p.id,size:p.width})))+';\n';
@@ -121,86 +126,10 @@ if(fs.readFileSync(path.join(root,'puzzles-public-catalog.js'),'utf8')!==generat
 fs.writeFileSync(path.join(output,'puzzles-public-catalog.js'),generatedCatalogScript);
 console.log('Published canonical 6 fixed / 3 random-size main puzzles; tracked '+registry.puzzles.filter(p=>p.origin==='trial').length+' independent trial puzzles');
 
-// Generate trial puzzle pages from clue-only JSON, using one shared puzzle
-// play engine template. This avoids writing a new game page for each puzzle.
-// DO NOT ever copy private masks, packed answers, or source art into dist.
-const trialDir=path.join(root,'puzzles','trial');
-const trialOutput=path.join(output,'trials');
-fs.mkdirSync(trialOutput,{recursive:true});
-const trialIndex=[];
-const winterTemplate=fs.readFileSync(path.join(root,'winter-snowman-test.html'),'utf8');
-const htmlEscape=x=>String(x).replace(/&/g,'&amp;').replace(/</g,'&lt;')
-  .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-for(const filename of (fs.existsSync(trialDir)?fs.readdirSync(trialDir):[]).filter(n=>n.endsWith('.json')).sort()){
- const legacy=JSON.parse(fs.readFileSync(path.join(trialDir,filename),'utf8'));
- // The shared catalog owns the published trial clues. The original JSON must
- // still match byte-for-byte in meaning, so previous trial saves remain valid.
- const p=registry.puzzles.find(item=>item.id===legacy.id&&item.origin==='trial'&&item.kind==='fixed');
- if(!p||p.width!==legacy.width||p.height!==legacy.height||
-    JSON.stringify(p.rows)!==JSON.stringify(legacy.rows)||
-    JSON.stringify(p.cols)!==JSON.stringify(legacy.cols))
-   throw Error('Trial page source and canonical catalog mismatch: '+filename);
- if(!p||typeof p!=='object'||!/^[a-z][a-z0-9_-]{2,78}$/.test(p.id)||filename!==p.id+'.json')
-   throw Error('Invalid trial puzzle file/id: '+filename);
- if(typeof p.name!=='string'||p.name.length<1||p.name.length>90||/[<>]/.test(p.name)||
-    !Number.isInteger(p.width)||!Number.isInteger(p.height)||p.width<1||p.height<1||
-    p.width*p.height>16384||!Array.isArray(p.rows)||!Array.isArray(p.cols)||
-    p.rows.length!==p.height||p.cols.length!==p.width)
-   throw Error('Invalid trial puzzle dimensions/name: '+filename);
- if(['mask','packed','b64','solution','grid','bitmap'].some(key=>Object.prototype.hasOwnProperty.call(p,key))||
-    (p.answer&&(['mask','packed','b64','solution'].some(key=>Object.prototype.hasOwnProperty.call(p.answer,key)))))
-   throw Error('PRIVATE ANSWER in public trial catalog: '+filename);
- const sum=lines=>{
-   let total=0;
-   for(const line of lines){
-     if(!Array.isArray(line)||line.length===0||line.length>Math.max(p.width,p.height))throw Error('Malformed clue line');
-     for(const n of line)if(!Number.isInteger(n)||n<0||n>Math.max(p.width,p.height))throw Error('Invalid clue');
-     if(line.length>1&&line.includes(0))throw Error('Zero clue in nonempty row');
-     total+=line.reduce((a,b)=>a+b,0);
-   }
-   return total;
- };
- if(sum(p.rows)!==sum(p.cols))throw Error('Conflicting row/col totals: '+filename);
- if([p.rows[0],p.rows[p.height-1],p.cols[0],p.cols[p.width-1]]
-   .some(line=>line.length===1&&line[0]===0))
-   throw Error('Outer zero line not trimmed: '+filename);
- if(!p.review||!['pending','approved','rejected'].includes(p.review.status))throw Error('Missing review status: '+filename);
- const publicData={id:p.id,width:p.width,height:p.height,rows:p.rows,cols:p.cols};
- let html=winterTemplate;
- const title=htmlEscape(p.name);
- html=html.replace(/<title>[^<]*<\/title>/, '<title>'+title+' · 노노그램 체험 | NONO</title>');
- html=html.replace(/<h1>❄ 겨울 눈사람 <small[^>]*>63행 × 59열<\/small><\/h1>/,
-   '<h1>🧩 '+title+' <small style="font-size:14px;color:#a9c9e3">'+p.height+'행 × '+p.width+'열</small></h1>');
- html=html.replace(/repeat\(59,var\(--cell\)\)/g,'repeat('+p.width+',var(--cell))');
- // Keep reused gameplay copy and screen-reader dimensions correct for every shape.
- html=html.replace(/겨울 눈사람 퍼즐/g,title+' 퍼즐');
- html=html.replace(/눈사람 퍼즐/g,title+' 퍼즐');
- html=html.replace(/63행 59열/g,p.height+'행 '+p.width+'열');
- html=html.replace(/<script type="application\/json" id="data">[\s\S]*?<\/script>/,
-   '<script type="application/json" id="data">'+JSON.stringify(publicData).replace(/</g,'\\u003c')+'</script>');
- html=html.replace("const KEY='nono-winter-snowman-trial-v1'",
-   "const KEY=d.id==='winter-snowman-trial-v1'?'nono-winter-snowman-trial-v1':'nono-trial-'+d.id+'-v1'");
- html=html.replace(/href="\.\//g,'href="../');
- if(!html.includes("const KEY=d.id==='winter-snowman-trial-v1'?'nono-winter-snowman-trial-v1':'nono-trial-'+d.id+'-v1'")||
-    !html.includes('<script type="application/json" id="data">'))
-   throw Error('Trial template failed to render: '+filename);
- const route='trials/'+p.id+'.html';
- fs.writeFileSync(path.join(output,route),html);
- trialIndex.push({id:p.id,name:p.name,width:p.width,height:p.height,
-   difficulty:p.difficulty||'미지정',reviewStatus:p.review.status,release:'trial',route:'./'+route});
-}
-fs.writeFileSync(path.join(output,'trial-index.json'),JSON.stringify(trialIndex));
-console.log('Generated '+trialIndex.length+' clue-only trial nonograms without publishing answers');
-
- 
-// Show meaningful, named links for all new trial puzzles in the shared
-// practice gallery. The existing snowman link is retained for saved progress.
-const indexOutput=path.join(output,'index.html');
-const builtTrialIndex=fs.readFileSync(indexOutput,'utf8');
-const trialLinks=trialIndex.filter(p=>p.id!=='winter-snowman-trial-v1').map(p=>
- '<a href="'+p.route+'" aria-label="'+htmlEscape(p.name)+' 퍼즐 체험" style="color:inherit;border:1px solid #6580a1;border-radius:8px;padding:4px 7px;font-size:12px;text-decoration:none">🧩 '+htmlEscape(p.name)+' · '+p.width+'×'+p.height+'</a>').join('');
-const insertion=/<div id="nono-trial-generated"([^>]*)><\/div>/;
-if(!insertion.test(builtTrialIndex))throw Error('Missing autogenerated trial gallery target');
-fs.writeFileSync(indexOutput,builtTrialIndex.replace(insertion,
- (_whole,attrs)=>'<div id="nono-trial-generated"'+attrs+'>'+trialLinks+'</div>'));
-console.log('Added '+trialLinks.length+' characters of additional trial puzzle links');
+// The main game is the ONLY playable engine. Trial clues are included in
+// NONO_PUBLIC_PUZZLES above, and NO standalone trial HTML is produced.
+// Private answers are never bundled into dist.
+const forbidden=['playtest-rabbit-samurai.html','winter-snowman-test.html','trial-index.json'];
+for(const name of forbidden)fs.rmSync(path.join(output,name),{force:true});
+fs.rmSync(path.join(output,'trials'),{recursive:true,force:true});
+console.log('All fixed puzzles use the existing main board and settings; standalone players removed');

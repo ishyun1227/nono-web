@@ -83,35 +83,31 @@ const trial=lookup.get(snow.id);
 assert.deepEqual(trial.rows,snow.rows);assert.deepEqual(trial.cols,snow.cols);
 assert.equal(trial.width,snow.width);assert.equal(trial.height,snow.height);
 assert.equal(trial.answer.deployment,'private-answer-not-available');
-// Rabbit, samurai and snowman must all be playable through the same trial
-// editor without exposing an answer mask or forcing a square board.
+// The three trials use the main puzzle runtime, not a separate simplified player.
 const trialIds=['trial_rabbit_53x73','trial_samurai_72x72','winter-snowman-trial-v1'];
-const builtHome=fs.readFileSync(path.join(dist,'index.html'),'utf8');
-const builtTrials=JSON.parse(fs.readFileSync(path.join(dist,'trial-index.json'),'utf8'));
-for(const id of trialIds){
- const item=lookup.get(id),entry=builtTrials.find(p=>p.id===id);
- assert(item&&entry,id+' is missing from shared trial gallery');
- assert.equal(entry.width,item.width);
- assert.equal(entry.height,item.height);
- const source=JSON.parse(fs.readFileSync(path.join(root,'puzzles/trial',id+'.json'),'utf8'));
- assert.deepEqual(source.rows,item.rows);
- assert.deepEqual(source.cols,item.cols);
- assert(!Object.hasOwn(source,'mask')&&!Object.hasOwn(source,'packed'));
- const page=fs.readFileSync(path.join(dist,'trials',id+'.html'),'utf8');
- assert(page.includes('const d=JSON.parse(document.getElementById(\'data\').textContent)'));
- assert(page.includes('"id":"'+id+'"'));
- assert(page.includes('const KEY=d.id==='));
- assert(!page.includes('sourceMask')&&!page.includes('"mask":'));
- if(id!=='winter-snowman-trial-v1')assert(builtHome.includes('🧩 '+item.name+' · '+item.width+'×'+item.height));
- else assert(builtHome.includes('href="./trials/winter-snowman-trial-v1.html"'));
-}
-assert.deepEqual(Array.from(puzzles.filter(p=>p.sizeTest),p=>p.size),[50,75,100]);
-// The bundled runtime must read exactly these fixed main puzzles from catalog.
-const dist=path.join(root,'dist'),script=fs.readFileSync(path.join(dist,'puzzles-public-catalog.js'),'utf8');
+const dist=path.join(root,'dist'),builtHome=fs.readFileSync(path.join(dist,'index.html'),'utf8');
+const script=fs.readFileSync(path.join(dist,'puzzles-public-catalog.js'),'utf8');
 const ctx={window:{}};vm.runInNewContext(script,ctx);
-assert.deepEqual(Array.from(ctx.window.NONO_PUBLIC_PUZZLES,p=>p.id),
- expectedIds.slice(0,6));
+const published=ctx.window.NONO_PUBLIC_PUZZLES;
+assert.deepEqual(Array.from(published,p=>p.id),expectedIds.slice(0,9));
 assert.deepEqual(Array.from(ctx.window.NONO_DYNAMIC_PUZZLE_DEFS,p=>p.size),[50,75,100]);
-assert(fs.readFileSync(path.join(dist,'index.html'),'utf8').includes('<script src="./puzzles-public-catalog.js?v=1"></script>'));
-assert(!/privateAnswersPacked|\bb64\b|\bmask\b/.test(script),'Published puzzle catalog must not embed answer bits');
-console.log('PASS canonical 12-puzzle catalog, public clues, 9 playable main entries, 3 trials, quality review pending, unchanged answers');
+for(const id of trialIds){
+ const item=lookup.get(id),entry=published.find(p=>p.id===id);
+ assert(item&&entry,id+' missing from original puzzle selector');
+ assert.equal(entry.width,item.width);assert.equal(entry.height,item.height);
+ assert.equal(entry.size,item.width);assert.equal(entry.trialOnly,true);
+ const source=JSON.parse(fs.readFileSync(path.join(root,'puzzles/trial',id+'.json'),'utf8'));
+ assert.deepEqual(source.rows,item.rows);assert.deepEqual(source.cols,item.cols);
+ assert(!Object.hasOwn(source,'mask')&&!Object.hasOwn(source,'packed'));
+ assert.deepEqual(Array.from(entry.rows,r=>Array.from(r)),item.rows);
+ assert.deepEqual(Array.from(entry.cols,r=>Array.from(r)),item.cols);
+}
+for(const removed of ['playtest-rabbit-samurai.html','winter-snowman-test.html','trial-index.json']){
+ assert(!fs.existsSync(path.join(dist,removed)),'Simplified player still deployed: '+removed);
+}
+assert(!fs.existsSync(path.join(dist,'trials')),'Standalone trial pages were rebuilt');
+assert(!builtHome.includes('playtest-rabbit-samurai.html'));
+assert(!builtHome.includes('winter-snowman-trial-v1.html'));
+assert(builtHome.includes('<script src="./puzzles-public-catalog.js?v=1"></script>'));
+assert(!/privateAnswersPacked|\\bb64\\b|\\bmask\\b/.test(script),'Public clues must not embed answer bits');
+console.log('PASS canonical 12-puzzle catalog, all 12 in existing main runtime, no standalone players, protected answers');

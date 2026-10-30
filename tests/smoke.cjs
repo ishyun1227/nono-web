@@ -20,40 +20,49 @@ const { pathToFileURL } = require('node:url');
   if(!/settings\.js\?v=[a-f0-9]{12}/.test(builtHtml))
     throw new Error('Built settings script reference has no fresh hash, browser may show stale diagrams');
   await page.goto(pathToFileURL(path.resolve(__dirname, '..', 'dist','index.html')).href);
-  // New source-art nonograms must be actually playable without relying on the
-  // square-only main engine. Verify exact dimensions, hints, undo, save and switch.
-  const playtestPage=await browser.newPage({viewport:{width:1280,height:900}});
-  const playtestErrors=[];
-  playtestPage.on('pageerror',error=>playtestErrors.push(error.message));
-  await playtestPage.goto(pathToFileURL(path.resolve(__dirname,'..','dist','playtest-rabbit-samurai.html')).href);
-  await playtestPage.locator('#board .cell').first().waitFor({state:'visible'});
-  if(await playtestPage.locator('#board .cell').count()!==53*73 ||
-     await playtestPage.locator('#board .rh').count()!==73 ||
-     await playtestPage.locator('#board .ch').count()!==53)
-    throw new Error('Rabbit playtest dimensions or hints are wrong');
-  await playtestPage.locator('#board .cell').first().click();
-  if(!await playtestPage.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))
-    throw new Error('Rabbit click did not fill a cell');
-  await playtestPage.locator('#undo').click();
-  if(await playtestPage.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))
-    throw new Error('Rabbit undo did not restore empty cell');
-  await playtestPage.locator('#redo').click();
-  await playtestPage.reload();
-  if(!await playtestPage.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))
-    throw new Error('Rabbit playtest autosave did not restore after reload');
-  await playtestPage.locator('#samurai').click();
-  if(await playtestPage.locator('#board .cell').count()!==72*72 ||
-     await playtestPage.locator('#board .rh').count()!==72 ||
-     await playtestPage.locator('#board .ch').count()!==72)
-    throw new Error('Samurai playtest dimensions or hints are wrong');
-  await playtestPage.locator('#board .cell').first().click();
-  await playtestPage.locator('#rabbit').click();
-  if(!await playtestPage.locator('#board .cell').first().evaluate(el=>el.classList.contains('filled')))
-    throw new Error('Rabbit progress lost while switching puzzles');
-  if(playtestErrors.length)throw new Error('Nonogram playtest page JS errors: '+playtestErrors.join(' | '));
-  await playtestPage.close();
-  console.log('Rabbit and samurai browser playtest passed.');
-
+  // All source-art puzzles must run in the ORIGINAL game, with its settings,
+  // persistent delta-history, rectangular grids, and normal resume flow.
+  const trialPage=await browser.newPage({viewport:{width:1280,height:900}});
+  const trialErrors=[];
+  trialPage.on('pageerror',error=>trialErrors.push(error.message));
+  await trialPage.route('**/firebase-config.js',route=>route.fulfill({body:'window.NONO_FIREBASE_CONFIG={};',contentType:'text/javascript'}));
+  await trialPage.goto(pathToFileURL(path.resolve(__dirname,'..','dist','index.html')).href);
+  await trialPage.locator('#nono-open-settings').waitFor();
+  async function openMainTrial(id,width,height){
+    await trialPage.evaluate(async id=>{
+      setMode('practice');
+      const picker=document.getElementById('puzzle');
+      picker.value=id;picker.dispatchEvent(new Event('change',{bubbles:true}));
+      await startAlone();
+    },id);
+    const actual=await trialPage.evaluate(()=>({
+      width:puzzle.width,height:puzzle.height,cells:document.querySelectorAll('#board .cells .cell').length,
+      rows:document.querySelectorAll('#board > .row-clues .row-clue').length,
+      cols:document.querySelectorAll('#board > .col-clues .col-clue').length,
+      settings:!!document.getElementById('nono-open-settings')
+    }));
+    if(actual.width!==width||actual.height!==height||actual.cells!==width*height||
+       actual.rows!==height||actual.cols!==width||!actual.settings)
+      throw new Error('Unified player size/settings mismatch: '+id+': '+JSON.stringify(actual));
+  }
+  await openMainTrial('trial_rabbit_53x73',53,73);
+  await trialPage.evaluate(()=>paint(0,'1',false));
+  if(!await trialPage.locator('#board .cells .cell').first().evaluate(el=>el.classList.contains('filled')))
+    throw new Error('Rabbit did not fill inside main engine');
+  await trialPage.evaluate(()=>restoreHistory(undoStack,redoStack));
+  if(await trialPage.locator('#board .cells .cell').first().evaluate(el=>el.classList.contains('filled')))
+    throw new Error('Rabbit original-engine undo failed');
+  await trialPage.evaluate(()=>restoreHistory(redoStack,undoStack));
+  await trialPage.reload();
+  await trialPage.locator('#nono-open-settings').waitFor();
+  await openMainTrial('trial_rabbit_53x73',53,73);
+  if(!await trialPage.locator('#board .cells .cell').first().evaluate(el=>el.classList.contains('filled')))
+    throw new Error('Rabbit main-engine autosave failed after reload');
+  await openMainTrial('trial_samurai_72x72',72,72);
+  await openMainTrial('winter-snowman-trial-v1',59,63);
+  if(trialErrors.length)throw new Error('Unified player errors: '+trialErrors.join(' | '));
+  await trialPage.close();
+  console.log('Rabbit, samurai, snowman use original settings-driven player and autosave.');
   await page.locator('#nono-open-settings').waitFor();
   // Legacy DOM selectors are intentionally hidden by the new launcher.
   // Dispatch real change events to inspect compatibility without clicking hidden UI.
@@ -103,7 +112,7 @@ const { pathToFileURL } = require('node:url');
       difficultyRow:document.querySelector('#nono-quick-difficulties').getBoundingClientRect().top
     };
   });
-  if(!base.heroHidden || !base.nativePickerHidden || base.controls!==9 || base.difficulties!==3 ||
+  if(!base.heroHidden || !base.nativePickerHidden || base.controls!==12 || base.difficulties!==3 ||
       base.tabs.x<base.header.x || base.tabs.right>base.header.right ||
       base.panel.y<base.header.bottom || base.panel.width<400 ||
       base.documentWidth>base.viewportWidth+2 ||
