@@ -195,6 +195,10 @@ const {pathToFileURL}=require('node:url');
    const row=document.querySelector('canvas[data-clue-axis="row"]');
    const col=document.querySelector('canvas[data-clue-axis="col"]');
    return {scrollX,scrollY,row:row&&getComputedStyle(row).display,col:col&&getComputedStyle(col).display,
+    htmlWidth:document.documentElement.scrollWidth,bodyWidth:document.body.scrollWidth,
+    gameWidth:document.getElementById('game').getBoundingClientRect().width,
+    boardRect:(()=>{const r=document.getElementById('board').getBoundingClientRect();return [r.left,r.right,r.top,r.bottom]})(),
+    zoomed:document.body.classList.contains('nono-zoom-exceeded'),
     cells:document.querySelectorAll('#board .cells .cell').length};
   });
   if(scrollResult.scrollX<5||scrollResult.scrollY<5||
