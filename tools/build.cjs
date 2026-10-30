@@ -77,7 +77,7 @@ console.log('Built NONO static assets and restored six original grid characters'
 // loaded into the existing square-grid engine. Review metadata is not gameplay.
 const registry=JSON.parse(fs.readFileSync(path.join(root,'puzzles/catalog.json'),'utf8'));
 if(registry.schemaVersion!==1||!Array.isArray(registry.puzzles)||
-   registry.puzzles.length!==12||new Set(registry.puzzles.map(p=>p.id)).size!==12)
+   registry.puzzles.length<12||new Set(registry.puzzles.map(p=>p.id)).size!==registry.puzzles.length)
  throw Error('Puzzle catalog must contain all 12 distinct existing entries');
 const fixedMain=registry.puzzles.filter(p=>p.origin==='main'&&p.kind==='fixed');
 const dynamicMain=registry.puzzles.filter(p=>p.origin==='main'&&p.kind==='generated');
@@ -119,7 +119,7 @@ const generatedCatalogScript=
 if(fs.readFileSync(path.join(root,'puzzles-public-catalog.js'),'utf8')!==generatedCatalogScript)
  throw Error('Checked-in puzzle catalog JS is out of sync with puzzles/catalog.json');
 fs.writeFileSync(path.join(output,'puzzles-public-catalog.js'),generatedCatalogScript);
-console.log('Published canonical 6 fixed / 3 random-size main puzzles; tracked 3 independent trial puzzles');
+console.log('Published canonical 6 fixed / 3 random-size main puzzles; tracked '+registry.puzzles.filter(p=>p.origin==='trial').length+' independent trial puzzles');
 
 // Generate trial puzzle pages from clue-only JSON, using one shared puzzle
 // play engine template. This avoids writing a new game page for each puzzle.
