@@ -64,8 +64,8 @@ const joystick=document.createElement('div');joystick.id='nono-floating-stick';
 joystick.innerHTML='<span id="nono-floating-knob"></span>';
 pad.prepend(zone,joystick);
 const knob=$('nono-floating-knob');
-// Fixed miniature of the whole puzzle. A touch jumps to the same normalized
-// row/column; it never paints. Dragging locks onto the first chosen axis.
+// Absolute miniature maps the full puzzle to fixed coordinates.
+// Navigation is free in both axes; only an actively held edit action locks a stroke.
 const mini=document.createElement('div');mini.id='nono-absolute-pad';
 mini.setAttribute('role','group');mini.setAttribute('aria-label','축소 퍼즐 위치 선택');
 mini.innerHTML='<span class="nono-absolute-label">퍼즐 축소판</span><span class="nono-absolute-cursor" aria-hidden="true"></span>';
@@ -212,27 +212,33 @@ const trackpadEnd=e=>{
 };
 for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,trackpadEnd);
 
-// Absolute miniature: initial touch jumps to the matching position in the
-// ENTIRE puzzle, regardless of current zoom or scroll. On a subsequent drag,
-// lock row or column according to the dominant first movement.
+// Absolute miniature: pointing and dragging navigate freely in two axes.
+// Hold Fill / X / Erase with another finger to paint a straight row or column.
+// Releasing the action immediately restores unrestricted navigation.
 function miniatureCoordinates(e){
  const r=mini.getBoundingClientRect(),d=cursor()?.dimensions;
  if(!d||r.width<=0||r.height<=0)return null;
- // The outer 3px border is a touch-friendly edge zone. Touching near a
- // miniature corner should select the exact puzzle corner, not row 1/col 51.
  const inset=3;
  const x=Math.max(0,Math.min(1,(e.clientX-r.left-inset)/Math.max(1,r.width-inset*2)));
  const y=Math.max(0,Math.min(1,(e.clientY-r.top-inset)/Math.max(1,r.height-inset*2)));
  return {row:Math.min(d.height-1,Math.floor(y*d.height)),
   col:Math.min(d.width-1,Math.floor(x*d.width))};
 }
+function heldMiniAction(){
+ for(const name of ['fill','cross','clear']){
+  if(actionGroup.querySelector('[data-nono-input="'+name+'"].is-held'))return name;
+ }
+ return null;
+}
 mini.addEventListener('pointerdown',e=>{
  if(!touchAllowed('minimap')||miniActive||e.button!==0)return;
  const p=miniatureCoordinates(e);if(!p)return;
  e.preventDefault();
- miniActive={id:e.pointerId,x:e.clientX,y:e.clientY,axis:null,
-  startRow:p.row,startCol:p.col};
+ const action=heldMiniAction();
+ miniActive={id:e.pointerId,x:e.clientX,y:e.clientY,axis:null,action,
+  startRow:p.row,startCol:p.col,lastRow:p.row,lastCol:p.col};
  cursor()?.select(p.row,p.col);
+ if(action)cursor()?.paintAt?.(p.row,p.col,action);
  updateMiniCursor();
  try{mini.setPointerCapture(e.pointerId)}catch(_){}
 });
@@ -242,13 +248,34 @@ mini.addEventListener('pointermove',e=>{
  if(!touchAllowed('minimap')){miniActive=null;return}
  e.preventDefault();
  const p=miniatureCoordinates(e);if(!p)return;
- if(!a.axis){
-  const dx=e.clientX-a.x,dy=e.clientY-a.y;
-  if(Math.max(Math.abs(dx),Math.abs(dy))<5)return;
-  a.axis=Math.abs(dx)>=Math.abs(dy)?'x':'y';
+ const action=heldMiniAction();
+ if(action!==a.action){
+  // Start the locked stroke where navigation stopped, not at first touch.
+  // A button release resets the axis while the miniature finger remains down.
+  const here=cursor()?.position;
+  a.startRow=here?.row??a.lastRow;a.startCol=here?.col??a.lastCol;
+  a.lastRow=a.startRow;a.lastCol=a.startCol;
+  a.axis=null;a.action=action;
  }
- if(a.axis==='x')cursor()?.select(a.startRow,p.col);
- else cursor()?.select(p.row,a.startCol);
+ if(!action){
+  cursor()?.select(p.row,p.col);
+  a.lastRow=p.row;a.lastCol=p.col;
+ }else{
+  if(!a.axis){
+   const dx=e.clientX-a.x,dy=e.clientY-a.y;
+   if(Math.max(Math.abs(dx),Math.abs(dy))>=5)
+    a.axis=Math.abs(dx)>=Math.abs(dy)?'x':'y';
+  }
+  if(a.axis){
+   const row=a.axis==='x'?a.startRow:p.row;
+   const col=a.axis==='x'?p.col:a.startCol;
+   if(row!==a.lastRow||col!==a.lastCol){
+    cursor()?.paintLine?.(a.lastRow,a.lastCol,row,col,action);
+    a.lastRow=row;a.lastCol=col;
+   }
+  }
+ }
+ a.x=e.clientX;a.y=e.clientY;
  updateMiniCursor();
 });
 const miniEnd=e=>{
