@@ -353,7 +353,6 @@ const {pathToFileURL}=require('node:url');
   // hid the whole pad. Closing settings must ALWAYS restore it at 65–150%.
   await mobile.locator('#nono-open-settings').click();
   await mobile.locator('[data-nono-extra-tab="touch"]').click();
-  const sizeSlider=mobile.locator('#nono-settings-content input[type="range"]').filter({visible:true}).nth(1);
   await mobile.evaluate(()=>window.NONO_INPUT_CUSTOM.set('size',150));
   await mobile.locator('#nono-settings-close').click();
   await mobile.waitForFunction(()=>!document.getElementById('nono-mobile-pad').hidden);
