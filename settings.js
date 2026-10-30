@@ -1484,7 +1484,33 @@ function moveSelection(dir,quick){
  else selected=next;
  keepSelectionInsideBoard(cells?.[next]);
 }
-function keepSelectionInsideBoard(cell){
+// Mobile touch surfaces must move the real selected cell without
+// synthesizing Arrow keys. Key emulation obeyed user wrap preferences,
+// unexpectedly jumping from the far edge to the opposite side.
+function mobileTouchSelect(row,column){
+ if(!puzzle||!board||$('game').classList.contains('hidden')||
+  !$('lobby').classList.contains('hidden')||settingsOpen||overviewOpen)return false;
+ const width=puzzle.size,height=puzzle.height||width;
+ const r=Math.max(0,Math.min(height-1,Math.trunc(row)));
+ const c=Math.max(0,Math.min(width-1,Math.trunc(column)));
+ if(!Number.isFinite(r)||!Number.isFinite(c))return false;
+ const index=r*width+c;
+ if(index===selected)return true;
+ const cells=$('board').querySelector('.cells')?.children;
+ if(!cells?.length)return false;
+ updateLiveSelection(index,cells);
+ keepSelectionInsideBoard(cells[index],true);
+ return true;
+}
+window.NONO_TOUCH_CURSOR={
+ get position(){if(!puzzle)return null;return {row:Math.floor(selected/puzzle.size),col:selected%puzzle.size};},
+ get dimensions(){return puzzle?{width:puzzle.size,height:puzzle.height||puzzle.size}:null;},
+ move(dx,dy){const current=this.position;if(!current)return false;
+  return mobileTouchSelect(current.row+dy,current.col+dx);
+ },
+ select(row,col){return mobileTouchSelect(row,col);}
+};
+function keepSelectionInsideBoard(cell,immediate=false){
  if(!cell)return;
  // On a screen-fitted board there is nowhere to scroll. Avoid even reading
  // computed style / scrollWidth: those force layout across 5k–10k buttons
@@ -1519,7 +1545,7 @@ function keepSelectionInsideBoard(cell){
   if(canY){if(rect.top<frame.top)top+=rect.top-frame.top;else if(rect.bottom>frame.bottom)top+=rect.bottom-frame.bottom;}
  }
  if(Math.abs(left-scroller.scrollLeft)>.5||Math.abs(top-scroller.scrollTop)>.5)
-  scroller.scrollTo({left,top,behavior:prefs.followSpeed==='fast'?'instant':'smooth'});
+  scroller.scrollTo({left,top,behavior:immediate||prefs.followSpeed==='fast'?'instant':'smooth'});
 }
 
 const standardKeys={

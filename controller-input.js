@@ -98,6 +98,14 @@ function poll(){
  for(const name of current)if(!physical.has(name)){emit(name,true);physical.add(name);}
 }
 for(const node of [game,lobby,area])new MutationObserver(sync).observe(node,{attributes:true,attributeFilter:['class']});
+// Setting sliders emit resize while their modal is open; sync() hides
+// the pad there. Re-sync when the overlay is removed or the pad could stay
+// invisible permanently after adjusting its size.
+let settingsOverlay=$('nono-settings-overlay');
+new MutationObserver(()=>{
+ const next=$('nono-settings-overlay');
+ if(next!==settingsOverlay){settingsOverlay=next;sync();}
+}).observe(document.body,{childList:true});
 mq.addEventListener?.('change',sync);
 window.addEventListener('resize',sync,{passive:true});
 window.addEventListener('blur',releaseAll);

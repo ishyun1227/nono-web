@@ -166,6 +166,11 @@ const rows=[
 ,
 ["트랙패드","Trackpad","トラックパッド","触控板","觸控板","Panel táctil","Touchpad","Pavé tactile","Touchpad","Touchpad","Bàn di chuột","ทัชแพด"],
 ["손가락을 밀어 이동","Slide finger to move","指を滑らせて移動","滑动手指移动","滑動手指移動","Desliza el dedo para mover","Deslize o dedo para mover","Faites glisser le doigt","Zum Bewegen Finger schieben","Geser jari untuk bergerak","Vuốt ngón tay để di chuyển","เลื่อนนิ้วเพื่อขยับ"]
+,
+["트랙패드는 손가락 이동 거리만큼, 축소판은 터치한 위치로 커서를 옮깁니다. 드래그는 처음 움직인 행 또는 열로 고정됩니다.","The trackpad moves by finger travel; the miniature jumps to the touched position. A drag locks to one row or column.","トラックパッドは指の移動量に応じて移動し、縮小盤では触れた位置に移動します。ドラッグは行か列に固定されます。","触控板按手指移动距离移动，缩略板跳到触摸位置。拖动锁定行或列。","觸控板按手指移動距離移動，縮略板跳至觸碰位置。拖動鎖定行或列。","El trackpad se mueve según tu dedo; el tablero miniatura salta a la posición tocada. Arrastrar bloquea fila o columna.","O touchpad acompanha o dedo; o mini tabuleiro salta ao toque. Arrastar trava uma linha ou coluna.","Le pavé tactile suit le doigt ; la miniature va à la position touchée. Le glissement verrouille la ligne ou la colonne.","Das Touchpad folgt dem Finger; die Miniatur springt zur berührten Position. Ziehen sperrt Zeile oder Spalte.","Touchpad mengikuti gerakan jari; papan mini melompat ke posisi sentuhan. Geser terkunci pada baris atau kolom.","Bàn di chuột di chuyển theo ngón tay; bảng thu nhỏ nhảy đến vị trí chạm. Kéo khóa theo hàng hoặc cột.","ทัชแพดเลื่อนตามนิ้ว ส่วนกระดานย่อจะไปยังตำแหน่งที่แตะ การลากจะล็อกแถวหรือคอลัมน์"],
+["퍼즐 축소판 터치","Touch puzzle miniature","パズル縮小盤タッチ","触摸拼图缩略板","觸碰拼圖縮略板","Tocar miniatura del puzle","Tocar miniatura do puzzle","Toucher la miniature","Puzzle-Miniatur berühren","Sentuh miniatur puzzle","Chạm bảng thu nhỏ","แตะกระดานย่อ"],
+["축소 퍼즐 위치 선택","Select position on miniature","縮小盤で位置を選択","在缩略板选择位置","在縮略板選擇位置","Elegir posición en miniatura","Selecionar posição na miniatura","Choisir la position sur miniature","Position auf Miniatur wählen","Pilih posisi pada miniatur","Chọn vị trí trên bảng thu nhỏ","เลือกตำแหน่งบนกระดานย่อ"],
+["퍼즐 축소판","Puzzle miniature","パズル縮小盤","拼图缩略板","拼圖縮略板","Miniatura del puzle","Miniatura do puzzle","Miniature de grille","Puzzle-Miniatur","Miniatur puzzle","Bảng thu nhỏ","กระดานย่อ"]
 ];
 const packs=window.NONO_RUNTIME_PACKS||(window.NONO_RUNTIME_PACKS={});
 for(const id of ids)if(!packs[id])packs[id]={};

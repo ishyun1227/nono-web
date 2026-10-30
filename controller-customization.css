@@ -154,7 +154,9 @@
 #nono-mobile-pad.nono-trackpad-mode #nono-floating-zone{
  display:block!important;
  box-sizing:border-box!important;
- left:clamp(82px,var(--zone-x,21vw),calc(100vw - 82px))!important;
+ /* Clamp using the scaled width; 150% formerly pushed the pad offscreen. */
+ left:clamp(var(--nono-trackpad-gutter,88px),
+  var(--zone-x,21vw),calc(100vw - var(--nono-trackpad-gutter,88px)))!important;
  top:var(--zone-y,83dvh)!important;
  width:160px!important;height:132px!important;
  transform:translate(-50%,-50%) scale(var(--nono-pad-scale,1))!important;
@@ -186,6 +188,50 @@
 #nono-mobile-pad.nono-trackpad-mode.nono-pad-editing #nono-floating-zone{
  display:none!important;
 }
+
+/* Absolute puzzle-position controller: a fixed miniature at the SAME
+   customizable left-hand location as the touchpad. No answer is exposed. */
+#nono-absolute-pad{display:none!important}
+#nono-mobile-pad.nono-minimap-mode .nono-dpad{display:none!important}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad{
+ display:block!important;
+ box-sizing:border-box!important;
+ position:fixed!important;z-index:6!important;
+ width:152px!important;height:152px!important;
+ left:clamp(var(--nono-mini-gutter,84px),var(--zone-x,21vw),
+  calc(100vw - var(--nono-mini-gutter,84px)))!important;
+ top:clamp(var(--nono-mini-gutter,84px),var(--zone-y,83dvh),
+  calc(100dvh - var(--nono-mini-gutter,84px) - 48px))!important;
+ transform:translate(-50%,-50%) scale(var(--nono-pad-scale,1))!important;
+ transform-origin:center center!important;
+ border-radius:17px!important;border:2px solid #92b6d9!important;
+ box-shadow:0 6px 22px #071325a0,inset 0 2px 8px #020b1573!important;
+ background-color:#182c47!important;
+ background-image:linear-gradient(to right,#6f8eac4c 1px,transparent 1px),
+  linear-gradient(to bottom,#6f8eac4c 1px,transparent 1px)!important;
+ background-size:10% 10%!important;
+ touch-action:none!important;pointer-events:auto!important;
+ opacity:var(--nono-pad-opacity,.8)!important;
+ -webkit-user-select:none;user-select:none;
+}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-absolute-label{
+ position:absolute;z-index:1;left:50%;top:50%;transform:translate(-50%,-50%);
+ font-size:11px;font-weight:760;color:#e8f5ff;
+ background:#0a182bbb;padding:5px 7px;border-radius:7px;
+ white-space:nowrap;pointer-events:none
+}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-absolute-cursor{
+ position:absolute;z-index:2;left:50%;top:50%;
+ width:9px;height:9px;transform:translate(-50%,-50%);
+ background:#e9ffe7;border:2px solid #187fa8;border-radius:3px;
+ box-shadow:0 0 0 2px #06131ecc,0 0 9px #84efffbd;
+ pointer-events:none;
+}
+#nono-mobile-pad.nono-minimap-mode.nono-pad-editing .nono-dpad{
+ display:grid!important;opacity:.7!important
+}
+#nono-mobile-pad.nono-minimap-mode.nono-pad-editing #nono-absolute-pad{display:none!important}
+
 
 #nono-pad-editbar{
   position:fixed;z-index:10100;left:50%;top:calc(9px + env(safe-area-inset-top,0px));
