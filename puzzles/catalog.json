@@ -1767,7 +1767,7 @@
         ]
       ],
       "origin": "trial",
-      "source": "playtest-rabbit-samurai.html",
+      "source": "puzzles/trial/trial_rabbit_53x73.json",
       "answerAvailability": "validated-not-yet-seeded",
       "kind": "fixed",
       "difficulty": "미평가",
@@ -2886,7 +2886,7 @@
         ]
       ],
       "origin": "trial",
-      "source": "playtest-rabbit-samurai.html",
+      "source": "puzzles/trial/trial_samurai_72x72.json",
       "answerAvailability": "validated-not-yet-seeded",
       "kind": "fixed",
       "difficulty": "미평가",
