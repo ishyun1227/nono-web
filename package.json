@@ -10,11 +10,13 @@
     "test:home": "node tests/home-sidebars.cjs",
     "test:community": "node tests/community-rewards.cjs",
     "test:account": "node tests/account-auth.cjs",
-    "test:answers": "node tests/answer-bitpack.cjs && node tests/prepare-puzzle.cjs && node tools/seed-packed-answers.cjs",
+    "test:answers": "node tests/answer-bitpack.cjs && node tests/sealed-puzzle.cjs && node tests/prepare-puzzle.cjs && node tools/seed-packed-answers.cjs",
     "test:replay": "node tests/replay.cjs",
     "test:replay:multiplayer": "node tests/multiplayer-replay.cjs",
     "test:migrate": "node tests/seed-packed-migration.cjs",
-    "test:catalog": "node tests/puzzle-catalog.cjs"
+    "test:catalog": "node tests/puzzle-catalog.cjs",
+    "puzzle:add": "node tools/register-puzzle.cjs",
+    "test:sealed": "node tests/sealed-puzzle.cjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
