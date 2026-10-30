@@ -21,7 +21,7 @@
 ## 최초 1회 관리자 설정
 
 GitHub Actions 비밀키 `FIREBASE_SERVICE_ACCOUNT_JSON`에 Firebase 서비스 계정 JSON을 넣어야 합니다.
-기존 대화에서 이전 관리자 키가 **채팅에 노출되었기 때문에**, 자동 등록은 **해당 유출 키 ID를 명시적으로 차단**합니다. 기존 키를 Google Cloud에서 폐기하고 **새 키를 GitHub Secret에 등록해야 한 번 준비가 끝납니다.** 이 설정만 마치면 이후 퍼즐마다 다시 등록할 필요가 없습니다.
+현재 자동 등록은 사용자가 지정한 **기존 GitHub Secret에 등록된 Firebase 관리자 키**를 사용합니다. 신규 퍼즐마다 별도 등록이 필요하지 않습니다. 다만 이 키는 이전 대화에 원문이 노출되었으므로 **교체를 강력히 권장**합니다. 관리자 키를 GitHub 코드·문서·로그에 직접 넣지 않습니다.
 
 - [Firebase 서비스 계정](https://console.firebase.google.com/project/nono-web-ishyun-20261020/settings/serviceaccounts/adminsdk)
 - [GitHub Actions Repository Secrets](https://github.com/ishyun1227/nono-web/settings/secrets/actions)
