@@ -1035,17 +1035,19 @@ if(atEdge)c.dataset.rowCoordinate=String(r+1);else delete c.dataset.rowCoordinat
 for(const axis of ['row','col']){const elems=$('board').querySelectorAll(axis==='row'?'#board > .row-clues:not(.nono-extra-row) .row-clue':'#board > .col-clues:not(.nono-extra-col) .col-clue');elems.forEach((el,i)=>{el.querySelectorAll('span').forEach((span,j)=>{const stored=(manualClues[puzzle.id]||{})[axis+':'+i+':'+j];span.classList.toggle('nono-fade-clue',stored===true||(stored!==false&&prefs.autoHintFade&&canFade(axis,i,j)));span.classList.toggle('nono-hint-target',hintMode&&hintAxis===axis&&hintIndex===i&&j===hintNumber);});});}
 const hints='행 '+hintsForLine('row',Math.floor(selected/n)).join(' ')+' · 열 '+hintsForLine('col',selected%n).join(' ');
 $('nono-hud').textContent=hints;
-$('nono-hud').hidden=!hudEdit&&!(prefs.hintHud||prefs.pinnedClues||getHudConfig('hints').show===true)||getHudConfig('hints').show===false&&!hudEdit;
+$('nono-hud').hidden=!hudEdit&&!(prefs.hintHud||getHudConfig('hints').show===true)||getHudConfig('hints').show===false&&!hudEdit;
 $('nono-drag-hud').textContent=dragCount>0?'드래그 '+dragCount+'칸':'드래그 칸 수';
 $('nono-drag-hud').hidden=!hudEdit&&(!prefs.dragHud||dragCount===0)||getHudConfig('drag').show===false&&!hudEdit;
 $('nono-hud').style.fontSize=prefs.hudSize==='large'?'16px':prefs.hudSize==='small'?'10px':'12px';
 $('nono-hud').style.background=prefs.hudBg==='weak'?'#1b284866':prefs.hudBg==='strong'?'#111b33':'#1b2848db';
-$('nono-hud').style.position=prefs.pinnedClues?'sticky':'';$('nono-hud').style.top=prefs.pinnedClues?'0':'';$('nono-hud').style.zIndex=prefs.pinnedClues?'30':'';
+// The Excel-style pinnedClues setting pins the actual ROW/COLUMN hints,
+// not this unrelated current-cell HUD.
 for(const key of ['hints','drag','progress'])applyHudConfig(key);
 updateClueDecor();
 updateHighlightOverlay(selected);
 renderFilledRunCounts();
 drawMinimap();
+if(prefs.pinnedClues)scheduleFrozenClues();
 }
 
 
@@ -1312,8 +1314,9 @@ function fitBoardToViewport(){
  $('nono-zoom-out').disabled=boardZoom<=.4;
  $('nono-zoom-in').disabled=boardZoom>=3;
  if(isLarge)centerBoard();
+ scheduleFrozenClues();
 }
-function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();}
+function apply(){const timer=document.querySelector('.timer-stat');if(timer)timer.style.display=prefs.showTimer?'':'none';document.body.dataset.errorIntensity=prefs.errorStrength;document.documentElement.style.setProperty('--nono-accent',prefs.color);document.getElementById('nono-minimap').hidden=!prefs.minimap||overviewOpen||$('game').classList.contains('hidden');updateBoard();scheduleBoardFit();scheduleFrozenClues();}
 function drawMinimap(){const e=document.getElementById('nono-minimap');if(!e||!prefs.minimap||overviewOpen||$('game').classList.contains('hidden'))return;const n=puzzle.size,h=puzzle.height||n;e.innerHTML='<b style="font-size:11px">미니맵 · '+n+'×'+h+'</b>';const g=E('div','nono-minimap-grid');g.style.aspectRatio=n+' / '+h;g.style.gridTemplateColumns='repeat('+n+',1fr)';board.forEach(v=>{const i=E('i',v==='1'?'is-filled':v==='2'?'is-cross':'');g.append(i)});e.append(g);}
 function openOverview(){
  if($('game').classList.contains('hidden'))return;
@@ -1360,7 +1363,19 @@ function keepSelectionInsideBoard(cell){
  const style=getComputedStyle(scroller);
  const canX=/auto|scroll/.test(style.overflowX)&&scroller.scrollWidth>scroller.clientWidth+1;
  const canY=/auto|scroll/.test(style.overflowY)&&scroller.scrollHeight>scroller.clientHeight+1;
- if(!canX&&!canY)return; // A fitted puzzle must never scroll the entire page.
+ if(!canX&&!canY){
+  // At deliberate zoom > 100%, the document (not the game board) scrolls.
+  // Keep the keyboard-selected cell visible below the frozen hint rails.
+  if(document.body.classList.contains('nono-zoom-exceeded')){
+   const rect=cell.getBoundingClientRect();
+   const marginLeft=prefs.pinnedClues?(parseFloat($('board').style.getPropertyValue('--nono-fit-row-width'))||0)+8:8;
+   const marginTop=prefs.pinnedClues?(parseFloat($('board').style.getPropertyValue('--nono-fit-col-height'))||0)+8:8;
+   const dx=rect.left<marginLeft?rect.left-marginLeft:rect.right>innerWidth-8?rect.right-innerWidth+8:0;
+   const dy=rect.top<marginTop?rect.top-marginTop:rect.bottom>innerHeight-8?rect.bottom-innerHeight+8:0;
+   if(dx||dy)window.scrollBy({left:dx,top:dy,behavior:'instant'});
+  }
+  return;
+ }
  const frame=scroller.getBoundingClientRect(),rect=cell.getBoundingClientRect();
  let left=scroller.scrollLeft,top=scroller.scrollTop;
  if(prefs.follow==='center'){
@@ -1531,6 +1546,7 @@ function updateLiveSelection(next,cells){
  cells[next]?.classList.add('active');
  cells[next]?.setAttribute('aria-selected','true');
  updateHighlightOverlay(next);
+ if(prefs.pinnedClues)scheduleFrozenClues();
  const hud=$('nono-hud');
  if(hud)hud.textContent='행 '+hintsForLine('row',Math.floor(next/puzzle.size)).join(' ')+' · 열 '+hintsForLine('col',next%puzzle.size).join(' ');
 }
