@@ -1,6 +1,13 @@
 const fs=require('node:fs'),vm=require('node:vm');
 const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8').replace(/\r\n/g,'\n');
 const context={window:{}};
+// Build and browser both consume the same catalog metadata and clue arrays.
+const catalog=JSON.parse(fs.readFileSync(require('node:path').join(__dirname,'../puzzles/catalog.json'),'utf8'));
+context.window.NONO_PUBLIC_PUZZLES=catalog.puzzles.filter(p=>p.origin==='main'&&p.kind==='fixed')
+  .map(p=>({id:p.id,name:p.name,size:p.width,rows:p.rows,cols:p.cols}));
+context.window.NONO_DYNAMIC_PUZZLE_DEFS=catalog.puzzles.filter(p=>p.origin==='main'&&p.kind==='generated')
+  .map(p=>({id:p.id,size:p.width}));
+
 vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../puzzles-brainrot.js'),'utf8'),context);
 // Keep the isolated puzzle fixture evaluator in sync with the webpage's
 // generated large-size previews. It still solves only the curated 5/10 grids.
