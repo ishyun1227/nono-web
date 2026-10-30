@@ -13,12 +13,12 @@ const sizeGroups=[
   {name:'큼',min:21,max:34},
   {name:'거대',min:35,max:Infinity}
 ];
-const difficulties=['쉬움','보통','어려움'];
+const difficulties=['쉬움','보통','어려움','전문가','미평가'];
 const legacy={heart5:'쉬움',cat10:'보통',rocket10:'어려움',
   vox_crabino_front:'보통',vox_crabino_side:'보통',vox_crabino_top:'보통'};
 const difficultyOf=p=>difficulties.includes(p.difficulty||legacy[p.id])?(p.difficulty||legacy[p.id]):null;
 const catalog=()=>typeof PUZZLES!=='undefined'?PUZZLES.filter(p=>p&&p.id&&!p.sizeTest&&Number.isInteger(p.size)&&difficultyOf(p)):[];
-const supportsMode=p=>mode()==='practice'||p.size<30;
+const supportsMode=p=>mode()==='practice'||(!p.trialOnly&&p.size<30);
 const inGroup=p=>p.size>=sizeGroups[state.group].min&&p.size<=sizeGroups[state.group].max;
 const eligible=p=>inGroup(p)&&difficultyOf(p)===state.level&&supportsMode(p);
 const state={group:0,level:'보통'};
@@ -80,8 +80,8 @@ function render(){
   puzzleRow.replaceChildren();
   choices.forEach((p,i)=>{
     const number=String(i+1).padStart(2,'0');
-    const b=makeButton(number,picker.value===p.id,false,()=>{selectPuzzle(p);render();});
-    b.setAttribute('aria-label','퍼즐 '+number+', '+p.size+'×'+p.size);
+    const b=makeButton(p.trialOnly?p.name:number,picker.value===p.id,false,()=>{selectPuzzle(p);render();});
+    b.setAttribute('aria-label',(p.trialOnly?p.name:'퍼즐 '+number)+', '+(p.width||p.size)+'×'+(p.height||p.size));
     puzzleRow.append(b);
   });
   if(!choices.length){
