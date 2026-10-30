@@ -272,8 +272,8 @@ const {pathToFileURL}=require('node:url');
   if(!zoom.zoomed||!zoom.overflow.includes('auto')||zoom.body>846||
      zoom.paneScroll<=zoom.paneClient+1)
     throw Error('Mobile zoom should pan the pane but not the page: '+JSON.stringify(zoom));
-  // New laptop-style trackpad: relative finger travel moves immediately,
-  // including diagonals, with no auto-repeat when the finger stops.
+  // Relative touchpad: finger movement follows ONE selected row/column until
+  // release; no diagonal drift, end-to-start wrapping or stationary repeat.
   await mobile.evaluate(()=>{
    window.NONO_INPUT_CUSTOM.set('mode','trackpad');
    selected=20*53+20;render();
@@ -289,7 +289,7 @@ const {pathToFileURL}=require('node:url');
    const tiny=selected;
    fire('pointermove',108,695);  // accumulated 13px right: +1 cell
    const one=selected;
-   fire('pointermove',132,719);  // +2 columns and +2 rows
+   fire('pointermove',132,719);  // +2 columns; vertical drift is ignored
    const diagonal=selected;
    const hold=selected;          // finger stopped: no timed auto-repeat
    fire('pointerup',132,719,{buttons:0});
@@ -308,7 +308,7 @@ const {pathToFileURL}=require('node:url');
   });
   if(trackpad.tiny!==trackpad.start||
      trackpad.one!==trackpad.start+1||
-     trackpad.diagonal!==trackpad.start+3+2*53||
+     trackpad.diagonal!==trackpad.start+3||
      trackpad.back!==trackpad.diagonal-1||
      trackpad.final!==trackpad.back||
      trackpad.initialFilled!==trackpad.filled||
@@ -328,7 +328,70 @@ const {pathToFileURL}=require('node:url');
   }));
   if(persisted.mode!=='trackpad'||persisted.sensitivity!==150||persisted.stored!==150)
    throw Error('Relative trackpad preferences did not persist: '+JSON.stringify(persisted));
-  console.log('Mobile relative trackpad, diagonal travel, lift/retry and sensitivity passed.',JSON.stringify(trackpad));
+  console.log('Mobile relative trackpad, axis lock, lift/retry and sensitivity passed.',JSON.stringify(trackpad));
+  // Drag left/right reaches the edge and clamps there even when the site's
+  // regular keyboard wrap option is enabled. Reversing stays in this row.
+  const bounded=await mobile.evaluate(()=>{
+   const nav=window.NONO_TOUCH_CURSOR,settings=window.NONO_INPUT_CUSTOM;
+   const zone=document.getElementById('nono-floating-zone');
+   settings.set('trackpadSensitivity',100);
+   settings.set('mode','trackpad');
+   nav.select(12,52);
+   const init={pointerType:'touch',pointerId:996,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
+   const fire=(type,x,y,other={})=>zone.dispatchEvent(new PointerEvent(type,{...init,clientX:x,clientY:y,...other}));
+   fire('pointerdown',100,690);fire('pointermove',155,694);
+   const atEdge=nav.position;
+   fire('pointermove',135,694);const reverse=nav.position;
+   fire('pointerup',135,694,{buttons:0});
+   return {atEdge,reverse,wrapPreference:JSON.parse(localStorage.getItem('nono-web-preferences-v1')||'{}').wrap};
+  });
+  if(bounded.atEdge.row!==12||bounded.atEdge.col!==52||
+     bounded.reverse.row!==12||bounded.reverse.col>=52)
+   throw Error('Trackpad should clamp at puzzle edge and reverse normally: '+JSON.stringify(bounded));
+
+  // Changing the slider in the SETTINGS modal used to emit a resize that
+  // hid the whole pad. Closing settings must ALWAYS restore it at 65–150%.
+  await mobile.locator('#nono-open-settings').click();
+  await mobile.locator('[data-nono-extra-tab="touch"]').click();
+  const sizeSlider=mobile.locator('#nono-settings-content input[type="range"]').filter({visible:true}).nth(1);
+  await mobile.evaluate(()=>window.NONO_INPUT_CUSTOM.set('size',150));
+  await mobile.locator('#nono-settings-close').click();
+  await mobile.waitForFunction(()=>!document.getElementById('nono-mobile-pad').hidden);
+  const maxSize=await mobile.evaluate(()=>{
+   const el=document.getElementById('nono-floating-zone'),r=el.getBoundingClientRect();
+   return {visible:getComputedStyle(el).display!=='none',left:r.left,right:r.right,
+    width:innerWidth,padHidden:document.getElementById('nono-mobile-pad').hidden};
+  });
+  if(!maxSize.visible||maxSize.padHidden||maxSize.left<0||maxSize.right>maxSize.width+1)
+   throw Error('Resized trackpad disappeared or exceeded mobile width: '+JSON.stringify(maxSize));
+
+  // Absolute miniature is a fourth mode at the same location. Upper right
+  // touch jumps to the TOP-RIGHT puzzle cell, without filling any cells.
+  const miniResult=await mobile.evaluate(()=>{
+   const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
+   api.set('size',100);api.set('mode','minimap');
+   const el=document.getElementById('nono-absolute-pad'),r=el.getBoundingClientRect();
+   const init={pointerType:'touch',pointerId:977,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
+   const fire=(kind,x,y,other={})=>el.dispatchEvent(new PointerEvent(kind,{...init,clientX:x,clientY:y,...other}));
+   const before=board.filter(x=>x==='1').length;
+   fire('pointerdown',r.right-3,r.top+3);const corner={...nav.position};
+   fire('pointerup',r.right-3,r.top+3,{buttons:0});
+   const endCorner={...nav.position};
+   // A new stroke starts in the middle and locks to its first horizontal drag.
+   fire('pointerdown',r.left+r.width/2,r.top+r.height/2);
+   const initial={...nav.position};
+   fire('pointermove',r.right-4,r.top+4);const locked={...nav.position};
+   fire('pointerup',r.right-4,r.top+4,{buttons:0});
+   return {corner,endCorner,initial,locked,filledBefore:before,filledAfter:board.filter(x=>x==='1').length,
+    rectangle:[r.left,r.top,r.right,r.bottom],mode:api.settings.mode,selected:nav.position};
+  });
+  if(miniResult.corner.row!==0||miniResult.corner.col!==52||
+     miniResult.endCorner.row!==0||miniResult.endCorner.col!==52||
+     miniResult.locked.row!==miniResult.initial.row||
+     miniResult.locked.col!==52||miniResult.filledBefore!==miniResult.filledAfter||
+     miniResult.mode!=='minimap')
+   throw Error('Miniature absolute touch or axis lock failed: '+JSON.stringify(miniResult));
+  console.log('Trackpad size restoration, edge clamping and fourth absolute miniature passed.');
   if(mobileErrors.length)throw Error('Mobile game exceptions: '+mobileErrors.join(' | '));
   await mobileContext.close();
   console.log('Mobile app viewport, tap-vs-swipe and internal zoom panning passed.');
