@@ -62,6 +62,7 @@ async function register(flags,dependencies={}){
  const written=[];
  try{
   fs.mkdirSync(path.dirname(privatePath),{recursive:true});
+  fs.mkdirSync(path.dirname(publicPath),{recursive:true});
   fs.writeFileSync(privatePath,JSON.stringify(envelope,null,2)+'\n',{flag:'wx',mode:0o600});written.push(privatePath);
   fs.writeFileSync(publicPath,JSON.stringify(publicPuzzle,null,2)+'\n',{flag:'wx'});written.push(publicPath);
   catalog.puzzles.push(entry);
