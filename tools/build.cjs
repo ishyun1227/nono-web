@@ -172,8 +172,10 @@ for(const filename of (fs.existsSync(trialDir)?fs.readdirSync(trialDir):[]).filt
  html=html.replace(/<h1>❄ 겨울 눈사람 <small[^>]*>63행 × 59열<\/small><\/h1>/,
    '<h1>🧩 '+title+' <small style="font-size:14px;color:#a9c9e3">'+p.height+'행 × '+p.width+'열</small></h1>');
  html=html.replace(/repeat\(59,var\(--cell\)\)/g,'repeat('+p.width+',var(--cell))');
- // Keep reused gameplay copy and ARIA labels specific to the imported puzzle.
+ // Keep reused gameplay copy and screen-reader dimensions correct for every shape.
+ html=html.replace(/겨울 눈사람 퍼즐/g,title+' 퍼즐');
  html=html.replace(/눈사람 퍼즐/g,title+' 퍼즐');
+ html=html.replace(/63행 59열/g,p.height+'행 '+p.width+'열');
  html=html.replace(/<script type="application\/json" id="data">[\s\S]*?<\/script>/,
    '<script type="application/json" id="data">'+JSON.stringify(publicData).replace(/</g,'\\u003c')+'</script>');
  html=html.replace("const KEY='nono-winter-snowman-trial-v1'",
