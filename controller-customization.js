@@ -4,7 +4,7 @@ const pad=document.getElementById('nono-mobile-pad');
 if(!pad)return;
 const $=id=>document.getElementById(id);
 const storageKey='nono-input-settings-v1';
-const defaults=()=>({mode:'fixed',opacity:80,size:100,trackpadSensitivity:100,smartWindowCells:12,
+const defaults=()=>({mode:'fixed',opacity:80,size:100,trackpadSensitivity:100,smartWindowCells:12,smartPanSpeed:14,
  dpad:{x:.21,y:.83},actions:{x:.79,y:.83},
  offsets:{fill:[0,0],cross:[0,0],clear:[0,0],undo:[0,0]},
  controllerEnabled:true,deadzone:55,stick:true,
@@ -17,6 +17,7 @@ function validate(src){
  out.mode=['fixed','floating','trackpad','minimap','smartTrackpad','smartMinimap','smartHybrid'].includes(out.mode)?out.mode:'fixed';
  out.trackpadSensitivity=clamp(Number(out.trackpadSensitivity)||100,50,200);
  out.smartWindowCells=[8,12,16,20].includes(Number(out.smartWindowCells))?Number(out.smartWindowCells):12;
+ out.smartPanSpeed=Math.round(clamp(Number(out.smartPanSpeed)||14,6,30));
  out.opacity=clamp(Number(out.opacity)||80,20,100);out.size=clamp(Number(out.size)||100,65,150);
  out.deadzone=clamp(Number(out.deadzone)||55,20,85);out.stick=out.stick!==false;
  out.controllerEnabled=out.controllerEnabled!==false;
@@ -96,6 +97,9 @@ function apply(){
  pad.classList.toggle('nono-pad-editing',editing);
  pad.style.setProperty('--nono-pad-opacity',opacity);
  pad.style.setProperty('--nono-pad-scale',scale);
+ pad.style.setProperty('--nono-smart-gutter',(103*scale+8)+'px');
+ pad.style.setProperty('--nono-smart-x',state.dpad.x*100+'vw');
+ pad.style.setProperty('--nono-smart-y',state.dpad.y*100+'dvh');
  for(const name of positions){
   const el=name==='dpad'?dpadGroup:actionGroup;
   el.style.setProperty('--pad-x',state[name].x*100+'vw');
@@ -405,6 +409,14 @@ function range(min,max,step,value,after){
  slider.addEventListener('input',()=>{out.textContent=slider.value+'%';after(Number(slider.value))});
  wrap.append(slider,out);return wrap;
 }
+function rangeCount(min,max,step,value,unit,after){
+ const wrap=document.createElement('div');wrap.className='nono-controller-range';
+ const slider=document.createElement('input');slider.type='range';
+ slider.min=min;slider.max=max;slider.step=step;slider.value=value;
+ const out=document.createElement('output');out.textContent=value+unit;
+ slider.addEventListener('input',()=>{out.textContent=slider.value+unit;after(Number(slider.value))});
+ wrap.append(slider,out);return wrap;
+}
 function check(value,after){
  const c=document.createElement('input');c.type='checkbox';c.checked=value;
  c.addEventListener('change',()=>after(c.checked));return c;
@@ -418,6 +430,9 @@ function touchSettings(root){
  if(['smartTrackpad','smartMinimap'].includes(state.mode))
   addRow(root,'스마트 구간 크기','작은 네모에서 보이는 퍼즐 칸 수입니다.',
    select([[8,'8×8'],[12,'12×12'],[16,'16×16'],[20,'20×20']].map(([v,l])=>[String(v),l]),String(state.smartWindowCells),v=>setValue('smartWindowCells',Number(v))));
+ if(['smartTrackpad','smartMinimap'].includes(state.mode))
+  addRow(root,'구간 이동속도','네모 바깥의 길쭉한 방향 구역에서 이동하는 속도입니다. 기본 14칸/초.',
+   rangeCount(6,30,2,state.smartPanSpeed,'칸/초',v=>setValue('smartPanSpeed',v)));
  if(['trackpad','smartTrackpad','smartHybrid'].includes(state.mode))
   addRow(root,'트랙패드 민감도','100%는 약 12px 움직일 때 한 칸. 200%는 더 빠르게, 50%는 더 세밀하게 움직입니다.',
    range(50,200,10,state.trackpadSensitivity,v=>setValue('trackpadSensitivity',v)));
