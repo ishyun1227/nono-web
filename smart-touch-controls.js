@@ -433,6 +433,8 @@ if(boardRoot&&typeof MutationObserver==='function'){
      previous.includes('cross')!==!!current?.contains('cross');
   });
   if(changed)updateHybridPreview(true);
+  else if(records.some(record=>record.type==='attributes'))
+   updateHybridPreview(false); // cursor changed without painting
  });
  observer.observe(boardRoot,{subtree:true,childList:true,attributes:true,
   attributeFilter:['class'],attributeOldValue:true});
