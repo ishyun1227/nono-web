@@ -173,8 +173,14 @@ function edgeStep(){
  const nextRow=bound(p.row+dy,0,d.height-1);
  const nextCol=bound(p.col+dx,0,d.width-1);
  if(nextRow===p.row&&nextCol===p.col)return;
- // The moving window follows the selected cell, never wrapping at an edge.
+ // Keep the selected cell at the same local position while sliding the
+ // whole miniature viewport over the underlying puzzle.
  selection(nextRow,nextCol,a.action,a);
+ if(viewport){
+  viewport.left=bound(viewport.left+dx,0,viewport.width-viewport.cols);
+  viewport.top=bound(viewport.top+dy,0,viewport.height-viewport.rows);
+  updateWindow();
+ }
 }
 function stop(){
  const a=gesture;gesture=null;edgeLast=0;
