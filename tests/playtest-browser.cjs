@@ -447,6 +447,52 @@ const {pathToFileURL}=require('node:url');
   if(!boundsResults.heldBefore||boundsResults.heldAfter)
    throw Error('Touch action must release after finger leaves button: '+JSON.stringify(boundsResults));
   console.log('All six touch surfaces and action buttons ignore out-of-bounds captured gestures.');
+  // Each visible smart strip must touch the side of the small square while
+  // remaining onscreen, work when pressed directly and persist speed changes.
+  const smartEdges=await mobile.evaluate(()=>{
+   const control=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
+   control.set('mode','smartMinimap');
+   control.set('size',100);control.set('smartPanSpeed',22);
+   const mini=document.getElementById('nono-absolute-pad');
+   const center=mini.getBoundingClientRect();
+   const rail=document.getElementById('nono-smart-edge-rail');
+   const slots={};
+   for(const [dir,delta] of Object.entries({up:[-1,0],down:[1,0],left:[0,-1],right:[0,1]})){
+    const button=rail.querySelector('[data-nono-smart-edge="'+dir+'"]');
+    const r=button.getBoundingClientRect();
+    const x=(r.left+r.right)/2,y=(r.top+r.bottom)/2;
+    nav.select(30,25);const start={...nav.position};
+    const id=3100+Object.keys(slots).length;
+    const base={pointerType:'touch',pointerId:id,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
+    button.dispatchEvent(new PointerEvent('pointerdown',{...base,clientX:x,clientY:y}));
+    const selected={...nav.position};
+    button.dispatchEvent(new PointerEvent('pointerup',{...base,clientX:x,clientY:y,buttons:0}));
+    slots[dir]={r:{left:r.left,top:r.top,right:r.right,bottom:r.bottom},
+     start,selected,delta};
+   }
+   const s=window.NONO_INPUT_CUSTOM.settings;
+   const persisted=JSON.parse(localStorage.getItem('nono-input-settings-v1'));
+   control.set('mode','smartHybrid');
+   const railHidden=getComputedStyle(rail).display==='none';
+   return {slots,center:{left:center.left,right:center.right,top:center.top,bottom:center.bottom},
+    savedSpeed:s.smartPanSpeed,storedSpeed:persisted.smartPanSpeed,railHidden};
+  });
+  for(const [dir,slot] of Object.entries(smartEdges.slots)){
+   if(slot.selected.row!==slot.start.row+slot.delta[0]||
+      slot.selected.col!==slot.start.col+slot.delta[1])
+    throw Error('Smart strip movement failed '+dir+': '+JSON.stringify(slot));
+   const r=slot.r;
+   if(r.left<0||r.top<0||r.right>390||r.bottom>844)
+    throw Error('Smart strip is clipped '+dir+': '+JSON.stringify(r));
+   if((dir==='up'&&r.bottom>smartEdges.center.top)||
+      (dir==='down'&&r.top<smartEdges.center.bottom)||
+      (dir==='left'&&r.right>smartEdges.center.left)||
+      (dir==='right'&&r.left<smartEdges.center.right))
+    throw Error('Smart strip overlaps miniature '+dir+': '+JSON.stringify(smartEdges));
+  }
+  if(smartEdges.savedSpeed!==22||smartEdges.storedSpeed!==22||!smartEdges.railHidden)
+   throw Error('Speed persistence or hybrid strip visibility failed: '+JSON.stringify(smartEdges));
+  console.log('Smart directional strips, 22-cell speed persistence and hybrid hiding passed.');
   if(mobileErrors.length)throw Error('Mobile game exceptions: '+mobileErrors.join(' | '));
   await mobileContext.close();
   console.log('Mobile app viewport, tap-vs-swipe and internal zoom panning passed.');
