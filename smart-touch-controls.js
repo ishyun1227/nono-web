@@ -27,6 +27,22 @@ const grid=document.createElement('div');
 grid.className='nono-smart-window-grid';
 grid.setAttribute('aria-hidden','true');
 mini.prepend(grid);
+// Distinct narrow touch strips around the stationary smart viewport.
+const edgeRail=document.createElement('div');
+edgeRail.id='nono-smart-edge-rail';
+edgeRail.setAttribute('role','group');
+const edgeButtons={};
+for(const [direction,glyph,label] of [
+ ['up','▲','위쪽 구간 이동'],['down','▼','아래쪽 구간 이동'],
+ ['left','◀','왼쪽 구간 이동'],['right','▶','오른쪽 구간 이동']
+]){
+ const button=document.createElement('button');
+ button.type='button';button.className='nono-smart-edge-key nono-smart-edge-'+direction;
+ button.dataset.nonoSmartEdge=direction;button.textContent=glyph;
+ button.setAttribute('aria-label',label);
+ edgeRail.append(button);edgeButtons[direction]=button;
+}
+pad.prepend(edgeRail);
 let viewport=null,gesture=null,edgeTimer=null,edgeLast=0;
 const supported=()=>['smartTrackpad','smartMinimap'].includes(mode());
 // Pointer capture deliberately keeps delivery outside an element. Do not let
@@ -34,6 +50,13 @@ const supported=()=>['smartTrackpad','smartMinimap'].includes(mode());
 function inside(element,x,y){
  const r=element.getBoundingClientRect();
  return r.width>0&&r.height>0&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+}
+const vectors={up:{x:0,y:-1},down:{x:0,y:1},left:{x:-1,y:0},right:{x:1,y:0}};
+function hitZone(x,y){
+ if(inside(mini,x,y))return 'center';
+ for(const dir of ['up','down','left','right'])
+  if(inside(edgeButtons[dir],x,y))return dir;
+ return null;
 }
 function dimensions(){return nav()?.dimensions||null}
 function initWindow(reset=false){
@@ -161,18 +184,15 @@ function moveAbsolute(a,event){
  selection(p.row,p.col,a.action,a);
 }
 function edgeDirection(a){
- if(!a||a.outside||a.mode==='smartHybrid'||!inside(mini,a.lastX,a.lastY))return null;
- const r=mini.getBoundingClientRect(),margin=13;
- const x=a.lastX>=r.right-margin?1:a.lastX<=r.left+margin?-1:0;
- const y=a.lastY>=r.bottom-margin?1:a.lastY<=r.top+margin?-1:0;
- if(!x&&!y)return null;
- return {x,y};
+ if(!a||a.outside||a.mode==='smartHybrid')return null;
+ const region=hitZone(a.lastX,a.lastY);
+ return region===a.region?vectors[region]||null:null;
 }
 function edgeStep(){
  const a=gesture;if(!a||!live()||!supported())return;
  const dir=edgeDirection(a);if(!dir){edgeLast=0;return;}
- if(Date.now()-a.startedAt<280)return;
- const now=Date.now();if(now-edgeLast<100)return;
+ const now=Date.now(),speed=bound(Number(settings().smartPanSpeed)||14,6,30);
+ if(edgeLast&&now-edgeLast<1000/speed)return;
  edgeLast=now;
  refreshAction(a,{clientX:a.lastX,clientY:a.lastY});
  if(a.action&&!a.axis)a.axis=Math.abs(dir.x)>=Math.abs(dir.y)?'x':'y';
@@ -201,44 +221,64 @@ function stop(){
   try{a.element.releasePointerCapture(a.id)}catch(_){}
 }
 function begin(event,kind,element){
- if(!live()||mode()!==kind||gesture||event.button!==0||
-    !inside(element,event.clientX,event.clientY))return;
+ if(!live()||mode()!==kind||gesture||event.button!==0)return;
+ const region=kind==='smartHybrid'?
+  (inside(zone,event.clientX,event.clientY)?'center':null):
+  hitZone(event.clientX,event.clientY);
+ if(!region)return;
  event.preventDefault();
  if(kind!=='smartHybrid')initWindow();
  const action=heldAction();
- const p=kind==='smartMinimap'?localPosition(event):
+ const p=kind==='smartMinimap'&&region==='center'?localPosition(event):
    kind==='smartHybrid'?absolutePosition(event,zone):nav()?.position;
  if(!p)return;
  const a={id:event.pointerId,mode:kind,element,startedAt:Date.now(),
-  lastX:event.clientX,lastY:event.clientY,outside:false,
+  lastX:event.clientX,lastY:event.clientY,outside:false,region,
   originX:event.clientX,originY:event.clientY,
   residualX:0,residualY:0,axis:null,action,anchor:{...p},
   stroke:action?nav()?.beginStroke?.()??null:null};
  gesture=a;
  nav()?.select(p.row,p.col);
- // If an action was already held before touching the surface, the new
- // starting cell is marked using the non-toggle drag semantics.
- if(action&&kind!=='smartTrackpad')nav()?.paintAt?.(p.row,p.col,action);
+ if(action&&kind!=='smartTrackpad'&&region==='center')nav()?.paintAt?.(p.row,p.col,action);
  if(kind!=='smartHybrid')updateWindow();
  try{element.setPointerCapture(event.pointerId)}catch(_){}
- if(kind!=='smartHybrid')edgeTimer=setInterval(edgeStep,80);
+ if(kind!=='smartHybrid'){
+  edgeLast=0;
+  if(region!=='center')edgeStep();
+  edgeTimer=setInterval(edgeStep,16);
+ }
 }
 function move(event,kind){
  const a=gesture;
  if(!a||a.id!==event.pointerId||a.mode!==kind)return;
  if(!live()){stop();return;}
  event.preventDefault();
- if(!inside(a.element,event.clientX,event.clientY)){
-  // Stop immediately even though pointer capture continues to deliver events.
-  a.outside=true;a.lastX=event.clientX;a.lastY=event.clientY;
+ const region=kind==='smartHybrid'?
+  (inside(zone,event.clientX,event.clientY)?'center':null):
+  hitZone(event.clientX,event.clientY);
+ if(!region){
+  // Captured pointer outside both the square and its strips does nothing.
+  a.outside=true;a.region=null;a.lastX=event.clientX;a.lastY=event.clientY;
   a.residualX=0;a.residualY=0;edgeLast=0;return;
  }
- if(a.outside){
-  // Re-entry starts a fresh local finger reference; never jump by the
-  // distance traveled outside the control. Keep the ongoing paint axis.
-  a.outside=false;a.lastX=event.clientX;a.lastY=event.clientY;
+ if(region!=='center'){
+  const changed=a.region!==region||a.outside;
+  a.region=region;a.outside=false;
+  a.lastX=event.clientX;a.lastY=event.clientY;
+  if(changed){
+   a.originX=event.clientX;a.originY=event.clientY;
+   a.residualX=0;a.residualY=0;edgeLast=0;
+   refreshAction(a,event);
+   edgeStep();
+  }
+  return;
+ }
+ if(a.outside||a.region!=='center'){
+  // Re-entering never accumulates displacement from outside the touch area.
+  a.outside=false;a.region='center';
+  a.lastX=event.clientX;a.lastY=event.clientY;
   a.originX=event.clientX;a.originY=event.clientY;
-  a.residualX=0;a.residualY=0;a.startedAt=Date.now();
+  a.residualX=0;a.residualY=0;edgeLast=0;
   refreshAction(a,event);
   return;
  }
@@ -246,16 +286,25 @@ function move(event,kind){
   a.lastX=event.clientX;a.lastY=event.clientY;
   moveAbsolute(a,event);
  }else moveRelative(a,event);
- if(kind!=='smartHybrid'){
-  const edge=edgeDirection(a);
-  if(!edge)a.startedAt=Date.now();
- }
 }
 for(const [element,kind] of [[mini,'smartTrackpad'],[mini,'smartMinimap'],[zone,'smartHybrid']]){
  element.addEventListener('pointerdown',event=>begin(event,kind,element));
  element.addEventListener('pointermove',event=>move(event,kind));
  for(const name of ['pointerup','pointercancel','lostpointercapture'])
-  element.addEventListener(name,event=>{if(gesture?.id===event.pointerId&&gesture.mode===kind)stop()});
+  element.addEventListener(name,event=>{
+   if(gesture?.id===event.pointerId&&gesture.element===element)stop();
+  });
+}
+// Starting on a side strip and dragging from the center both scroll.
+for(const button of Object.values(edgeButtons)){
+ button.addEventListener('pointerdown',event=>{if(supported())begin(event,mode(),button)});
+ button.addEventListener('pointermove',event=>{
+  if(gesture?.element===button)move(event,gesture.mode);
+ });
+ for(const name of ['pointerup','pointercancel','lostpointercapture'])
+  button.addEventListener(name,event=>{
+   if(gesture?.id===event.pointerId&&gesture.element===button)stop();
+  });
 }
 function updateHybridLabel(){
  const t=window.NONO_I18N?.translate;
@@ -276,6 +325,9 @@ window.addEventListener('nono:languagechange',()=>{updateHybridLabel();updateWin
 window.addEventListener('blur',stop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 window.NONO_SMART_TOUCH={get viewport(){return viewport?{...viewport}:null},
- get active(){return !!gesture},get mode(){return mode()},refresh:updateWindow};
+ get active(){return !!gesture},get mode(){return mode()},refresh:updateWindow,
+ get edgeRegion(){return gesture?.region??null},
+ get panSpeed(){return bound(Number(settings().smartPanSpeed)||14,6,30)}
+};
 sync();
 })();
