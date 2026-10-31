@@ -486,3 +486,48 @@
 #nono-mobile-pad.nono-smart-minimap-mode.nono-pad-editing #nono-smart-edge-rail{
  display:none!important;
 }
+
+
+/* Smart hybrid: a real miniature of the player's current full puzzle.
+   Initial tap maps to the square; dragging stays relative even outside it. */
+#nono-floating-zone .nono-hybrid-preview,
+#nono-floating-zone .nono-hybrid-cursor{display:none!important}
+#nono-mobile-pad.nono-smart-hybrid-mode #nono-floating-zone{
+ width:152px!important;height:152px!important;
+ left:clamp(var(--nono-mini-gutter,84px),var(--zone-x,21vw),
+  calc(100vw - var(--nono-mini-gutter,84px)))!important;
+ top:clamp(var(--nono-mini-gutter,84px),var(--zone-y,83dvh),
+  calc(100dvh - var(--nono-mini-gutter,84px) - 48px))!important;
+ border:2px solid #92b6d9!important;border-radius:17px!important;
+ background:#182c47!important;
+ box-shadow:0 6px 22px #071325a0,inset 0 2px 8px #020b1573!important;
+ cursor:crosshair!important;
+}
+#nono-mobile-pad.nono-smart-hybrid-mode #nono-floating-zone .nono-hybrid-preview{
+ display:block!important;position:absolute!important;
+ left:3px!important;top:3px!important;
+ width:calc(100% - 6px)!important;height:calc(100% - 6px)!important;
+ z-index:1!important;border-radius:10px!important;
+ object-fit:fill!important;image-rendering:auto!important;
+ opacity:.94!important;pointer-events:none!important;
+}
+#nono-mobile-pad.nono-smart-hybrid-mode #nono-floating-zone .nono-hybrid-cursor{
+ display:block!important;position:absolute!important;
+ z-index:3!important;width:9px!important;height:9px!important;
+ transform:translate(-50%,-50%)!important;
+ border:2px solid #2563eb!important;border-radius:3px!important;
+ background:#e7ffb9!important;box-shadow:0 0 0 2px #06131ecc,0 0 9px #84efffbd!important;
+ pointer-events:none!important;
+}
+#nono-mobile-pad.nono-smart-hybrid-mode #nono-floating-zone::before{
+ content:none!important;display:none!important;
+}
+#nono-mobile-pad.nono-smart-hybrid-mode #nono-floating-zone::after{
+ content:attr(data-smart-hybrid-text)!important;
+ z-index:4!important;left:50%!important;top:4px!important;
+ inset:auto!important;transform:translateX(-50%)!important;
+ padding:3px 5px!important;line-height:1.2!important;
+ border-radius:5px!important;background:#081628de!important;
+ font-size:10px!important;font-weight:760!important;white-space:nowrap!important;
+ color:#eef8ff!important;text-shadow:none!important;
+}
