@@ -4,7 +4,7 @@ const pad=document.getElementById('nono-mobile-pad');
 if(!pad)return;
 const $=id=>document.getElementById(id);
 const storageKey='nono-input-settings-v1';
-const defaults=()=>({mode:'fixed',opacity:80,size:100,trackpadSensitivity:100,
+const defaults=()=>({mode:'fixed',opacity:80,size:100,trackpadSensitivity:100,smartWindowCells:12,
  dpad:{x:.21,y:.83},actions:{x:.79,y:.83},
  offsets:{fill:[0,0],cross:[0,0],clear:[0,0],undo:[0,0]},
  controllerEnabled:true,deadzone:55,stick:true,
@@ -14,8 +14,9 @@ const clone=v=>JSON.parse(JSON.stringify(v));
 function validate(src){
  const d=defaults(),s=src&&typeof src==='object'?src:{};
  const out={...d,...s,offsets:{...d.offsets,...s.offsets},mapping:{...d.mapping,...s.mapping}};
- out.mode=['fixed','floating','trackpad','minimap'].includes(out.mode)?out.mode:'fixed';
+ out.mode=['fixed','floating','trackpad','minimap','smartTrackpad','smartMinimap','smartHybrid'].includes(out.mode)?out.mode:'fixed';
  out.trackpadSensitivity=clamp(Number(out.trackpadSensitivity)||100,50,200);
+ out.smartWindowCells=[8,12,16,20].includes(Number(out.smartWindowCells))?Number(out.smartWindowCells):12;
  out.opacity=clamp(Number(out.opacity)||80,20,100);out.size=clamp(Number(out.size)||100,65,150);
  out.deadzone=clamp(Number(out.deadzone)||55,20,85);out.stick=out.stick!==false;
  out.controllerEnabled=out.controllerEnabled!==false;
@@ -87,6 +88,9 @@ function apply(){
  pad.classList.toggle('nono-floating-mode',state.mode==='floating');
  pad.classList.toggle('nono-trackpad-mode',state.mode==='trackpad');
  pad.classList.toggle('nono-minimap-mode',state.mode==='minimap');
+ pad.classList.toggle('nono-smart-trackpad-mode',state.mode==='smartTrackpad');
+ pad.classList.toggle('nono-smart-minimap-mode',state.mode==='smartMinimap');
+ pad.classList.toggle('nono-smart-hybrid-mode',state.mode==='smartHybrid');
  if(state.mode!=='trackpad'||editing)trackpadActive=null;
  if(state.mode!=='minimap'||editing)miniActive=null;
  pad.classList.toggle('nono-pad-editing',editing);
@@ -110,6 +114,7 @@ function apply(){
  mini.style.setProperty('--zone-x',state.dpad.x*100+'vw');
  mini.style.setProperty('--zone-y',state.dpad.y*100+'dvh');
  updateMiniCursor();
+ window.dispatchEvent(new Event('nono:smart-controls-change'));
  // Changes to on-screen controls do not require recalculating the board on each drag.
 }
 function nativeSend(name,down){
@@ -375,9 +380,12 @@ function touchSettings(root){
  const intro=document.createElement('p');intro.className='nono-controller-intro';
  intro.textContent='모바일 화면의 방향 패드와 동작 버튼을 원하는 스타일로 조정할 수 있어요.';
  root.append(intro);
- addRow(root,'이동 방식','트랙패드는 손가락 이동 거리만큼, 축소판은 터치한 위치로 커서를 옮깁니다. 드래그는 처음 움직인 행 또는 열로 고정됩니다.',
-  select([['fixed','고정 십자키'],['floating','플로팅 조이스틱'],['trackpad','노트북형 트랙패드'],['minimap','퍼즐 축소판 터치']],state.mode,v=>{setValue('mode',v);renderExtras()}));
- if(state.mode==='trackpad')
+ addRow(root,'이동 방식','터치패드는 상대 이동, 축소판은 누른 위치로 이동합니다. 스마트 방식은 화면 끝에서 담당 구간이 움직이고, 칠하기 중에만 행·열이 고정됩니다.',
+  select([['fixed','고정 십자키'],['floating','플로팅 조이스틱'],['trackpad','노트북형 트랙패드'],['minimap','퍼즐 축소판 터치'],['smartTrackpad','스마트 터치패드'],['smartMinimap','스마트 축소판'],['smartHybrid','스마트 혼합형']],state.mode,v=>{setValue('mode',v);renderExtras()}));
+ if(['smartTrackpad','smartMinimap'].includes(state.mode))
+  addRow(root,'스마트 구간 크기','작은 네모에서 보이는 퍼즐 칸 수입니다.',
+   select([[8,'8×8'],[12,'12×12'],[16,'16×16'],[20,'20×20']].map(([v,l])=>[String(v),l]),String(state.smartWindowCells),v=>setValue('smartWindowCells',Number(v))));
+ if(['trackpad','smartTrackpad','smartHybrid'].includes(state.mode))
   addRow(root,'트랙패드 민감도','100%는 약 12px 움직일 때 한 칸. 200%는 더 빠르게, 50%는 더 세밀하게 움직입니다.',
    range(50,200,10,state.trackpadSensitivity,v=>setValue('trackpadSensitivity',v)));
  addRow(root,'투명도','배경과 버튼의 표시 농도',
