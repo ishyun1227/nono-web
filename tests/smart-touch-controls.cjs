@@ -269,4 +269,54 @@ assert.ok(position.row>previous.row&&position.col>previous.col,
  'releasing edit must immediately restore free movement');
 mini.fire('pointerup',102,88);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
+// Also run the ACTUAL production laptop-trackpad handler in a small DOM shim.
+// Passive movement is 2D; only a held edit action locks the first drag axis.
+const controllerSource=fs.readFileSync(path.join(__dirname,'..','controller-customization.js'),'utf8');
+const laptopStart=controllerSource.indexOf('// Laptop-style relative trackpad:');
+const laptopEnd=controllerSource.indexOf('// Absolute miniature:',laptopStart);
+assert.ok(laptopStart>=0&&laptopEnd>laptopStart,'find laptop handler in production source');
+const laptopCode=controllerSource.slice(laptopStart,laptopEnd);
+const laptopZone=new Element;
+let laptopAction=null;
+const laptopPosition={row:20,col:20},laptopPaint=[];
+const laptopNav={
+ dimensions:{width:53,height:73},
+ get position(){return {...laptopPosition}},
+ move(dx,dy){
+  laptopPosition.row=Math.max(0,Math.min(72,laptopPosition.row+dy));
+  laptopPosition.col=Math.max(0,Math.min(52,laptopPosition.col+dx));
+  return true;
+ },
+ beginStroke(){return 0},endStroke(){},
+ paintLine(fr,fc,row,col,action){
+  laptopPaint.push({fr,fc,row,col,action});
+  return this.move(col-laptopPosition.col,row-laptopPosition.row);
+ }
+};
+new Function('zone','touchAllowed','insideTouch','heldMiniAction','cursor','state','trackpadActive',laptopCode)(
+ laptopZone,()=>true,(el,x,y)=>x>=10&&x<=162&&y>=10&&y<=162,
+ ()=>laptopAction,()=>laptopNav,{trackpadSensitivity:100},null
+);
+laptopZone.fire('pointerdown',60,60);
+laptopZone.fire('pointermove',84,84);
+assert.equal(laptopPosition.row,22,'laptop free navigation must move row too');
+assert.equal(laptopPosition.col,22,'laptop free navigation must move column too');
+laptopZone.fire('pointermove',96,108);
+assert.equal(laptopPosition.row,24,'laptop diagonal tracking continues vertically');
+assert.equal(laptopPosition.col,23,'laptop diagonal tracking continues horizontally');
+laptopZone.fire('pointerup',96,108);
+laptopAction='fill';laptopPosition.row=20;laptopPosition.col=20;
+laptopZone.fire('pointerdown',60,60);
+laptopZone.fire('pointermove',96,69);
+assert.equal(laptopPosition.row,20,'held fill locks row on horizontal drag');
+assert.equal(laptopPosition.col,23,'held fill paints horizontally');
+assert.ok(laptopPaint.length>0,'edit drag invokes paintLine');
+laptopAction=null;
+laptopZone.fire('pointermove',108,82); // unlock without teleporting
+const lockedPosition={...laptopPosition};
+laptopZone.fire('pointermove',120,94);
+assert.equal(laptopPosition.row,lockedPosition.row+1,'releasing action restores vertical movement');
+assert.equal(laptopPosition.col,lockedPosition.col+1,'releasing action restores horizontal movement');
+laptopZone.fire('pointerup',120,94);
+console.log('LAPTOP_TRACKPAD_PASS: passive 2D motion, edit-only lock, unlock after release');
 console.log('SMART_TOUCH_PASS: classic miniature progress, smart arrows one step per press, drag-out auto pan, hybrid relative, paint axis lock');
