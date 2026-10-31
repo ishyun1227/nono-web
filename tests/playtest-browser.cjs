@@ -493,7 +493,7 @@ const {pathToFileURL}=require('node:url');
     el.dispatchEvent(new PointerEvent(event,{...pointer,clientX:cx,clientY:cy,...more}));
    send('pointerdown',x,y);const initial={...nav.position};
    send('pointermove',x+24,y+12);const inside={...nav.position};
-   send('pointermove',r.right+45,y+12);const outside={...nav.position};
+   send('pointermove',r.right+25,y+25);const outside={...nav.position};
    await new Promise(resolve=>setTimeout(resolve,260));
    const held={...nav.position};
    send('pointermove',x,y);const back={...nav.position};
@@ -513,17 +513,17 @@ const {pathToFileURL}=require('node:url');
     hybridResult.initial.col!==hybridResult.expectedCol||
     hybridResult.inside.row<=hybridResult.initial.row||
     hybridResult.inside.col<=hybridResult.initial.col||
-    hybridResult.outside.row!==hybridResult.inside.row||
-    hybridResult.outside.col!==hybridResult.inside.col+1||
+    hybridResult.outside.row<=hybridResult.inside.row||
+    hybridResult.outside.col<=hybridResult.inside.col+1||
     hybridResult.held.row!==hybridResult.outside.row||
-    hybridResult.held.col<=hybridResult.outside.col||
-    hybridResult.back.row!==hybridResult.held.row||
-    hybridResult.back.col!==hybridResult.held.col||
+    hybridResult.held.col!==hybridResult.outside.col||
+    hybridResult.back.row>=hybridResult.held.row||
+    hybridResult.back.col>=hybridResult.held.col||
     hybridResult.canvasWidth!==152||hybridResult.canvasHeight!==152||
     !hybridResult.canvasVisible||!hybridResult.markerVisible||
     Math.abs(hybridResult.ratio-1)>.05||hybridResult.gestureActive)
    throw Error('Hybrid square/absolute tap/outside drag mismatch: '+JSON.stringify(hybridResult));
-  console.log('Hybrid absolute-first/relative-inside and directional-hold-outside passed.');
+  console.log('Hybrid absolute first touch, relative movement outside on both axes and no hold-repeat passed.');
   // Each visible smart strip must touch the side of the small square while
   // remaining onscreen, work when pressed directly and persist speed changes.
   const smartEdges=await mobile.evaluate(()=>{
