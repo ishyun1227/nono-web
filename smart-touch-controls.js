@@ -29,6 +29,12 @@ grid.setAttribute('aria-hidden','true');
 mini.prepend(grid);
 let viewport=null,gesture=null,edgeTimer=null,edgeLast=0;
 const supported=()=>['smartTrackpad','smartMinimap'].includes(mode());
+// Pointer capture deliberately keeps delivery outside an element. Do not let
+// the captured pointer select, paint or auto-scroll outside the actual region.
+function inside(element,x,y){
+ const r=element.getBoundingClientRect();
+ return r.width>0&&r.height>0&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+}
 function dimensions(){return nav()?.dimensions||null}
 function initWindow(reset=false){
  if(!supported())return;
@@ -59,7 +65,9 @@ function updateWindow(){
  const t=window.NONO_I18N?.translate;
  const rowWord=typeof t==='function'?t('행'):'행';
  const colWord=typeof t==='function'?t('열'):'열';
- miniLabel.textContent=rowWord+' '+(v.top+1)+'–'+(v.top+v.rows)+' · '+colWord+' '+(v.left+1)+'–'+(v.left+v.cols);
+ const tMode=typeof t==='function'?t(mode()==='smartTrackpad'?'스마트 터치패드':'스마트 축소판'):
+   (mode()==='smartTrackpad'?'스마트 터치패드':'스마트 축소판');
+ miniLabel.textContent=tMode+' · '+rowWord+' '+(v.top+1)+'–'+(v.top+v.rows)+' · '+colWord+' '+(v.left+1)+'–'+(v.left+v.cols);
  miniCursor.style.left=((p.col-v.left+.5)/v.cols*100)+'%';
  miniCursor.style.top=((p.row-v.top+.5)/v.rows*100)+'%';
  grid.style.gridTemplateColumns='repeat('+v.cols+',minmax(0,1fr))';
@@ -153,7 +161,7 @@ function moveAbsolute(a,event){
  selection(p.row,p.col,a.action,a);
 }
 function edgeDirection(a){
- if(!a||a.mode==='smartHybrid')return null;
+ if(!a||a.outside||a.mode==='smartHybrid'||!inside(mini,a.lastX,a.lastY))return null;
  const r=mini.getBoundingClientRect(),margin=13;
  const x=a.lastX>=r.right-margin?1:a.lastX<=r.left+margin?-1:0;
  const y=a.lastY>=r.bottom-margin?1:a.lastY<=r.top+margin?-1:0;
@@ -193,7 +201,8 @@ function stop(){
   try{a.element.releasePointerCapture(a.id)}catch(_){}
 }
 function begin(event,kind,element){
- if(!live()||mode()!==kind||gesture||event.button!==0)return;
+ if(!live()||mode()!==kind||gesture||event.button!==0||
+    !inside(element,event.clientX,event.clientY))return;
  event.preventDefault();
  if(kind!=='smartHybrid')initWindow();
  const action=heldAction();
@@ -201,7 +210,7 @@ function begin(event,kind,element){
    kind==='smartHybrid'?absolutePosition(event,zone):nav()?.position;
  if(!p)return;
  const a={id:event.pointerId,mode:kind,element,startedAt:Date.now(),
-  lastX:event.clientX,lastY:event.clientY,
+  lastX:event.clientX,lastY:event.clientY,outside:false,
   originX:event.clientX,originY:event.clientY,
   residualX:0,residualY:0,axis:null,action,anchor:{...p},
   stroke:action?nav()?.beginStroke?.()??null:null};
@@ -219,6 +228,20 @@ function move(event,kind){
  if(!a||a.id!==event.pointerId||a.mode!==kind)return;
  if(!live()){stop();return;}
  event.preventDefault();
+ if(!inside(a.element,event.clientX,event.clientY)){
+  // Stop immediately even though pointer capture continues to deliver events.
+  a.outside=true;a.lastX=event.clientX;a.lastY=event.clientY;
+  a.residualX=0;a.residualY=0;edgeLast=0;return;
+ }
+ if(a.outside){
+  // Re-entry starts a fresh local finger reference; never jump by the
+  // distance traveled outside the control. Keep the ongoing paint axis.
+  a.outside=false;a.lastX=event.clientX;a.lastY=event.clientY;
+  a.originX=event.clientX;a.originY=event.clientY;
+  a.residualX=0;a.residualY=0;a.startedAt=Date.now();
+  refreshAction(a,event);
+  return;
+ }
  if(kind==='smartMinimap'){
   a.lastX=event.clientX;a.lastY=event.clientY;
   moveAbsolute(a,event);
