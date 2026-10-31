@@ -524,8 +524,13 @@ if(boardRoot&&typeof MutationObserver==='function'){
   // buildBoard() replaces the board's children when a puzzle changes.
   // Reattach the non-interactive window once, without touching cell indexes.
   if(mode()==='smartTrackpad'){
-   if(records.some(r=>r.type==='childList'&&r.target===boardRoot)&&
-      boardWindow.parentElement!==boardRoot)updateWindow();
+   const rebuild=records.some(r=>r.type==='childList'&&r.target===boardRoot);
+   const cursorMoved=records.some(r=>r.type==='attributes'&&r.attributeName==='class'&&
+    r.target?.classList?.contains('cell')&&
+    (/(?:^|\s)active(?:\s|$)/.test(r.oldValue||'')!==r.target.classList.contains('active')));
+   // Native D-pad/gamepad keys update selection classes without firing
+   // the dedicated smart-control event. Keep the on-board outline synced.
+   if((rebuild&&boardWindow.parentElement!==boardRoot)||cursorMoved)updateWindow();
    return;
   }
   if(mode()!=='smartHybrid'&&mode()!=='minimap')return;
