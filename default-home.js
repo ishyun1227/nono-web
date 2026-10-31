@@ -10,8 +10,8 @@ const $=id=>document.getElementById(id);
 const on=()=>document.body.dataset.nonoTheme==='neon';
 const activeMode=()=>modeButtons.find(b=>b.classList.contains('selected'))?.dataset.mode||'practice';
 const MODE_NAMES={practice:'혼자 풀기',race:'대결 로비',coop:'협동 로비',record:'기록'};
-const sizes=[5,10,15,20,25,30];
-const difficulties=['쉬움','보통','어려움'];
+const sizes=[5,10,15,20,25,30,50,75,100];
+const difficulties=['쉬움','보통','어려움','전문가'];
 // Classifications already used by the existing launcher. New puzzles without
 // explicit metadata remain '미지정' rather than being assigned a made-up level.
 const legacyDifficulty={
@@ -27,7 +27,7 @@ function difficultyOf(p){
 function availablePuzzles(size,difficulty){
   const mode=activeMode();
   return puzzleCatalog().filter(p=>p.size===Number(size)&&difficultyOf(p)===difficulty&&
-    (mode==='practice'||(p.size<30 && supportedPuzzleModes.has(mode))));
+    (mode==='practice'||(p.generated&&(mode==='race'||mode==='coop'))||(!p.generated&&p.size<30&&supportedPuzzleModes.has(mode))));
 }
 function selectableSizes(){
   return [...new Set([...sizes,...puzzleCatalog().map(p=>p.size)])].sort((a,b)=>a-b);
@@ -103,7 +103,7 @@ function screen(){
   if(!on())return;
   const mode=activeMode();
   if(!availablePuzzles(selectedSize,selectedDifficulty).length){
-    const first=puzzleCatalog().find(p=>p.size<30||mode==='practice');
+    const first=puzzleCatalog().find(p=>p.size<30||p.generated||mode==='practice');
     if(first){selectedSize=first.size;selectedDifficulty=difficultyOf(first);setNativePuzzle(first.id);}
   }
   nativeStart.textContent=mode==='record'?'기록 도전 →':'퍼즐 시작 →';
