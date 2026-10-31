@@ -590,3 +590,18 @@ body[data-nono-theme="neon"] :is(.nono-apple-choice,.nono-resume-continue):focus
   body[data-nono-theme="neon"] #nono-resume-view {margin-top: 12px;padding: 18px}
   body[data-nono-theme="neon"] #nono-resume-items {grid-template-columns: repeat(3,minmax(0,1fr))}
 }
+
+/* Random puzzles use the same selection UI without becoming tiny numbered squares. */
+body[data-nono-theme="neon"] .nono-apple-puzzle-choices>.nono-apple-random-generate{
+  width:auto;min-width:174px;padding-inline:17px;
+  color:#176569;background:#e7fbf7;border-color:#aae9df;
+  font-size:clamp(12px,1.05vw,15px);font-weight:780;
+}
+body[data-nono-theme="neon"] .nono-apple-puzzle-choices>.nono-apple-random-generate:disabled{
+  opacity:.7;cursor:progress;
+}
+@media(max-width:790px){
+  body[data-nono-theme="neon"] .nono-apple-puzzle-choices>.nono-apple-random-generate{
+    min-width:140px;width:auto;min-height:41px;font-size:12px;
+  }
+}
