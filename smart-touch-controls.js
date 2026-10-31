@@ -1,4 +1,4 @@
-/* Sliding puzzle-window controls and a frameless absolute+relative hybrid.
+/* Sliding puzzle-window controls and a full-grid miniature + relative-drag hybrid.
    The authoritative selection/paint/history pipeline is NONO_TOUCH_CURSOR. */
 (()=>{'use strict';
 const pad=document.getElementById('nono-mobile-pad');
@@ -27,6 +27,75 @@ const grid=document.createElement('div');
 grid.className='nono-smart-window-grid';
 grid.setAttribute('aria-hidden','true');
 mini.prepend(grid);
+// The hybrid's square is a miniature of the FULL puzzle (not the answer).
+// Its first touch is absolute; continued movement uses trackpad deltas.
+const hybridCanvas=document.createElement('canvas');
+hybridCanvas.className='nono-hybrid-preview';
+hybridCanvas.setAttribute('aria-hidden','true');
+const hybridCursor=document.createElement('div');
+hybridCursor.className='nono-hybrid-cursor';
+hybridCursor.setAttribute('aria-hidden','true');
+zone.prepend(hybridCanvas,hybridCursor);
+let hybridDrawPending=false,hybridPaintDirty=true,hybridPreviewWidth=0,hybridPreviewHeight=0;
+function drawHybridPreview(){
+ hybridDrawPending=false;
+ if(mode()!=='smartHybrid')return;
+ const d=nav()?.dimensions;
+ if(!d||!d.width||!d.height)return;
+ const canvasWidth=152,canvasHeight=152;
+ if(hybridCanvas.width!==canvasWidth||hybridCanvas.height!==canvasHeight){
+  hybridCanvas.width=canvasWidth;hybridCanvas.height=canvasHeight;
+  hybridPaintDirty=true;
+ }
+ const ctx=hybridCanvas.getContext?.('2d');
+ if(!ctx)return;
+ const p=nav()?.position;
+ if(p){
+  hybridCursor.style.left=((p.col+.5)/d.width*100)+'%';
+  hybridCursor.style.top=((p.row+.5)/d.height*100)+'%';
+ }
+ if(!hybridPaintDirty&&hybridPreviewWidth===d.width&&hybridPreviewHeight===d.height)return;
+ hybridPaintDirty=false;hybridPreviewWidth=d.width;hybridPreviewHeight=d.height;
+ ctx.clearRect(0,0,canvasWidth,canvasHeight);
+ ctx.fillStyle='#203850';ctx.fillRect(0,0,canvasWidth,canvasHeight);
+ const cells=document.querySelector('#board .cells')?.children;
+ if(!cells)return;
+ const cw=canvasWidth/d.width,ch=canvasHeight/d.height;
+ for(let row=0;row<d.height;row++)for(let col=0;col<d.width;col++){
+  const cell=cells[row*d.width+col];
+  if(!cell)continue;
+  if(cell.classList.contains('filled')){
+   ctx.fillStyle='#a2e8db';
+   ctx.fillRect(col*cw,row*ch,Math.max(cw,.65),Math.max(ch,.65));
+  }else if(cell.classList.contains('cross')){
+   ctx.fillStyle='#b496b9';
+   ctx.fillRect(col*cw+cw*.3,row*ch+ch*.3,Math.max(cw*.4,.5),Math.max(ch*.4,.5));
+  }
+ }
+ ctx.strokeStyle='#85a6c66e';ctx.lineWidth=.5;
+ const step=5;
+ ctx.beginPath();
+ for(let col=step;col<d.width;col+=step){
+  const x=Math.round(col*cw)+.25;ctx.moveTo(x,0);ctx.lineTo(x,canvasHeight);
+ }
+ for(let row=step;row<d.height;row+=step){
+  const y=Math.round(row*ch)+.25;ctx.moveTo(0,y);ctx.lineTo(canvasWidth,y);
+ }
+ ctx.stroke();
+}
+function updateHybridPreview(force=false){
+ if(mode()!=='smartHybrid')return;
+ if(force)hybridPaintDirty=true;
+ const d=nav()?.dimensions,p=nav()?.position;
+ if(d&&p){
+  hybridCursor.style.left=((p.col+.5)/d.width*100)+'%';
+  hybridCursor.style.top=((p.row+.5)/d.height*100)+'%';
+ }
+ if(!hybridDrawPending){
+  hybridDrawPending=true;
+  requestAnimationFrame(drawHybridPreview);
+ }
+}
 // Distinct narrow touch strips around the stationary smart viewport.
 const edgeRail=document.createElement('div');
 edgeRail.id='nono-smart-edge-rail';
@@ -82,6 +151,7 @@ function includeCursor(){
  v.top=bound(p.row<v.top?p.row:p.row>=v.top+v.rows?p.row-v.rows+1:v.top,0,v.height-v.rows);
 }
 function updateWindow(){
+ if(mode()==='smartHybrid'){updateHybridPreview(false);return;}
  if(!supported())return;
  includeCursor();
  const v=viewport,p=nav()?.position;if(!v||!p)return;
@@ -122,8 +192,10 @@ function selection(row,col,action=null,stroke=null){
   if(stroke.axis==='x')row=stroke.anchor.row;
   else col=stroke.anchor.col;
   const changed=row!==p.row||col!==p.col;
-  if(changed)nav()?.paintLine?.(p.row,p.col,row,col,action);
-  else return true;
+  if(changed){
+   nav()?.paintLine?.(p.row,p.col,row,col,action);
+   if(mode()==='smartHybrid')updateHybridPreview(true);
+  }else return true;
  }else nav()?.select(row,col);
  updateWindow();
  return true;
@@ -215,6 +287,7 @@ function edgeStep(){
 }
 function stop(){
  const a=gesture;gesture=null;edgeLast=0;
+ if(a?.mode==='smartHybrid')updateHybridPreview(true);
  if(a?.stroke!==null&&a?.stroke!==undefined)nav()?.endStroke?.(a.stroke);
  if(edgeTimer!==null){clearInterval(edgeTimer);edgeTimer=null;}
  if(a?.element?.hasPointerCapture?.(a.id))
@@ -239,8 +312,11 @@ function begin(event,kind,element){
   stroke:action?nav()?.beginStroke?.()??null:null};
  gesture=a;
  nav()?.select(p.row,p.col);
- if(action&&kind!=='smartTrackpad'&&region==='center')nav()?.paintAt?.(p.row,p.col,action);
- if(kind!=='smartHybrid')updateWindow();
+ if(action&&kind!=='smartTrackpad'&&region==='center'){
+  nav()?.paintAt?.(p.row,p.col,action);
+  if(kind==='smartHybrid')updateHybridPreview(true);
+ }
+ updateWindow();
  try{element.setPointerCapture(event.pointerId)}catch(_){}
  if(kind!=='smartHybrid'){
   edgeLast=0;
@@ -253,9 +329,14 @@ function move(event,kind){
  if(!a||a.id!==event.pointerId||a.mode!==kind)return;
  if(!live()){stop();return;}
  event.preventDefault();
- const region=kind==='smartHybrid'?
-  (inside(zone,event.clientX,event.clientY)?'center':null):
-  hitZone(event.clientX,event.clientY);
+ // The hybrid deliberately continues relative movement while captured,
+ // even outside the square. Other smart modes remain bounded to the strips.
+ if(kind==='smartHybrid'){
+  a.outside=false;a.region='center';
+  moveRelative(a,event);
+  return;
+ }
+ const region=hitZone(event.clientX,event.clientY);
  if(!region){
   // Captured pointer outside both the square and its strips does nothing.
   a.outside=true;a.region=null;a.lastX=event.clientX;a.lastY=event.clientY;
@@ -317,23 +398,26 @@ function updateEdgeLabels(){
 function updateHybridLabel(){
  const t=window.NONO_I18N?.translate;
  zone.dataset.smartHybridText=typeof t==='function'?
-  t('첫 터치 위치 선택 · 드래그 이동'):'첫 터치 위치 선택 · 드래그 이동';
+  t('스마트 혼합형'):'스마트 혼합형';
 }
 let currentMode=null;
 function sync(){
  updateHybridLabel();updateEdgeLabels();
  if(currentMode!==mode()){stop();currentMode=mode();}
  if(!modes.has(mode())){stop();viewport=null;return;}
- if(!supported()){viewport=null;return;}
+ if(mode()==='smartHybrid'){
+  viewport=null;hybridPaintDirty=true;updateHybridPreview(true);return;
+ }
  initWindow(true);
  updateWindow();
 }
 window.addEventListener('nono:smart-controls-change',sync);
-window.addEventListener('nono:touch-cursor',()=>{if(supported())updateWindow()});
+window.addEventListener('nono:touch-cursor',()=>{if(modes.has(mode()))updateWindow()});
 window.addEventListener('resize',()=>{if(supported())updateWindow()});
 window.addEventListener('nono:languagechange',()=>{
  updateHybridLabel();updateEdgeLabels();updateWindow();
 });
+window.addEventListener('nono:puzzle-started',()=>updateHybridPreview(true));
 window.addEventListener('blur',stop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 window.NONO_SMART_TOUCH={get viewport(){return viewport?{...viewport}:null},
