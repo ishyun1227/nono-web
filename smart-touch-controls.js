@@ -128,6 +128,27 @@ function hitZone(x,y){
   if(inside(edgeButtons[dir],x,y))return dir;
  return null;
 }
+// Dragging beyond any edge emulates holding the corresponding rectangle.
+// Pick the largest exterior offset at corners so painting stays axis-locked.
+function dragRegion(kind,x,y){
+ const square=kind==='smartHybrid'?zone:mini;
+ if(inside(square,x,y))return 'center';
+ if(kind!=='smartHybrid'){
+  const strip=hitZone(x,y);
+  if(strip)return strip;
+ }
+ const r=square.getBoundingClientRect();
+ if(!r.width||!r.height)return null;
+ const distances={
+  right:Math.max(0,x-r.right),left:Math.max(0,r.left-x),
+  down:Math.max(0,y-r.bottom),up:Math.max(0,r.top-y)
+ };
+ let winner=null,max=0;
+ for(const dir of ['right','left','down','up']){
+  if(distances[dir]>max){max=distances[dir];winner=dir;}
+ }
+ return winner;
+}
 function dimensions(){return nav()?.dimensions||null}
 function initWindow(reset=false){
  if(!supported())return;
@@ -257,12 +278,12 @@ function moveAbsolute(a,event){
  selection(p.row,p.col,a.action,a);
 }
 function edgeDirection(a){
- if(!a||a.outside||a.mode==='smartHybrid')return null;
- const region=hitZone(a.lastX,a.lastY);
+ if(!a||a.outside)return null;
+ const region=dragRegion(a.mode,a.lastX,a.lastY);
  return region===a.region?vectors[region]||null:null;
 }
 function edgeStep(){
- const a=gesture;if(!a||!live()||!supported())return;
+ const a=gesture;if(!a||!live()||!modes.has(mode()))return;
  const dir=edgeDirection(a);if(!dir){edgeLast=0;return;}
  const now=Date.now(),speed=bound(Number(settings().smartPanSpeed)||14,6,30);
  if(edgeLast&&now-edgeLast<1000/speed)return;
@@ -276,8 +297,8 @@ function edgeStep(){
  const nextRow=bound(p.row+dy,0,d.height-1);
  const nextCol=bound(p.col+dx,0,d.width-1);
  if(nextRow===p.row&&nextCol===p.col)return;
- // Pan the displayed subsection once per tick, then advance the cursor.
- // Preserve the old offset to avoid double-panning when includeCursor runs.
+ // Smart windows pan the miniature; hybrid advances its full-board cursor.
+ // Both use the same speed, direction, and paint-axis lock.
  const left=viewport?.left,top=viewport?.top;
  selection(nextRow,nextCol,a.action,a);
  if(viewport){
@@ -319,27 +340,19 @@ function begin(event,kind,element){
  }
  updateWindow();
  try{element.setPointerCapture(event.pointerId)}catch(_){}
- if(kind!=='smartHybrid'){
-  edgeLast=0;
-  if(region!=='center')edgeStep();
-  edgeTimer=setInterval(edgeStep,16);
- }
+ edgeLast=0;
+ if(region!=='center')edgeStep();
+ edgeTimer=setInterval(edgeStep,16);
 }
 function move(event,kind){
  const a=gesture;
  if(!a||a.id!==event.pointerId||a.mode!==kind)return;
  if(!live()){stop();return;}
  event.preventDefault();
- // The hybrid deliberately continues relative movement while captured,
- // even outside the square. Other smart modes remain bounded to the strips.
- if(kind==='smartHybrid'){
-  a.outside=false;a.region='center';
-  moveRelative(a,event);
-  return;
- }
- const region=hitZone(event.clientX,event.clientY);
+ // After a central drag reaches ANY outside region, move at the
+ // configured rectangle-button repeat speed rather than finger distance.
+ const region=dragRegion(kind,event.clientX,event.clientY);
  if(!region){
-  // Captured pointer outside both the square and its strips does nothing.
   a.outside=true;a.region=null;a.lastX=event.clientX;a.lastY=event.clientY;
   a.residualX=0;a.residualY=0;edgeLast=0;return;
  }
