@@ -52,6 +52,18 @@
             ".validate": "newData.hasChildren(['version','size','seed','difficulty']) && newData.child('version').val() == 1 && newData.child('size').isNumber() && newData.child('size').val() >= 5 && newData.child('size').val() <= 100 && newData.child('size').val() % 1 == 0 && newData.child('seed').isNumber() && newData.child('seed').val() >= 0 && newData.child('seed').val() <= 4294967295 && newData.child('seed').val() % 1 == 0 && (newData.child('difficulty').val() == '쉬움' || newData.child('difficulty').val() == '보통' || newData.child('difficulty').val() == '어려움' || newData.child('difficulty').val() == '전문가') && ( !data.exists() || (newData.child('version').val() == data.child('version').val() && newData.child('seed').val() == data.child('seed').val() && newData.child('size').val() == data.child('size').val() && newData.child('difficulty').val() == data.child('difficulty').val()))",
             "$other": {
               ".validate": false
+            },
+            "version": {
+              ".validate": "newData.isNumber() && newData.val() == 1"
+            },
+            "size": {
+              ".validate": "newData.isNumber() && newData.val() >= 5 && newData.val() <= 100 && newData.val() % 1 == 0"
+            },
+            "seed": {
+              ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4294967295 && newData.val() % 1 == 0"
+            },
+            "difficulty": {
+              ".validate": "newData.val() == '쉬움' || newData.val() == '보통' || newData.val() == '어려움' || newData.val() == '전문가'"
             }
           }
         },
