@@ -1,0 +1,30 @@
+name: Random puzzle generator checks
+on:
+  push:
+    branches: [main]
+    paths:
+      - random-puzzles.js
+      - apple-home.js
+      - apple-home.css
+      - index.html
+      - tools/build.cjs
+      - tests/random-puzzles.cjs
+      - .github/workflows/random-puzzles.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  generated-puzzles:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate all size and difficulty combinations
+        run: node tests/random-puzzles.cjs
+      - name: Build deploy bundle
+        run: |
+          npm ci
+          npm run build
