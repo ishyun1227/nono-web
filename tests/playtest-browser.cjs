@@ -272,8 +272,8 @@ const {pathToFileURL}=require('node:url');
   if(!zoom.zoomed||!zoom.overflow.includes('auto')||zoom.body>846||
      zoom.paneScroll<=zoom.paneClient+1)
     throw Error('Mobile zoom should pan the pane but not the page: '+JSON.stringify(zoom));
-  // Relative touchpad: finger movement follows ONE selected row/column until
-  // release; no diagonal drift, end-to-start wrapping or stationary repeat.
+  // Laptop trackpad navigates freely in BOTH directions without an action;
+  // only painting locks the initial row/column axis.
   await mobile.evaluate(()=>{
    window.NONO_INPUT_CUSTOM.set('mode','trackpad');
    selected=20*53+20;render();
@@ -289,7 +289,7 @@ const {pathToFileURL}=require('node:url');
    const tiny=selected;
    fire('pointermove',108,695);  // accumulated 13px right: +1 cell
    const one=selected;
-   fire('pointermove',132,719);  // +2 columns; vertical drift is ignored
+   fire('pointermove',132,719);  // +2 columns and +2 rows, freely diagonal
    const diagonal=selected;
    const hold=selected;          // finger stopped: no timed auto-repeat
    fire('pointerup',132,719,{buttons:0});
@@ -302,19 +302,42 @@ const {pathToFileURL}=require('node:url');
     initialFilled,filled:board.filter(v=>v==='1').length,
     mode:input.settings.mode,
     sensitivity:input.settings.trackpadSensitivity,
-    oldJoystickHidden:getComputedStyle(document.querySelector('#nono-floating-stick')).display,
+    oldJoystickRemoved:!document.querySelector('#nono-floating-stick'),
+    legacyFloatingRejected:(()=>{input.set('mode','floating');const rejected=input.settings.mode;input.set('mode','trackpad');return rejected==='fixed'})(),
     dpadHidden:getComputedStyle(document.querySelector('#nono-mobile-pad .nono-dpad')).display,
     zoneAction:getComputedStyle(zone).touchAction};
   });
   if(trackpad.tiny!==trackpad.start||
      trackpad.one!==trackpad.start+1||
-     trackpad.diagonal!==trackpad.start+3||
+     trackpad.diagonal!==trackpad.start+2*53+3||
      trackpad.back!==trackpad.diagonal-1||
      trackpad.final!==trackpad.back||
      trackpad.initialFilled!==trackpad.filled||
      trackpad.mode!=='trackpad'||trackpad.sensitivity!==100||
+     !trackpad.oldJoystickRemoved||!trackpad.legacyFloatingRejected||
      trackpad.dpadHidden!=='none'||trackpad.zoneAction!=='none')
    throw Error('Mobile relative trackpad mismatch: '+JSON.stringify(trackpad));
+  // Editing while dragging is intentionally different: first axis wins.
+  const paintLocked=await mobile.evaluate(()=>{
+   const nav=window.NONO_TOUCH_CURSOR,zone=document.getElementById('nono-floating-zone');
+   const fill=document.querySelector('[data-nono-input="fill"]');
+   nav.select(20,20);fill.classList.add('is-held');
+   const r=zone.getBoundingClientRect(),x=(r.left+r.right)/2,y=(r.top+r.bottom)/2;
+   const init={pointerType:'touch',pointerId:467,isPrimary:true,button:0,
+    buttons:1,bubbles:true,cancelable:true};
+   const fire=(t,cx,cy,other={})=>zone.dispatchEvent(new PointerEvent(t,{...init,clientX:cx,clientY:cy,...other}));
+   fire('pointerdown',x,y);fire('pointermove',x+32,y+20);
+   const locked={...nav.position};
+   fill.classList.remove('is-held');
+   fire('pointermove',x+32,y+20);fire('pointermove',x+44,y+32);
+   const freed={...nav.position};
+   fire('pointerup',x+44,y+32,{buttons:0});
+   return {locked,freed};
+  });
+  if(paintLocked.locked.row!==20||paintLocked.locked.col<=20||
+     paintLocked.freed.row<=paintLocked.locked.row)
+   throw Error('Trackpad editing should lock one axis only while fill is held: '+JSON.stringify(paintLocked));
+  console.log('Laptop trackpad action-only row/column lock passed.');
   // Sensitivity persists while switching modes; existing modes are preserved.
   await mobile.evaluate(()=>{
     window.NONO_INPUT_CUSTOM.set('trackpadSensitivity',150);
@@ -328,7 +351,7 @@ const {pathToFileURL}=require('node:url');
   }));
   if(persisted.mode!=='trackpad'||persisted.sensitivity!==150||persisted.stored!==150)
    throw Error('Relative trackpad preferences did not persist: '+JSON.stringify(persisted));
-  console.log('Mobile relative trackpad, axis lock, lift/retry and sensitivity passed.',JSON.stringify(trackpad));
+  console.log('Mobile trackpad free diagonal, joystick removal, lift/retry and sensitivity passed.',JSON.stringify(trackpad));
   // Drag left/right reaches the edge and clamps there even when the site's
   // regular keyboard wrap option is enabled. Reversing stays in this row.
   const bounded=await mobile.evaluate(()=>{
@@ -408,7 +431,7 @@ const {pathToFileURL}=require('node:url');
   // Pointer capture previously kept touch gestures alive when the finger had
   // left the visible input region. Test every navigation surface on mobile.
   const boundsResults=await mobile.evaluate(async()=>{
-   const modes=['floating','trackpad','minimap'];
+   const modes=['trackpad','minimap'];
    const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
    const results=[];
    for(let i=0;i<modes.length;i++){
@@ -446,7 +469,7 @@ const {pathToFileURL}=require('node:url');
   }
   if(!boundsResults.heldBefore||boundsResults.heldAfter)
    throw Error('Touch action must release after finger leaves button: '+JSON.stringify(boundsResults));
-  console.log('Three legacy touch surfaces and action buttons respect their bounds.');
+  console.log('Two remaining legacy touch surfaces and action buttons respect their bounds.');
   // In BOTH windowed smart modes, dragging beyond the square presses the
   // corresponding long rectangle until release; re-entry stops immediately.
   const smartExit=await mobile.evaluate(async()=>{
@@ -543,9 +566,11 @@ const {pathToFileURL}=require('node:url');
     const base={pointerType:'touch',pointerId:id,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
     button.dispatchEvent(new PointerEvent('pointerdown',{...base,clientX:x,clientY:y}));
     const selected={...nav.position};
+    button.dispatchEvent(new PointerEvent('pointermove',{...base,clientX:x+3,clientY:y+3}));
+    const moved={...nav.position};
     button.dispatchEvent(new PointerEvent('pointerup',{...base,clientX:x,clientY:y,buttons:0}));
     slots[dir]={r:{left:r.left,top:r.top,right:r.right,bottom:r.bottom},
-     start,selected,delta};
+     start,selected,moved,delta};
    }
    const s=window.NONO_INPUT_CUSTOM.settings;
    const persisted=JSON.parse(localStorage.getItem('nono-input-settings-v1'));
@@ -556,7 +581,8 @@ const {pathToFileURL}=require('node:url');
   });
   for(const [dir,slot] of Object.entries(smartEdges.slots)){
    if(slot.selected.row!==slot.start.row+slot.delta[0]||
-      slot.selected.col!==slot.start.col+slot.delta[1])
+      slot.selected.col!==slot.start.col+slot.delta[1]||
+      slot.moved.row!==slot.selected.row||slot.moved.col!==slot.selected.col)
     throw Error('Smart strip movement failed '+dir+': '+JSON.stringify(slot));
    const r=slot.r;
    if(r.left<0||r.top<0||r.right>390||r.bottom>844)
