@@ -18,7 +18,8 @@
     "puzzle:add": "node tools/register-puzzle.cjs",
     "test:sealed": "node tests/sealed-puzzle.cjs",
     "test:register": "node tests/register-puzzle.cjs",
-    "test:smart-touch": "node tests/smart-touch-controls.cjs"
+    "test:smart-touch": "node tests/smart-touch-controls.cjs",
+    "test:random": "node tests/random-puzzles.cjs"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
