@@ -114,6 +114,8 @@ function absolutePosition(event,element){
 function refreshAction(a,event){
  const action=heldAction();
  if(action===a.action)return;
+ if(a.stroke!==null)nav()?.endStroke?.(a.stroke);
+ a.stroke=action?nav()?.beginStroke?.()??null:null;
  a.action=action;a.axis=null;
  a.anchor={...nav().position};
  a.originX=event.clientX;a.originY=event.clientY;
@@ -185,6 +187,7 @@ function edgeStep(){
 }
 function stop(){
  const a=gesture;gesture=null;edgeLast=0;
+ if(a?.stroke!==null&&a?.stroke!==undefined)nav()?.endStroke?.(a.stroke);
  if(edgeTimer!==null){clearInterval(edgeTimer);edgeTimer=null;}
  if(a?.element?.hasPointerCapture?.(a.id))
   try{a.element.releasePointerCapture(a.id)}catch(_){}
@@ -200,7 +203,8 @@ function begin(event,kind,element){
  const a={id:event.pointerId,mode:kind,element,startedAt:Date.now(),
   lastX:event.clientX,lastY:event.clientY,
   originX:event.clientX,originY:event.clientY,
-  residualX:0,residualY:0,axis:null,action,anchor:{...p}};
+  residualX:0,residualY:0,axis:null,action,anchor:{...p},
+  stroke:action?nav()?.beginStroke?.()??null:null};
  gesture=a;
  nav()?.select(p.row,p.col);
  // If an action was already held before touching the surface, the new
