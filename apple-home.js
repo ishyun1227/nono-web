@@ -16,9 +16,9 @@ const sizeGroups=[
 const difficulties=['쉬움','보통','어려움','전문가','미평가'];
 const legacy={heart5:'쉬움',cat10:'보통',rocket10:'어려움',
   vox_crabino_front:'보통',vox_crabino_side:'보통',vox_crabino_top:'보통'};
-const difficultyOf=p=>{const level=p.trialOnly?'미평가':(p.difficulty==='미평가'&&legacy[p.id]?legacy[p.id]:p.difficulty||legacy[p.id]);return difficulties.includes(level)?level:null;};
+const difficultyOf=p=>{const level=p.generated?p.difficulty:p.trialOnly?'미평가':(p.difficulty==='미평가'&&legacy[p.id]?legacy[p.id]:p.difficulty||legacy[p.id]);return difficulties.includes(level)?level:null;};
 const catalog=()=>typeof PUZZLES!=='undefined'?PUZZLES.filter(p=>p&&p.id&&!p.sizeTest&&Number.isInteger(p.size)&&difficultyOf(p)):[];
-const supportsMode=p=>mode()==='practice'||p.generated||(!p.trialOnly&&p.size<30);
+const supportsMode=p=>mode()==='practice'||(p.generated&&(mode()==='race'||mode()==='coop'))||(!p.trialOnly&&p.size<30);
 const inGroup=p=>p.size>=sizeGroups[state.group].min&&p.size<=sizeGroups[state.group].max;
 const eligible=p=>inGroup(p)&&difficultyOf(p)===state.level&&supportsMode(p);
 const state={group:0,level:'보통'};
