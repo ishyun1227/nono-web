@@ -405,6 +405,48 @@ const {pathToFileURL}=require('node:url');
      miniResult.afterRelease.col!==0||miniResult.mode!=='minimap')
     throw Error('Miniature free navigation or action-only paint lock failed: '+JSON.stringify(miniResult));
   console.log('Trackpad sizing and free miniature navigation versus locked editing passed.');
+  // Pointer capture previously kept touch gestures alive when the finger had
+  // left the visible input region. Test every navigation surface on mobile.
+  const boundsResults=await mobile.evaluate(async()=>{
+   const modes=['floating','trackpad','minimap','smartTrackpad','smartMinimap','smartHybrid'];
+   const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
+   const results=[];
+   for(let i=0;i<modes.length;i++){
+    const mode=modes[i];api.set('mode',mode);nav.select(20,20);
+    const el=document.getElementById(
+     ['floating','trackpad','smartHybrid'].includes(mode)?'nono-floating-zone':'nono-absolute-pad');
+    const r=el.getBoundingClientRect();
+    const x=r.left+r.width*.8,y=r.top+r.height*.2;
+    const init={pointerType:'touch',pointerId:2100+i,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
+    const fire=(type,cx,cy,other={})=>el.dispatchEvent(
+     new PointerEvent(type,{...init,clientX:cx,clientY:cy,...other}));
+    fire('pointerdown',x,y);const initial={...nav.position};
+    fire('pointermove',r.right+90,r.bottom+90);const outside={...nav.position};
+    await new Promise(resolve=>setTimeout(resolve,390));
+    const afterHold={...nav.position};
+    fire('pointermove',x,y);const reentered={...nav.position};
+    fire('pointerup',x,y,{buttons:0});
+    results.push({mode,initial,outside,afterHold,reentered});
+   }
+   const fill=document.querySelector('#nono-mobile-pad [data-nono-input="fill"]');
+   const rect=fill.getBoundingClientRect(),bx=rect.left+rect.width/2,by=rect.top+rect.height/2;
+   const init={pointerType:'touch',pointerId:2222,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
+   fill.dispatchEvent(new PointerEvent('pointerdown',{...init,clientX:bx,clientY:by}));
+   const heldBefore=fill.classList.contains('is-held');
+   fill.dispatchEvent(new PointerEvent('pointermove',{...init,clientX:rect.right+100,clientY:rect.bottom+100}));
+   const heldAfter=fill.classList.contains('is-held');
+   fill.dispatchEvent(new PointerEvent('pointerup',{...init,clientX:rect.right+100,clientY:rect.bottom+100,buttons:0}));
+   return {results,heldBefore,heldAfter};
+  });
+  for(const item of boundsResults.results){
+   for(const key of ['outside','afterHold','reentered']){
+    if(item[key].row!==item.initial.row||item[key].col!==item.initial.col)
+     throw Error('Touch must stop outside surface ('+item.mode+'/'+key+'): '+JSON.stringify(item));
+   }
+  }
+  if(!boundsResults.heldBefore||boundsResults.heldAfter)
+   throw Error('Touch action must release after finger leaves button: '+JSON.stringify(boundsResults));
+  console.log('All six touch surfaces and action buttons ignore out-of-bounds captured gestures.');
   if(mobileErrors.length)throw Error('Mobile game exceptions: '+mobileErrors.join(' | '));
   await mobileContext.close();
   console.log('Mobile app viewport, tap-vs-swipe and internal zoom panning passed.');
