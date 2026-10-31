@@ -308,7 +308,6 @@
 
 /* Sliding smart viewport: this shows the player's input, never the answer.
    A small section of the board moves under the stationary touch surface. */
-#nono-mobile-pad.nono-smart-trackpad-mode .nono-dpad,
 #nono-mobile-pad.nono-smart-minimap-mode .nono-dpad,
 #nono-mobile-pad.nono-smart-hybrid-mode .nono-dpad{display:none!important}
 #nono-mobile-pad.nono-smart-trackpad-mode #nono-absolute-pad,
@@ -532,3 +531,44 @@
 #nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-absolute-cursor{
  z-index:4!important;
 }
+
+/* Smart trackpad: fixed cross D-pad, compact round finger control in its
+   center. Arrow keys remain native single-cell D-pad presses. */
+#nono-mobile-pad.nono-smart-trackpad-mode .nono-dpad{
+ display:grid!important;touch-action:none!important;
+}
+#nono-mobile-pad.nono-smart-trackpad-mode .nono-pad-center{
+ display:block!important;
+ box-sizing:border-box!important;
+ width:34px!important;height:34px!important;
+ min-width:34px!important;min-height:34px!important;
+ align-self:center!important;justify-self:center!important;
+ border:2px solid #b4dfeb!important;border-radius:50%!important;
+ background:radial-gradient(circle at 35% 30%,#6da6be,#244465 78%)!important;
+ color:transparent!important;font-size:0!important;
+ box-shadow:0 2px 11px #041125ba,inset 0 1px 4px #d1faff55!important;
+ pointer-events:auto!important;touch-action:none!important;
+ user-select:none!important;-webkit-user-select:none!important;
+}
+#nono-mobile-pad.nono-smart-trackpad-mode .nono-pad-center:active{
+ background:radial-gradient(circle at 35% 30%,#c8fff0,#5799be 80%)!important;
+}
+#nono-mobile-pad.nono-smart-trackpad-mode #nono-absolute-pad,
+#nono-mobile-pad.nono-smart-trackpad-mode #nono-smart-edge-rail{
+ display:none!important;
+}
+/* The highlighted subwindow sits on the REAL puzzle tiles, not the D-pad.
+   It is visual-only; touches still reach puzzle cells normally. */
+#board:has(> .nono-smart-board-window){position:relative!important}
+#board > .nono-smart-board-window{
+ position:absolute!important;z-index:18!important;
+ display:block!important;box-sizing:border-box!important;
+ border:2px solid #7af6e0!important;
+ border-radius:3px!important;
+ outline:1px solid #122a49e0!important;
+ box-shadow:inset 0 0 0 1px #071e35d9,0 0 0 2px #68ebf04f!important;
+ background:#8dffe909!important;
+ pointer-events:none!important;touch-action:none!important;
+ user-select:none!important;
+}
+#board > .nono-smart-board-window[hidden]{display:none!important}
