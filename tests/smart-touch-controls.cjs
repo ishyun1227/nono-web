@@ -110,18 +110,21 @@ const start={...position};
 mini.fire('pointermove',...positionAt(.15,.2));
 assert.notEqual(position.row,start.row,'unheld miniature must move vertically');
 assert.notEqual(position.col,start.col,'unheld miniature must move horizontally');
-// Captured movement outside the miniature must NOT change position or scroll.
+// Dragging well past the right/bottom corner behaves like the RIGHT strip
+// (larger distances decide corners; equal distances prefer horizontal).
 const beforeOutside={...position},windowBeforeOutside={...window.NONO_SMART_TOUCH.viewport};
 mini.fire('pointermove',400,400);
-assert.equal(position.row,beforeOutside.row,'outside miniature must not move row');
-assert.equal(position.col,beforeOutside.col,'outside miniature must not move column');
+assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'right');
+assert.equal(position.row,beforeOutside.row,'outside auto-pan must lock to chosen row');
+assert.equal(position.col,beforeOutside.col+1,'leaving the square must pan immediately');
 currentTime+=600;
 for(const tick of [...intervals.values()])tick();
-assert.equal(window.NONO_SMART_TOUCH.viewport.left,windowBeforeOutside.left,
- 'holding beyond touch region must not pan window');
+assert.equal(position.col,beforeOutside.col+2,'holding outside repeats at strip speed');
+assert.equal(window.NONO_SMART_TOUCH.viewport.left,windowBeforeOutside.left+2,
+ 'outside auto-pan shifts the actual miniature viewport');
 mini.fire('pointermove',...positionAt(.15,.2));
 assert.equal(position.row,beforeOutside.row,'re-entry must not jump');
-assert.equal(position.col,beforeOutside.col,'re-entry must not jump');
+assert.equal(position.col,beforeOutside.col+2,'re-entry must not jump');
 mini.fire('pointermove',...positionAt(.99,.6));
 const centerEdge=window.NONO_SMART_TOUCH.viewport.left;
 currentTime+=200;
@@ -137,11 +140,11 @@ for(const tick of [...intervals.values()])tick();
 assert.equal(window.NONO_SMART_TOUCH.viewport.left,firstPan+1,
  'holding a side strip continues panning');
 const inRail={...position};
-mini.fire('pointermove',400,400);
+mini.fire('pointermove',400,400); // beyond even the long rectangle
 currentTime+=300;
 for(const tick of [...intervals.values()])tick();
 assert.equal(position.row,inRail.row);
-assert.equal(position.col,inRail.col);
+assert.equal(position.col,inRail.col+1,'continuing outward should keep repeating');
 mini.fire('pointerup',400,400);
 // Each elongated strip must work even if touched directly.
 for(const [direction,x,y,coordinate,sign] of [
@@ -179,10 +182,11 @@ mini.fire('pointermove',95,95);
 assert.ok(position.row>20&&position.col>20,'free trackpad drag should move diagonally');
 const insidePos={...position};
 mini.fire('pointermove',400,400);
-assert.equal(position.row,insidePos.row,'outside trackpad cannot move vertically');
-assert.equal(position.col,insidePos.col,'outside trackpad cannot move horizontally');
+assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'right');
+assert.equal(position.row,insidePos.row,'trackpad edge-scroll keeps its row');
+assert.equal(position.col,insidePos.col+1,'trackpad outside behaves like right rectangle');
 mini.fire('pointermove',100,100);
-assert.equal(position.col,insidePos.col,'trackpad return must not bank outside distance');
+assert.equal(position.col,insidePos.col+1,'trackpad re-entry must not bank outside distance');
 mini.fire('pointerup',100,100);
 // Hybrid square displays the FULL puzzle miniature. It selects absolutely on
 // the first touch, then keeps relative motion under pointer capture outside.
@@ -203,14 +207,27 @@ zone.fire('pointermove',130,115);
 assert.ok(position.row>first.row&&position.col>first.col,'inside drag must move relatively');
 const insidePosition={...position};
 zone.fire('pointermove',180,140);
-assert.ok(position.row>insidePosition.row,'hybrid must keep moving beyond touch square');
-assert.ok(position.col>insidePosition.col,'hybrid must keep moving horizontally beyond square');
+assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'right');
+assert.equal(position.row,insidePosition.row,'hybrid outside uses one strip axis');
+assert.equal(position.col,insidePosition.col+1,'hybrid leaves square: immediate right press');
 const outsidePosition={...position};
 zone.fire('pointermove',210,155);
-assert.ok(position.row>outsidePosition.row,'hybrid must keep moving while still outside square');
-assert.ok(position.col>outsidePosition.col,'hybrid must keep moving horizontally while outside');
-assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'center');
-zone.fire('pointerup',210,155);
+assert.equal(position.col,outsidePosition.col,'moving farther out does not multiply movement');
+currentTime+=100;
+for(const tick of [...intervals.values()])tick();
+assert.equal(position.col,outsidePosition.col+1,'hybrid outside hold repeats at configured speed');
+zone.fire('pointermove',0,86);
+assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'left','changing exterior direction changes button');
+const changedDirection={...position};
+assert.equal(changedDirection.col,outsidePosition.col,'moving across to left presses left once');
+zone.fire('pointermove',130,130);
+const reentered={...position};
+assert.equal(reentered.col,changedDirection.col,'hybrid re-entry must not teleport');
+assert.equal(reentered.row,changedDirection.row,'hybrid re-entry must not teleport');
+zone.fire('pointermove',143,142);
+assert.ok(position.row>=reentered.row&&position.col>reentered.col,
+ 'hybrid drag resumes relative trackpad movement upon re-entry');
+zone.fire('pointerup',143,142);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
 zone.fire('pointermove',260,200);
 assert.equal(window.NONO_SMART_TOUCH.active,false,'lifting finger ends continuous outside movement');
@@ -223,11 +240,11 @@ assert.ok(position.col>30);
 assert.ok(painted.length>0,'held editing must paint');
 const beforePaintOutside={...position},paintedBeforeOutside=painted.length;
 mini.fire('pointermove',500,500);
-assert.equal(position.row,beforePaintOutside.row,'paint cursor cannot leave touch zone');
-assert.equal(position.col,beforePaintOutside.col,'paint cursor cannot leave touch zone');
+assert.equal(position.row,beforePaintOutside.row,'paint action remains row locked outside');
+assert.equal(position.col,beforePaintOutside.col+1,'painting past edge presses right once');
 currentTime+=600;
 for(const tick of [...intervals.values()])tick();
-assert.equal(painted.length,paintedBeforeOutside,'outside edge hold cannot paint');
+assert.ok(painted.length>paintedBeforeOutside,'outside edge hold keeps painting along locked row');
 mini.fire('pointermove',90,68);
 const previous={...position};
 held.fill=false;
@@ -236,4 +253,4 @@ assert.ok(position.row>previous.row&&position.col>previous.col,
  'releasing edit must immediately restore free movement');
 mini.fire('pointerup',102,88);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
-console.log('SMART_TOUCH_PASS: four scroll strips, hybrid full puzzle miniature, absolute first touch, outside relative drag, paint lock');
+console.log('SMART_TOUCH_PASS: all smart modes auto-repeat directional strip on exit, speed and paint axis respected');
