@@ -150,17 +150,10 @@ zone.addEventListener('pointermove',e=>{
  if(!a||a.id!==e.pointerId)return;
  if(!touchAllowed('trackpad')){trackpadEnd(e);return;}
  e.preventDefault();
- if(!insideTouch(zone,e.clientX,e.clientY)){
-  a.outside=true;a.x=e.clientX;a.y=e.clientY;
-  a.residualX=0;a.residualY=0;return;
- }
+ // Pointer capture keeps relative movement active beyond the touchpad.
+ // Movement is limited only by the actual puzzle bounds, never by the pad.
  const nav=cursor(),p=nav?.position;
  if(!p)return;
- if(a.outside){
-  a.outside=false;a.x=e.clientX;a.y=e.clientY;
-  a.originX=e.clientX;a.originY=e.clientY;
-  a.residualX=0;a.residualY=0;return;
- }
  const action=heldMiniAction();
  if(action!==a.action){
   if(a.stroke!==null&&a.stroke!==undefined)nav?.endStroke?.(a.stroke);
