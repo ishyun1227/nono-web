@@ -408,7 +408,7 @@ const {pathToFileURL}=require('node:url');
   // Pointer capture previously kept touch gestures alive when the finger had
   // left the visible input region. Test every navigation surface on mobile.
   const boundsResults=await mobile.evaluate(async()=>{
-   const modes=['floating','trackpad','minimap','smartTrackpad','smartMinimap','smartHybrid'];
+   const modes=['floating','trackpad','minimap','smartTrackpad','smartMinimap'];
    const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
    const results=[];
    for(let i=0;i<modes.length;i++){
@@ -446,7 +446,47 @@ const {pathToFileURL}=require('node:url');
   }
   if(!boundsResults.heldBefore||boundsResults.heldAfter)
    throw Error('Touch action must release after finger leaves button: '+JSON.stringify(boundsResults));
-  console.log('All six touch surfaces and action buttons ignore out-of-bounds captured gestures.');
+  console.log('Five bounded touch surfaces and action buttons ignore out-of-bounds captured gestures.');
+  // Hybrid is intentionally different: a visible full-board miniature square
+  // for the FIRST touch, then captured relative movement outside the square.
+  const hybridResult=await mobile.evaluate(()=>{
+   const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
+   api.set('size',100);api.set('mode','smartHybrid');nav.select(10,10);
+   const el=document.getElementById('nono-floating-zone');
+   const canvas=el.querySelector('.nono-hybrid-preview');
+   const marker=el.querySelector('.nono-hybrid-cursor');
+   const r=el.getBoundingClientRect();
+   const x=r.left+r.width*.50,y=r.top+r.height*.50;
+   const pointer={pointerType:'touch',pointerId:3077,isPrimary:true,
+    button:0,buttons:1,bubbles:true,cancelable:true};
+   const send=(event,cx,cy,more={})=>
+    el.dispatchEvent(new PointerEvent(event,{...pointer,clientX:cx,clientY:cy,...more}));
+   send('pointerdown',x,y);const initial={...nav.position};
+   send('pointermove',x+24,y+12);const inside={...nav.position};
+   send('pointermove',r.right+45,r.bottom+30);const outside={...nav.position};
+   send('pointerup',r.right+45,r.bottom+30,{buttons:0});
+   const canvasStyle=getComputedStyle(canvas);
+   const squareStyle=getComputedStyle(el);
+   return {initial,inside,outside,
+    expectedRow:Math.floor(nav.dimensions.height*.5),
+    expectedCol:Math.floor(nav.dimensions.width*.5),
+    canvasWidth:canvas.width,canvasHeight:canvas.height,
+    canvasVisible:canvasStyle.display!=='none',
+    markerVisible:getComputedStyle(marker).display!=='none',
+    ratio:r.width/r.height,cornerRadius:squareStyle.borderRadius,
+    gestureActive:window.NONO_SMART_TOUCH.active};
+  });
+  if(hybridResult.initial.row!==hybridResult.expectedRow||
+    hybridResult.initial.col!==hybridResult.expectedCol||
+    hybridResult.inside.row<=hybridResult.initial.row||
+    hybridResult.inside.col<=hybridResult.initial.col||
+    hybridResult.outside.row<=hybridResult.inside.row||
+    hybridResult.outside.col<=hybridResult.inside.col||
+    hybridResult.canvasWidth!==152||hybridResult.canvasHeight!==152||
+    !hybridResult.canvasVisible||!hybridResult.markerVisible||
+    Math.abs(hybridResult.ratio-1)>.05||hybridResult.gestureActive)
+   throw Error('Hybrid square/absolute tap/outside drag mismatch: '+JSON.stringify(hybridResult));
+  console.log('Hybrid miniature square and outside-relative-drag behavior passed.');
   // Each visible smart strip must touch the side of the small square while
   // remaining onscreen, work when pressed directly and persist speed changes.
   const smartEdges=await mobile.evaluate(()=>{
