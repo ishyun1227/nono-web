@@ -306,13 +306,23 @@ for(const button of Object.values(edgeButtons)){
    if(gesture?.id===event.pointerId&&gesture.element===button)stop();
   });
 }
+function updateEdgeLabels(){
+ const t=window.NONO_I18N?.translate;
+ const labels={up:'위쪽 구간 이동',down:'아래쪽 구간 이동',
+  left:'왼쪽 구간 이동',right:'오른쪽 구간 이동'};
+ for(const [dir,label] of Object.entries(labels)){
+  edgeButtons[dir].setAttribute('aria-label',typeof t==='function'?t(label):label);
+ }
+}
 function updateHybridLabel(){
  const t=window.NONO_I18N?.translate;
  zone.dataset.smartHybridText=typeof t==='function'?
   t('첫 터치 위치 선택 · 드래그 이동'):'첫 터치 위치 선택 · 드래그 이동';
 }
+let currentMode=null;
 function sync(){
- updateHybridLabel();
+ updateHybridLabel();updateEdgeLabels();
+ if(currentMode!==mode()){stop();currentMode=mode();}
  if(!modes.has(mode())){stop();viewport=null;return;}
  if(!supported()){viewport=null;return;}
  initWindow(true);
@@ -321,7 +331,9 @@ function sync(){
 window.addEventListener('nono:smart-controls-change',sync);
 window.addEventListener('nono:touch-cursor',()=>{if(supported())updateWindow()});
 window.addEventListener('resize',()=>{if(supported())updateWindow()});
-window.addEventListener('nono:languagechange',()=>{updateHybridLabel();updateWindow()});
+window.addEventListener('nono:languagechange',()=>{
+ updateHybridLabel();updateEdgeLabels();updateWindow();
+});
 window.addEventListener('blur',stop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 window.NONO_SMART_TOUCH={get viewport(){return viewport?{...viewport}:null},
