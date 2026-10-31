@@ -173,12 +173,13 @@ function edgeStep(){
  const nextRow=bound(p.row+dy,0,d.height-1);
  const nextCol=bound(p.col+dx,0,d.width-1);
  if(nextRow===p.row&&nextCol===p.col)return;
- // Keep the selected cell at the same local position while sliding the
- // whole miniature viewport over the underlying puzzle.
+ // Pan the displayed subsection once per tick, then advance the cursor.
+ // Preserve the old offset to avoid double-panning when includeCursor runs.
+ const left=viewport?.left,top=viewport?.top;
  selection(nextRow,nextCol,a.action,a);
  if(viewport){
-  viewport.left=bound(viewport.left+dx,0,viewport.width-viewport.cols);
-  viewport.top=bound(viewport.top+dy,0,viewport.height-viewport.rows);
+  viewport.left=bound(left+dx,0,viewport.width-viewport.cols);
+  viewport.top=bound(top+dy,0,viewport.height-viewport.rows);
   updateWindow();
  }
 }
@@ -229,7 +230,13 @@ for(const [element,kind] of [[mini,'smartTrackpad'],[mini,'smartMinimap'],[zone,
  for(const name of ['pointerup','pointercancel','lostpointercapture'])
   element.addEventListener(name,event=>{if(gesture?.id===event.pointerId&&gesture.mode===kind)stop()});
 }
+function updateHybridLabel(){
+ const t=window.NONO_I18N?.translate;
+ zone.dataset.smartHybridText=typeof t==='function'?
+  t('첫 터치 위치 선택 · 드래그 이동'):'첫 터치 위치 선택 · 드래그 이동';
+}
 function sync(){
+ updateHybridLabel();
  if(!modes.has(mode())){stop();viewport=null;return;}
  if(!supported()){viewport=null;return;}
  initWindow(true);
@@ -238,6 +245,7 @@ function sync(){
 window.addEventListener('nono:smart-controls-change',sync);
 window.addEventListener('nono:touch-cursor',()=>{if(supported())updateWindow()});
 window.addEventListener('resize',()=>{if(supported())updateWindow()});
+window.addEventListener('nono:languagechange',()=>{updateHybridLabel();updateWindow()});
 window.addEventListener('blur',stop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 window.NONO_SMART_TOUCH={get viewport(){return viewport?{...viewport}:null},
