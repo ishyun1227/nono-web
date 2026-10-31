@@ -30,6 +30,7 @@ mini.prepend(grid);
 // The hybrid's square is a miniature of the FULL puzzle (not the answer).
 // Its first touch is absolute; continued movement uses trackpad deltas.
 const hybridCanvas=document.createElement('canvas');
+hybridCanvas.width=152;hybridCanvas.height=152;
 hybridCanvas.className='nono-hybrid-preview';
 hybridCanvas.setAttribute('aria-hidden','true');
 const hybridCursor=document.createElement('div');
