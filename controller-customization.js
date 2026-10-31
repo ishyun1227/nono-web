@@ -14,7 +14,7 @@ const clone=v=>JSON.parse(JSON.stringify(v));
 function validate(src){
  const d=defaults(),s=src&&typeof src==='object'?src:{};
  const out={...d,...s,offsets:{...d.offsets,...s.offsets},mapping:{...d.mapping,...s.mapping}};
- out.mode=['fixed','floating','trackpad','minimap','smartTrackpad','smartMinimap','smartHybrid'].includes(out.mode)?out.mode:'fixed';
+ out.mode=['fixed','trackpad','minimap','smartTrackpad','smartMinimap','smartHybrid'].includes(out.mode)?out.mode:'fixed';
  out.trackpadSensitivity=clamp(Number(out.trackpadSensitivity)||100,50,200);
  out.smartWindowCells=[8,12,16,20].includes(Number(out.smartWindowCells))?Number(out.smartWindowCells):12;
  out.smartPanSpeed=Math.round(clamp(Number(out.smartPanSpeed)||14,6,30));
@@ -62,10 +62,7 @@ function updateTrackpadLabel(){
 }
 window.addEventListener('nono:languagechange',updateTrackpadLabel);
 updateTrackpadLabel();
-const joystick=document.createElement('div');joystick.id='nono-floating-stick';
-joystick.innerHTML='<span id="nono-floating-knob"></span>';
-pad.prepend(zone,joystick);
-const knob=$('nono-floating-knob');
+pad.prepend(zone);
 // Absolute miniature maps the full puzzle to fixed coordinates.
 // Navigation is free in both axes; only an actively held edit action locks a stroke.
 const mini=document.createElement('div');mini.id='nono-absolute-pad';
@@ -83,10 +80,9 @@ window.addEventListener('nono:touch-cursor',updateMiniCursor);
 const editbar=document.createElement('div');editbar.id='nono-pad-editbar';editbar.hidden=true;
 editbar.innerHTML='<strong>버튼 배치 편집</strong><small>✥ 이동을 끌면 그룹, 동작 버튼을 끌면 개별 위치가 바뀝니다.</small><button data-pad-edit="reset" type="button">기본 위치</button><button data-pad-edit="cancel" type="button">취소</button><button data-pad-edit="save" type="button">저장</button>';
 document.body.append(editbar);
-let editing=false,beforeEdit=null,drag=null,floatingPointer=null,stickDirection=null,trackpadActive=null,miniActive=null;
+let editing=false,beforeEdit=null,drag=null,trackpadActive=null,miniActive=null;
 function apply(){
  const opacity=state.opacity/100,scale=state.size/100;
- pad.classList.toggle('nono-floating-mode',state.mode==='floating');
  pad.classList.toggle('nono-trackpad-mode',state.mode==='trackpad');
  pad.classList.toggle('nono-minimap-mode',state.mode==='minimap');
  pad.classList.toggle('nono-smart-trackpad-mode',state.mode==='smartTrackpad');
@@ -121,65 +117,10 @@ function apply(){
  window.dispatchEvent(new Event('nono:smart-controls-change'));
  // Changes to on-screen controls do not require recalculating the board on each drag.
 }
-function nativeSend(name,down){
- const codes={up:['ArrowUp','ArrowUp'],down:['ArrowDown','ArrowDown'],
- left:['ArrowLeft','ArrowLeft'],right:['ArrowRight','ArrowRight']};
- const code=codes[name];if(!code)return;
- const game=$('game'),lobby=$('lobby');
- if(down&&(game?.classList.contains('hidden')||!lobby?.classList.contains('hidden')||$('nono-settings-overlay')))return;
- document.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',
-  {bubbles:true,cancelable:true,key:code[0],code:code[1]}));
-}
-let stick={x:0,y:0},floatingOutside=false;
 function insideTouch(el,x,y){
  const r=el.getBoundingClientRect();
  return r.width>0&&r.height>0&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
 }
-function floatMove(e){
- const x=e.clientX-stick.x,y=e.clientY-stick.y,dist=Math.hypot(x,y);
- const radius=35*state.size/100;
- let direction=null;
- if(dist>radius*.27)direction=Math.abs(x)>Math.abs(y)?x>0?'right':'left':y>0?'down':'up';
- if(direction!==stickDirection){
-  if(stickDirection)nativeSend(stickDirection,false);
-  stickDirection=direction;
-  if(direction)nativeSend(direction,true);
- }
- const scale=Math.min(1,radius/(dist||1));
- knob.style.transform='translate(-50%,-50%) translate('+(x*scale)+'px,'+(y*scale)+'px)';
- if(dist>radius*1.8){
-  stick.x+=x*(1-radius/dist);stick.y+=y*(1-radius/dist);
-  joystick.style.left=stick.x+'px';joystick.style.top=stick.y+'px';
- }
-}
-zone.addEventListener('pointerdown',e=>{
- if(editing||state.mode!=='floating'||floatingPointer!==null||e.button!==0||
-    !insideTouch(zone,e.clientX,e.clientY))return;
- if($('game')?.classList.contains('hidden')||!$('lobby')?.classList.contains('hidden'))return;
- e.preventDefault();floatingPointer=e.pointerId;floatingOutside=false;stick={x:e.clientX,y:e.clientY};
- joystick.style.left=stick.x+'px';joystick.style.top=stick.y+'px';
- joystick.classList.add('is-on');knob.style.transform='translate(-50%,-50%)';
- try{zone.setPointerCapture(e.pointerId)}catch(_){}
-});
-zone.addEventListener('pointermove',e=>{
- if(e.pointerId!==floatingPointer)return;
- if(!insideTouch(zone,e.clientX,e.clientY)){
-  if(stickDirection)nativeSend(stickDirection,false);
-  stickDirection=null;floatingOutside=true;joystick.classList.remove('is-on');return;
- }
- if(floatingOutside){
-  floatingOutside=false;stick={x:e.clientX,y:e.clientY};
-  joystick.style.left=stick.x+'px';joystick.style.top=stick.y+'px';
-  joystick.classList.add('is-on');knob.style.transform='translate(-50%,-50%)';return;
- }
- floatMove(e);
-});
-function floatEnd(e){
- if(e.pointerId!==floatingPointer)return;
- floatingPointer=null;floatingOutside=false;joystick.classList.remove('is-on');
- if(stickDirection)nativeSend(stickDirection,false);stickDirection=null;
-}
-for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,floatEnd);
 
 // Cursor-only touch navigation. Never use synthetic key-repeat or user
 // wrap preferences: reaching the end of the puzzle stops at that edge.
@@ -190,61 +131,79 @@ function touchAllowed(mode){
   !pad.hidden&&!$('game')?.classList.contains('hidden')&&
   $('lobby')?.classList.contains('hidden')&&!$('nono-settings-overlay');
 }
-// Relative laptop-style trackpad. The first definite drag axis is locked
-// until lift (no diagonal jumps), matching regular row/column puzzle drags.
+// Laptop-style relative trackpad: movement is free in both axes unless
+// a Fill/X/Erase action is held. Active strokes lock on their first axis.
 zone.addEventListener('pointerdown',e=>{
  if(!touchAllowed('trackpad')||trackpadActive||e.button!==0||
     !insideTouch(zone,e.clientX,e.clientY))return;
- e.preventDefault();trackpadActive={id:e.pointerId,x:e.clientX,y:e.clientY,
-  originX:e.clientX,originY:e.clientY,axis:null,residual:0};
+ e.preventDefault();
+ const action=heldMiniAction();
+ const nav=cursor(),p=nav?.position;
+ trackpadActive={id:e.pointerId,x:e.clientX,y:e.clientY,
+  originX:e.clientX,originY:e.clientY,axis:null,action,
+  anchor:p?{...p}:null,residualX:0,residualY:0,
+  stroke:action?nav?.beginStroke?.()??null:null};
  try{zone.setPointerCapture(e.pointerId)}catch(_){}
 });
 zone.addEventListener('pointermove',e=>{
  const a=trackpadActive;
  if(!a||a.id!==e.pointerId)return;
- if(!touchAllowed('trackpad')){trackpadActive=null;return}
+ if(!touchAllowed('trackpad')){trackpadEnd(e);return;}
  e.preventDefault();
  if(!insideTouch(zone,e.clientX,e.clientY)){
-  a.outside=true;a.x=e.clientX;a.y=e.clientY;a.residual=0;return;
+  a.outside=true;a.x=e.clientX;a.y=e.clientY;
+  a.residualX=0;a.residualY=0;return;
  }
+ const nav=cursor(),p=nav?.position;
+ if(!p)return;
  if(a.outside){
   a.outside=false;a.x=e.clientX;a.y=e.clientY;
-  a.originX=e.clientX;a.originY=e.clientY;a.residual=0;return;
+  a.originX=e.clientX;a.originY=e.clientY;
+  a.residualX=0;a.residualY=0;return;
  }
- if(!a.axis){
-  const totalX=e.clientX-a.originX,totalY=e.clientY-a.originY;
-  if(Math.max(Math.abs(totalX),Math.abs(totalY))<5)return;
-  a.axis=Math.abs(totalX)>=Math.abs(totalY)?'x':'y';
-  a.residual=0;
-  // Keep the initial travel (after threshold) rather than dropping steps.
-  // The origin remains the start of the stroke until axis lock.
+ const action=heldMiniAction();
+ if(action!==a.action){
+  if(a.stroke!==null&&a.stroke!==undefined)nav?.endStroke?.(a.stroke);
+  a.stroke=action?nav?.beginStroke?.()??null:null;
+  a.action=action;a.axis=null;a.anchor={...p};
+  a.originX=e.clientX;a.originY=e.clientY;
+  a.residualX=0;a.residualY=0;
+  a.x=e.clientX;a.y=e.clientY;return;
  }
- const distance=a.axis==='x'?e.clientX-a.x:e.clientY-a.y;
- a.residual+=distance;
+ const stepPixels=12*100/state.trackpadSensitivity;
+ a.residualX+=e.clientX-a.x;a.residualY+=e.clientY-a.y;
  a.x=e.clientX;a.y=e.clientY;
- const pxPerCell=12*100/state.trackpadSensitivity;
- let steps=Math.trunc(a.residual/pxPerCell);
- steps=Math.sign(steps)*Math.min(50,Math.abs(steps));
- if(!steps)return;
- a.residual-=steps*pxPerCell;
- const nav=cursor();
- if(!nav?.position)return;
- // Atomic bounded movement: no wrap, no repeated full-board rendering.
- const ok=a.axis==='x'?nav.move(steps,0):nav.move(0,steps);
- if(ok===false)return;
- // When hitting a board edge, don't bank movement that could later
- // unexpectedly reverse or wrap to the opposite side.
- const {position,dimensions}=nav;
- if(a.axis==='x'&&(position.col===0||position.col===dimensions.width-1)||
-    a.axis==='y'&&(position.row===0||position.row===dimensions.height-1))
-  a.residual=0;
+ if(action&&!a.axis){
+  const dx=e.clientX-a.originX,dy=e.clientY-a.originY;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<5)return;
+  a.axis=Math.abs(dx)>=Math.abs(dy)?'x':'y';
+ }
+ let dx=Math.max(-50,Math.min(50,Math.trunc(a.residualX/stepPixels))),
+     dy=Math.max(-50,Math.min(50,Math.trunc(a.residualY/stepPixels)));
+ a.residualX-=dx*stepPixels;a.residualY-=dy*stepPixels;
+ if(action){
+  if(a.axis==='x'){dy=0;a.residualY=0;}
+  else {dx=0;a.residualX=0;}
+ }
+ if(!dx&&!dy)return;
+ const nextRow=Math.max(0,Math.min(nav.dimensions.height-1,p.row+dy)),
+       nextCol=Math.max(0,Math.min(nav.dimensions.width-1,p.col+dx));
+ if(action){
+  if(nextRow!==p.row||nextCol!==p.col)
+   nav.paintLine?.(p.row,p.col,nextRow,nextCol,action);
+ }else nav.move(dx,dy);
+ const at=nav.position;
+ if(at.col===0||at.col===nav.dimensions.width-1)a.residualX=0;
+ if(at.row===0||at.row===nav.dimensions.height-1)a.residualY=0;
 });
-const trackpadEnd=e=>{
+function trackpadEnd(e){
  if(trackpadActive?.id!==e.pointerId)return;
- trackpadActive=null;
+ const a=trackpadActive;trackpadActive=null;
+ if(a.stroke!==null&&a.stroke!==undefined)cursor()?.endStroke?.(a.stroke);
  if(zone.hasPointerCapture?.(e.pointerId))try{zone.releasePointerCapture(e.pointerId)}catch(_){}
-};
-for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,trackpadEnd);
+}
+for(const name of ['pointerup','pointercancel','lostpointercapture'])
+ zone.addEventListener(name,trackpadEnd);
 
 // Absolute miniature: pointing and dragging navigate freely in two axes.
 // Hold Fill / X / Erase with another finger to paint a straight row or column.
@@ -427,7 +386,7 @@ function touchSettings(root){
  intro.textContent='모바일 화면의 방향 패드와 동작 버튼을 원하는 스타일로 조정할 수 있어요.';
  root.append(intro);
  addRow(root,'이동 방식','스마트 터치패드·축소판은 네모 밖에서 방향 버튼처럼 이동합니다. 혼합형은 첫 터치로 위치를 선택하고 네모 밖에서도 손가락 이동 거리만큼 움직입니다. 칠하기 중에만 행·열이 고정됩니다.',
-  select([['fixed','고정 십자키'],['floating','플로팅 조이스틱'],['trackpad','노트북형 트랙패드'],['minimap','퍼즐 축소판 터치'],['smartTrackpad','스마트 터치패드'],['smartMinimap','스마트 축소판'],['smartHybrid','스마트 혼합형']],state.mode,v=>{setValue('mode',v);renderExtras()}));
+  select([['fixed','고정 십자키'],['trackpad','노트북형 트랙패드'],['minimap','퍼즐 축소판 터치'],['smartTrackpad','스마트 터치패드'],['smartMinimap','스마트 축소판'],['smartHybrid','스마트 혼합형']],state.mode,v=>{setValue('mode',v);renderExtras()}));
  if(['smartTrackpad','smartMinimap'].includes(state.mode))
   addRow(root,'스마트 구간 크기','작은 네모에서 보이는 퍼즐 칸 수입니다.',
    select([[8,'8×8'],[12,'12×12'],[16,'16×16'],[20,'20×20']].map(([v,l])=>[String(v),l]),String(state.smartWindowCells),v=>setValue('smartWindowCells',Number(v))));
