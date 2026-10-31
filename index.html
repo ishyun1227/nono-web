@@ -116,6 +116,7 @@
   <script src="./puzzles-brainrot.js?v=1"></script>
   <script src="./puzzles-public-catalog.js?v=1"></script>
   <script src="./answer-bitpack.js?v=1"></script>
+  <script src="./random-puzzles.js?v=1"></script>
   <script>
 const firebaseConfig=window.NONO_FIREBASE_CONFIG||{};
 // Public files contain clues and a codec, never private answer masks. Packed answers are stored only in protected Firebase paths.
@@ -139,7 +140,8 @@ function createSizeTestPuzzle(size) {
 // IDs and local save keys are unchanged, preserving existing user progress.
 const PUZZLES = [
   ...(window.NONO_PUBLIC_PUZZLES||[]).map(p=>({...p,size:p.width||p.size,width:p.width||p.size,height:p.height||p.size})),
-  ...(window.NONO_DYNAMIC_PUZZLE_DEFS||[]).map(def=>createSizeTestPuzzle(def.size))
+  ...(window.NONO_DYNAMIC_PUZZLE_DEFS||[]).map(def=>createSizeTestPuzzle(def.size)),
+  ...(window.NONO_RANDOM_PUZZLES?.restore()||[])
 ];
 function lineHints(bits) {
   const out=[];let count=0;
@@ -312,7 +314,7 @@ function attachNavigation(){
   $('share-room-side').addEventListener('click',()=>$('copy-room-header').click());
 }
 function initHome(){
-  const options=PUZZLES.map((p,i)=>`<option value="${p.id}">${p.width||p.size}×${p.height||p.size} · ${p.sizeTest?'크기 테스트':p.trialOnly?p.name+' (검수 대기)':'퍼즐 '+String(i+1).padStart(2,'0')}</option>`).join('');$('puzzle').innerHTML=options;
+  const options=PUZZLES.map((p,i)=>`<option value="${p.id}">${p.width||p.size}×${p.height||p.size} · ${p.sizeTest?'크기 테스트':p.generated?p.name:p.trialOnly?p.name+' (검수 대기)':'퍼즐 '+String(i+1).padStart(2,'0')}</option>`).join('');$('puzzle').innerHTML=options;
   $('nickname').value='플레이어';updateProfileLabel();
   document.querySelectorAll('.mode-card[data-mode]').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
   $('puzzle').addEventListener('change',()=>{if(roomCode){$('puzzle').value=puzzle.id;return;}puzzle=PUZZLES.find(p=>p.id===$('puzzle').value)||PUZZLES[0];refreshHomepageScores();});
@@ -462,7 +464,7 @@ function paint(index,to,drag){
   if(mode==='practice')renderLive();
 }
 function tick(){if($('game').classList.contains('hidden'))return;let start=mode==='race'?meta?.startedAt:startedAt;let end=finishedAt||(onlineReady()?serverNow():Date.now());$('timer').textContent=elapsedFormat(start?end-start:0);}
-function finishLocal(){if(finishing||finished)return;if(mode==='record'&&onlineReady()){finishRecord();return;}finishedAt=Date.now();finished=true;render();if(!puzzle.trialOnly){emitDailyActivity('puzzle-complete');window.dispatchEvent(new CustomEvent('nono:completion-confirmed',{detail:{mode:'solo',puzzleId:puzzle.id,size:puzzle.size,name:nickname(),roomCode:'',finishedAt}}));}toast(puzzle.trialOnly?'체험 퍼즐 완성! (검수 대기 · 포인트 미지급)':'퍼즐 완성!');if(mode==='record'){const key=`nono-records-${puzzle.id}`,scores=JSON.parse(storage.getItem(key)||'[]'),duration=finishedAt-startedAt;scores.push({name:nickname(),duration,changes,finishedAt});storage.setItem(key,JSON.stringify(scores.sort((a,b)=>a.duration-b.duration).slice(0,50)));refreshHomepageScores();}renderLive();}
+function finishLocal(){if(finishing||finished)return;if(mode==='record'&&onlineReady()){finishRecord();return;}finishedAt=Date.now();finished=true;render();if(!puzzle.trialOnly){emitDailyActivity('puzzle-complete');window.dispatchEvent(new CustomEvent('nono:completion-confirmed',{detail:{mode:'solo',puzzleId:puzzle.id,size:puzzle.size,name:nickname(),roomCode:'',finishedAt}}));}toast(puzzle.generated?'랜덤 퍼즐 완성! (로컬 체험 · 포인트 미지급)':puzzle.trialOnly?'체험 퍼즐 완성! (검수 대기 · 포인트 미지급)':'퍼즐 완성!');if(mode==='record'){const key=`nono-records-${puzzle.id}`,scores=JSON.parse(storage.getItem(key)||'[]'),duration=finishedAt-startedAt;scores.push({name:nickname(),duration,changes,finishedAt});storage.setItem(key,JSON.stringify(scores.sort((a,b)=>a.duration-b.duration).slice(0,50)));refreshHomepageScores();}renderLive();}
 async function finishRecord(){if(finishing)return;finishing=true;try{
   const path=`runs/${puzzle.id}/${currentId()}`;await set(ref(database,path),{name:nickname(),startedAt,finishedAt:serverTimestamp(),filled:serverAnswerMask(board,puzzle),changes});
   const data=(await get(ref(database,path))).val();finishedAt=data.finishedAt;finished=true;emitDailyActivity('puzzle-complete');window.dispatchEvent(new CustomEvent('nono:completion-confirmed',{detail:{mode:'solo',puzzleId:puzzle.id,size:puzzle.size,name:nickname(),roomCode:'',finishedAt:data.finishedAt}}));const duration=data.finishedAt-data.startedAt;
