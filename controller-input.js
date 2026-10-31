@@ -60,6 +60,14 @@ for(const button of buttons){
   touch.delete(e.pointerId);button.classList.remove('is-held');emit(held,false);
   if(button.hasPointerCapture?.(e.pointerId))try{button.releasePointerCapture(e.pointerId);}catch(_){}
  };
+ // Pointer capture is not a license to keep a direction or edit action
+ // pressed after the finger has left the button's actual touch bounds.
+ button.addEventListener('pointermove',e=>{
+  if(touch.get(e.pointerId)!==name)return;
+  const r=button.getBoundingClientRect();
+  if(e.clientX<r.left||e.clientX>r.right||
+     e.clientY<r.top||e.clientY>r.bottom)stop(e);
+ });
  button.addEventListener('pointerup',stop);
  button.addEventListener('pointercancel',stop);
  button.addEventListener('lostpointercapture',stop);
