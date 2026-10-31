@@ -1,128 +1,114 @@
-/* Image-independent, locally generated NONO practice puzzles. No answer masks are published or stored. */
+/* Constructive, image-independent NONO puzzle patterns.
+ * Motifs and route crossings are placed directly, never candidate-scored/rejected.
+ * Difficulty labels are design intent; logic solvability and user enjoyment are not proven.
+ */
 (function(root){
 'use strict';
-const KEY='nono-random-puzzles-v1';
-const LEVELS=['쉬움','보통','어려움','전문가'];
-const LIMIT=100;
-function rng(seed){
-  let s=seed>>>0;
-  return ()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};
+const KEY='nono-random-puzzles-v1',LEVELS=['쉬움','보통','어려움','전문가'],LIMIT=100;
+function rng(seed){let s=seed>>>0;return ()=>{s=(s+0x6D2B79F5)>>>0;let t=s;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};}
+function clues(bits){const a=[];let run=0;for(const bit of bits){if(bit)run++;else if(run){a.push(run);run=0;}}if(run)a.push(run);return a.length?a:[0];}
+function validSpec(value){
+  return !!value&&Number.isInteger(value.size)&&value.size>=5&&value.size<=100&&
+    LEVELS.includes(value.difficulty)&&Number.isInteger(value.seed)&&value.seed>=0&&value.seed<=4294967295;
 }
-function clues(bits){
-  const answer=[];let run=0;
-  for(const bit of bits){if(bit){run++;}else if(run){answer.push(run);run=0;}}
-  if(run)answer.push(run);
-  return answer.length?answer:[0];
-}
-function interpolate(a,b,t){const s=t*t*(3-2*t);return a+(b-a)*s;}
-function noiseGrid(points,w,h,random){
-  const grid=Array.from({length:(w+1)*(h+1)},()=>random());
-  return (x,y)=>{
-    const gx=x*w,gy=y*h,px=Math.min(w-1,Math.floor(gx)),py=Math.min(h-1,Math.floor(gy));
-    const fx=gx-px,fy=gy-py,k=py*(w+1)+px;
-    return interpolate(interpolate(grid[k],grid[k+1],fx),interpolate(grid[k+w+1],grid[k+w+2],fx),fy);
-  };
-}
-function maskFor(size,level,random){
-  const complexity=[2.3,3.4,4.7,6.2][level],target=[.51,.47,.43,.40][level]+(random()-.5)*.075;
-  const coarse=noiseGrid(null,Math.ceil(complexity),Math.ceil(complexity),random);
-  const medium=noiseGrid(null,Math.ceil(complexity*2),Math.ceil(complexity*2),random);
-  const detail=noiseGrid(null,Math.ceil(complexity*3.2),Math.ceil(complexity*3.2),random);
-  const waveX=2+random()*3,waveY=2+random()*3,phase=random()*Math.PI*2;
-  const values=new Array(size*size);
-  for(let y=0;y<size;y++)for(let x=0;x<size;x++){
-    const u=(x+.5)/size,v=(y+.5)/size;
-    values[y*size+x]=.53*coarse(u,v)+.34*medium(u,v)+.13*detail(u,v)
-      + .043*Math.sin(u*waveX*Math.PI+phase)*Math.cos(v*waveY*Math.PI-phase);
+function design(spec){
+  if(!validSpec(spec))throw Error('잘못된 랜덤 퍼즐 생성 정보입니다.');
+  const {size:n,difficulty,seed}=spec,level=LEVELS.indexOf(difficulty),random=rng(seed),pi=Math.PI;
+  // Continuous ribbons guarantee every row and column has meaningful entry points.
+  const turn=[.6,1.1,1.7,2.4][level],width=[.19,.155,.125,.105][level];
+  const vPhase=random()*2*pi,hPhase=random()*2*pi;
+  const vCenter=.5+(random()-.5)*.12,hCenter=.5+(random()-.5)*.12;
+  const vAmp=[.11,.16,.20,.23][level],hAmp=[.09,.14,.18,.20][level];
+  const vFreq=1+Math.round(turn),hFreq=1+Math.round(turn*.8);
+  const motif=Math.floor(random()*4);
+  const cx=.36+random()*.28,cy=.34+random()*.30,rx=.18+random()*.12,ry=.17+random()*.12;
+  const loopWidth=[.085,.07,.055,.045][level];
+  const forkDirection=random()>.5?1:-1;
+  const mask=new Array(n*n);
+  function centerV(v){return vCenter+vAmp*Math.sin(v*vFreq*pi+vPhase)+.055*Math.cos(v*2*pi+hPhase);}
+  function centerH(u){return hCenter+hAmp*Math.sin(u*hFreq*pi+hPhase)+.05*Math.sin(u*2*pi+vPhase);}
+  for(let y=0;y<n;y++)for(let x=0;x<n;x++){
+    const u=(x+.5)/n,v=(y+.5)/n;
+    const vertical=Math.abs(u-centerV(v))<width*(.9+.2*Math.cos(v*2*pi));
+    const horizontal=Math.abs(v-centerH(u))<width*(.9+.2*Math.sin(u*2*pi));
+    const d=Math.hypot((u-cx)/rx,(v-cy)/ry);
+    // One of four deliberately composed side-motifs: loop, branching fork, bay or terrace.
+    const loop=Math.abs(d-1)<loopWidth/Math.min(rx,ry)*.46;
+    const bay=d<.78;
+    const fork=Math.abs(v-(.25+forkDirection*.21*(u-.5)+.08*Math.sin(u*3*pi+vPhase)))<
+      width*.56 && u>.10 && u<.90;
+    const terrace=Math.abs(v-(.27+.19*Math.sin(u*2*pi+hPhase)))<width*.52&&u>.12&&u<.88;
+    let filled=vertical||horizontal||(motif===0?loop:motif===1?fork:motif===2?terrace:loop||fork);
+    if(level>=1&&motif===2&&bay&&Math.abs(u-cx)<rx*.68&&Math.abs(v-cy)<ry*.68)filled=false;
+    if(level>=2&&motif!==2&&d<.43&&Math.abs(u-centerV(v))>width*.4)filled=false;
+    if(level>=3){
+      // Intentional enclosed windows, not scattered random pixels.
+      const a=.2+.6*randomStatic(seed,4),b=.15+.7*randomStatic(seed,5);
+      if(Math.abs(u-a)<.037&&Math.abs(v-b)<.08&&Math.abs(u-centerV(v))>width*.3)filled=false;
+    }
+    mask[y*n+x]=filled?1:0;
   }
-  const sorted=values.slice().sort((a,b)=>b-a);
-  const threshold=sorted[Math.max(0,Math.min(sorted.length-1,Math.floor(size*size*target)))];
-  return values.map(v=>v>=threshold?1:0);
-}
-function detailsFor(mask,n){
-  const rows=[],cols=[],counts=[],signatures=[];
+  // Construct entry anchors by extending the existing continuous ribbons.
+  // This is a deterministic part of generation, not a retry/filter stage.
   for(let y=0;y<n;y++){
-    const line=mask.slice(y*n,(y+1)*n),c=clues(line);rows.push(c);counts.push(c.length);signatures.push(line.join(''));
+    if(mask.slice(y*n,(y+1)*n).some(Boolean))continue;
+    const mid=Math.max(0,Math.min(n-1,Math.floor(centerV((y+.5)/n)*n)));
+    mask[y*n+mid]=1;
   }
   for(let x=0;x<n;x++){
-    const line=Array.from({length:n},(_,y)=>mask[y*n+x]),c=clues(line);cols.push(c);counts.push(c.length);
+    let has=false;for(let y=0;y<n;y++)if(mask[y*n+x]){has=true;break;}
+    if(!has){const mid=Math.max(0,Math.min(n-1,Math.floor(centerH((x+.5)/n)*n)));mask[mid*n+x]=1;}
   }
-  const filled=mask.reduce((a,b)=>a+b,0);
-  const density=filled/(n*n);
-  const runMean=counts.reduce((a,b)=>a+b,0)/counts.length;
-  const uniqueRows=new Set(signatures).size/n;
-  let adjacentSame=0;for(let y=1;y<n;y++)if(signatures[y]===signatures[y-1])adjacentSame++;
-  let isolated=0;
-  for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(mask[y*n+x]){
-    let neighbors=0;
-    for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++)
-      if((dx||dy)&&x+dx>=0&&x+dx<n&&y+dy>=0&&y+dy<n&&mask[(y+dy)*n+x+dx])neighbors++;
-    if(!neighbors)isolated++;
+  const rows=Array.from({length:n},(_,y)=>clues(mask.slice(y*n,(y+1)*n)));
+  const cols=Array.from({length:n},(_,x)=>clues(Array.from({length:n},(_,y)=>mask[y*n+x])));
+  return {rows,cols,mask:mask.join(''),size:n};
+}
+function randomStatic(seed,salt){return rng((seed^Math.imul(salt,0x9e3779b9))>>>0)();}
+function validPuzzle(p){
+  if(!p||!/^random-[a-z0-9-]{1,85}$/.test(p.id)||!validSpec(p))return false;
+  if(!Array.isArray(p.rows)||!Array.isArray(p.cols)||p.rows.length!==p.size||p.cols.length!==p.size)return false;
+  for(const line of [...p.rows,...p.cols]){
+    if(!Array.isArray(line)||line.length===0||line.some(n=>!Number.isInteger(n)||n<1||n>p.size)||
+        line.reduce((s,n)=>s+n,0)+line.length-1>p.size)return false;
   }
-  const quadrants=[0,0,0,0];for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(mask[y*n+x])quadrants[(y>=n/2?2:0)+(x>=n/2?1:0)]++;
-  return {rows,cols,density,runMean,uniqueRows,adjacentSame,isolated,quadrants,filled};
+  return p.rows.flat().reduce((s,n)=>s+n,0)===p.cols.flat().reduce((s,n)=>s+n,0);
 }
-/* Scores are structural heuristics, NOT measured human enjoyment or guaranteed difficulty. */
-function evaluate(mask,size,difficulty){
-  const level=LEVELS.indexOf(difficulty);
-  if(!Number.isInteger(size)||size<5||size>100||level<0||!Array.isArray(mask)||mask.length!==size*size)return null;
-  const d=detailsFor(mask,size);
-  if(d.rows.some(c=>c[0]===0)||d.cols.some(c=>c[0]===0))return null;
-  if(d.density<.28||d.density>.68||d.isolated>d.filled*.025)return null;
-  if(d.adjacentSame>Math.max(1,Math.floor(size*.1)))return null;
-  const minQuadrant=d.filled*.055;
-  if(Math.min(...d.quadrants)<minQuadrant)return null;
-  const targetRuns=[1.75,2.15,2.6,3.15][level]*Math.pow(size/10,.12);
-  const deviation=Math.abs(d.runMean-targetRuns)/targetRuns;
-  if(deviation>.40||d.uniqueRows<.68)return null;
-  const targetFill=[.51,.47,.43,.40][level];
-  const score=Math.round(100-20*deviation-72*Math.abs(d.density-targetFill)
-     -25*(1-d.uniqueRows)-40*d.isolated/Math.max(1,d.filled)-9*d.adjacentSame/Math.max(1,size));
-  if(score<80)return null;
-  return {rows:d.rows,cols:d.cols,quality:score,metrics:{density:+d.density.toFixed(3),runMean:+d.runMean.toFixed(2),distinctRows:+d.uniqueRows.toFixed(2)}};
-}
-function readList(){
-  try{
-    const value=JSON.parse(root.localStorage?.getItem(KEY)||'[]');
-    return Array.isArray(value)?value.filter(p=>p&&/^random-[a-z0-9-]+$/.test(p.id)&&
-      Number.isInteger(p.size)&&p.size>=5&&p.size<=100&&
-      LEVELS.includes(p.difficulty)&&Array.isArray(p.rows)&&Array.isArray(p.cols)&&
-      p.rows.length===p.size&&p.cols.length===p.size&&
-      [...p.rows,...p.cols].every(line=>Array.isArray(line)&&line.length>0&&
-        line.every(n=>Number.isInteger(n)&&n>=0&&n<=p.size)&&
-        line.reduce((a,n)=>a+n,0)+line.length-1<=p.size)&&
-      p.rows.flat().reduce((a,b)=>a+b,0)===p.cols.flat().reduce((a,b)=>a+b,0)
-    ).slice(0,LIMIT):[];
-  }catch{return [];}
-}
+function readList(){try{const list=JSON.parse(root.localStorage?.getItem(KEY)||'[]');return Array.isArray(list)?list.filter(validPuzzle).slice(0,LIMIT):[];}catch{return [];}}
 function restore(){return readList().map(p=>({...p,generated:true,trialOnly:true}));}
+function fromSpec(spec){
+  if(!validSpec(spec))throw Error('지원하지 않는 크기·난이도·시드입니다.');
+  const data=design(spec);
+  const id=typeof spec.id==='string'&&/^random-[a-z0-9-]{1,85}$/.test(spec.id)?
+    spec.id:'random-'+spec.seed.toString(36)+'-'+spec.size+'-'+LEVELS.indexOf(spec.difficulty);
+  return {id,name:'랜덤 '+spec.size+'×'+spec.size,size:spec.size,width:spec.size,height:spec.size,
+    difficulty:spec.difficulty,seed:spec.seed,rows:data.rows,cols:data.cols,
+    generated:true,trialOnly:true,designVersion:1};
+}
+function answerFor(spec){
+  if(!validSpec(spec))throw Error('잘못된 정답 생성 정보입니다.');
+  return design(spec).mask;
+}
+function register(p){
+  if(!validPuzzle(p))throw Error('랜덤 퍼즐 형식이 올바르지 않습니다.');
+  const exact=fromSpec(p);
+  if(JSON.stringify(exact.rows)!==JSON.stringify(p.rows)||JSON.stringify(exact.cols)!==JSON.stringify(p.cols))
+    throw Error('퍼즐 힌트가 생성 정보와 일치하지 않습니다.');
+  const old=readList().filter(item=>item.id!==exact.id);
+  if(old.length>=LIMIT)throw Error('저장된 랜덤 퍼즐이 100개입니다. 기존 퍼즐 정리 후 다시 시도하세요.');
+  try{
+    if(!root.localStorage)throw Error('브라우저 저장소를 사용할 수 없습니다.');
+    root.localStorage.setItem(KEY,JSON.stringify([exact,...old]));
+  }catch{throw Error('퍼즐 저장에 실패했습니다. 저장 공간을 확인해 주세요.');}
+  return exact;
+}
 function generate({size,difficulty,seed}){
   size=Number(size);
-  if(!Number.isInteger(size)||size<5||size>100||!LEVELS.includes(difficulty))
-    throw new Error('지원하지 않는 퍼즐 크기 또는 난이도입니다.');
-  const history=readList();
-  if(history.length>=LIMIT)throw new Error('저장된 랜덤 퍼즐이 100개입니다. 기존 퍼즐을 정리한 뒤 다시 시도하세요.');
-  const initial=(seed===undefined?(root.crypto?.getRandomValues?.(new Uint32Array(1))[0]??Math.floor(Math.random()*4294967295)):Number(seed))>>>0;
-  const random=rng(initial);
-  let best=null;
-  for(let attempt=0;attempt<(size<=30?220:125);attempt++){
-    const mask=maskFor(size,LEVELS.indexOf(difficulty),random);
-    const evaluated=evaluate(mask,size,difficulty);
-    if(evaluated&&(!best||evaluated.quality>best.quality))best=evaluated;
-    if(best&&best.quality>=92)break;
-  }
-  if(!best)throw new Error('품질 기준을 만족하는 퍼즐을 생성하지 못했습니다. 다시 시도해 주세요.');
-  const id='random-'+Date.now().toString(36)+'-'+initial.toString(36)+'-'+Math.floor(random()*1e7).toString(36);
-  const p={id,name:'랜덤 '+size+'×'+size,size,width:size,height:size,difficulty,
-    rows:best.rows,cols:best.cols,generated:true,trialOnly:true,quality:best.quality,
-    qualityMetrics:best.metrics,createdAt:Date.now()};
-  try{
-    if(!root.localStorage)throw Error('Storage unavailable');
-    root.localStorage.setItem(KEY,JSON.stringify([p,...history]));
-  }catch{throw new Error('퍼즐 저장에 실패했습니다. 브라우저 저장 공간을 확인해 주세요.');}
-  return p;
+  seed=seed===undefined?(root.crypto?.getRandomValues?.(new Uint32Array(1))[0]??Math.floor(Math.random()*4294967296)):(Number(seed)>>>0);
+  if(!validSpec({size,difficulty,seed}))throw Error('지원하지 않는 크기 또는 난이도입니다.');
+  const spec={size,difficulty,seed,id:'random-'+Date.now().toString(36)+'-'+seed.toString(36)};
+  return register(fromSpec(spec));
 }
-const api={generate,restore,evaluate,LEVELS};
+const api={generate,restore,register,fromSpec,answerFor,validSpec,LEVELS};
 root.NONO_RANDOM_PUZZLES=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
