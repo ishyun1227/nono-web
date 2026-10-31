@@ -207,26 +207,24 @@ zone.fire('pointermove',130,115);
 assert.ok(position.row>first.row&&position.col>first.col,'inside drag must move relatively');
 const insidePosition={...position};
 zone.fire('pointermove',180,140);
-assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'right');
-assert.equal(position.row,insidePosition.row,'hybrid outside uses one strip axis');
-assert.equal(position.col,insidePosition.col+1,'hybrid leaves square: immediate right press');
-const outsidePosition={...position};
-zone.fire('pointermove',210,155);
-assert.equal(position.col,outsidePosition.col,'moving farther out does not multiply movement');
-currentTime+=100;
+const firstOutside={...position};
+assert.ok(firstOutside.row>insidePosition.row&&firstOutside.col>insidePosition.col,
+ 'hybrid outside must keep moving on BOTH axes by finger delta');
+assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'center',
+ 'hybrid never enters directional-strip mode');
+assert.equal(intervals.size,0,
+ 'hybrid must not start timed directional auto-scroll');
+currentTime+=1000;
 for(const tick of [...intervals.values()])tick();
-assert.equal(position.col,outsidePosition.col+1,'hybrid outside hold repeats at configured speed');
-zone.fire('pointermove',0,86);
-assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'left','changing exterior direction changes button');
-const changedDirection={...position};
-assert.equal(changedDirection.col,outsidePosition.col,'moving across to left presses left once');
+assert.deepEqual(position,firstOutside,
+ 'holding outside without finger movement must NOT auto-repeat');
+zone.fire('pointermove',210,155);
+const fartherOutside={...position};
+assert.ok(fartherOutside.row>firstOutside.row&&fartherOutside.col>firstOutside.col,
+ 'continued outside swipe must keep moving in both axes');
 zone.fire('pointermove',130,130);
-const reentered={...position};
-assert.equal(reentered.col,changedDirection.col,'hybrid re-entry must not teleport');
-assert.equal(reentered.row,changedDirection.row,'hybrid re-entry must not teleport');
-zone.fire('pointermove',143,142);
-assert.ok(position.row>=reentered.row&&position.col>reentered.col,
- 'hybrid drag resumes relative trackpad movement upon re-entry');
+assert.ok(position.row<fartherOutside.row&&position.col<fartherOutside.col,
+ 're-entering square still uses ordinary relative trackpad motion');
 zone.fire('pointerup',143,142);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
 zone.fire('pointermove',260,200);
@@ -253,4 +251,4 @@ assert.ok(position.row>previous.row&&position.col>previous.col,
  'releasing edit must immediately restore free movement');
 mini.fire('pointerup',102,88);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
-console.log('SMART_TOUCH_PASS: all smart modes auto-repeat directional strip on exit, speed and paint axis respected');
+console.log('SMART_TOUCH_PASS: two smart modes auto-pan outside, hybrid stays relative outside, no auto-repeat, speed and paint lock');
