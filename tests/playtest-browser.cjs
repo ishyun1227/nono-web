@@ -453,7 +453,7 @@ const {pathToFileURL}=require('node:url');
   // Pointer capture previously kept touch gestures alive when the finger had
   // left the visible input region. Test every navigation surface on mobile.
   const boundsResults=await mobile.evaluate(async()=>{
-   const modes=['trackpad','minimap'];
+   const modes=['minimap'];
    const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
    const results=[];
    for(let i=0;i<modes.length;i++){
@@ -491,7 +491,32 @@ const {pathToFileURL}=require('node:url');
   }
   if(!boundsResults.heldBefore||boundsResults.heldAfter)
    throw Error('Touch action must release after finger leaves button: '+JSON.stringify(boundsResults));
-  console.log('Two remaining legacy touch surfaces and action buttons respect their bounds.');
+  console.log('Classic miniature bounds and edit-button release passed.');
+  const laptopOutside=await mobile.evaluate(()=>{
+   const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
+   api.set('mode','trackpad');api.set('trackpadSensitivity',100);
+   nav.select(20,20);
+   const el=document.getElementById('nono-floating-zone'),r=el.getBoundingClientRect();
+   const x=(r.left+r.right)/2,y=(r.top+r.bottom)/2;
+   const base={pointerType:'touch',pointerId:2333,isPrimary:true,
+    button:0,buttons:1,bubbles:true,cancelable:true};
+   const fire=(kind,cx,cy,props={})=>el.dispatchEvent(
+    new PointerEvent(kind,{...base,clientX:cx,clientY:cy,...props}));
+   fire('pointerdown',x,y);const start={...nav.position};
+   fire('pointermove',r.right+16,y+24);const outside={...nav.position};
+   fire('pointermove',r.right+31,y+39);const farther={...nav.position};
+   fire('pointerup',r.right+31,y+39,{buttons:0});
+   fire('pointermove',r.right+47,y+55);const afterLift={...nav.position};
+   return {start,outside,farther,afterLift};
+  });
+  if(laptopOutside.outside.row<=laptopOutside.start.row||
+     laptopOutside.outside.col<=laptopOutside.start.col||
+     laptopOutside.farther.row<=laptopOutside.outside.row||
+     laptopOutside.farther.col<=laptopOutside.outside.col||
+     laptopOutside.afterLift.row!==laptopOutside.farther.row||
+     laptopOutside.afterLift.col!==laptopOutside.farther.col)
+   throw Error('Laptop trackpad lost captured relative gesture outside: '+JSON.stringify(laptopOutside));
+  console.log('Laptop trackpad follows outside drags until finger lifts.');
   // In BOTH windowed smart modes, dragging beyond the square presses the
   // corresponding long rectangle until release; re-entry stops immediately.
   const smartExit=await mobile.evaluate(async()=>{
@@ -499,7 +524,10 @@ const {pathToFileURL}=require('node:url');
    const result=[];
    for(const [i,mode] of ['smartTrackpad','smartMinimap'].entries()){
     api.set('mode',mode);api.set('smartPanSpeed',14);nav.select(20,20);
-    const el=document.getElementById('nono-absolute-pad'),r=el.getBoundingClientRect();
+    const el=mode==='smartTrackpad'?
+     document.querySelector('#nono-mobile-pad .nono-dpad .nono-pad-center'):
+     document.getElementById('nono-absolute-pad');
+    const r=el.getBoundingClientRect();
     const x=(r.left+r.right)/2,y=(r.top+r.bottom)/2;
     const pointer={pointerType:'touch',pointerId:2400+i,isPrimary:true,
      button:0,buttons:1,bubbles:true,cancelable:true};
@@ -521,7 +549,36 @@ const {pathToFileURL}=require('node:url');
       item.back.row!==item.held.row||item.back.col!==item.held.col)
     throw Error('Smart dragged-outside auto-scroll failed: '+JSON.stringify(item));
   }
-  console.log('Smart trackpad and miniature exit-to-arrow continuous auto-scroll passed.');
+  console.log('Smart center thumb circle and miniature drag-out auto-scroll passed.');
+  // Smart trackpad's movable subsection is outlined on the actual puzzle
+  // while the D-pad contains only its arrows and small center circle.
+  const actualBoardWindow=await mobile.evaluate(()=>{
+   const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
+   api.set('mode','smartTrackpad');api.set('size',100);nav.select(20,20);
+   window.NONO_SMART_TOUCH.refresh();
+   const center=document.querySelector('#nono-mobile-pad .nono-dpad .nono-pad-center');
+   const pad=document.getElementById('nono-mobile-pad');
+   const mini=document.getElementById('nono-absolute-pad');
+   const boardEl=document.getElementById('board'),el=window.NONO_SMART_TOUCH.boardWindow;
+   const v=window.NONO_SMART_TOUCH.viewport,d=nav.dimensions;
+   const tiles=boardEl.querySelector('.cells').children;
+   const first=tiles[v.top*d.width+v.left].getBoundingClientRect();
+   const last=tiles[(v.top+v.rows-1)*d.width+v.left+v.cols-1].getBoundingClientRect();
+   const rect=el.getBoundingClientRect(),circle=center.getBoundingClientRect();
+   return {attached:el.parentElement===boardEl,hidden:el.hidden,
+    dpadVisible:getComputedStyle(pad.querySelector('.nono-dpad')).display,
+    circleWidth:circle.width,
+    miniHidden:getComputedStyle(mini).display==='none',
+    actual:[rect.left,rect.top,rect.right,rect.bottom],
+    expected:[first.left,first.top,last.right,last.bottom],size:[v.cols,v.rows]};
+  });
+  if(!actualBoardWindow.attached||actualBoardWindow.hidden||
+     actualBoardWindow.dpadVisible!=='grid'||!actualBoardWindow.miniHidden||
+     actualBoardWindow.circleWidth<20||actualBoardWindow.circleWidth>40||
+     actualBoardWindow.size[0]!==12||actualBoardWindow.size[1]!==12||
+     actualBoardWindow.actual.some((v,i)=>Math.abs(v-actualBoardWindow.expected[i])>2))
+   throw Error('Smart D-pad circle or on-board outline misaligned: '+JSON.stringify(actualBoardWindow));
+  console.log('Smart D-pad center and 12x12 board overlay aligned with actual tiles.');
   // Hybrid is intentionally different: a visible full-board miniature square
   // for the FIRST touch, then captured relative movement outside the square.
   const hybridResult=await mobile.evaluate(async()=>{
