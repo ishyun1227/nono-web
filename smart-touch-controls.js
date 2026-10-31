@@ -427,12 +427,10 @@ if(boardRoot&&typeof MutationObserver==='function'){
   if(mode()!=='smartHybrid')return;
   const changed=records.some(record=>{
    if(record.type==='childList')return true;
-   const previous=record.oldValue||'';
+   const previous=(record.oldValue||'').split(/\s+/);
    const current=record.target?.classList;
-   return /(?:^|\\s)(?:filled|cross)(?:\\s|$)/.test(previous)!==
-     !!(current?.contains('filled')||current?.contains('cross'))||
-     ((/(?:^|\\s)filled(?:\\s|$)/.test(previous))!==!!current?.contains('filled'))||
-     ((/(?:^|\\s)cross(?:\\s|$)/.test(previous))!==!!current?.contains('cross'));
+   return previous.includes('filled')!==!!current?.contains('filled')||
+     previous.includes('cross')!==!!current?.contains('cross');
   });
   if(changed)updateHybridPreview(true);
  });
