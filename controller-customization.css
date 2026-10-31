@@ -430,3 +430,59 @@
  text-shadow:0 1px 5px #06152c!important;font-size:10px!important;
  pointer-events:none!important;
 }
+
+
+/* Smart square: four long, separate directional scroll targets.
+   The central miniature stays stationary; its puzzle window pans instead. */
+#nono-smart-edge-rail{display:none!important}
+#nono-mobile-pad.nono-smart-trackpad-mode #nono-smart-edge-rail,
+#nono-mobile-pad.nono-smart-minimap-mode #nono-smart-edge-rail{
+ display:block!important;position:fixed!important;z-index:5!important;
+ box-sizing:border-box!important;width:206px!important;height:206px!important;
+ left:clamp(var(--nono-smart-gutter,111px),var(--nono-smart-x,21vw),
+  calc(100vw - var(--nono-smart-gutter,111px)))!important;
+ top:clamp(var(--nono-smart-gutter,111px),var(--nono-smart-y,83dvh),
+  calc(100dvh - var(--nono-smart-gutter,111px) - 48px))!important;
+ transform:translate(-50%,-50%) scale(var(--nono-pad-scale,1))!important;
+ transform-origin:center center!important;
+ pointer-events:none!important;
+}
+#nono-mobile-pad.nono-smart-trackpad-mode #nono-absolute-pad,
+#nono-mobile-pad.nono-smart-minimap-mode #nono-absolute-pad{
+ left:clamp(var(--nono-smart-gutter,111px),var(--nono-smart-x,21vw),
+  calc(100vw - var(--nono-smart-gutter,111px)))!important;
+ top:clamp(var(--nono-smart-gutter,111px),var(--nono-smart-y,83dvh),
+  calc(100dvh - var(--nono-smart-gutter,111px) - 48px))!important;
+}
+#nono-smart-edge-rail .nono-smart-edge-key{
+ display:block!important;box-sizing:border-box!important;
+ position:absolute!important;z-index:1!important;
+ padding:0!important;margin:0!important;
+ background:linear-gradient(145deg,#284966e8,#19334fe8)!important;
+ border:1px solid #93c5e2ad!important;border-radius:10px!important;
+ box-shadow:0 3px 11px #05132788,inset 0 1px #ffffff18!important;
+ color:#d7f5ff!important;font:800 15px/1 system-ui,sans-serif!important;
+ cursor:pointer!important;touch-action:none!important;
+ pointer-events:auto!important;opacity:var(--nono-pad-opacity,.8)!important;
+ -webkit-user-select:none!important;user-select:none!important;
+}
+#nono-smart-edge-rail .nono-smart-edge-key:active{
+ background:#62a5c5!important;color:#071b2c!important;
+}
+#nono-smart-edge-rail .nono-smart-edge-up{
+ left:27px!important;top:0!important;width:152px!important;height:22px!important;
+}
+#nono-smart-edge-rail .nono-smart-edge-down{
+ left:27px!important;bottom:0!important;width:152px!important;height:22px!important;
+}
+#nono-smart-edge-rail .nono-smart-edge-left{
+ left:0!important;top:27px!important;width:22px!important;height:152px!important;
+}
+#nono-smart-edge-rail .nono-smart-edge-right{
+ right:0!important;top:27px!important;width:22px!important;height:152px!important;
+}
+/* These strips don't exist for the frameless hybrid or the other controllers. */
+#nono-mobile-pad.nono-smart-trackpad-mode.nono-pad-editing #nono-smart-edge-rail,
+#nono-mobile-pad.nono-smart-minimap-mode.nono-pad-editing #nono-smart-edge-rail{
+ display:none!important;
+}
