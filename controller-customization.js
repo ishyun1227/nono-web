@@ -378,13 +378,13 @@ function touchSettings(root){
  const intro=document.createElement('p');intro.className='nono-controller-intro';
  intro.textContent='모바일 화면의 방향 패드와 동작 버튼을 원하는 스타일로 조정할 수 있어요.';
  root.append(intro);
- addRow(root,'이동 방식','스마트 터치패드·축소판은 네모 밖에서 방향 버튼처럼 이동합니다. 혼합형은 첫 터치로 위치를 선택하고 네모 밖에서도 손가락 이동 거리만큼 움직입니다. 칠하기 중에만 행·열이 고정됩니다.',
+ addRow(root,'이동 방식','노트북형은 영역 밖에서도 손가락을 따라 움직입니다. 스마트 터치패드는 십자키 중앙 원으로 조작하고 실제 퍼즐판에 작은 구간을 표시합니다. 스마트 축소판은 네모 밖에서 방향 이동하며, 칠하기 중에만 행·열이 고정됩니다.',
   select([['fixed','고정 십자키'],['trackpad','노트북형 트랙패드'],['minimap','퍼즐 축소판 터치'],['smartTrackpad','스마트 터치패드'],['smartMinimap','스마트 축소판'],['smartHybrid','스마트 혼합형']],state.mode,v=>{setValue('mode',v);renderExtras()}));
  if(['smartTrackpad','smartMinimap'].includes(state.mode))
-  addRow(root,'스마트 구간 크기','작은 네모에서 보이는 퍼즐 칸 수입니다.',
+  addRow(root,'스마트 구간 크기','스마트 터치패드는 실제 퍼즐 위 테두리의 칸 수, 스마트 축소판은 조작부에 표시하는 칸 수입니다.',
    select([[8,'8×8'],[12,'12×12'],[16,'16×16'],[20,'20×20']].map(([v,l])=>[String(v),l]),String(state.smartWindowCells),v=>setValue('smartWindowCells',Number(v))));
  if(['smartTrackpad','smartMinimap'].includes(state.mode))
-  addRow(root,'구간 이동속도','네모 바깥의 길쭉한 방향 구역에서 이동하는 속도입니다. 기본 14칸/초.',
+  addRow(root,'구간 이동속도','중앙 원(스마트 터치패드)이나 네모(스마트 축소판) 바깥으로 끌었을 때 자동 이동하는 속도입니다. 기본 14칸/초.',
    rangeCount(6,30,2,state.smartPanSpeed,'칸/초',v=>setValue('smartPanSpeed',v)));
  if(['trackpad','smartTrackpad','smartHybrid'].includes(state.mode))
   addRow(root,'트랙패드 민감도','100%는 약 12px 움직일 때 한 칸. 200%는 더 빠르게, 50%는 더 세밀하게 움직입니다.',
