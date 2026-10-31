@@ -18,7 +18,7 @@ const legacy={heart5:'쉬움',cat10:'보통',rocket10:'어려움',
   vox_crabino_front:'보통',vox_crabino_side:'보통',vox_crabino_top:'보통'};
 const difficultyOf=p=>{const level=p.trialOnly?'미평가':(p.difficulty==='미평가'&&legacy[p.id]?legacy[p.id]:p.difficulty||legacy[p.id]);return difficulties.includes(level)?level:null;};
 const catalog=()=>typeof PUZZLES!=='undefined'?PUZZLES.filter(p=>p&&p.id&&!p.sizeTest&&Number.isInteger(p.size)&&difficultyOf(p)):[];
-const supportsMode=p=>mode()==='practice'||(!p.trialOnly&&p.size<30);
+const supportsMode=p=>mode()==='practice'||p.generated||(!p.trialOnly&&p.size<30);
 const inGroup=p=>p.size>=sizeGroups[state.group].min&&p.size<=sizeGroups[state.group].max;
 const eligible=p=>inGroup(p)&&difficultyOf(p)===state.level&&supportsMode(p);
 const state={group:0,level:'보통'};
@@ -67,12 +67,12 @@ function render(){
   sizeRow.replaceChildren();
   sizeGroups.forEach((g,i)=>{
     const exists=allowed.some(p=>p.size>=g.min&&p.size<=g.max);
-    sizeRow.append(makeButton(g.name,state.group===i,!exists&&mode()!=='practice',()=>{state.group=i;render();}));
+    sizeRow.append(makeButton(g.name,state.group===i,!exists&&mode()==='record',()=>{state.group=i;render();}));
   });
   difficultyRow.replaceChildren();
   difficulties.forEach(d=>{
     const available=allowed.some(p=>inGroup(p)&&difficultyOf(p)===d);
-    difficultyRow.append(makeButton(d,state.level===d,!available&&(mode()!=='practice'||d==='미평가'),()=>{state.level=d;render();}));
+    difficultyRow.append(makeButton(d,state.level===d,!available&&(mode()==='record'||d==='미평가'),()=>{state.level=d;render();}));
   });
   const choices=allowed.filter(eligible);
   const chosen=choices.find(p=>p.id===picker.value);
@@ -84,7 +84,7 @@ function render(){
     b.setAttribute('aria-label',(p.trialOnly?p.name:'퍼즐 '+number)+', '+(p.width||p.size)+'×'+(p.height||p.size));
     puzzleRow.append(b);
   });
-  if(mode()==='practice'&&state.level!=='미평가'){
+  if(mode()!=='record'&&state.level!=='미평가'){
     const make=makeButton('✦ 새 랜덤 퍼즐 생성',false,false,async()=>{
       if(!window.NONO_RANDOM_PUZZLES){toast('랜덤 생성기를 불러오지 못했어요.');return;}
       make.disabled=true;make.textContent='퍼즐 생성 중…';
@@ -99,16 +99,18 @@ function render(){
         option.value=generated.id;option.textContent=generated.name+' · '+generated.difficulty;
         picker.append(option);
         selectPuzzle(generated);render();
-        await startAlone();
+        if(mode()==='practice')await startAlone();
+        else await createRoom();
       }catch(error){console.error('랜덤 퍼즐 생성 실패',error);toast(error?.message||'퍼즐을 생성하지 못했어요.');render();}
     });
     make.classList.add('nono-apple-random-generate');
-    make.setAttribute('aria-label',sizeGroups[state.group].name+' 크기 '+state.level+' 난이도의 새 랜덤 퍼즐 생성');
+    make.setAttribute('aria-label',sizeGroups[state.group].name+' 크기 '+state.level+' 난이도의 새 랜덤 퍼즐 생성'+(mode()==='practice'?'':' 및 방 만들기'));
+    make.textContent=mode()==='practice'?'✦ 새 랜덤 퍼즐 생성':'✦ 랜덤 퍼즐로 방 만들기';
     puzzleRow.append(make);
   }
   if(!choices.length){
     const msg=document.createElement('p');msg.className='nono-apple-empty';
-    msg.textContent=mode()==='practice'&&state.level!=='미평가'?'등록된 퍼즐은 없어도 위 버튼으로 새 퍼즐을 만들 수 있어요.':'이 조건의 퍼즐은 아직 준비 중이에요.';
+    msg.textContent=mode()!=='record'&&state.level!=='미평가'?'등록된 퍼즐이 없어도 위 버튼으로 새 퍼즐을 만들 수 있어요.':'이 조건의 퍼즐은 아직 준비 중이에요.';
     puzzleRow.append(msg);
   }
   start.disabled=choices.length===0;
