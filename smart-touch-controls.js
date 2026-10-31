@@ -278,12 +278,12 @@ function moveAbsolute(a,event){
  selection(p.row,p.col,a.action,a);
 }
 function edgeDirection(a){
- if(!a||a.outside)return null;
+ if(!a||a.outside||a.mode==='smartHybrid')return null;
  const region=dragRegion(a.mode,a.lastX,a.lastY);
  return region===a.region?vectors[region]||null:null;
 }
 function edgeStep(){
- const a=gesture;if(!a||!live()||!modes.has(mode()))return;
+ const a=gesture;if(!a||!live()||!supported())return;
  const dir=edgeDirection(a);if(!dir){edgeLast=0;return;}
  const now=Date.now(),speed=bound(Number(settings().smartPanSpeed)||14,6,30);
  if(edgeLast&&now-edgeLast<1000/speed)return;
@@ -340,17 +340,29 @@ function begin(event,kind,element){
  }
  updateWindow();
  try{element.setPointerCapture(event.pointerId)}catch(_){}
- edgeLast=0;
- if(region!=='center')edgeStep();
- edgeTimer=setInterval(edgeStep,16);
+ // Hybrid never uses the outer directional strips or timed auto-repeat.
+ // Captured movement outside the miniature remains relative to finger travel.
+ if(kind!=='smartHybrid'){
+  edgeLast=0;
+  if(region!=='center')edgeStep();
+  edgeTimer=setInterval(edgeStep,16);
+ }
 }
 function move(event,kind){
  const a=gesture;
  if(!a||a.id!==event.pointerId||a.mode!==kind)return;
  if(!live()){stop();return;}
  event.preventDefault();
- // After a central drag reaches ANY outside region, move at the
- // configured rectangle-button repeat speed rather than finger distance.
+ if(kind==='smartHybrid'){
+  // Preserve the same delta-based trackpad behaviour both inside and outside
+  // the square. Pointer capture delivers the entire ongoing finger stroke.
+  // Painting retains its row/column lock, but navigation stays free in 2D.
+  a.outside=false;a.region='center';
+  moveRelative(a,event);
+  return;
+ }
+ // Only smart trackpad and smart miniature emulate directional strips
+ // after the touch leaves their square.
  const region=dragRegion(kind,event.clientX,event.clientY);
  if(!region){
   a.outside=true;a.region=null;a.lastX=event.clientX;a.lastY=event.clientY;
