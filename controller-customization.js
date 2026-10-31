@@ -431,7 +431,7 @@ function touchSettings(root){
  if(['smartTrackpad','smartMinimap'].includes(state.mode))
   addRow(root,'스마트 구간 크기','작은 네모에서 보이는 퍼즐 칸 수입니다.',
    select([[8,'8×8'],[12,'12×12'],[16,'16×16'],[20,'20×20']].map(([v,l])=>[String(v),l]),String(state.smartWindowCells),v=>setValue('smartWindowCells',Number(v))));
- if(['smartTrackpad','smartMinimap'].includes(state.mode))
+ if(['smartTrackpad','smartMinimap','smartHybrid'].includes(state.mode))
   addRow(root,'구간 이동속도','네모 바깥의 길쭉한 방향 구역에서 이동하는 속도입니다. 기본 14칸/초.',
    rangeCount(6,30,2,state.smartPanSpeed,'칸/초',v=>setValue('smartPanSpeed',v)));
  if(['trackpad','smartTrackpad','smartHybrid'].includes(state.mode))
