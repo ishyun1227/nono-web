@@ -11,6 +11,49 @@ function validSpec(value){
   return !!value&&Number.isInteger(value.size)&&value.size>=5&&value.size<=100&&
     LEVELS.includes(value.difficulty)&&Number.isInteger(value.seed)&&value.seed>=0&&value.seed<=4294967295;
 }
+// Small-board uniqueness is repaired constructively by adding crossing rails.
+// No alternative candidate board is generated, discarded or scored.
+const lineOptionsCache=new Map();
+function uniqueOnSmallBoard(mask,n){
+  if(n>10)return null; // Large-board uniqueness needs a dedicated scalable solver.
+  let options=lineOptionsCache.get(n);
+  if(!options){
+    options=new Map();
+    for(let bits=0;bits<1<<n;bits++){
+      const runs=clues(Array.from({length:n},(_,i)=>(bits>>i)&1)).join(',');
+      if(!options.has(runs))options.set(runs,[]);
+      options.get(runs).push(bits);
+    }
+    lineOptionsCache.set(n,options);
+  }
+  const row=Array.from({length:n},(_,r)=>options.get(clues(mask.slice(r*n,(r+1)*n)).join(','))||[]);
+  const col=Array.from({length:n},(_,c)=>options.get(clues(Array.from({length:n},(_,r)=>mask[r*n+c])).join(','))||[]);
+  let solutions=0;
+  function search(y,possible){
+    if(solutions>=2)return;
+    if(y===n){solutions++;return;}
+    for(const bits of row[y]){
+      const narrowed=possible.map((values,x)=>values.filter(candidate=>((candidate>>y)&1)===((bits>>x)&1)));
+      if(narrowed.every(values=>values.length))search(y+1,narrowed);
+      if(solutions>=2)return;
+    }
+  }
+  search(0,col);
+  return solutions===1;
+}
+function addClueAnchors(mask,n){
+  if(n>10)return;
+  if(uniqueOnSmallBoard(mask,n))return;
+  // Rails always intersect the original route composition, supplying
+  // strong starting deductions without generating replacement candidates.
+  const priorities=[0,n-1,Math.floor(n/2),...Array.from({length:n},(_,i)=>i)];
+  const seen=new Set();
+  for(const line of priorities){
+    if(seen.has(line))continue;seen.add(line);
+    for(let i=0;i<n;i++){mask[line*n+i]=1;mask[i*n+line]=1;}
+    if(uniqueOnSmallBoard(mask,n))return;
+  }
+}
 function design(spec){
   if(!validSpec(spec))throw Error('잘못된 랜덤 퍼즐 생성 정보입니다.');
   const {size:n,difficulty,seed}=spec,level=LEVELS.indexOf(difficulty),random=rng(seed),pi=Math.PI;
@@ -59,6 +102,7 @@ function design(spec){
     let has=false;for(let y=0;y<n;y++)if(mask[y*n+x]){has=true;break;}
     if(!has){const mid=Math.max(0,Math.min(n-1,Math.floor(centerH((x+.5)/n)*n)));mask[mid*n+x]=1;}
   }
+  addClueAnchors(mask,n);
   const rows=Array.from({length:n},(_,y)=>clues(mask.slice(y*n,(y+1)*n)));
   const cols=Array.from({length:n},(_,x)=>clues(Array.from({length:n},(_,y)=>mask[y*n+x])));
   return {rows,cols,mask:mask.join(''),size:n};
