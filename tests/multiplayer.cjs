@@ -140,6 +140,34 @@ async function main(){
   await assertFails(set(packedRun,{...packInitial,filled:wrongPacked,finishedAt:serverTimestamp()}));
   await assertSucceeds(set(packedRun,{...packInitial,filled:packedAnswer,finishedAt:serverTimestamp()}));
   console.log('PASS packed record completion with unchanged legacy run support');
+  // Seeded random puzzles: room participants share clues, while race finishes
+  // are validated against a write-once server-only answer (not a public mask).
+  const randomApi=require('../random-puzzles.js');
+  const randomSpec={version:1,size:10,seed:1987,difficulty:'보통'};
+  const generated=randomApi.fromSpec({...randomSpec,id:'random-rules-test-1'});
+  const generatedAnswer=randomApi.answerFor(generated);
+  const randomMeta={host:'alice',mode:'race',puzzleId:generated.id,size:generated.size,
+    status:'lobby',createdAt:serverTimestamp(),startedAt:0,format:2,randomSpec};
+  await assertSucceeds(set(ref(a,'rooms/RANDOM/meta'),randomMeta));
+  await join(a,'RANDOM','0','alice');await join(b,'RANDOM','1','bob');
+  const readRandomMeta=(await get(ref(b,'rooms/RANDOM/meta'))).val();
+  assert.deepEqual(randomApi.fromSpec({...readRandomMeta.randomSpec,id:readRandomMeta.puzzleId}).rows,generated.rows);
+  await assertFails(get(ref(a,'roomAnswers/RANDOM')));
+  await assertFails(get(ref(b,'roomAnswers/RANDOM')));
+  await assertFails(set(ref(b,'roomAnswers/RANDOM'),generatedAnswer));
+  const pendingRandom=(await get(ref(a,'rooms/RANDOM/meta'))).val();
+  await assertFails(set(ref(a,'rooms/RANDOM/meta'),{...pendingRandom,status:'playing',startedAt:serverTimestamp()}));
+  await assertSucceeds(set(ref(a,'roomAnswers/RANDOM'),generatedAnswer));
+  await assertFails(set(ref(a,'roomAnswers/RANDOM'),'0'.repeat(100)));
+  await assertFails(set(ref(b,'rooms/RANDOM/meta'),{...pendingRandom,status:'playing',startedAt:serverTimestamp()}));
+  await assertSucceeds(set(ref(a,'rooms/RANDOM/meta'),{...pendingRandom,status:'playing',startedAt:serverTimestamp()}));
+  const randomStartedAt=(await get(ref(a,'rooms/RANDOM/meta/startedAt'))).val();
+  await assertSucceeds(set(ref(a,'rooms/RANDOM/states/alice'),{startedAt:randomStartedAt,finishedAt:0}));
+  await assertFails(set(ref(a,'rooms/RANDOM/states/alice'),{
+    startedAt:randomStartedAt,finishedAt:serverTimestamp(),filled:'0'.repeat(100)}));
+  await assertSucceeds(set(ref(a,'rooms/RANDOM/states/alice'),{
+    startedAt:randomStartedAt,finishedAt:serverTimestamp(),filled:generatedAnswer}));
+  console.log('PASS generated random race: immutable seed, private answer, shared clues, validated finish');
  }finally{await env.cleanup();}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});
