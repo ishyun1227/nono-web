@@ -419,6 +419,26 @@ window.addEventListener('nono:languagechange',()=>{
  updateHybridLabel();updateEdgeLabels();updateWindow();
 });
 window.addEventListener('nono:puzzle-started',()=>updateHybridPreview(true));
+// Reflect keyboard, multiplayer and Undo/Redo changes in the miniature too.
+// Ignore selection-only class changes to avoid repainting on every cursor move.
+const boardRoot=document.getElementById('board');
+if(boardRoot&&typeof MutationObserver==='function'){
+ const observer=new MutationObserver(records=>{
+  if(mode()!=='smartHybrid')return;
+  const changed=records.some(record=>{
+   if(record.type==='childList')return true;
+   const previous=record.oldValue||'';
+   const current=record.target?.classList;
+   return /(?:^|\\s)(?:filled|cross)(?:\\s|$)/.test(previous)!==
+     !!(current?.contains('filled')||current?.contains('cross'))||
+     ((/(?:^|\\s)filled(?:\\s|$)/.test(previous))!==!!current?.contains('filled'))||
+     ((/(?:^|\\s)cross(?:\\s|$)/.test(previous))!==!!current?.contains('cross'));
+  });
+  if(changed)updateHybridPreview(true);
+ });
+ observer.observe(boardRoot,{subtree:true,childList:true,attributes:true,
+  attributeFilter:['class'],attributeOldValue:true});
+}
 window.addEventListener('blur',stop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 window.NONO_SMART_TOUCH={get viewport(){return viewport?{...viewport}:null},
