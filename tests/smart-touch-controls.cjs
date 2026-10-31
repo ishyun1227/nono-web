@@ -91,6 +91,18 @@ const start={...position};
 mini.fire('pointermove',...positionAt(.15,.2));
 assert.notEqual(position.row,start.row,'unheld miniature must move vertically');
 assert.notEqual(position.col,start.col,'unheld miniature must move horizontally');
+// Captured movement outside the miniature must NOT change position or scroll.
+const beforeOutside={...position},windowBeforeOutside={...window.NONO_SMART_TOUCH.viewport};
+mini.fire('pointermove',400,400);
+assert.equal(position.row,beforeOutside.row,'outside miniature must not move row');
+assert.equal(position.col,beforeOutside.col,'outside miniature must not move column');
+currentTime+=600;
+for(const tick of [...intervals.values()])tick();
+assert.equal(window.NONO_SMART_TOUCH.viewport.left,windowBeforeOutside.left,
+ 'holding beyond touch region must not pan window');
+mini.fire('pointermove',...positionAt(.15,.2));
+assert.equal(position.row,beforeOutside.row,'re-entry must not jump');
+assert.equal(position.col,beforeOutside.col,'re-entry must not jump');
 mini.fire('pointermove',...positionAt(.99,.6));
 const before=window.NONO_SMART_TOUCH.viewport.left;
 currentTime+=450;
@@ -100,9 +112,17 @@ mini.fire('pointerup',...positionAt(.99,.6));
 // The trackpad moves freely on both axes without an action button.
 change('smartTrackpad');position.row=20;position.col=20;
 mini.fire('pointerdown',70,70);
+assert.equal(position.row,20,'trackpad first touch must not teleport vertically');
+assert.equal(position.col,20,'trackpad first touch must not teleport horizontally');
 mini.fire('pointermove',95,95);
 assert.ok(position.row>20&&position.col>20,'free trackpad drag should move diagonally');
-mini.fire('pointerup',95,95);
+const insidePos={...position};
+mini.fire('pointermove',400,400);
+assert.equal(position.row,insidePos.row,'outside trackpad cannot move vertically');
+assert.equal(position.col,insidePos.col,'outside trackpad cannot move horizontally');
+mini.fire('pointermove',100,100);
+assert.equal(position.col,insidePos.col,'trackpad return must not bank outside distance');
+mini.fire('pointerup',100,100);
 // The hybrid has no miniature: touch starts at absolute full-board position,
 // subsequent drag changes the position relatively.
 change('smartHybrid');
@@ -111,7 +131,14 @@ assert.equal(position.row,0);
 assert.equal(position.col,52);
 zone.fire('pointermove',135,27);
 assert.ok(position.row>0&&position.col<52);
-zone.fire('pointerup',135,27);
+const hybridInside={...position};
+zone.fire('pointermove',500,500);
+assert.equal(position.row,hybridInside.row,'hybrid must stop outside region');
+assert.equal(position.col,hybridInside.col,'hybrid must stop outside region');
+zone.fire('pointermove',130,30);
+assert.equal(position.row,hybridInside.row,'hybrid must not jump on re-entry');
+assert.equal(position.col,hybridInside.col,'hybrid must not jump on re-entry');
+zone.fire('pointerup',130,30);
 // Only actively held editing locks the axis; releasing unlocks immediately.
 change('smartTrackpad');position.row=30;position.col=30;held.fill=true;
 mini.fire('pointerdown',60,60);
@@ -119,6 +146,14 @@ mini.fire('pointermove',90,68);
 assert.equal(position.row,30);
 assert.ok(position.col>30);
 assert.ok(painted.length>0,'held editing must paint');
+const beforePaintOutside={...position},paintedBeforeOutside=painted.length;
+mini.fire('pointermove',500,500);
+assert.equal(position.row,beforePaintOutside.row,'paint cursor cannot leave touch zone');
+assert.equal(position.col,beforePaintOutside.col,'paint cursor cannot leave touch zone');
+currentTime+=600;
+for(const tick of [...intervals.values()])tick();
+assert.equal(painted.length,paintedBeforeOutside,'outside edge hold cannot paint');
+mini.fire('pointermove',90,68);
 const previous={...position};
 held.fill=false;
 mini.fire('pointermove',102,88);
@@ -126,4 +161,4 @@ assert.ok(position.row>previous.row&&position.col>previous.col,
  'releasing edit must immediately restore free movement');
 mini.fire('pointerup',102,88);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
-console.log('SMART_TOUCH_PASS: sliding window, free diagonal, action lock, frameless hybrid');
+console.log('SMART_TOUCH_PASS: distinct tap vs relative movement; outside bounds; re-entry; edge pan; paint lock; hybrid');
