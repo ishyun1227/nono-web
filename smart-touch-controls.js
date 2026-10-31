@@ -27,6 +27,29 @@ const grid=document.createElement('div');
 grid.className='nono-smart-window-grid';
 grid.setAttribute('aria-hidden','true');
 mini.prepend(grid);
+// The ordinary miniature shows the player's FULL board progress, never answers.
+const regularCanvas=document.createElement('canvas');
+regularCanvas.className='nono-mini-progress-preview';
+regularCanvas.width=152;regularCanvas.height=152;
+regularCanvas.setAttribute('aria-hidden','true');
+mini.prepend(regularCanvas);
+let regularDirty=true,regularPending=false,regularWidth=0,regularHeight=0;
+function updateRegularMiniPreview(force=false){
+ if(mode()!=='minimap')return;
+ if(force)regularDirty=true;
+ if(regularPending)return;
+ regularPending=true;requestAnimationFrame(drawRegularMiniPreview);
+}
+function drawRegularMiniPreview(){
+ regularPending=false;
+ if(mode()!=='minimap')return;
+ const d=nav()?.dimensions;
+ if(!d?.width||!d.height)return;
+ if(!regularDirty&&regularWidth===d.width&&regularHeight===d.height)return;
+ const ctx=regularCanvas.getContext?.('2d');if(!ctx)return;
+ regularDirty=false;regularWidth=d.width;regularHeight=d.height;
+ drawProgressPreview(ctx,d,152,152);
+}
 // The hybrid's square is a miniature of the FULL puzzle (not the answer).
 // Its first touch is absolute; continued movement uses trackpad deltas.
 const hybridCanvas=document.createElement('canvas');
@@ -38,25 +61,7 @@ hybridCursor.className='nono-hybrid-cursor';
 hybridCursor.setAttribute('aria-hidden','true');
 zone.prepend(hybridCanvas,hybridCursor);
 let hybridDrawPending=false,hybridPaintDirty=true,hybridPreviewWidth=0,hybridPreviewHeight=0;
-function drawHybridPreview(){
- hybridDrawPending=false;
- if(mode()!=='smartHybrid')return;
- const d=nav()?.dimensions;
- if(!d||!d.width||!d.height)return;
- const canvasWidth=152,canvasHeight=152;
- if(hybridCanvas.width!==canvasWidth||hybridCanvas.height!==canvasHeight){
-  hybridCanvas.width=canvasWidth;hybridCanvas.height=canvasHeight;
-  hybridPaintDirty=true;
- }
- const ctx=hybridCanvas.getContext?.('2d');
- if(!ctx)return;
- const p=nav()?.position;
- if(p){
-  hybridCursor.style.left=((p.col+.5)/d.width*100)+'%';
-  hybridCursor.style.top=((p.row+.5)/d.height*100)+'%';
- }
- if(!hybridPaintDirty&&hybridPreviewWidth===d.width&&hybridPreviewHeight===d.height)return;
- hybridPaintDirty=false;hybridPreviewWidth=d.width;hybridPreviewHeight=d.height;
+function drawProgressPreview(ctx,d,canvasWidth,canvasHeight){
  ctx.clearRect(0,0,canvasWidth,canvasHeight);
  ctx.fillStyle='#203850';ctx.fillRect(0,0,canvasWidth,canvasHeight);
  const cells=document.querySelector('#board .cells')?.children;
@@ -83,6 +88,27 @@ function drawHybridPreview(){
   const y=Math.round(row*ch)+.25;ctx.moveTo(0,y);ctx.lineTo(canvasWidth,y);
  }
  ctx.stroke();
+}
+function drawHybridPreview(){
+ hybridDrawPending=false;
+ if(mode()!=='smartHybrid')return;
+ const d=nav()?.dimensions;
+ if(!d||!d.width||!d.height)return;
+ const canvasWidth=152,canvasHeight=152;
+ if(hybridCanvas.width!==canvasWidth||hybridCanvas.height!==canvasHeight){
+  hybridCanvas.width=canvasWidth;hybridCanvas.height=canvasHeight;
+  hybridPaintDirty=true;
+ }
+ const ctx=hybridCanvas.getContext?.('2d');
+ if(!ctx)return;
+ const p=nav()?.position;
+ if(p){
+  hybridCursor.style.left=((p.col+.5)/d.width*100)+'%';
+  hybridCursor.style.top=((p.row+.5)/d.height*100)+'%';
+ }
+ if(!hybridPaintDirty&&hybridPreviewWidth===d.width&&hybridPreviewHeight===d.height)return;
+ hybridPaintDirty=false;hybridPreviewWidth=d.width;hybridPreviewHeight=d.height;
+ drawProgressPreview(ctx,d,canvasWidth,canvasHeight);
 }
 function updateHybridPreview(force=false){
  if(mode()!=='smartHybrid')return;
@@ -329,6 +355,7 @@ function begin(event,kind,element){
  if(!p)return;
  const a={id:event.pointerId,mode:kind,element,startedAt:Date.now(),
   lastX:event.clientX,lastY:event.clientY,outside:false,region,
+  directEdge:element!==mini&&element!==zone,
   originX:event.clientX,originY:event.clientY,
   residualX:0,residualY:0,axis:null,action,anchor:{...p},
   stroke:action?nav()?.beginStroke?.()??null:null};
@@ -345,7 +372,8 @@ function begin(event,kind,element){
  if(kind!=='smartHybrid'){
   edgeLast=0;
   if(region!=='center')edgeStep();
-  edgeTimer=setInterval(edgeStep,16);
+  // Direct strip presses are a SINGLE D-pad step, with no hold-repeat.
+  if(!a.directEdge)edgeTimer=setInterval(edgeStep,16);
  }
 }
 function move(event,kind){
@@ -353,6 +381,7 @@ function move(event,kind){
  if(!a||a.id!==event.pointerId||a.mode!==kind)return;
  if(!live()){stop();return;}
  event.preventDefault();
+ if(a.directEdge)return; // no movement after initial direct press
  if(kind==='smartHybrid'){
   // Preserve the same delta-based trackpad behaviour both inside and outside
   // the square. Pointer capture delivers the entire ongoing finger stroke.
@@ -430,6 +459,9 @@ let currentMode=null;
 function sync(){
  updateHybridLabel();updateEdgeLabels();
  if(currentMode!==mode()){stop();currentMode=mode();}
+ if(mode()==='minimap'){
+  stop();viewport=null;updateRegularMiniPreview(true);return;
+ }
  if(!modes.has(mode())){stop();viewport=null;return;}
  if(mode()==='smartHybrid'){
   viewport=null;hybridPaintDirty=true;updateHybridPreview(true);return;
@@ -442,14 +474,17 @@ window.addEventListener('nono:touch-cursor',()=>{if(modes.has(mode()))updateWind
 window.addEventListener('resize',()=>{if(supported())updateWindow()});
 window.addEventListener('nono:languagechange',()=>{
  updateHybridLabel();updateEdgeLabels();updateWindow();
+ updateRegularMiniPreview();
 });
-window.addEventListener('nono:puzzle-started',()=>updateHybridPreview(true));
+window.addEventListener('nono:puzzle-started',()=>{
+ updateHybridPreview(true);updateRegularMiniPreview(true);
+});
 // Reflect keyboard, multiplayer and Undo/Redo changes in the miniature too.
 // Ignore selection-only class changes to avoid repainting on every cursor move.
 const boardRoot=document.getElementById('board');
 if(boardRoot&&typeof MutationObserver==='function'){
  const observer=new MutationObserver(records=>{
-  if(mode()!=='smartHybrid')return;
+  if(mode()!=='smartHybrid'&&mode()!=='minimap')return;
   const changed=records.some(record=>{
    if(record.type==='childList')return true;
    const previous=(record.oldValue||'').split(/\s+/);
@@ -457,9 +492,11 @@ if(boardRoot&&typeof MutationObserver==='function'){
    return previous.includes('filled')!==!!current?.contains('filled')||
      previous.includes('cross')!==!!current?.contains('cross');
   });
-  if(changed)updateHybridPreview(true);
-  else if(records.some(record=>record.type==='attributes'))
-   updateHybridPreview(false); // cursor changed without painting
+  if(changed){
+   updateHybridPreview(true);updateRegularMiniPreview(true);
+  }else if(records.some(record=>record.type==='attributes')){
+   updateHybridPreview(false);updateRegularMiniPreview(false);
+  }
  });
  observer.observe(boardRoot,{subtree:true,childList:true,attributes:true,
   attributeFilter:['class'],attributeOldValue:true});
