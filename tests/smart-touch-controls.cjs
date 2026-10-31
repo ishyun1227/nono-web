@@ -21,8 +21,9 @@ class Element {
  prepend(...items){this.children.unshift(...items)}
  append(x){this.children.push(x)}
  getContext(){
-  return {fillStyle:'',strokeStyle:'',lineWidth:1,draws:0,
+  if(!this.context)this.context={fillStyle:'',strokeStyle:'',lineWidth:1,draws:0,
    clearRect(){},fillRect(){this.draws++},beginPath(){},moveTo(){},lineTo(){},stroke(){}};
+  return this.context;
  }
  replaceChildren(fragment){this.children=fragment.nodes??[]}
  getBoundingClientRect(){
@@ -102,7 +103,18 @@ const change=next=>{
  settings.mode=next;
  for(const cb of callbacks['nono:smart-controls-change']??[])cb();
 };
-// The miniature selects coordinates in a 12x12 window, not the entire board.
+// Ordinary miniature draws the whole puzzle's current progress, not the answer.
+change('minimap');
+const progress=mini.children.find(el=>el.className==='nono-mini-progress-preview');
+assert.ok(progress,'classic miniature must have a progress canvas');
+assert.equal(progress.width,152);
+assert.equal(progress.height,152);
+const initialRects=progress.getContext().draws;
+cells.children[20*53+20].classList.add('filled');
+change('minimap');
+assert.ok(progress.getContext().draws>initialRects,'classic miniature redraws user-filled cells');
+change('smartMinimap');
+// The smart miniature selects coordinates in a 12x12 window, not the entire board.
 assert.equal(window.NONO_SMART_TOUCH.viewport.cols,12);
 assert.equal(window.NONO_SMART_TOUCH.viewport.rows,12);
 mini.fire('pointerdown',...positionAt(.6,.6));
@@ -163,14 +175,20 @@ settings.smartPanSpeed=6;
 position.row=20;position.col=20;change('smartTrackpad');
 edges.right.fire('pointerdown',178,86);
 const slowStart=position.col;
-currentTime+=80;for(const tick of [...intervals.values()])tick();
-assert.equal(position.col,slowStart,'6 cells/sec: no repeat before 167 ms');
-edges.right.fire('pointerup',178,86);
+currentTime+=500;for(const tick of [...intervals.values()])tick();
+assert.equal(position.col,slowStart,'holding the direct right button must NOT repeat');
+edges.right.fire('pointermove',210,86);
+assert.equal(position.col,slowStart,'dragging from the pressed button cannot add steps');
+edges.right.fire('pointerup',210,86);
 settings.smartPanSpeed=30;
 edges.right.fire('pointerdown',178,86);
 const fastStart=position.col;
-currentTime+=40;for(const tick of [...intervals.values()])tick();
-assert.equal(position.col,fastStart+1,'30 cells/sec: repeat after 40 ms');
+currentTime+=500;for(const tick of [...intervals.values()])tick();
+assert.equal(position.col,fastStart,'direct button remains one step even at fast speed');
+edges.right.fire('pointerup',178,86);
+// A new physical press gives exactly one more step.
+edges.right.fire('pointerdown',178,86);
+assert.equal(position.col,fastStart+1,'next button press moves exactly one cell');
 edges.right.fire('pointerup',178,86);
 settings.smartPanSpeed=14;
 // The trackpad moves freely on both axes without an action button.
@@ -251,4 +269,4 @@ assert.ok(position.row>previous.row&&position.col>previous.col,
  'releasing edit must immediately restore free movement');
 mini.fire('pointerup',102,88);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
-console.log('SMART_TOUCH_PASS: two smart modes auto-pan outside, hybrid stays relative outside, no auto-repeat, speed and paint lock');
+console.log('SMART_TOUCH_PASS: classic miniature progress, smart arrows one step per press, drag-out auto pan, hybrid relative, paint axis lock');
