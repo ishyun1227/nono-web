@@ -428,6 +428,28 @@ const {pathToFileURL}=require('node:url');
      miniResult.afterRelease.col!==0||miniResult.mode!=='minimap')
     throw Error('Miniature free navigation or action-only paint lock failed: '+JSON.stringify(miniResult));
   console.log('Trackpad sizing and free miniature navigation versus locked editing passed.');
+  // The ordinary miniature must show the CURRENT user-painted board.
+  const ordinaryPreview=await mobile.evaluate(async()=>{
+   const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
+   api.set('mode','minimap');
+   const d=nav.dimensions,row=21,col=23;
+   board[row*d.width+col]='1';render();
+   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+   const canvas=document.querySelector('#nono-absolute-pad .nono-mini-progress-preview');
+   const style=getComputedStyle(canvas);
+   const ctx=canvas.getContext('2d');
+   const x=Math.floor((col+.5)*canvas.width/d.width),
+         y=Math.floor((row+.5)*canvas.height/d.height);
+   const pixel=Array.from(ctx.getImageData(x,y,1,1).data);
+   return {visible:style.display!=='none',width:canvas.width,height:canvas.height,pixel};
+  });
+  if(!ordinaryPreview.visible||ordinaryPreview.width!==152||ordinaryPreview.height!==152||
+    Math.abs(ordinaryPreview.pixel[0]-162)>5||
+    Math.abs(ordinaryPreview.pixel[1]-232)>5||
+    Math.abs(ordinaryPreview.pixel[2]-219)>5)
+   throw Error('Ordinary miniature did not display painted puzzle progress: '+JSON.stringify(ordinaryPreview));
+  console.log('Ordinary miniature shows live filled-cell puzzle progress, not solution.');
+
   // Pointer capture previously kept touch gestures alive when the finger had
   // left the visible input region. Test every navigation surface on mobile.
   const boundsResults=await mobile.evaluate(async()=>{
@@ -437,7 +459,7 @@ const {pathToFileURL}=require('node:url');
    for(let i=0;i<modes.length;i++){
     const mode=modes[i];api.set('mode',mode);nav.select(20,20);
     const el=document.getElementById(
-     ['floating','trackpad','smartHybrid'].includes(mode)?'nono-floating-zone':'nono-absolute-pad');
+     ['trackpad','smartHybrid'].includes(mode)?'nono-floating-zone':'nono-absolute-pad');
     const r=el.getBoundingClientRect();
     const x=r.left+r.width*.8,y=r.top+r.height*.2;
     const init={pointerType:'touch',pointerId:2100+i,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
@@ -549,7 +571,7 @@ const {pathToFileURL}=require('node:url');
   console.log('Hybrid absolute first touch, relative movement outside on both axes and no hold-repeat passed.');
   // Each visible smart strip must touch the side of the small square while
   // remaining onscreen, work when pressed directly and persist speed changes.
-  const smartEdges=await mobile.evaluate(()=>{
+  const smartEdges=await mobile.evaluate(async()=>{
    const control=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
    control.set('mode','smartMinimap');
    control.set('size',100);control.set('smartPanSpeed',22);
@@ -566,11 +588,13 @@ const {pathToFileURL}=require('node:url');
     const base={pointerType:'touch',pointerId:id,isPrimary:true,button:0,buttons:1,bubbles:true,cancelable:true};
     button.dispatchEvent(new PointerEvent('pointerdown',{...base,clientX:x,clientY:y}));
     const selected={...nav.position};
+    await new Promise(resolve=>setTimeout(resolve,230));
+    const held={...nav.position};
     button.dispatchEvent(new PointerEvent('pointermove',{...base,clientX:x+3,clientY:y+3}));
     const moved={...nav.position};
     button.dispatchEvent(new PointerEvent('pointerup',{...base,clientX:x,clientY:y,buttons:0}));
     slots[dir]={r:{left:r.left,top:r.top,right:r.right,bottom:r.bottom},
-     start,selected,moved,delta};
+     start,selected,held,moved,delta};
    }
    const s=window.NONO_INPUT_CUSTOM.settings;
    const persisted=JSON.parse(localStorage.getItem('nono-input-settings-v1'));
@@ -582,6 +606,7 @@ const {pathToFileURL}=require('node:url');
   for(const [dir,slot] of Object.entries(smartEdges.slots)){
    if(slot.selected.row!==slot.start.row+slot.delta[0]||
       slot.selected.col!==slot.start.col+slot.delta[1]||
+      slot.held.row!==slot.selected.row||slot.held.col!==slot.selected.col||
       slot.moved.row!==slot.selected.row||slot.moved.col!==slot.selected.col)
     throw Error('Smart strip movement failed '+dir+': '+JSON.stringify(slot));
    const r=slot.r;
