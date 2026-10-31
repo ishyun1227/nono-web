@@ -67,12 +67,12 @@ function render(){
   sizeRow.replaceChildren();
   sizeGroups.forEach((g,i)=>{
     const exists=allowed.some(p=>p.size>=g.min&&p.size<=g.max);
-    sizeRow.append(makeButton(g.name,state.group===i,!exists,()=>{state.group=i;render();}));
+    sizeRow.append(makeButton(g.name,state.group===i,!exists&&mode()!=='practice',()=>{state.group=i;render();}));
   });
   difficultyRow.replaceChildren();
   difficulties.forEach(d=>{
     const available=allowed.some(p=>inGroup(p)&&difficultyOf(p)===d);
-    difficultyRow.append(makeButton(d,state.level===d,!available,()=>{state.level=d;render();}));
+    difficultyRow.append(makeButton(d,state.level===d,!available&&(mode()!=='practice'||d==='미평가'),()=>{state.level=d;render();}));
   });
   const choices=allowed.filter(eligible);
   const chosen=choices.find(p=>p.id===picker.value);
@@ -80,13 +80,35 @@ function render(){
   puzzleRow.replaceChildren();
   choices.forEach((p,i)=>{
     const number=String(i+1).padStart(2,'0');
-    const b=makeButton(p.trialOnly?p.name:number,picker.value===p.id,false,()=>{selectPuzzle(p);render();});
+    const b=makeButton(p.generated?'✦ '+p.name:p.trialOnly?p.name:number,picker.value===p.id,false,()=>{selectPuzzle(p);render();});
     b.setAttribute('aria-label',(p.trialOnly?p.name:'퍼즐 '+number)+', '+(p.width||p.size)+'×'+(p.height||p.size));
     puzzleRow.append(b);
   });
+  if(mode()==='practice'&&state.level!=='미평가'){
+    const make=makeButton('✦ 새 랜덤 퍼즐 생성',false,false,async()=>{
+      if(!window.NONO_RANDOM_PUZZLES){toast('랜덤 생성기를 불러오지 못했어요.');return;}
+      make.disabled=true;make.textContent='퍼즐 생성 중…';
+      // Give the button one frame to show the busy state before CPU-bound generation.
+      await new Promise(resolve=>requestAnimationFrame(resolve));
+      try{
+        const groups=[[5,10],[15,20],[25,30],[50,75,100]];
+        const sizes=groups[state.group],size=sizes[Math.floor(Math.random()*sizes.length)];
+        const generated=window.NONO_RANDOM_PUZZLES.generate({size,difficulty:state.level});
+        PUZZLES.push(generated);
+        const option=document.createElement('option');
+        option.value=generated.id;option.textContent=generated.name+' · '+generated.difficulty;
+        picker.append(option);
+        selectPuzzle(generated);render();
+        await startAlone();
+      }catch(error){console.error('랜덤 퍼즐 생성 실패',error);toast(error?.message||'퍼즐을 생성하지 못했어요.');render();}
+    });
+    make.classList.add('nono-apple-random-generate');
+    make.setAttribute('aria-label',sizeGroups[state.group].name+' 크기 '+state.level+' 난이도의 새 랜덤 퍼즐 생성');
+    puzzleRow.append(make);
+  }
   if(!choices.length){
     const msg=document.createElement('p');msg.className='nono-apple-empty';
-    msg.textContent='이 조건의 퍼즐은 아직 준비 중이에요.';
+    msg.textContent=mode()==='practice'&&state.level!=='미평가'?'등록된 퍼즐은 없어도 위 버튼으로 새 퍼즐을 만들 수 있어요.':'이 조건의 퍼즐은 아직 준비 중이에요.';
     puzzleRow.append(msg);
   }
   start.disabled=choices.length===0;
