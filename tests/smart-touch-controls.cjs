@@ -214,6 +214,11 @@ assert.equal(boardWindow.style.top,'170px');
 assert.equal(boardWindow.style.width,'120px');
 assert.equal(boardWindow.style.height,'120px');
 assert.equal(window.NONO_SMART_TOUCH.crossCenter,crossCenter);
+// The real puzzle outline follows selections from other input sources too.
+nav.select(22,30);
+window.NONO_SMART_TOUCH.refresh();
+assert.equal(boardWindow.style.left,'210px','on-board window follows native D-pad selection');
+nav.select(20,20);window.NONO_SMART_TOUCH.refresh();
 crossCenter.fire('pointerdown',70,70);
 assert.equal(position.row,20,'central circle first touch must not teleport vertically');
 assert.equal(position.col,20,'central circle first touch must not teleport horizontally');
