@@ -18,8 +18,12 @@ class Element {
  }
  addEventListener(n,fn){(this.listeners[n]??=[]).push(fn)}
  setAttribute(){}
- prepend(x){this.children.unshift(x)}
+ prepend(...items){this.children.unshift(...items)}
  append(x){this.children.push(x)}
+ getContext(){
+  return {fillStyle:'',strokeStyle:'',lineWidth:1,draws:0,
+   clearRect(){},fillRect(){this.draws++},beginPath(){},moveTo(){},lineTo(){},stroke(){}};
+ }
  replaceChildren(fragment){this.children=fragment.nodes??[]}
  getBoundingClientRect(){
   const strip=this.dataset.nonoSmartEdge;
@@ -83,10 +87,11 @@ const window={
 };
 let currentTime=1000,timerId=0;
 const intervals=new Map();
-new Function('document','window','matchMedia','setInterval','clearInterval','Date',source)(
+new Function('document','window','matchMedia','setInterval','clearInterval','Date','requestAnimationFrame',source)(
  document,window,()=>({matches:true}),
  fn=>{intervals.set(++timerId,fn);return timerId},
- id=>intervals.delete(id),{now:()=>currentTime}
+ id=>intervals.delete(id),{now:()=>currentTime},
+ fn=>{fn();return 1}
 );
 const positionAt=(x,y)=>[10+152*x,10+152*y];
 const rail=pad.children.find(child=>child.id==='nono-smart-edge-rail');
@@ -179,22 +184,36 @@ assert.equal(position.col,insidePos.col,'outside trackpad cannot move horizontal
 mini.fire('pointermove',100,100);
 assert.equal(position.col,insidePos.col,'trackpad return must not bank outside distance');
 mini.fire('pointerup',100,100);
-// The hybrid has no miniature: touch starts at absolute full-board position,
-// subsequent drag changes the position relatively.
+// Hybrid square displays the FULL puzzle miniature. It selects absolutely on
+// the first touch, then keeps relative motion under pointer capture outside.
+position.row=10;position.col=10;
 change('smartHybrid');
-zone.fire('pointerdown',160,13);
-assert.equal(position.row,0);
-assert.equal(position.col,52);
-zone.fire('pointermove',135,27);
-assert.ok(position.row>0&&position.col<52);
-const hybridInside={...position};
-zone.fire('pointermove',500,500);
-assert.equal(position.row,hybridInside.row,'hybrid must stop outside region');
-assert.equal(position.col,hybridInside.col,'hybrid must stop outside region');
-zone.fire('pointermove',130,30);
-assert.equal(position.row,hybridInside.row,'hybrid must not jump on re-entry');
-assert.equal(position.col,hybridInside.col,'hybrid must not jump on re-entry');
-zone.fire('pointerup',130,30);
+assert.equal(window.NONO_SMART_TOUCH.viewport,null,'hybrid uses full-puzzle miniature, not a sliding subsection');
+const preview=zone.children.find(el=>el.className==='nono-hybrid-preview');
+const marker=zone.children.find(el=>el.className==='nono-hybrid-cursor');
+assert.ok(preview,'hybrid requires its own miniature drawing canvas');
+assert.ok(marker,'hybrid requires a position marker');
+assert.equal(preview.width,152);
+assert.equal(preview.height,152);
+zone.fire('pointerdown',100,100);
+assert.equal(position.row,43,'first touch must jump to the absolute miniature row');
+assert.equal(position.col,31,'first touch must jump to the absolute miniature column');
+const first={...position};
+zone.fire('pointermove',130,115);
+assert.ok(position.row>first.row&&position.col>first.col,'inside drag must move relatively');
+const insidePosition={...position};
+zone.fire('pointermove',180,140);
+assert.ok(position.row>insidePosition.row,'hybrid must keep moving beyond touch square');
+assert.ok(position.col>insidePosition.col,'hybrid must keep moving horizontally beyond square');
+const outsidePosition={...position};
+zone.fire('pointermove',210,155);
+assert.ok(position.row>outsidePosition.row,'hybrid must keep moving while still outside square');
+assert.ok(position.col>outsidePosition.col,'hybrid must keep moving horizontally while outside');
+assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'center');
+zone.fire('pointerup',210,155);
+assert.equal(window.NONO_SMART_TOUCH.active,false);
+zone.fire('pointermove',260,200);
+assert.equal(window.NONO_SMART_TOUCH.active,false,'lifting finger ends continuous outside movement');
 // Only actively held editing locks the axis; releasing unlocks immediately.
 change('smartTrackpad');position.row=30;position.col=30;held.fill=true;
 mini.fire('pointerdown',60,60);
@@ -217,4 +236,4 @@ assert.ok(position.row>previous.row&&position.col>previous.col,
  'releasing edit must immediately restore free movement');
 mini.fire('pointerup',102,88);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
-console.log('SMART_TOUCH_PASS: four outer strips, continuous hold, speed setting, separate cursor modes, safe bounds, paint lock');
+console.log('SMART_TOUCH_PASS: four scroll strips, hybrid full puzzle miniature, absolute first touch, outside relative drag, paint lock');
