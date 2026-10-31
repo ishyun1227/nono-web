@@ -423,7 +423,7 @@
  color:#c7f4e9ba;font-size:26px;font-weight:400;pointer-events:none;
 }
 #nono-mobile-pad.nono-smart-hybrid-mode #nono-floating-zone::after{
- content:"첫 터치 위치 선택 · 드래그 이동"!important;
+ content:attr(data-smart-hybrid-text)!important;
  position:absolute!important;left:50%!important;top:70%!important;
  transform:translate(-50%,-50%)!important;
  white-space:nowrap!important;color:#d3ebf8!important;
