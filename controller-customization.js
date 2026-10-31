@@ -413,8 +413,9 @@ function rangeCount(min,max,step,value,unit,after){
  const wrap=document.createElement('div');wrap.className='nono-controller-range';
  const slider=document.createElement('input');slider.type='range';
  slider.min=min;slider.max=max;slider.step=step;slider.value=value;
- const out=document.createElement('output');out.textContent=value+unit;
- slider.addEventListener('input',()=>{out.textContent=slider.value+unit;after(Number(slider.value))});
+ const suffix=window.NONO_I18N?.translate?.(unit)||unit;
+ const out=document.createElement('output');out.textContent=value+suffix;
+ slider.addEventListener('input',()=>{out.textContent=slider.value+suffix;after(Number(slider.value))});
  wrap.append(slider,out);return wrap;
 }
 function check(value,after){
