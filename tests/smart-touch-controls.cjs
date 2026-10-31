@@ -19,8 +19,18 @@ class Element {
  addEventListener(n,fn){(this.listeners[n]??=[]).push(fn)}
  setAttribute(){}
  prepend(x){this.children.unshift(x)}
+ append(x){this.children.push(x)}
  replaceChildren(fragment){this.children=fragment.nodes??[]}
- getBoundingClientRect(){return this.rect}
+ getBoundingClientRect(){
+  const strip=this.dataset.nonoSmartEdge;
+  const boxes={
+   up:{left:10,top:-17,right:162,bottom:5,width:152,height:22},
+   down:{left:10,top:167,right:162,bottom:189,width:152,height:22},
+   left:{left:-17,top:10,right:5,bottom:162,width:22,height:152},
+   right:{left:167,top:10,right:189,bottom:162,width:22,height:152}
+  };
+  return boxes[strip]||this.rect;
+ }
  fire(type,x,y){
   const event={pointerId:1,button:0,clientX:x,clientY:y,preventDefault(){}};
   for(const fn of this.listeners[type]??[])fn(event);
@@ -65,7 +75,7 @@ const document={
  addEventListener(){}
 };
 const callbacks={};
-const settings={mode:'smartMinimap',smartWindowCells:12,trackpadSensitivity:100};
+const settings={mode:'smartMinimap',smartWindowCells:12,trackpadSensitivity:100,smartPanSpeed:14};
 const window={
  NONO_TOUCH_CURSOR:nav,
  NONO_INPUT_CUSTOM:{get settings(){return {...settings}}},
@@ -79,6 +89,10 @@ new Function('document','window','matchMedia','setInterval','clearInterval','Dat
  id=>intervals.delete(id),{now:()=>currentTime}
 );
 const positionAt=(x,y)=>[10+152*x,10+152*y];
+const rail=pad.children.find(child=>child.id==='nono-smart-edge-rail');
+assert.ok(rail,'smart mode needs four visible outer strips');
+const edges=Object.fromEntries(rail.children.map(el=>[el.dataset.nonoSmartEdge,el]));
+assert.deepEqual(Object.keys(edges).sort(),['down','left','right','up']);
 const change=next=>{
  settings.mode=next;
  for(const cb of callbacks['nono:smart-controls-change']??[])cb();
@@ -104,11 +118,53 @@ mini.fire('pointermove',...positionAt(.15,.2));
 assert.equal(position.row,beforeOutside.row,'re-entry must not jump');
 assert.equal(position.col,beforeOutside.col,'re-entry must not jump');
 mini.fire('pointermove',...positionAt(.99,.6));
-const before=window.NONO_SMART_TOUCH.viewport.left;
-currentTime+=450;
+const centerEdge=window.NONO_SMART_TOUCH.viewport.left;
+currentTime+=200;
 for(const tick of [...intervals.values()])tick();
-assert.equal(window.NONO_SMART_TOUCH.viewport.left,before+1,'edge should pan the whole miniature');
-mini.fire('pointerup',...positionAt(.99,.6));
+assert.equal(window.NONO_SMART_TOUCH.viewport.left,centerEdge,
+ 'the inner square edge no longer scrolls: use the outer strip');
+mini.fire('pointermove',175,86);
+assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'right');
+const firstPan=window.NONO_SMART_TOUCH.viewport.left;
+assert.ok(firstPan>centerEdge,'entering right strip pans immediately');
+currentTime+=100;
+for(const tick of [...intervals.values()])tick();
+assert.equal(window.NONO_SMART_TOUCH.viewport.left,firstPan+1,
+ 'holding a side strip continues panning');
+const inRail={...position};
+mini.fire('pointermove',400,400);
+currentTime+=300;
+for(const tick of [...intervals.values()])tick();
+assert.equal(position.row,inRail.row);
+assert.equal(position.col,inRail.col);
+mini.fire('pointerup',400,400);
+// Each elongated strip must work even if touched directly.
+for(const [direction,x,y,coordinate,sign] of [
+ ['up',86,-6,'row',-1],['down',86,178,'row',1],
+ ['left',-6,86,'col',-1],['right',178,86,'col',1]
+]){
+ position.row=35;position.col=26;change('smartMinimap');
+ const before={...position};
+ edges[direction].fire('pointerdown',x,y);
+ assert.equal(position[coordinate],before[coordinate]+sign,direction+' strip must move once on touch');
+ edges[direction].fire('pointerup',x,y);
+}
+// Default speed is faster than the original 10 cells/s and adjustable.
+assert.equal(window.NONO_SMART_TOUCH.panSpeed,14);
+settings.smartPanSpeed=6;
+position.row=20;position.col=20;change('smartTrackpad');
+edges.right.fire('pointerdown',178,86);
+const slowStart=position.col;
+currentTime+=80;for(const tick of [...intervals.values()])tick();
+assert.equal(position.col,slowStart,'6 cells/sec: no repeat before 167 ms');
+edges.right.fire('pointerup',178,86);
+settings.smartPanSpeed=30;
+edges.right.fire('pointerdown',178,86);
+const fastStart=position.col;
+currentTime+=40;for(const tick of [...intervals.values()])tick();
+assert.equal(position.col,fastStart+1,'30 cells/sec: repeat after 40 ms');
+edges.right.fire('pointerup',178,86);
+settings.smartPanSpeed=14;
 // The trackpad moves freely on both axes without an action button.
 change('smartTrackpad');position.row=20;position.col=20;
 mini.fire('pointerdown',70,70);
@@ -161,4 +217,4 @@ assert.ok(position.row>previous.row&&position.col>previous.col,
  'releasing edit must immediately restore free movement');
 mini.fire('pointerup',102,88);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
-console.log('SMART_TOUCH_PASS: distinct tap vs relative movement; outside bounds; re-entry; edge pan; paint lock; hybrid');
+console.log('SMART_TOUCH_PASS: four outer strips, continuous hold, speed setting, separate cursor modes, safe bounds, paint lock');
