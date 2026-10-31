@@ -20,7 +20,7 @@
         "meta": {
           ".read": "auth != null",
           ".write": "auth != null && ((!data.exists() && newData.child('host').val() == auth.uid) || (data.child('host').val() == auth.uid && data.child('mode').val() == 'race' && data.child('status').val() == 'lobby' && newData.child('status').val() == 'playing' && ((root.child('rooms').child($room).child('players').child('0').exists() && root.child('rooms').child($room).child('players').child('1').exists()) || (root.child('rooms').child($room).child('players').child('0').exists() && root.child('rooms').child($room).child('players').child('2').exists()) || (root.child('rooms').child($room).child('players').child('0').exists() && root.child('rooms').child($room).child('players').child('3').exists()) || (root.child('rooms').child($room).child('players').child('1').exists() && root.child('rooms').child($room).child('players').child('2').exists()) || (root.child('rooms').child($room).child('players').child('1').exists() && root.child('rooms').child($room).child('players').child('3').exists()) || (root.child('rooms').child($room).child('players').child('2').exists() && root.child('rooms').child($room).child('players').child('3').exists()))))",
-          ".validate": "newData.hasChildren(['host','mode','puzzleId','size','status','createdAt','startedAt'])",
+          ".validate": "newData.hasChildren(['host','mode','puzzleId','size','status','createdAt','startedAt']) && (!newData.child('puzzleId').val().matches(/^random-/) || newData.child('randomSpec').exists())",
           "host": {
             ".validate": "newData.isString() && (!data.exists() || newData.val() == data.val())"
           },
@@ -28,13 +28,13 @@
             ".validate": "(!data.exists() && (newData.val() == 'race' || newData.val() == 'coop')) || newData.val() == data.val()"
           },
           "puzzleId": {
-            ".validate": "(newData.val() == 'heart5' || newData.val() == 'cat10' || newData.val() == 'rocket10') && (!data.exists() || newData.val() == data.val())"
+            ".validate": "(newData.val() == 'heart5' || newData.val() == 'cat10' || newData.val() == 'rocket10' || (newData.isString() && newData.val().matches(/^random-[a-z0-9-]{1,85}$/) && newData.parent().child('randomSpec').exists())) && (!data.exists() || newData.val() == data.val())"
           },
           "size": {
-            ".validate": "newData.val() == (newData.parent().child('puzzleId').val() == 'heart5' ? 5 : 10)"
+            ".validate": "newData.isNumber() && newData.val() == (newData.parent().child('puzzleId').val() == 'heart5' ? 5 : (newData.parent().child('puzzleId').val() == 'cat10' || newData.parent().child('puzzleId').val() == 'rocket10' ? 10 : newData.parent().child('randomSpec/size').val()))"
           },
           "status": {
-            ".validate": "newData.val() == (newData.parent().child('mode').val() == 'coop' ? 'playing' : (data.exists() ? 'playing' : 'lobby'))"
+            ".validate": "newData.val() == (newData.parent().child('mode').val() == 'coop' ? 'playing' : (data.exists() ? 'playing' : 'lobby')) && (newData.val() != 'playing' || !newData.parent().child('randomSpec').exists() || root.child('roomAnswers').child($room).exists() || !data.exists())"
           },
           "createdAt": {
             ".validate": "newData.val() == (data.exists() ? data.val() : now)"
@@ -47,6 +47,12 @@
           },
           "format": {
             ".validate": "newData.val() == 2 && (!data.exists() || data.val() == 2)"
+          },
+          "randomSpec": {
+            ".validate": "newData.hasChildren(['version','size','seed','difficulty']) && newData.child('version').val() == 1 && newData.child('size').isNumber() && newData.child('size').val() >= 5 && newData.child('size').val() <= 100 && newData.child('size').val() % 1 == 0 && newData.child('seed').isNumber() && newData.child('seed').val() >= 0 && newData.child('seed').val() <= 4294967295 && newData.child('seed').val() % 1 == 0 && (newData.child('difficulty').val() == '쉬움' || newData.child('difficulty').val() == '보통' || newData.child('difficulty').val() == '어려움' || newData.child('difficulty').val() == '전문가') && ( !data.exists() || (newData.child('version').val() == data.child('version').val() && newData.child('seed').val() == data.child('seed').val() && newData.child('size').val() == data.child('size').val() && newData.child('difficulty').val() == data.child('difficulty').val()))",
+            "$other": {
+              ".validate": false
+            }
           }
         },
         "players": {
@@ -88,7 +94,7 @@
               ".validate": "newData.val() == root.child('rooms').child($room).child('meta/startedAt').val()"
             },
             "finishedAt": {
-              ".validate": "newData.val() == 0 || (newData.val() == now && (newData.parent().child('filled').val() == root.child('privateAnswers').child(root.child('rooms').child($room).child('meta/puzzleId').val()).val() || (root.child('privateAnswersPacked').child(root.child('rooms').child($room).child('meta/puzzleId').val()).exists() && newData.parent().child('filled').val() == root.child('privateAnswersPacked').child(root.child('rooms').child($room).child('meta/puzzleId').val()).val())))"
+              ".validate": "newData.val() == 0 || (newData.val() == now && (newData.parent().child('filled').val() == root.child('privateAnswers').child(root.child('rooms').child($room).child('meta/puzzleId').val()).val() || (root.child('privateAnswersPacked').child(root.child('rooms').child($room).child('meta/puzzleId').val()).exists() && newData.parent().child('filled').val() == root.child('privateAnswersPacked').child(root.child('rooms').child($room).child('meta/puzzleId').val()).val()) || (root.child('rooms').child($room).child('meta/randomSpec').exists() && root.child('roomAnswers').child($room).exists() && newData.parent().child('filled').val() == root.child('roomAnswers').child($room).val())))"
             },
             "$other": {
               ".validate": false
@@ -248,6 +254,12 @@
         },
         "format": {
           ".validate": "newData.val() == 2 && newData.val() == root.child('rooms').child($room).child('meta/format').val()"
+        },
+        "size": {
+          ".validate": "newData.isNumber() && newData.val() == root.child('rooms').child($room).child('meta/size').val()"
+        },
+        "difficulty": {
+          ".validate": "root.child('rooms').child($room).child('meta/randomSpec').exists() && newData.val() == root.child('rooms').child($room).child('meta/randomSpec/difficulty').val()"
         }
       }
     },
@@ -378,6 +390,13 @@
           },
           ".read": "auth != null && auth.uid == $uid"
         }
+      }
+    },
+    "roomAnswers": {
+      "$room": {
+        ".read": "false",
+        ".write": "auth != null && !data.exists() && newData.exists() && root.child('rooms').child($room).child('meta/host').val() == auth.uid && root.child('rooms').child($room).child('meta/randomSpec').exists()",
+        ".validate": "newData.isString() && newData.val().matches(/^[01]+$/) && newData.val().length == root.child('rooms').child($room).child('meta/size').val() * root.child('rooms').child($room).child('meta/size').val()"
       }
     }
   }
