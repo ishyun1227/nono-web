@@ -72,7 +72,7 @@ function evaluate(mask,size,difficulty){
   if(d.adjacentSame>Math.max(1,Math.floor(size*.1)))return null;
   const minQuadrant=d.filled*.055;
   if(Math.min(...d.quadrants)<minQuadrant)return null;
-  const targetRuns=[1.75,2.15,2.6,3.15][level]*Math.pow(size/10,.33);
+  const targetRuns=[1.75,2.15,2.6,3.15][level]*Math.pow(size/10,.12);
   const deviation=Math.abs(d.runMean-targetRuns)/targetRuns;
   if(deviation>.40||d.uniqueRows<.68)return null;
   const targetFill=[.51,.47,.43,.40][level];
