@@ -156,6 +156,45 @@ async function main(){
   const packedRun=await a.evaluate(async()=>((await get(ref(database,`runs/${puzzle.id}/${currentId()}`))).val()||{}).filled);
   assert.equal(packedRun,answerBits.pack(answers.heart5,5,5),'Online record must send packed answer');
   await a.setViewportSize({width:390,height:844});await a.screenshot({path:'test-results/record-mobile.png',fullPage:true});
+  // Generated multiplayer: independent accounts obtain the host's puzzle from the room.
+  await Promise.all([a.evaluate(()=>leaveGame()),b.evaluate(()=>leaveGame())]);
+  await a.setViewportSize({width:1440,height:900});
+  await a.click('[data-mode="race"]');
+  const generated=await a.evaluate(()=>{
+    const p=window.NONO_RANDOM_PUZZLES.generate({size:10,difficulty:'보통',seed:47119});
+    PUZZLES.push(p);const option=document.createElement('option');
+    option.value=p.id;option.textContent=p.name;
+    const picker=document.querySelector('#puzzle');picker.append(option);picker.value=p.id;
+    picker.dispatchEvent(new Event('change',{bubbles:true}));
+    return {id:p.id,rows:p.rows,cols:p.cols,answer:window.NONO_RANDOM_PUZZLES.answerFor(p)};
+  });
+  await a.click('#create-room');await a.waitForURL(/room=/);
+  const generatedCode=new URL(a.url()).searchParams.get('room');
+  await b.click('[data-mode="race"]');await b.fill('#room-code',generatedCode);await b.click('#join-room');
+  await b.waitForURL(/room=/);
+  const other=await b.evaluate(()=>({id:puzzle.id,rows:puzzle.rows,cols:puzzle.cols,generated:puzzle.generated}));
+  assert.equal(other.id,generated.id);assert.deepEqual(other.rows,generated.rows);assert.deepEqual(other.cols,generated.cols);
+  assert.equal(other.generated,true);
+  const visibility=await b.evaluate(async code=>{try{await get(ref(database,'roomAnswers/'+code));return 'READABLE';}catch{return 'DENIED';}},generatedCode);
+  assert.equal(visibility,'DENIED','Private generated answer must remain inaccessible');
+  await a.click('#start-race');
+  for(const page of [a,b])await page.waitForFunction(()=>meta?.status==='playing'&&raceStates[currentId()]);
+  await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1')paint(i,'1',true);},generated.answer);
+  await a.waitForFunction(()=>finished&&finishedAt>0,{timeout:20000});
+  await b.waitForFunction(()=>Object.values(raceStates).some(s=>s.finishedAt>0),{timeout:20000});
+  assert.equal(await a.evaluate(()=>raceStates[currentId()].filled),generated.answer);
+  console.log('PASS generated race: same clues, protected answer and validated winner');
+  await Promise.all([a.evaluate(()=>leaveGame()),b.evaluate(()=>leaveGame())]);
+  await a.click('[data-mode="coop"]');
+  await a.evaluate(id=>{const select=document.querySelector('#puzzle');select.value=id;select.dispatchEvent(new Event('change',{bubbles:true}));},generated.id);
+  await a.click('#create-room');await a.waitForURL(/room=/);
+  const generatedCoopCode=new URL(a.url()).searchParams.get('room');
+  await b.click('[data-mode="coop"]');await b.fill('#room-code',generatedCoopCode);await b.click('#join-room');
+  await b.waitForURL(/room=/);
+  await a.evaluate(()=>paint(0,'1',false));
+  await b.waitForFunction(()=>board[0]==='1');
+  assert.equal(await b.evaluate(()=>puzzle.id),generated.id);
+  console.log('PASS generated coop: separate accounts share the board and input deltas');
   assert.deepEqual(errors,[]);console.log('PASS online record saved, leaderboard and mobile view, no page errors');
  }finally{await browser.close();await new Promise(r=>server.close(r));await env.cleanup();}
 }
