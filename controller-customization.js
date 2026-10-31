@@ -126,7 +126,11 @@ function nativeSend(name,down){
  document.dispatchEvent(new KeyboardEvent(down?'keydown':'keyup',
   {bubbles:true,cancelable:true,key:code[0],code:code[1]}));
 }
-let stick={x:0,y:0};
+let stick={x:0,y:0},floatingOutside=false;
+function insideTouch(el,x,y){
+ const r=el.getBoundingClientRect();
+ return r.width>0&&r.height>0&&x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom;
+}
 function floatMove(e){
  const x=e.clientX-stick.x,y=e.clientY-stick.y,dist=Math.hypot(x,y);
  const radius=35*state.size/100;
@@ -145,17 +149,30 @@ function floatMove(e){
  }
 }
 zone.addEventListener('pointerdown',e=>{
- if(editing||state.mode!=='floating'||floatingPointer!==null||e.button!==0)return;
+ if(editing||state.mode!=='floating'||floatingPointer!==null||e.button!==0||
+    !insideTouch(zone,e.clientX,e.clientY))return;
  if($('game')?.classList.contains('hidden')||!$('lobby')?.classList.contains('hidden'))return;
- e.preventDefault();floatingPointer=e.pointerId;stick={x:e.clientX,y:e.clientY};
+ e.preventDefault();floatingPointer=e.pointerId;floatingOutside=false;stick={x:e.clientX,y:e.clientY};
  joystick.style.left=stick.x+'px';joystick.style.top=stick.y+'px';
  joystick.classList.add('is-on');knob.style.transform='translate(-50%,-50%)';
  try{zone.setPointerCapture(e.pointerId)}catch(_){}
 });
-zone.addEventListener('pointermove',e=>{if(e.pointerId===floatingPointer)floatMove(e)});
+zone.addEventListener('pointermove',e=>{
+ if(e.pointerId!==floatingPointer)return;
+ if(!insideTouch(zone,e.clientX,e.clientY)){
+  if(stickDirection)nativeSend(stickDirection,false);
+  stickDirection=null;floatingOutside=true;joystick.classList.remove('is-on');return;
+ }
+ if(floatingOutside){
+  floatingOutside=false;stick={x:e.clientX,y:e.clientY};
+  joystick.style.left=stick.x+'px';joystick.style.top=stick.y+'px';
+  joystick.classList.add('is-on');knob.style.transform='translate(-50%,-50%)';return;
+ }
+ floatMove(e);
+});
 function floatEnd(e){
  if(e.pointerId!==floatingPointer)return;
- floatingPointer=null;joystick.classList.remove('is-on');
+ floatingPointer=null;floatingOutside=false;joystick.classList.remove('is-on');
  if(stickDirection)nativeSend(stickDirection,false);stickDirection=null;
 }
 for(const name of ['pointerup','pointercancel','lostpointercapture'])zone.addEventListener(name,floatEnd);
@@ -172,7 +189,8 @@ function touchAllowed(mode){
 // Relative laptop-style trackpad. The first definite drag axis is locked
 // until lift (no diagonal jumps), matching regular row/column puzzle drags.
 zone.addEventListener('pointerdown',e=>{
- if(!touchAllowed('trackpad')||trackpadActive||e.button!==0)return;
+ if(!touchAllowed('trackpad')||trackpadActive||e.button!==0||
+    !insideTouch(zone,e.clientX,e.clientY))return;
  e.preventDefault();trackpadActive={id:e.pointerId,x:e.clientX,y:e.clientY,
   originX:e.clientX,originY:e.clientY,axis:null,residual:0};
  try{zone.setPointerCapture(e.pointerId)}catch(_){}
@@ -182,6 +200,13 @@ zone.addEventListener('pointermove',e=>{
  if(!a||a.id!==e.pointerId)return;
  if(!touchAllowed('trackpad')){trackpadActive=null;return}
  e.preventDefault();
+ if(!insideTouch(zone,e.clientX,e.clientY)){
+  a.outside=true;a.x=e.clientX;a.y=e.clientY;a.residual=0;return;
+ }
+ if(a.outside){
+  a.outside=false;a.x=e.clientX;a.y=e.clientY;
+  a.originX=e.clientX;a.originY=e.clientY;a.residual=0;return;
+ }
  if(!a.axis){
   const totalX=e.clientX-a.originX,totalY=e.clientY-a.originY;
   if(Math.max(Math.abs(totalX),Math.abs(totalY))<5)return;
@@ -236,7 +261,8 @@ function heldMiniAction(){
  return null;
 }
 mini.addEventListener('pointerdown',e=>{
- if(!touchAllowed('minimap')||miniActive||e.button!==0)return;
+ if(!touchAllowed('minimap')||miniActive||e.button!==0||
+    !insideTouch(mini,e.clientX,e.clientY))return;
  const p=miniatureCoordinates(e);if(!p)return;
  e.preventDefault();
  const action=heldMiniAction();
@@ -253,6 +279,13 @@ mini.addEventListener('pointermove',e=>{
  if(!a||a.id!==e.pointerId)return;
  if(!touchAllowed('minimap')){miniActive=null;return}
  e.preventDefault();
+ if(!insideTouch(mini,e.clientX,e.clientY)){
+  a.outside=true;return;
+ }
+ if(a.outside){
+  a.outside=false;a.x=e.clientX;a.y=e.clientY;
+  a.originX=e.clientX;a.originY=e.clientY;return;
+ }
  const p=miniatureCoordinates(e);if(!p)return;
  const action=heldMiniAction();
  if(action!==a.action){
