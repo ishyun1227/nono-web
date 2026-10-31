@@ -4,7 +4,8 @@
 const pad=document.getElementById('nono-mobile-pad');
 const mini=document.getElementById('nono-absolute-pad');
 const zone=document.getElementById('nono-floating-zone');
-if(!pad||!mini||!zone)return;
+const crossCenter=pad?.querySelector('.nono-dpad .nono-pad-center');
+if(!pad||!mini||!zone||!crossCenter)return;
 const modes=new Set(['smartTrackpad','smartMinimap','smartHybrid']);
 const nav=()=>window.NONO_TOUCH_CURSOR;
 const settings=()=>window.NONO_INPUT_CUSTOM?.settings||{};
@@ -23,6 +24,35 @@ function heldAction(){
 }
 const miniLabel=mini.querySelector('.nono-absolute-label');
 const miniCursor=mini.querySelector('.nono-absolute-cursor');
+// The smart trackpad uses the fixed D-pad with a small tactile center.
+// Its sliding 8–20-cell window is outlined ON the real puzzle, not on the pad.
+const boardWindow=document.createElement('div');
+boardWindow.className='nono-smart-board-window';
+boardWindow.setAttribute('aria-hidden','true');
+boardWindow.hidden=true;
+function updateBoardWindow(){
+ if(mode()!=='smartTrackpad'||!live()||!viewport){
+  boardWindow.hidden=true;return;
+ }
+ const board=document.getElementById('board');
+ const cells=board?.querySelector('.cells');
+ const d=dimensions(),v=viewport;
+ if(!board||!cells||!d||!v)return;
+ const first=cells.children[v.top*d.width+v.left];
+ const last=cells.children[(v.top+v.rows-1)*d.width+v.left+v.cols-1];
+ if(!first||!last)return;
+ if(boardWindow.parentElement!==board)board.append(boardWindow);
+ // Coordinates are measured against the actual rendered puzzle, so zoom,
+ // cell sizing and 53x73 or 100x100 boards all keep the outline aligned.
+ const b=board.getBoundingClientRect();
+ const a=first.getBoundingClientRect(),z=last.getBoundingClientRect();
+ const sx=b.width/Math.max(1,board.offsetWidth),sy=b.height/Math.max(1,board.offsetHeight);
+ boardWindow.style.left=(a.left-b.left)/sx+'px';
+ boardWindow.style.top=(a.top-b.top)/sy+'px';
+ boardWindow.style.width=(z.right-a.left)/sx+'px';
+ boardWindow.style.height=(z.bottom-a.top)/sy+'px';
+ boardWindow.hidden=false;
+}
 const grid=document.createElement('div');
 grid.className='nono-smart-window-grid';
 grid.setAttribute('aria-hidden','true');
@@ -157,9 +187,9 @@ function hitZone(x,y){
 // Dragging beyond any edge emulates holding the corresponding rectangle.
 // Pick the largest exterior offset at corners so painting stays axis-locked.
 function dragRegion(kind,x,y){
- const square=kind==='smartHybrid'?zone:mini;
+ const square=kind==='smartHybrid'?zone:kind==='smartTrackpad'?crossCenter:mini;
  if(inside(square,x,y))return 'center';
- if(kind!=='smartHybrid'){
+ if(kind==='smartMinimap'){
   const strip=hitZone(x,y);
   if(strip)return strip;
  }
@@ -202,6 +232,10 @@ function updateWindow(){
  if(mode()==='smartHybrid'){updateHybridPreview(false);return;}
  if(!supported())return;
  includeCursor();
+ if(mode()==='smartTrackpad'){
+  updateBoardWindow();
+  return;
+ }
  const v=viewport,p=nav()?.position;if(!v||!p)return;
  const t=window.NONO_I18N?.translate;
  const rowWord=typeof t==='function'?t('행'):'행';
@@ -345,6 +379,8 @@ function begin(event,kind,element){
  if(!live()||mode()!==kind||gesture||event.button!==0)return;
  const region=kind==='smartHybrid'?
   (inside(zone,event.clientX,event.clientY)?'center':null):
+  kind==='smartTrackpad'?
+  (inside(crossCenter,event.clientX,event.clientY)?'center':null):
   hitZone(event.clientX,event.clientY);
  if(!region)return;
  event.preventDefault();
@@ -355,7 +391,7 @@ function begin(event,kind,element){
  if(!p)return;
  const a={id:event.pointerId,mode:kind,element,startedAt:Date.now(),
   lastX:event.clientX,lastY:event.clientY,outside:false,region,
-  directEdge:element!==mini&&element!==zone,
+  directEdge:element!==mini&&element!==zone&&element!==crossCenter,
   originX:event.clientX,originY:event.clientY,
   residualX:0,residualY:0,axis:null,action,anchor:{...p},
   stroke:action?nav()?.beginStroke?.()??null:null};
@@ -423,7 +459,7 @@ function move(event,kind){
   moveAbsolute(a,event);
  }else moveRelative(a,event);
 }
-for(const [element,kind] of [[mini,'smartTrackpad'],[mini,'smartMinimap'],[zone,'smartHybrid']]){
+for(const [element,kind] of [[crossCenter,'smartTrackpad'],[mini,'smartMinimap'],[zone,'smartHybrid']]){
  element.addEventListener('pointerdown',event=>begin(event,kind,element));
  element.addEventListener('pointermove',event=>move(event,kind));
  for(const name of ['pointerup','pointercancel','lostpointercapture'])
@@ -433,7 +469,7 @@ for(const [element,kind] of [[mini,'smartTrackpad'],[mini,'smartMinimap'],[zone,
 }
 // Starting on a side strip and dragging from the center both scroll.
 for(const button of Object.values(edgeButtons)){
- button.addEventListener('pointerdown',event=>{if(supported())begin(event,mode(),button)});
+ button.addEventListener('pointerdown',event=>{if(mode()==='smartMinimap')begin(event,mode(),button)});
  button.addEventListener('pointermove',event=>{
   if(gesture?.element===button)move(event,gesture.mode);
  });
@@ -458,6 +494,7 @@ function updateHybridLabel(){
 let currentMode=null;
 function sync(){
  updateHybridLabel();updateEdgeLabels();
+ boardWindow.hidden=mode()!=='smartTrackpad';
  if(currentMode!==mode()){stop();currentMode=mode();}
  if(mode()==='minimap'){
   stop();viewport=null;updateRegularMiniPreview(true);return;
@@ -484,6 +521,13 @@ window.addEventListener('nono:puzzle-started',()=>{
 const boardRoot=document.getElementById('board');
 if(boardRoot&&typeof MutationObserver==='function'){
  const observer=new MutationObserver(records=>{
+  // buildBoard() replaces the board's children when a puzzle changes.
+  // Reattach the non-interactive window once, without touching cell indexes.
+  if(mode()==='smartTrackpad'){
+   if(records.some(r=>r.type==='childList'&&r.target===boardRoot)&&
+      boardWindow.parentElement!==boardRoot)updateWindow();
+   return;
+  }
   if(mode()!=='smartHybrid'&&mode()!=='minimap')return;
   const changed=records.some(record=>{
    if(record.type==='childList')return true;
@@ -506,7 +550,8 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 window.NONO_SMART_TOUCH={get viewport(){return viewport?{...viewport}:null},
  get active(){return !!gesture},get mode(){return mode()},refresh:updateWindow,
  get edgeRegion(){return gesture?.region??null},
- get panSpeed(){return bound(Number(settings().smartPanSpeed)||14,6,30)}
+ get panSpeed(){return bound(Number(settings().smartPanSpeed)||14,6,30)},
+ get boardWindow(){return boardWindow},get crossCenter(){return crossCenter}
 };
 sync();
 })();
