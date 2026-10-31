@@ -14,12 +14,14 @@ class Element {
   if(s==='.nono-absolute-label')return label;
   if(s==='.nono-absolute-cursor')return cursor;
   if(s==='.nono-pad-actions')return buttons;
+  if(s==='.nono-dpad .nono-pad-center')return crossCenter;
+  if(s==='.cells')return cells;
   return null;
  }
  addEventListener(n,fn){(this.listeners[n]??=[]).push(fn)}
  setAttribute(){}
- prepend(...items){this.children.unshift(...items)}
- append(x){this.children.push(x)}
+ prepend(...items){this.children.unshift(...items);for(const el of items)el.parentElement=this}
+ append(x){this.children.push(x);x.parentElement=this}
  getContext(){
   if(!this.context)this.context={fillStyle:'',strokeStyle:'',lineWidth:1,draws:0,
    clearRect(){},fillRect(){this.draws++},beginPath(){},moveTo(){},lineTo(){},stroke(){}};
@@ -45,9 +47,18 @@ class Element {
  hasPointerCapture(){return false}
 }
 const pad=new Element,mini=new Element,zone=new Element,label=new Element,cursor=new Element;
+const crossCenter=new Element,boardRoot=new Element;
+crossCenter.rect={left:61,top:61,right:111,bottom:111,width:50,height:50};
+boardRoot.rect={left:0,top:0,right:600,bottom:800,width:600,height:800};
+boardRoot.offsetWidth=600;boardRoot.offsetHeight=800;
 const buttons=new Element,game=new Element,lobby=new Element,cells=new Element;
 lobby.classList.add('hidden');
-cells.children=Array.from({length:53*73},()=>new Element);
+cells.children=Array.from({length:53*73},(_,i)=>{
+ const el=new Element,col=i%53,row=Math.floor(i/53);
+ el.rect={left:20+col*10,top:30+row*10,right:30+col*10,
+  bottom:40+row*10,width:10,height:10};
+ return el;
+});
 const held={fill:false,cross:false,clear:false};
 buttons.querySelector=selector=>{
  const match=selector.match(/data-nono-input="([^"]+)"/);
@@ -70,7 +81,7 @@ const nav={
 };
 const nodes={
  'nono-mobile-pad':pad,'nono-absolute-pad':mini,'nono-floating-zone':zone,
- game,lobby
+ game,lobby,board:boardRoot
 };
 const document={
  getElementById:id=>nodes[id]||null,
@@ -169,10 +180,10 @@ for(const [direction,x,y,coordinate,sign] of [
  assert.equal(position[coordinate],before[coordinate]+sign,direction+' strip must move once on touch');
  edges[direction].fire('pointerup',x,y);
 }
-// Default speed is faster than the original 10 cells/s and adjustable.
+// Direct buttons in the smart miniature move a single cell regardless of speed.
 assert.equal(window.NONO_SMART_TOUCH.panSpeed,14);
 settings.smartPanSpeed=6;
-position.row=20;position.col=20;change('smartTrackpad');
+position.row=20;position.col=20;change('smartMinimap');
 edges.right.fire('pointerdown',178,86);
 const slowStart=position.col;
 currentTime+=500;for(const tick of [...intervals.values()])tick();
@@ -191,25 +202,38 @@ edges.right.fire('pointerdown',178,86);
 assert.equal(position.col,fastStart+1,'next button press moves exactly one cell');
 edges.right.fire('pointerup',178,86);
 settings.smartPanSpeed=14;
-// The trackpad moves freely on both axes without an action button.
-change('smartTrackpad');position.row=20;position.col=20;
-mini.fire('pointerdown',70,70);
-assert.equal(position.row,20,'trackpad first touch must not teleport vertically');
-assert.equal(position.col,20,'trackpad first touch must not teleport horizontally');
-mini.fire('pointermove',95,95);
-assert.ok(position.row>20&&position.col>20,'free trackpad drag should move diagonally');
+// Smart trackpad is now a fixed cross with a small central circular
+// gesture target; the miniature subwindow appears on the REAL board.
+position.row=20;position.col=20;change('smartTrackpad');
+const boardWindow=window.NONO_SMART_TOUCH.boardWindow;
+assert.equal(boardWindow.parentElement,boardRoot,
+ 'smart trackpad overlays actual board rather than showing mini on controller');
+assert.equal(boardWindow.hidden,false);
+assert.equal(boardWindow.style.left,'160px');
+assert.equal(boardWindow.style.top,'170px');
+assert.equal(boardWindow.style.width,'120px');
+assert.equal(boardWindow.style.height,'120px');
+assert.equal(window.NONO_SMART_TOUCH.crossCenter,crossCenter);
+crossCenter.fire('pointerdown',70,70);
+assert.equal(position.row,20,'central circle first touch must not teleport vertically');
+assert.equal(position.col,20,'central circle first touch must not teleport horizontally');
+crossCenter.fire('pointermove',95,95);
+assert.ok(position.row>20&&position.col>20,'central circle relative drag is freely diagonal');
 const insidePos={...position};
-mini.fire('pointermove',400,400);
+crossCenter.fire('pointermove',400,400);
 assert.equal(window.NONO_SMART_TOUCH.edgeRegion,'right');
-assert.equal(position.row,insidePos.row,'trackpad edge-scroll keeps its row');
-assert.equal(position.col,insidePos.col+1,'trackpad outside behaves like right rectangle');
-mini.fire('pointermove',100,100);
-assert.equal(position.col,insidePos.col+1,'trackpad re-entry must not bank outside distance');
-mini.fire('pointerup',100,100);
+assert.equal(position.row,insidePos.row,'trackpad outside auto-scroll stays on chosen row');
+assert.equal(position.col,insidePos.col+1,'cross center outward drag pans by one cell');
+assert.equal(boardWindow.parentElement,boardRoot);
+assert.equal(boardWindow.hidden,false);
+crossCenter.fire('pointermove',100,100);
+assert.equal(position.col,insidePos.col+1,'returning to center must not bank outside distance');
+crossCenter.fire('pointerup',100,100);
 // Hybrid square displays the FULL puzzle miniature. It selects absolutely on
 // the first touch, then keeps relative motion under pointer capture outside.
 position.row=10;position.col=10;
 change('smartHybrid');
+assert.equal(boardWindow.hidden,true,'board overlay must hide in other input modes');
 assert.equal(window.NONO_SMART_TOUCH.viewport,null,'hybrid uses full-puzzle miniature, not a sliding subsection');
 const preview=zone.children.find(el=>el.className==='nono-hybrid-preview');
 const marker=zone.children.find(el=>el.className==='nono-hybrid-cursor');
@@ -249,25 +273,25 @@ zone.fire('pointermove',260,200);
 assert.equal(window.NONO_SMART_TOUCH.active,false,'lifting finger ends continuous outside movement');
 // Only actively held editing locks the axis; releasing unlocks immediately.
 change('smartTrackpad');position.row=30;position.col=30;held.fill=true;
-mini.fire('pointerdown',60,60);
-mini.fire('pointermove',90,68);
+crossCenter.fire('pointerdown',70,70);
+crossCenter.fire('pointermove',98,77);
 assert.equal(position.row,30);
 assert.ok(position.col>30);
 assert.ok(painted.length>0,'held editing must paint');
 const beforePaintOutside={...position},paintedBeforeOutside=painted.length;
-mini.fire('pointermove',500,500);
+crossCenter.fire('pointermove',500,500);
 assert.equal(position.row,beforePaintOutside.row,'paint action remains row locked outside');
 assert.equal(position.col,beforePaintOutside.col+1,'painting past edge presses right once');
 currentTime+=600;
 for(const tick of [...intervals.values()])tick();
 assert.ok(painted.length>paintedBeforeOutside,'outside edge hold keeps painting along locked row');
-mini.fire('pointermove',90,68);
+crossCenter.fire('pointermove',90,68);
 const previous={...position};
 held.fill=false;
-mini.fire('pointermove',102,88);
+crossCenter.fire('pointermove',102,88);
 assert.ok(position.row>previous.row&&position.col>previous.col,
  'releasing edit must immediately restore free movement');
-mini.fire('pointerup',102,88);
+crossCenter.fire('pointerup',102,88);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
 // Also run the ACTUAL production laptop-trackpad handler in a small DOM shim.
 // Passive movement is 2D; only a held edit action locks the first drag axis.
@@ -304,7 +328,14 @@ assert.equal(laptopPosition.col,22,'laptop free navigation must move column too'
 laptopZone.fire('pointermove',96,108);
 assert.equal(laptopPosition.row,24,'laptop diagonal tracking continues vertically');
 assert.equal(laptopPosition.col,23,'laptop diagonal tracking continues horizontally');
-laptopZone.fire('pointerup',96,108);
+laptopZone.fire('pointermove',205,195);
+const outsideLaptop={...laptopPosition};
+assert.ok(outsideLaptop.row>24&&outsideLaptop.col>23,
+ 'laptop trackpad must continue moving both axes outside its bounds');
+laptopZone.fire('pointermove',220,207);
+assert.ok(laptopPosition.row>outsideLaptop.row&&laptopPosition.col>outsideLaptop.col,
+ 'laptop trackpad continues relative movement while still outside');
+laptopZone.fire('pointerup',220,207);
 laptopAction='fill';laptopPosition.row=20;laptopPosition.col=20;
 laptopZone.fire('pointerdown',60,60);
 laptopZone.fire('pointermove',96,69);
@@ -318,5 +349,5 @@ laptopZone.fire('pointermove',120,94);
 assert.equal(laptopPosition.row,lockedPosition.row+1,'releasing action restores vertical movement');
 assert.equal(laptopPosition.col,lockedPosition.col+1,'releasing action restores horizontal movement');
 laptopZone.fire('pointerup',120,94);
-console.log('LAPTOP_TRACKPAD_PASS: passive 2D motion, edit-only lock, unlock after release');
-console.log('SMART_TOUCH_PASS: classic miniature progress, smart arrows one step per press, drag-out auto pan, hybrid relative, paint axis lock');
+console.log('LAPTOP_TRACKPAD_PASS: diagonal inside/outside and editing-only axis lock');
+console.log('SMART_TOUCH_PASS: cross center, actual board window, miniature edges and hybrid gestures');
