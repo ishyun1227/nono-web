@@ -1509,6 +1509,10 @@ window.NONO_TOUCH_CURSOR={
   return mobileTouchSelect(current.row+dy,current.col+dx);
  },
  select(row,col){return mobileTouchSelect(row,col);},
+ beginStroke(){return ['practice','record'].includes(mode)?undoStack.length:null;},
+ endStroke(first){
+  if(Number.isInteger(first)&&['practice','record'].includes(mode))squashHistory(first);
+ },
  // The absolute miniature uses the same authoritative paint/history path as
  // keyboard and board input. A stroke only changes cells on one fixed axis;
  // navigation without an action stays completely unrestricted.
