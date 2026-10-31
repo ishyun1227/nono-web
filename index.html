@@ -169,7 +169,7 @@ function serverAnswerMask(board,p){
   // Only IDs already seeded in privateAnswersPacked may use packed answers.
   // A per-ID allowlist avoids breaking 30x30 and larger puzzles during rollout.
   const ready=window.NONO_PACKED_ANSWERS_READY;
-  if(!(ready===true||(Array.isArray(ready)&&ready.includes(p.id))))return mask;
+  if(p.generated||!(ready===true||(Array.isArray(ready)&&ready.includes(p.id))))return mask;
   if(!window.NONO_ANSWER_BITS)throw new Error('Answer codec unavailable');
   const width=p.width||p.size,height=p.height||p.size;
   return window.NONO_ANSWER_BITS.pack(mask,width,height);
@@ -510,14 +510,14 @@ function renderPublicLobby(){
   }
   const entries=Object.entries(publicRooms)
     .filter(([code,item])=>/^[A-HJ-NP-Z2-9]{6}$/.test(code)&&item&&item.mode===mode&&
-      PUZZLES.some(p=>p.id===item.puzzleId)&&item.host!==currentId()&&(item.mode==='coop'||publicCounts[code]!==4)&&!publicSolved[code])
+      (PUZZLES.some(p=>p.id===item.puzzleId)||/^random-[a-z0-9-]{1,85}$/.test(item.puzzleId||''))&&item.host!==currentId()&&(item.mode==='coop'||publicCounts[code]!==4)&&!publicSolved[code])
     .sort((a,b)=>b[1].createdAt-a[1].createdAt).slice(0,12);
   message.textContent=entries.length?'참여 가능한 '+(mode==='race'?'대결':'협동')+' 방 '+entries.length+'개':'공개 방이 없어요. 빠른 매칭으로 첫 방을 열어보세요.';
   list.innerHTML=entries.map(([code,item])=>{
     const p=PUZZLES.find(p=>p.id===item.puzzleId),count=publicCounts[code];
     const amount=Number.isInteger(count)?(item.mode==='coop'?'현재 '+count+'명':count+'/4'):'인원 확인 중';
     return '<div class="public-room-item"><div class="public-room-info"><strong>'+
-      escapeHTML(item.name||'플레이어')+'의 방</strong><small>'+escapeHTML((p.width||p.size)+'×'+(p.height||p.size)+' · '+({heart5:'쉬움',cat10:'보통',rocket10:'어려움'}[p.id]||'미지정')+' · '+amount)+
+      escapeHTML(item.name||'플레이어')+'의 방</strong><small>'+escapeHTML((p?.width||item.size||'?')+'×'+(p?.height||item.size||'?')+' · '+(p?.difficulty||item.difficulty||({heart5:'쉬움',cat10:'보통',rocket10:'어려움'}[item.puzzleId])||'미지정')+' · '+amount)+
       '</small></div><button type="button" data-room-code="'+code+'" class="button outline">참가</button></div>';
   }).join('');
 }
@@ -573,7 +573,7 @@ async function quickMatch(){
   busyMatch=true;$('quick-match').disabled=true;
   try{
     const matches=Object.entries(publicRooms)
-      .filter(([code,item])=>item.mode===mode&&item.puzzleId===puzzle.id&&
+      .filter(([code,item])=>item.mode===mode&&(item.puzzleId===puzzle.id||(puzzle.generated&&item.difficulty===puzzle.difficulty&&item.size===puzzle.size&&/^random-/.test(item.puzzleId||'')))&&
         item.host!==currentId()&&(item.mode==='coop'||publicCounts[code]!==4)&&!publicSolved[code])
       .sort((a,b)=>a[1].createdAt-b[1].createdAt);
     for(const [code] of matches){if(await enterRoom(code))return;}
@@ -582,18 +582,24 @@ async function quickMatch(){
   }catch(error){firebaseError(error);}
   finally{busyMatch=false;$('quick-match').disabled=false;}
 }
-async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toast('멀티플레이를 사용하려면 먼저 Firebase를 연결해야 해요.');return;}if(!window.NONO_ACCOUNT?.require())return false;if(!['race','coop'].includes(mode))return false;if(puzzle.size>=30){toast('큰 퍼즐은 현재 혼자 풀기에서만 지원해요.');return false;}const makePublic=typeof options.publicRoom==='boolean'?options.publicRoom:Boolean($('public-room-toggle')?.checked);const autoMatch=options.autoMatch===true;busyRoom=true;try{
+async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toast('멀티플레이를 사용하려면 먼저 Firebase를 연결해야 해요.');return;}if(!window.NONO_ACCOUNT?.require())return false;if(!['race','coop'].includes(mode))return false;if(puzzle.size>=30&&!puzzle.generated){toast('큰 그림 퍼즐은 현재 혼자 풀기에서만 지원해요.');return false;}const makePublic=typeof options.publicRoom==='boolean'?options.publicRoom:Boolean($('public-room-toggle')?.checked);const autoMatch=options.autoMatch===true;busyRoom=true;try{
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='';for(const value of crypto.getRandomValues(new Uint8Array(6)))code+=chars[value%chars.length];
-  const metaData={host:currentId(),mode,puzzleId:puzzle.id,size:puzzle.size,status:mode==='race'?'lobby':'playing',createdAt:serverTimestamp(),startedAt:mode==='coop'?serverTimestamp():0,format:2};
+  const randomSpec=puzzle.generated?{version:1,size:puzzle.size,seed:puzzle.seed,difficulty:puzzle.difficulty}:null;
+  if(puzzle.generated&&!window.NONO_RANDOM_PUZZLES?.validSpec(randomSpec))throw Error('랜덤 퍼즐 생성 정보가 없어요. 새로 생성해 주세요.');
+  const metaData={host:currentId(),mode,puzzleId:puzzle.id,size:puzzle.size,status:mode==='race'?'lobby':'playing',createdAt:serverTimestamp(),startedAt:mode==='coop'?serverTimestamp():0,format:2,...(randomSpec?{randomSpec}:{})};
   const result=await runTransaction(ref(database,`rooms/${code}/meta`),current=>current?undefined:metaData);
   if(!result.committed)throw new Error('방 코드가 겹쳤어요. 다시 만들어 주세요.');
+  if(randomSpec){
+    // Private answer is only writable by its host; race completion is server checked.
+    await set(ref(database,'roomAnswers/'+code),window.NONO_RANDOM_PUZZLES.answerFor(randomSpec));
+  }
   if(!await enterRoom(code))return false;
   if(roomCode===code&&mode==='coop'&&meta?.format!==2)await runTransaction(ref(database,'rooms/'+code+'/board'),current=>current===null?'0'.repeat(puzzle.size*(puzzle.height||puzzle.size)):undefined);
   if(makePublic){
     try{
       const info=(await get(ref(database,'rooms/'+code+'/meta'))).val();
       const listing=ref(database,'publicRooms/'+code);
-      await set(listing,{host:currentId(),name:nickname(),mode:info.mode,puzzleId:info.puzzleId,createdAt:info.createdAt,format:info.format||null});
+      await set(listing,{host:currentId(),name:nickname(),mode:info.mode,puzzleId:info.puzzleId,createdAt:info.createdAt,format:info.format||null,...(info.randomSpec?{size:info.size,difficulty:info.randomSpec.difficulty}:{})});
       if(mode==='race')await onDisconnect(listing).remove();
       publicHosted=true;
     }catch(error){console.warn('공개 방 게시 실패',error);toast('방은 만들었지만 공개 목록 등록에 실패했어요. Firebase 규칙을 확인하세요.');}
@@ -602,10 +608,27 @@ async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toas
   if(autoStartMatch&&Object.keys(players).length>=2){autoStartMatch=false;startRace();}
   return true;
 }catch(e){firebaseError(e);return false;}finally{busyRoom=false;}}
+// Restore an invited random puzzle using the server's immutable size, seed, difficulty and ID.
+function ensureRoomPuzzle(info){
+  if(!info?.puzzleId)return null;
+  if(!info.randomSpec)return PUZZLES.find(p=>p.id===info.puzzleId)||null;
+  const api=window.NONO_RANDOM_PUZZLES,spec=info.randomSpec;
+  if(!api?.validSpec(spec)||spec.version!==1||spec.size!==info.size||
+      !/^random-[a-z0-9-]{1,85}$/.test(info.puzzleId))return null;
+  let item;
+  try{item=api.fromSpec({...spec,id:info.puzzleId});}catch(error){console.warn('랜덤 퍼즐 복원 실패',error);return null;}
+  const index=PUZZLES.findIndex(p=>p.id===item.id);
+  if(index<0){
+    PUZZLES.push(item);
+    const option=document.createElement('option');option.value=item.id;option.textContent=item.name+' · '+item.difficulty;$('puzzle').append(option);
+  }else PUZZLES[index]=item;
+  try{api.register(item);}catch(error){console.warn('랜덤 퍼즐 로컬 저장 실패 (현재 방 플레이는 가능)',error);}
+  return item;
+}
 async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자리 방 코드를 확인해 주세요.');return;}if(!onlineReady()){toast('Firebase가 연결되지 않았어요.');return;}if(!window.NONO_ACCOUNT?.require())return;
   try{
     const snap=await get(ref(database,`rooms/${code}/meta`));if(!snap.exists()){toast('존재하지 않는 방이에요.');return;}
-    const info=snap.val(),p=PUZZLES.find(p=>p.id===info.puzzleId);if(!p){toast('지원하지 않는 퍼즐이에요.');return;}
+    const info=snap.val(),p=ensureRoomPuzzle(info);if(!p){toast('지원하지 않는 퍼즐이에요.');return;}
     if(roomCode&&roomCode!==code)await leaveGame();
     const members=(await get(ref(database,`rooms/${code}/players`))).val()||{};
     const existing=Object.keys(members).find(slot=>members[slot]?.uid===currentId());
@@ -817,7 +840,7 @@ function installResume(){
     const rows=await Promise.all(codes.map(async code=>{
       try{
         const snap=await get(ref(database,`rooms/${code}/meta`));
-        const info=snap.val(),p=puzzleOf(info?.puzzleId);
+        const info=snap.val(),p=ensureRoomPuzzle(info);
         if(!p||info.mode!=='coop')return null;
         const boardSnap=await get(ref(database,`rooms/${code}/${info.format===2?'coopMoves':'board'}`)),value=boardSnap.val();
         const progressBoard=info.format===2?applyMoveLog(value,p):
@@ -842,6 +865,7 @@ function installResume(){
         try{
           const info=(await get(ref(database,`rooms/${item.code}/meta`))).val();
           if(!info||info.mode!=='race'||info.puzzleId!==item.puzzleId)saveRaceResume(item.code,item.puzzleId,true);
+           else ensureRoomPuzzle(info);
         }catch(error){console.warn('대결방 상태 확인 실패',item.code,error);}
       }));
     }catch(error){console.warn('이어서 풀기 목록 조회 실패',error);}
