@@ -125,28 +125,6 @@
   transform:translate(-50%,-50%);font-size:11px;font-weight:750;
   white-space:nowrap;color:#8adacbb8;pointer-events:none;
 }
-#nono-floating-stick{
-  display:none;position:fixed;z-index:5;pointer-events:none;
-  width:100px;height:100px;transform:translate(-50%,-50%);
-  border-radius:50%;background:#16344f9c;
-  border:2px solid #b7dce7bb;
-  box-shadow:0 7px 23px #071a3688;
-}
-#nono-floating-stick.is-on{display:block!important}
-#nono-floating-knob{
-  position:absolute;left:50%;top:50%;width:42px;height:42px;
-  transform:translate(-50%,-50%);
-  background:linear-gradient(145deg,#d4fbf1,#7fddcc);
-  border-radius:50%;border:2px solid #e2fff8;
-  box-shadow:0 3px 10px #102a4a88;
-}
-#nono-mobile-pad.nono-floating-mode .nono-dpad{display:none!important}
-#nono-mobile-pad.nono-floating-mode #nono-floating-zone{display:block}
-#nono-mobile-pad.nono-floating-mode.nono-pad-editing .nono-dpad{
-  display:grid!important;opacity:.7!important;
-}
-#nono-mobile-pad.nono-floating-mode.nono-pad-editing #nono-floating-zone{display:none!important}
-
 /* Relative finger-motion mode: a laptop touchpad instead of joystick edges.
    Reuse the existing left-side zone; the action buttons and persisted position
    editor remain untouched. */
