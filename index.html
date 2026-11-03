@@ -116,7 +116,8 @@
   <script src="./puzzles-brainrot.js?v=1"></script>
   <script src="./puzzles-public-catalog.js?v=1"></script>
   <script src="./answer-bitpack.js?v=1"></script>
-  <script src="./random-puzzles.js?v=1"></script>
+  <script src="./random-puzzle-solver.js?v=2"></script>
+  <script src="./random-puzzles.js?v=2"></script>
   <script>
 const firebaseConfig=window.NONO_FIREBASE_CONFIG||{};
 // Public files contain clues and a codec, never private answer masks. Packed answers are stored only in protected Firebase paths.
@@ -584,7 +585,7 @@ async function quickMatch(){
 }
 async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toast('멀티플레이를 사용하려면 먼저 Firebase를 연결해야 해요.');return;}if(!window.NONO_ACCOUNT?.require())return false;if(!['race','coop'].includes(mode))return false;if(puzzle.size>=30&&!puzzle.generated){toast('큰 그림 퍼즐은 현재 혼자 풀기에서만 지원해요.');return false;}const makePublic=typeof options.publicRoom==='boolean'?options.publicRoom:Boolean($('public-room-toggle')?.checked);const autoMatch=options.autoMatch===true;busyRoom=true;try{
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='';for(const value of crypto.getRandomValues(new Uint8Array(6)))code+=chars[value%chars.length];
-  const randomSpec=puzzle.generated?{version:1,size:puzzle.size,seed:puzzle.seed,difficulty:puzzle.difficulty}:null;
+  const randomSpec=puzzle.generated?{version:puzzle.designVersion||1,size:puzzle.size,seed:puzzle.seed,difficulty:puzzle.difficulty}:null;
   if(puzzle.generated&&!window.NONO_RANDOM_PUZZLES?.validSpec(randomSpec))throw Error('랜덤 퍼즐 생성 정보가 없어요. 새로 생성해 주세요.');
   const metaData={host:currentId(),mode,puzzleId:puzzle.id,size:puzzle.size,status:mode==='race'?'lobby':'playing',createdAt:serverTimestamp(),startedAt:mode==='coop'?serverTimestamp():0,format:2,...(randomSpec?{randomSpec}:{})};
   const result=await runTransaction(ref(database,`rooms/${code}/meta`),current=>current?undefined:metaData);
@@ -613,7 +614,7 @@ function ensureRoomPuzzle(info){
   if(!info?.puzzleId)return null;
   if(!info.randomSpec)return PUZZLES.find(p=>p.id===info.puzzleId)||null;
   const api=window.NONO_RANDOM_PUZZLES,spec=info.randomSpec;
-  if(!api?.validSpec(spec)||spec.version!==1||spec.size!==info.size||
+  if(!api?.validSpec(spec)||![1,2].includes(spec.version)||spec.size!==info.size||
       !/^random-[a-z0-9-]{1,85}$/.test(info.puzzleId))return null;
   let item;
   try{item=api.fromSpec({...spec,id:info.puzzleId});}catch(error){console.warn('랜덤 퍼즐 복원 실패',error);return null;}
