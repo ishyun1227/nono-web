@@ -4,12 +4,15 @@ on:
     branches: [main]
     paths:
       - random-puzzle-solver.js
+      - sat-nonogram-solver.js
       - random-puzzles.js
       - apple-home.js
       - apple-home.css
       - index.html
       - tools/build.cjs
       - tests/random-puzzles.cjs
+      - tests/sat-uniqueness.cjs
+      - tests/benchmark-sat-uniqueness.cjs
       - .github/workflows/random-puzzles.yml
   workflow_dispatch:
 permissions:
@@ -25,6 +28,8 @@ jobs:
           node-version: '22'
       - name: Validate all size and difficulty combinations
         run: node tests/random-puzzles.cjs
+      - name: Cross-check SAT solver against exhaustive solutions
+        run: node tests/sat-uniqueness.cjs
       - name: Build deploy bundle
         run: |
           npm ci
