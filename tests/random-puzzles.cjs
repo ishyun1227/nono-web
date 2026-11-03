@@ -35,7 +35,8 @@ for(const size of [5,10,15,20,25,30,50,75,100]){
    const copy=api.fromSpec({...p});assert.deepEqual(copy.rows,p.rows);assert.deepEqual(copy.cols,p.cols);
    variants++;
   }
-  const persisted=api.generate({size,difficulty,seed:base});
+  const persisted=api.register(api.fromSpec({size,difficulty,seed:base,version:4,
+      id:'random-legacy-'+size+'-'+api.LEVELS.indexOf(difficulty)}));
   assert.equal(persisted.designVersion,4);
   assert(api.restore().some(p=>p.id===persisted.id));
   created++;
@@ -83,13 +84,16 @@ for(const size of [5,10,15,20,25]){
 }
 // Even when the solver cannot prove uniqueness, the generator must NEVER
 // claim a puzzle is unique or register an unverified candidate.
+const published=api.generate({size:10,difficulty:'보통',seed:10*11113+3*37});
+assert.equal(published.designVersion,5);
+assert(api.restore().some(p=>p.id===published.id));
 const original=uniqueness.countSolutions;
 try{
  uniqueness.countSolutions=()=>({status:'unknown',count:0});
  assert.throws(()=>api.fromSpec({size:10,difficulty:'쉬움',seed:0x7fffff01,version:5}),/정답이 하나임을 확인하지 못했습니다/);
  assert.throws(()=>api.generate({size:10,difficulty:'쉬움',seed:0x7fffff01}),/정답이 하나임을 확인하지 못했습니다/);
 }finally{uniqueness.countSolutions=original;}
-assert.equal(api.restore().length,created,'Unverified puzzle must not be stored');
+assert.equal(api.restore().length,created+1,'Unverified puzzle must not be stored');
 
 assert.throws(()=>api.generate({size:101,difficulty:'쉬움'}),/지원하지 않는/);
 assert.throws(()=>api.generate({size:10,difficulty:'미평가'}),/지원하지 않는/);
