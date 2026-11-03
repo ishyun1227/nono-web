@@ -139,7 +139,8 @@ function balancedDesign(spec){
 // and column. All remaining filled cells are sampled from a uniform shuffle.
 // No drawn silhouettes, connected paths, solver scoring, or candidate rejection.
 function shuffledDesign(spec){
-  const n=spec.size,random=rng((spec.seed^0xD4B0F1A5)>>>0),area=n*n;
+  const n=spec.size,level=LEVELS.indexOf(spec.difficulty),
+    random=rng((spec.seed^0xD4B0F1A5^Math.imul(level+1,0x9E3779B9))>>>0),area=n*n;
   const mask=new Array(area).fill(0);
   function shuffle(items){
     for(let i=items.length-1;i>0;i--){
