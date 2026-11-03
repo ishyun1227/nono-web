@@ -80,10 +80,8 @@ function render(){
   puzzleRow.replaceChildren();
   choices.forEach((p,i)=>{
     const number=String(i+1).padStart(2,'0');
-    const measured=p.generated&&p.designVersion===2&&Number.isFinite(p.paperFunScore);
-    const label=p.generated?'✦ '+p.name+(measured?' · F '+p.paperFunScore.toFixed(1):' · 평가 미완료'):p.trialOnly?p.name:number;
+    const label=p.generated?'✦ '+p.name:p.trialOnly?p.name:number;
     const b=makeButton(label,picker.value===p.id,false,()=>{selectPuzzle(p);render();});
-    if(p.generated&&p.designVersion===2)b.title=measured?'논문식 추정 재미도 F='+p.paperFunScore.toFixed(2)+' (실제 사용자 평점이 아닙니다)':'풀이기 검증 미완료 · 재미도 점수 없음';
     b.setAttribute('aria-label',(p.trialOnly?p.name:'퍼즐 '+number)+', '+(p.width||p.size)+'×'+(p.height||p.size));
     puzzleRow.append(b);
   });
