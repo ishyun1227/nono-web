@@ -92,6 +92,8 @@ function copyDesign(data){return {rows:data.rows.map(c=>c.slice()),cols:data.col
   mask:data.mask,size:data.size,evaluation:data.evaluation?{...data.evaluation,metrics:data.evaluation.metrics?{...data.evaluation.metrics,moveLengths:data.evaluation.metrics.moveLengths.slice()}:undefined}:null};}
 function design(spec){
   if(!validSpec(spec))throw Error('잘못된 랜덤 퍼즐 생성 정보입니다.');
+  if((spec.version??spec.designVersion??2)===2&&!paperSolver)
+    throw Error('논문 기반 퍼즐 풀이기를 불러오지 못했습니다. 새로고침 후 다시 시도하세요.');
   const cacheKey=[spec.version??spec.designVersion??2,spec.size,spec.difficulty,spec.seed].join(':');
   if(designedCache.has(cacheKey))return copyDesign(designedCache.get(cacheKey));
   const {size:n,difficulty,seed}=spec,level=LEVELS.indexOf(difficulty),random=rng(seed),pi=Math.PI;
