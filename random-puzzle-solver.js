@@ -94,6 +94,9 @@ function evaluate(puzzle,options={}){
   if(!Number.isInteger(n)||n<5||n>100||!Array.isArray(puzzle.rows)||!Array.isArray(puzzle.cols)||
      puzzle.rows.length!==n||puzzle.cols.length!==n)
     return {status:'invalid',funScore:null,difficultyScore:null};
+  if(n>30)return {status:'not_evaluated',funScore:null,difficultyScore:null,
+    reason:'30×30 초과는 현 버전 풀이기 계산 비용이 너무 커서 논문 점수를 계산하지 않습니다.',
+    method:'paper-inspired-line-dp-v1'};
   const lines=[...puzzle.rows,...puzzle.cols];
   if(lines.some(c=>!Array.isArray(c)||!c.length||c.some(v=>!Number.isInteger(v)||v<0||v>n)))return {status:'invalid',funScore:null,difficultyScore:null};
   const m=lines.map(machine),board=new Int8Array(n*n).fill(-1);
