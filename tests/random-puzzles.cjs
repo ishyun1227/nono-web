@@ -1,4 +1,5 @@
-/* Deterministic constructive + paper-guided nonogram regression. */
+/* Constructive random generation using only static black/white balance.
+ * The gameplay solver is deliberately not used in v3 generation or scoring. */
 'use strict';
 const assert=require('node:assert/strict');
 const storage=new Map();
@@ -7,69 +8,47 @@ globalThis.localStorage={
  setItem:(key,value)=>storage.set(String(key),String(value)),
  removeItem:key=>storage.delete(String(key))
 };
-const solver=require('../random-puzzle-solver.js');
 const api=require('../random-puzzles.js');
 assert.deepEqual(api.LEVELS,['쉬움','보통','어려움','전문가']);
 function hints(bits){const runs=(bits.join('').match(/1+/g)||[]).map(s=>s.length);return runs.length?runs:[0];}
-let created=0;
+let variants=0,created=0;
 for(const size of [5,10,15,20,25,30,50,75,100]){
  for(const difficulty of api.LEVELS){
-  const seed=(size*9991+api.LEVELS.indexOf(difficulty)*181)>>>0;
-  const p=api.generate({size,difficulty,seed});
-  const copy=api.fromSpec({...p});
-  const answer=api.answerFor(p);
-  assert.equal(p.designVersion,2);
-  assert.equal(p.generated,true);
-  assert.equal(p.trialOnly,true);
-  assert.equal(p.seed,seed);
-  assert.equal(answer.length,size*size);
-  assert.deepEqual(copy.rows,p.rows);
-  assert.deepEqual(copy.cols,p.cols);
-  assert(p.rows.every(line=>line.length>0&&line[0]>0),'Empty row');
-  assert(p.cols.every(line=>line.length>0&&line[0]>0),'Empty column');
-  const rows=Array.from({length:size},(_,r)=>answer.slice(r*size,(r+1)*size).split(''));
-  const cols=Array.from({length:size},(_,c)=>Array.from({length:size},(_,r)=>answer[r*size+c]));
-  assert.deepEqual(rows.map(hints),p.rows,'Row clues disagree with answer');
-  assert.deepEqual(cols.map(hints),p.cols,'Column clues disagree with answer');
-  assert.equal(api.restore().some(x=>x.id===p.id),true);
-  if(size<=30){
-    const report=solver.evaluate(p);
-    assert.equal(report.status,p.paperSolverStatus);
-    assert.equal(report.funScore,p.paperFunScore);
-    assert.equal(report.difficultyScore,p.paperDifficultyScore);
-    if(report.status==='solved'){
-      const {n,g,d,k,u,black,white}=report.metrics;
-      assert.equal(report.difficultyScore,n+50*Math.sqrt(g)+10*d);
-      if(k!==null){
-        const expected=(4*black*white/(size**4)-k)*u+5-Math.max(d,5)-g*g;
-        assert(Math.abs(expected-report.funScore)<0.002,'Paper fun formula mismatch');
-      }
-    }else{
-      assert.equal(p.paperFunScore,null,'Do not invent a score for unsolved puzzles');
-    }
-  }else{
-    assert.equal(p.paperSolverStatus,'not_evaluated');
-    assert.equal(p.paperFunScore,null);
+  const base=(size*9991+api.LEVELS.indexOf(difficulty)*181)>>>0;
+  for(const seed of [base,base+1,base+2]){
+   const p=api.fromSpec({size,difficulty,seed,version:3}),answer=api.answerFor(p);
+   const b=answer.split('1').length-1,w=answer.length-b,balanced=4*b*w/(answer.length**2);
+   assert.equal(p.designVersion,3);
+   assert.equal(p.paperFunScore,null);
+   assert.equal(p.paperDifficultyScore,null);
+   assert.equal(p.paperScoreMethod,null);
+   assert.equal(p.paperSolverStatus,'not_evaluated');
+   assert(balanced>=.994,'Black/white balance must be near equal, without filtering samples');
+   assert.equal(answer.length,size*size);
+   assert(p.rows.every(line=>line[0]>0),'Empty row');
+   assert(p.cols.every(line=>line[0]>0),'Empty column');
+   const rows=Array.from({length:size},(_,r)=>answer.slice(r*size,(r+1)*size).split(''));
+   const cols=Array.from({length:size},(_,c)=>Array.from({length:size},(_,r)=>answer[r*size+c]));
+   assert.deepEqual(rows.map(hints),p.rows);
+   assert.deepEqual(cols.map(hints),p.cols);
+   const copy=api.fromSpec({...p});assert.deepEqual(copy.rows,p.rows);assert.deepEqual(copy.cols,p.cols);
+   variants++;
   }
+  const persisted=api.generate({size,difficulty,seed:base});
+  assert.equal(persisted.designVersion,3);
+  assert(api.restore().some(p=>p.id===persisted.id));
   created++;
  }
 }
 assert.equal(api.restore().length,created);
-// Existing saved and invited rooms must retain v1 clue/answer layout.
-for(const size of [5,10,15,25]){
- const old=api.fromSpec({size,difficulty:'보통',seed:12345,version:1});
- assert.equal(old.designVersion,1);
- assert.equal(old.paperFunScore,null);
- assert.deepEqual(api.fromSpec({...old}).rows,old.rows);
- assert.equal(api.answerFor(old),api.answerFor({...old,version:1}));
+// v1/v2 room seeds must reconstruct identically, without converting saved puzzles to v3.
+for(const version of [1,2]){
+ const p=api.fromSpec({size:10,difficulty:'보통',seed:12345,version});
+ assert.equal(p.designVersion,version);
+ assert.deepEqual(api.fromSpec({...p}).rows,p.rows);
+ assert.equal(api.answerFor(p),api.answerFor({...p,version}));
 }
-// Regression: a previously ambiguous 25x25 grid can now be improved
-// into a grid fully deduced from clues, which also proves uniqueness.
-const sample=api.fromSpec({size:25,difficulty:'보통',seed:797});
-assert.equal(sample.paperSolverStatus,'solved');
-assert.notEqual(sample.paperFunScore,null);
-assert.notEqual(api.answerFor(sample),api.answerFor({...sample,version:1}));
 assert.throws(()=>api.generate({size:101,difficulty:'쉬움'}),/지원하지 않는/);
 assert.throws(()=>api.generate({size:10,difficulty:'미평가'}),/지원하지 않는/);
 assert.throws(()=>api.fromSpec({size:10,difficulty:'보통',seed:-1}),/지원하지 않는/);
-console.log('PASS '+created+' generated combinations, paper evaluation, legacy v1 seeds, deterministic multiplayer reconstruction');
+console.log('PASS '+variants+' balanced constructive designs, '+created+' restored games, v1/v2 multiplayer compatibility (no v3 solver evaluation)');
