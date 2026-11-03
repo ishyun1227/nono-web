@@ -53,12 +53,12 @@ function deduce(board,n,axis,index,m){
   }
   return result;
 }
-function propagation(board,n,machines,limit,record){
+function propagation(board,n,machines,limit,record,budget){
   const queue=[],present=new Uint8Array(2*n);
   for(let i=0;i<2*n;i++){queue.push(i);present[i]=1;}
   const lengths=[],trace=[];let steps=0,d=0,scanned=0,misses=0,triggered=false,progress=false;
   while(queue.length){
-    if(++scanned>limit)return {status:'budget',board,lengths,trace,steps,d,scanned};
+    if(++scanned>limit||(budget&&++budget.checks>budget.maxChecks))return {status:'budget',board,lengths,trace,steps,d,scanned};
     const line=queue.shift();present[line]=0;
     const axis=line<n?0:1,index=line%n;
     const changes=deduce(board,n,axis,index,machines[line]);
@@ -141,7 +141,60 @@ function evaluate(puzzle,options={}){
       size:cells,moveLengths:main.lengths,scanned:main.scanned,unknown:main.unknown??0},
     method:'paper-inspired-line-dp-v1',trace:options.trace?main.trace:undefined};
 }
-const api={evaluate,kurtosis};
+
+// Independent exact solution count, capped at two answers. Used for validation,
+// NOT for fun/difficulty grading. A bounded search returning 'unknown' is NEVER
+// accepted as proof of uniqueness.
+function countSolutions(puzzle,options={}){
+  const n=puzzle?.size,rows=puzzle?.rows,cols=puzzle?.cols;
+  if(!Number.isInteger(n)||n<5||n>100||!Array.isArray(rows)||!Array.isArray(cols)||
+    rows.length!==n||cols.length!==n)return {status:'invalid',count:0,checks:0,nodes:0};
+  const validLine=line=>Array.isArray(line)&&line.length>0&&line.every(v=>Number.isInteger(v)&&v>=1&&v<=n)&&
+    line.reduce((a,b)=>a+b,0)+line.length-1<=n;
+  if(![...rows,...cols].every(validLine))return {status:'invalid',count:0,checks:0,nodes:0};
+  const machines=[...rows,...cols].map(machine);
+  const maxChecks=Number.isInteger(options.maxChecks)&&options.maxChecks>=1?options.maxChecks:Math.max(600,n*n*30);
+  const maxNodes=Number.isInteger(options.maxNodes)&&options.maxNodes>=1?options.maxNodes:Math.max(200,n*15);
+  const budget={checks:0,maxChecks},seen={count:0,nodes:0,limited:false};
+  const full=n*n;
+  const reference=options.reference;
+  if(reference!==undefined&&
+      (typeof reference!=='string'||reference.length!==full||!/^[01]+$/.test(reference)))
+    return {status:'invalid',count:0,checks:0,nodes:0};
+  function dfs(current){
+    if(seen.count>=2||seen.limited)return;
+    if(++seen.nodes>maxNodes){seen.limited=true;return;}
+    const settled=propagation(current,n,machines,Math.min(maxChecks,Math.max(n*n*6,400)),false,budget);
+    if(settled.status==='budget'){seen.limited=true;return;}
+    if(settled.status==='invalid')return;
+    if(settled.status==='solved'){
+      if(reference){
+        for(let i=0;i<full;i++)if(current[i]!==Number(reference[i])){
+          seen.count=2;return;
+        }
+      }
+      seen.count++;
+      return;
+    }
+    let best=-1,bestRank=Infinity;
+    const unknownRows=new Uint16Array(n),unknownCols=new Uint16Array(n);
+    for(let i=0;i<full;i++)if(current[i]<0){unknownRows[Math.floor(i/n)]++;unknownCols[i%n]++;}
+    for(let i=0;i<full;i++)if(current[i]<0){
+      const rank=unknownRows[Math.floor(i/n)]+unknownCols[i%n];
+      if(rank<bestRank){best=i;bestRank=rank;}
+    }
+    if(best<0)return;
+    for(const value of (reference?[Number(reference[best]),1-Number(reference[best])]:[0,1])){
+      const branch=current.slice();branch[best]=value;dfs(branch);
+      if(seen.count>=2||seen.limited)return;
+    }
+  }
+  dfs(new Int8Array(full).fill(-1));
+  return {status:seen.count>=2?'multiple':seen.limited?'unknown':seen.count===1?'unique':'invalid',
+    count:seen.count,checks:budget.checks,nodes:seen.nodes};
+}
+
+const api={evaluate,kurtosis,countSolutions};
 root.NONO_RANDOM_SOLVER=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
