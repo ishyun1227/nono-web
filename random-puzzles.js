@@ -54,6 +54,39 @@ function addClueAnchors(mask,n){
     if(uniqueOnSmallBoard(mask,n))return;
   }
 }
+// Version 2 uses solver feedback to refine the originally constructed ribbons.
+// Mutations change a small rectangle in the same puzzle, not a new random candidate.
+// The bounded edits are deterministic so every multiplayer client reconstructs the same clues.
+const paperSolver=root.NONO_RANDOM_SOLVER||(typeof require==='function'?require('./random-puzzle-solver.js'):null);
+function rowsAndCols(mask,n){
+  return {size:n,rows:Array.from({length:n},(_,y)=>clues(mask.slice(y*n,(y+1)*n))),
+    cols:Array.from({length:n},(_,x)=>clues(Array.from({length:n},(_,y)=>mask[y*n+x])))};
+}
+function assess(mask,n,difficulty){
+  return paperSolver?paperSolver.evaluate({...rowsAndCols(mask,n),difficulty}):
+    {status:'not_evaluated',funScore:null,difficultyScore:null};
+}
+function improveMask(base,n,difficulty,seed){
+  if(n>30||!paperSolver)return base;
+  const random=rng(seed^0xCE11E0ED),level=LEVELS.indexOf(difficulty);
+  const candidates=n<=10?10:n<=20?7:5;
+  let best=base.slice(),result=assess(best,n,difficulty);
+  const rank=r=>r.status==='solved'&&r.funScore!==null
+    ?r.funScore-.015*Math.abs(r.difficultyScore-n*(2.8+level*1.1)):-100000;
+  let score=rank(result);
+  for(let step=0;step<candidates;step++){
+    const cells=best.slice(),span=Math.min(n-1,n<=10?2:4);
+    const w=1+Math.floor(random()*span),h=1+Math.floor(random()*span);
+    const x=Math.floor(random()*(n-w+1)),y=Math.floor(random()*(n-h+1));
+    for(let row=y;row<y+h;row++)for(let col=x;col<x+w;col++)
+      cells[row*n+col]^=1;
+    const puzzle=rowsAndCols(cells,n);
+    if(puzzle.rows.some(c=>c[0]===0)||puzzle.cols.some(c=>c[0]===0))continue;
+    const evaluated=paperSolver.evaluate({...puzzle,difficulty});
+    if(rank(evaluated)>score){best=cells;score=rank(evaluated);}
+  }
+  return best;
+}
 function design(spec){
   if(!validSpec(spec))throw Error('잘못된 랜덤 퍼즐 생성 정보입니다.');
   const {size:n,difficulty,seed}=spec,level=LEVELS.indexOf(difficulty),random=rng(seed),pi=Math.PI;
@@ -103,9 +136,11 @@ function design(spec){
     if(!has){const mid=Math.max(0,Math.min(n-1,Math.floor(centerH((x+.5)/n)*n)));mask[mid*n+x]=1;}
   }
   addClueAnchors(mask,n);
-  const rows=Array.from({length:n},(_,y)=>clues(mask.slice(y*n,(y+1)*n)));
-  const cols=Array.from({length:n},(_,x)=>clues(Array.from({length:n},(_,y)=>mask[y*n+x])));
-  return {rows,cols,mask:mask.join(''),size:n};
+  const version=spec.version??spec.designVersion??2;
+  const finished=version===2?improveMask(mask,n,difficulty,seed):mask;
+  const data=rowsAndCols(finished,n);
+  const evaluation=version===2?assess(finished,n,difficulty):null;
+  return {...data,mask:finished.join(''),evaluation};
 }
 function randomStatic(seed,salt){return rng((seed^Math.imul(salt,0x9e3779b9))>>>0)();}
 function validPuzzle(p){
@@ -121,16 +156,24 @@ function readList(){try{const list=JSON.parse(root.localStorage?.getItem(KEY)||'
 function restore(){return readList().map(p=>({...p,generated:true,trialOnly:true}));}
 function fromSpec(spec){
   if(!validSpec(spec))throw Error('지원하지 않는 크기·난이도·시드입니다.');
-  const data=design(spec);
+  const version=spec.version??spec.designVersion??2;
+  if(version!==1&&version!==2)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
+  const data=design({...spec,version});
   const id=typeof spec.id==='string'&&/^random-[a-z0-9-]{1,85}$/.test(spec.id)?
     spec.id:'random-'+spec.seed.toString(36)+'-'+spec.size+'-'+LEVELS.indexOf(spec.difficulty);
   return {id,name:'랜덤 '+spec.size+'×'+spec.size,size:spec.size,width:spec.size,height:spec.size,
     difficulty:spec.difficulty,seed:spec.seed,rows:data.rows,cols:data.cols,
-    generated:true,trialOnly:true,designVersion:1};
+    generated:true,trialOnly:true,designVersion:version,
+    paperFunScore:data.evaluation?.funScore??null,
+    paperDifficultyScore:data.evaluation?.difficultyScore??null,
+    paperSolverStatus:data.evaluation?.status??'not_evaluated',
+    paperScoreMethod:'paper-inspired-line-dp-v1'};
 }
 function answerFor(spec){
   if(!validSpec(spec))throw Error('잘못된 정답 생성 정보입니다.');
-  return design(spec).mask;
+  const version=spec.version??spec.designVersion??2;
+  if(version!==1&&version!==2)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
+  return design({...spec,version}).mask;
 }
 function register(p){
   if(!validPuzzle(p))throw Error('랜덤 퍼즐 형식이 올바르지 않습니다.');
@@ -149,7 +192,7 @@ function generate({size,difficulty,seed}){
   size=Number(size);
   seed=seed===undefined?(root.crypto?.getRandomValues?.(new Uint32Array(1))[0]??Math.floor(Math.random()*4294967296)):(Number(seed)>>>0);
   if(!validSpec({size,difficulty,seed}))throw Error('지원하지 않는 크기 또는 난이도입니다.');
-  const spec={size,difficulty,seed,id:'random-'+Date.now().toString(36)+'-'+seed.toString(36)};
+  const spec={size,difficulty,seed,version:2,id:'random-'+Date.now().toString(36)+'-'+seed.toString(36)};
   return register(fromSpec(spec));
 }
 const api={generate,restore,register,fromSpec,answerFor,validSpec,LEVELS};
