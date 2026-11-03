@@ -132,16 +132,48 @@ function balancedDesign(spec){
   return {...data,mask:mask.join(''),evaluation:null};
 }
 
+
+// V4: shape-independent random cells. The only intentional constraints are
+// a near-even black/white split and at least one black cell in each row/column.
+// A shuffled column permutation supplies one randomly located cell per row
+// and column. All remaining filled cells are sampled from a uniform shuffle.
+// No drawn silhouettes, connected paths, solver scoring, or candidate rejection.
+function shuffledDesign(spec){
+  const n=spec.size,random=rng((spec.seed^0xD4B0F1A5)>>>0),area=n*n;
+  const mask=new Array(area).fill(0);
+  function shuffle(items){
+    for(let i=items.length-1;i>0;i--){
+      const j=Math.floor(random()*(i+1));
+      [items[i],items[j]]=[items[j],items[i]];
+    }
+    return items;
+  }
+  // Build coverage without any silhouette or aesthetic structure.
+  const columns=shuffle(Array.from({length:n},(_,i)=>i));
+  for(let y=0;y<n;y++)mask[y*n+columns[y]]=1;
+  const blackTarget=Math.round(area*(.47+.06*random()));
+  const other=shuffle(Array.from({length:area},(_,i)=>i).filter(i=>mask[i]===0));
+  for(let i=0;i<blackTarget-n;i++)mask[other[i]]=1;
+  const cluesData=rowsAndCols(mask,n);
+  return {...cluesData,mask:mask.join(''),evaluation:null};
+}
+
 const designedCache=new Map();
 function copyDesign(data){return {rows:data.rows.map(c=>c.slice()),cols:data.cols.map(c=>c.slice()),
   mask:data.mask,size:data.size,evaluation:data.evaluation?{...data.evaluation,metrics:data.evaluation.metrics?{...data.evaluation.metrics,moveLengths:data.evaluation.metrics.moveLengths.slice()}:undefined}:null};}
 function design(spec){
   if(!validSpec(spec))throw Error('잘못된 랜덤 퍼즐 생성 정보입니다.');
-  if((spec.version??spec.designVersion??3)===2&&!paperSolver)
+  if((spec.version??spec.designVersion??4)===2&&!paperSolver)
     throw Error('논문 기반 퍼즐 풀이기를 불러오지 못했습니다. 새로고침 후 다시 시도하세요.');
-  const cacheKey=[spec.version??spec.designVersion??3,spec.size,spec.difficulty,spec.seed].join(':');
+  const cacheKey=[spec.version??spec.designVersion??4,spec.size,spec.difficulty,spec.seed].join(':');
   if(designedCache.has(cacheKey))return copyDesign(designedCache.get(cacheKey));
-  if((spec.version??spec.designVersion??3)===3){
+  if((spec.version??spec.designVersion??4)===4){
+    const output=shuffledDesign(spec);
+    designedCache.set(cacheKey,copyDesign(output));
+    if(designedCache.size>12)designedCache.delete(designedCache.keys().next().value);
+    return output;
+  }
+  if((spec.version??spec.designVersion??4)===3){
     const output=balancedDesign(spec);
     designedCache.set(cacheKey,copyDesign(output));
     if(designedCache.size>12)designedCache.delete(designedCache.keys().next().value);
@@ -194,7 +226,7 @@ function design(spec){
     if(!has){const mid=Math.max(0,Math.min(n-1,Math.floor(centerH((x+.5)/n)*n)));mask[mid*n+x]=1;}
   }
   addClueAnchors(mask,n);
-  const version=spec.version??spec.designVersion??3;
+  const version=spec.version??spec.designVersion??4;
   const finished=version===2?improveMask(mask,n,difficulty,seed):mask;
   const data=rowsAndCols(finished,n);
   const evaluation=version===2?assess(finished,n,difficulty):null;
@@ -217,8 +249,8 @@ function readList(){try{const list=JSON.parse(root.localStorage?.getItem(KEY)||'
 function restore(){return readList().map(p=>({...p,generated:true,trialOnly:true}));}
 function fromSpec(spec){
   if(!validSpec(spec))throw Error('지원하지 않는 크기·난이도·시드입니다.');
-  const version=spec.version??spec.designVersion??3;
-  if(version!==1&&version!==2&&version!==3)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
+  const version=spec.version??spec.designVersion??4;
+  if(version!==1&&version!==2&&version!==3&&version!==4)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
   const data=design({...spec,version});
   const id=typeof spec.id==='string'&&/^random-[a-z0-9-]{1,85}$/.test(spec.id)?
     spec.id:'random-'+spec.seed.toString(36)+'-'+spec.size+'-'+LEVELS.indexOf(spec.difficulty);
@@ -232,8 +264,8 @@ function fromSpec(spec){
 }
 function answerFor(spec){
   if(!validSpec(spec))throw Error('잘못된 정답 생성 정보입니다.');
-  const version=spec.version??spec.designVersion??3;
-  if(version!==1&&version!==2&&version!==3)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
+  const version=spec.version??spec.designVersion??4;
+  if(version!==1&&version!==2&&version!==3&&version!==4)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
   return design({...spec,version}).mask;
 }
 function register(p){
@@ -253,7 +285,7 @@ function generate({size,difficulty,seed}){
   size=Number(size);
   seed=seed===undefined?(root.crypto?.getRandomValues?.(new Uint32Array(1))[0]??Math.floor(Math.random()*4294967296)):(Number(seed)>>>0);
   if(!validSpec({size,difficulty,seed}))throw Error('지원하지 않는 크기 또는 난이도입니다.');
-  const spec={size,difficulty,seed,version:3,id:'random-'+Date.now().toString(36)+'-'+seed.toString(36)};
+  const spec={size,difficulty,seed,version:4,id:'random-'+Date.now().toString(36)+'-'+seed.toString(36)};
   return register(fromSpec(spec));
 }
 const api={generate,restore,register,fromSpec,answerFor,validSpec,LEVELS};
