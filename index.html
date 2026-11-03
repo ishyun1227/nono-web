@@ -117,7 +117,7 @@
   <script src="./puzzles-public-catalog.js?v=1"></script>
   <script src="./answer-bitpack.js?v=1"></script>
   <script src="./random-puzzle-solver.js?v=2"></script>
-  <script src="./random-puzzles.js?v=4"></script>
+  <script src="./random-puzzles.js?v=5"></script>
   <script>
 const firebaseConfig=window.NONO_FIREBASE_CONFIG||{};
 // Public files contain clues and a codec, never private answer masks. Packed answers are stored only in protected Firebase paths.
@@ -614,7 +614,7 @@ function ensureRoomPuzzle(info){
   if(!info?.puzzleId)return null;
   if(!info.randomSpec)return PUZZLES.find(p=>p.id===info.puzzleId)||null;
   const api=window.NONO_RANDOM_PUZZLES,spec=info.randomSpec;
-  if(!api?.validSpec(spec)||![1,2,3,4].includes(spec.version)||spec.size!==info.size||
+  if(!api?.validSpec(spec)||![1,2,3,4,5].includes(spec.version)||spec.size!==info.size||
       !/^random-[a-z0-9-]{1,85}$/.test(info.puzzleId))return null;
   let item;
   try{item=api.fromSpec({...spec,id:info.puzzleId});}catch(error){console.warn('랜덤 퍼즐 복원 실패',error);return null;}
