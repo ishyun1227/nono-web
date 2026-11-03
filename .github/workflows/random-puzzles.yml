@@ -3,6 +3,7 @@ on:
   push:
     branches: [main]
     paths:
+      - random-puzzle-solver.js
       - random-puzzles.js
       - apple-home.js
       - apple-home.css
