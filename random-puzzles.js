@@ -87,8 +87,13 @@ function improveMask(base,n,difficulty,seed){
   }
   return best;
 }
+const designedCache=new Map();
+function copyDesign(data){return {rows:data.rows.map(c=>c.slice()),cols:data.cols.map(c=>c.slice()),
+  mask:data.mask,size:data.size,evaluation:data.evaluation?{...data.evaluation,metrics:data.evaluation.metrics?{...data.evaluation.metrics,moveLengths:data.evaluation.metrics.moveLengths.slice()}:undefined}:null};}
 function design(spec){
   if(!validSpec(spec))throw Error('잘못된 랜덤 퍼즐 생성 정보입니다.');
+  const cacheKey=[spec.version??spec.designVersion??2,spec.size,spec.difficulty,spec.seed].join(':');
+  if(designedCache.has(cacheKey))return copyDesign(designedCache.get(cacheKey));
   const {size:n,difficulty,seed}=spec,level=LEVELS.indexOf(difficulty),random=rng(seed),pi=Math.PI;
   // Continuous ribbons guarantee every row and column has meaningful entry points.
   const turn=[.6,1.1,1.7,2.4][level],width=[.19,.155,.125,.105][level];
@@ -140,7 +145,10 @@ function design(spec){
   const finished=version===2?improveMask(mask,n,difficulty,seed):mask;
   const data=rowsAndCols(finished,n);
   const evaluation=version===2?assess(finished,n,difficulty):null;
-  return {...data,mask:finished.join(''),evaluation};
+  const output={...data,mask:finished.join(''),evaluation};
+  designedCache.set(cacheKey,copyDesign(output));
+  if(designedCache.size>12)designedCache.delete(designedCache.keys().next().value);
+  return output;
 }
 function randomStatic(seed,salt){return rng((seed^Math.imul(salt,0x9e3779b9))>>>0)();}
 function validPuzzle(p){
