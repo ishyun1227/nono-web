@@ -16,7 +16,7 @@ class FakeWorker {
   static decisions=[];
   static created=[];
   constructor(url,options){
-    assert.equal(url,'./random-unique-worker.js');
+    assert.equal(url,'./random-unique-worker.js?v=6');
     assert.equal(options.type,'module');
     this.listeners=new Map();
     this.requests=[];
