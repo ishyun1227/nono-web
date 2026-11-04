@@ -359,7 +359,7 @@ async function generateAsync({size,difficulty,seed,maxMs=5000}){
   const duration=Math.min(5000,Math.max(0,Number(maxMs)||0));
   if(!duration)throw Error('검사 시간이 0초입니다.');
   const until=Date.now()+duration,random=rng(seed^0x7C19AB29);
-  const worker=new root.Worker('./random-unique-worker.js',{type:'module'});
+  const worker=new root.Worker('./random-unique-worker.js?v=6',{type:'module'});
   try{
     for(let attempt=0;attempt<64;attempt++){
       const remaining=until-Date.now();
