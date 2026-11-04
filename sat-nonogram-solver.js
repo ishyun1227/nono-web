@@ -116,21 +116,38 @@ function dpll(cnf,reference,maxNodes,maxVisits,deadline){
     while(trail.length>saved){const l=trail.pop();assigned[Math.abs(l)]=0;}
     head=trail.length;
   }
+  // Explicit decision stack avoids JavaScript call-stack overflow on 75x75+ boards.
   function solve(){
-    if(++nodes>maxNodes){limited=true;return false;}
-    if((nodes&31)===0&&checkTime())return false;
-    if(!propagate())return false;
-    let decision=0;
-    for(const id of priority)if(assigned[id]===0){decision=id;break;}
-    if(!decision)return true; // All cell values fixed; the deterministic DFAs are accepting.
-    const saved=trail.length;
-    const first=reference[decision-1]==='1'?-decision:decision;
-    for(const lit of [first,-first]){
-      if(enqueue(lit)&&solve())return true;
-      if(limited)return false;
-      backtrack(saved);
+    const branches=[];
+    let entering=true;
+    for(;;){
+      if(entering){
+        if(++nodes>maxNodes){limited=true;return false;}
+        if((nodes&31)===0&&checkTime())return false;
+        if(propagate()){
+          let decision=0;
+          for(const id of priority)if(assigned[id]===0){decision=id;break;}
+          if(!decision)return true;
+          const first=reference[decision-1]==='1'?-decision:decision;
+          branches.push({saved:trail.length,first,second:false});
+          if(enqueue(first)){entering=true;continue;}
+        }
+        if(limited)return false;
+        entering=false;
+      }
+      // Either current assignment contradicted a clause or a child failed.
+      // Undo to the saved branch point; try the opposite value exactly once.
+      while(branches.length){
+        const frame=branches[branches.length-1];
+        backtrack(frame.saved);
+        if(!frame.second){
+          frame.second=true;
+          if(enqueue(-frame.first)){entering=true;break;}
+        }else branches.pop();
+      }
+      if(entering)continue;
+      return false;
     }
-    return false;
   }
   const satisfiable=solve();
   if(limited)return {status:'unknown',reason:timedOut?'time_budget':'search_budget',nodes,visits};
