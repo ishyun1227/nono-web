@@ -188,6 +188,12 @@ function design(spec){
     throw Error('논문 기반 퍼즐 풀이기를 불러오지 못했습니다. 새로고침 후 다시 시도하세요.');
   const cacheKey=[spec.version??spec.designVersion??5,spec.size,spec.difficulty,spec.seed].join(':');
   if(designedCache.has(cacheKey))return copyDesign(designedCache.get(cacheKey));
+  if((spec.version??spec.designVersion??5)===6){
+    const output=shuffledDesign(spec);
+    designedCache.set(cacheKey,copyDesign(output));
+    if(designedCache.size>12)designedCache.delete(designedCache.keys().next().value);
+    return output;
+  }
   if((spec.version??spec.designVersion??5)===5){
     const output=uniqueRandomDesign(spec);
     designedCache.set(cacheKey,copyDesign(output));
@@ -277,7 +283,7 @@ function restore(){return readList().map(p=>({...p,generated:true,trialOnly:true
 function fromSpec(spec){
   if(!validSpec(spec))throw Error('지원하지 않는 크기·난이도·시드입니다.');
   const version=spec.version??spec.designVersion??5;
-  if(version!==1&&version!==2&&version!==3&&version!==4&&version!==5)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
+  if(version!==1&&version!==2&&version!==3&&version!==4&&version!==5&&version!==6)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
   const data=design({...spec,version});
   const id=typeof spec.id==='string'&&/^random-[a-z0-9-]{1,85}$/.test(spec.id)?
     spec.id:'random-'+spec.seed.toString(36)+'-'+spec.size+'-'+LEVELS.indexOf(spec.difficulty);
@@ -292,7 +298,7 @@ function fromSpec(spec){
 function answerFor(spec){
   if(!validSpec(spec))throw Error('잘못된 정답 생성 정보입니다.');
   const version=spec.version??spec.designVersion??5;
-  if(version!==1&&version!==2&&version!==3&&version!==4&&version!==5)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
+  if(version!==1&&version!==2&&version!==3&&version!==4&&version!==5&&version!==6)throw Error('지원하지 않는 퍼즐 생성기 버전입니다.');
   return design({...spec,version}).mask;
 }
 function register(p){
@@ -315,7 +321,68 @@ function generate({size,difficulty,seed}){
   const spec={size,difficulty,seed,version:5,id:'random-'+Date.now().toString(36)+'-'+seed.toString(36)};
   return register(fromSpec(spec));
 }
-const api={generate,restore,register,fromSpec,answerFor,validSpec,LEVELS};
+
+/** v6: register only after a professional CaDiCaL SAT solver proves that
+ * no second solution exists. The worker is isolated to avoid freezing the UI.
+ * Regeneration from the winning seed remains synchronous for shared rooms.
+ */
+function checkWithWorker(worker,puzzle,mask,id,remaining){
+  return new Promise((resolve,reject)=>{
+    let timer;
+    const cleanup=()=>{
+      if(timer!==undefined)clearTimeout(timer);
+      worker.removeEventListener('message',onMessage);
+      worker.removeEventListener('error',onError);
+      worker.removeEventListener('messageerror',onError);
+    };
+    const onMessage=event=>{
+      if(event.data?.id!==id)return;
+      cleanup();resolve(event.data);
+    };
+    const onError=()=>{
+      cleanup();reject(Error('전문 유일해 검사기를 불러오지 못했습니다. 새로고침해 주세요.'));
+    };
+    worker.addEventListener('message',onMessage);
+    worker.addEventListener('error',onError);
+    worker.addEventListener('messageerror',onError);
+    timer=setTimeout(()=>{
+      cleanup();reject(Error('유일해 검사가 5초 제한을 초과했습니다.'));
+    },remaining+80);
+    worker.postMessage({id,puzzle:{size:puzzle.size,rows:puzzle.rows,cols:puzzle.cols},mask,maxMs:remaining});
+  });
+}
+async function generateAsync({size,difficulty,seed,maxMs=5000}){
+  size=Number(size);
+  seed=seed===undefined?(root.crypto?.getRandomValues?.(new Uint32Array(1))[0]??Math.floor(Math.random()*4294967296)):(Number(seed)>>>0);
+  if(!validSpec({size,difficulty,seed}))throw Error('지원하지 않는 크기 또는 난이도입니다.');
+  if(typeof root.Worker!=='function')throw Error('이 브라우저에서는 전문 유일해 검사를 사용할 수 없습니다.');
+  const duration=Math.min(5000,Math.max(0,Number(maxMs)||0));
+  if(!duration)throw Error('검사 시간이 0초입니다.');
+  const until=Date.now()+duration,random=rng(seed^0x7C19AB29);
+  const worker=new root.Worker('./random-unique-worker.js',{type:'module'});
+  try{
+    for(let attempt=0;attempt<64;attempt++){
+      const remaining=until-Date.now();
+      if(remaining<=0)break;
+      const candidateSeed=attempt===0?seed:Math.floor(random()*4294967296);
+      const spec={size,difficulty,seed:candidateSeed,version:6};
+      const candidate=fromSpec(spec),mask=answerFor(spec);
+      const verdict=await checkWithWorker(worker,candidate,mask,attempt+1,Math.max(1,until-Date.now()));
+      if(verdict.status==='unique'){
+        // Do not approve results delivered after the overall time limit.
+        if(Date.now()>until)break;
+        return register(fromSpec({...spec,id:'random-'+Date.now().toString(36)+'-'+candidateSeed.toString(36)}));
+      }
+      if(verdict.status==='error'||verdict.status==='invalid')
+        throw Error('전문 유일해 검사 오류: '+(verdict.reason||'잘못된 제약조건'));
+      // multiple/unknown are NEVER registered; try another truly random seed.
+    }
+    throw Error('5초 안에 유일해 랜덤 퍼즐을 확인하지 못했습니다. 다시 생성해 주세요.');
+  }finally{
+    worker.terminate();
+  }
+}
+const api={generate,generateAsync,restore,register,fromSpec,answerFor,validSpec,LEVELS};
 root.NONO_RANDOM_PUZZLES=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
