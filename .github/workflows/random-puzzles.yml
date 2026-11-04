@@ -53,9 +53,9 @@ jobs:
             echo "## CaDiCaL v6 — 실측 벤치마크"
             echo '사용한 퍼즐: 시드 100 / 난이도 보통 / 최대 5초'
             echo '### 테스트 로그'
-            echo '\`\`\`text'
+            echo '```text'
             cat cadical-benchmark.log
-            echo '\`\`\`'
+            echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
       - name: Preserve benchmark log
         if: always()
