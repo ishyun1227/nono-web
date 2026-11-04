@@ -45,3 +45,33 @@ node tests/benchmark-sat-uniqueness.cjs
 ```
 
 GitHub Actions `.github/workflows/random-puzzles.yml`에는 무작위 퍼즐 회귀 검사와 SAT 독립 정확성 검사를 포함한다. GitHub 작업 반영은 운영 사이트 배포와 별개다.
+
+## 2026-11-04: 퍼즐당 최대 5초 SAT 검사 (거대 퍼즐 포함)
+
+동일한 `version:4` 무작위 배치, 난이도 `보통`, 시드 `100`을 사용한 크기별 **단일 샘플**이다.
+`sat.check`에서 `maxMs:5000`, `maxNodes:10000000`, `maxVisits:100000000`,
+`maxVariables:700000`, `maxClauses:1600000`을 사용했다.
+실제 시간 측정은 JavaScript V8 실행 환경에서 `Date.now()`로 수행했다.
+
+| 크기 | 검사 경과 | 결과 |
+|---|---:|---|
+| 5×5 | 13ms | multiple (복수 정답) |
+| 10×10 | 5000ms | unknown (time_budget) |
+| 15×15 | 5001ms | unknown (time_budget) |
+| 20×20 | 5001ms | unknown (time_budget) |
+| 25×25 | 5002ms | unknown (time_budget) |
+| 30×30 | 5001ms | unknown (time_budget) |
+| 50×50 | 5000ms | unknown (time_budget) |
+| 75×75 | 5003ms | unknown (time_budget) |
+| 100×100 | 5006ms | unknown (time_budget) |
+
+75×75의 초기 실험에서 재귀 호출 한도 초과가 발견되어, SAT DPLL의 탐색을 명시적인 반복문 스택으로 수정한 후 75×75·100×100을 다시 시험했다.
+100×100은 이 구현에서 약 **420,878개 변수**, **821,157개 CNF 절**이 생성되었다.
+5초 근처의 수 ms 초과는 체크 간격으로 인한 오차다.
+
+**해석 및 한계**
+- 10×10 이상에서 5초 내 SAT 판정을 완료하지 못했다. `unknown`은 유일해 또는 복수해의 증거가 아니다.
+- 샘플은 각 크기 1개이므로 성공률의 통계적 추정치는 아니다.
+- 직접 작성한 **기본 DPLL SAT 구현**의 결과이며, 산업용 CDCL SAT 솔버의 성능을 보여주지는 않는다.
+- 운영 v5 랜덤 퍼즐 생성에 쓰는 기존 검사기 `countSolutions`는 변경하지 않았다.
+- 재현 명령: `node tests/benchmark-sat-five-seconds.cjs`
