@@ -24,11 +24,11 @@ function automaton(clue){
   if(clue.length)accept.push(run[clue.length-1][clue[clue.length-1]]);
   return {total,zero,one,accept};
 }
-function buildCnf(puzzle,reference,maxVariables,maxClauses){
+function buildCnf(puzzle,reference,maxVariables,maxClauses,deadline){
   const n=puzzle.size,cellCount=n*n,clauses=[],variables={count:cellCount};
   const cellVar=(axis,index,position)=>axis===0?index*n+position+1:position*n+index+1;
-  const add=c=>{clauses.push(c);if(clauses.length>maxClauses)throw Error('budget');};
-  function newVar(){if(++variables.count>maxVariables)throw Error('budget');return variables.count;}
+  const add=c=>{clauses.push(c);if(clauses.length>maxClauses)throw Error('budget');if((clauses.length&2047)===0&&Date.now()>=deadline)throw Error('time_budget');};
+  function newVar(){if(++variables.count>maxVariables)throw Error('budget');if((variables.count&2047)===0&&Date.now()>=deadline)throw Error('time_budget');return variables.count;}
   for(let axis=0;axis<2;axis++)for(let index=0;index<n;index++){
     const m=automaton(axis===0?puzzle.rows[index]:puzzle.cols[index]);
     const fw=Array.from({length:n+1},()=>new Uint8Array(m.total));
@@ -61,9 +61,10 @@ function buildCnf(puzzle,reference,maxVariables,maxClauses){
   add(Array.from({length:cellCount},(_,i)=>reference[i]==='1'?-(i+1):i+1));
   return {clauses,variables:variables.count,cellCount};
 }
-function dpll(cnf,reference,maxNodes,maxVisits){
+function dpll(cnf,reference,maxNodes,maxVisits,deadline){
   const clauses=cnf.clauses,size=cnf.variables,cellCount=cnf.cellCount;
-  let nodes=0,visits=0,limited=false,head=0;
+  let nodes=0,visits=0,limited=false,timedOut=false,head=0;
+  function checkTime(){if(Date.now()>=deadline){timedOut=true;limited=true;return true;}return false;}
   const assigned=new Int8Array(size+1),trail=[];
   const w1=new Uint16Array(clauses.length),w2=new Uint16Array(clauses.length);
   const watchers=Array.from({length:(size+1)*2+2},()=>[]);
@@ -87,6 +88,7 @@ function dpll(cnf,reference,maxNodes,maxVisits){
       const falsified=-trail[head++],bucket=watchers[watchIndex(falsified)];
       for(let p=0;p<bucket.length;){
         if(++visits>maxVisits){limited=true;return false;}
+        if((visits&1023)===0&&checkTime())return false;
         const id=bucket[p],c=clauses[id];
         const a=w1[id],b=w2[id];
         const isA=c[a]===falsified,watched=isA?a:b,other=isA?b:a;
@@ -116,6 +118,7 @@ function dpll(cnf,reference,maxNodes,maxVisits){
   }
   function solve(){
     if(++nodes>maxNodes){limited=true;return false;}
+    if((nodes&31)===0&&checkTime())return false;
     if(!propagate())return false;
     let decision=0;
     for(const id of priority)if(assigned[id]===0){decision=id;break;}
@@ -130,7 +133,7 @@ function dpll(cnf,reference,maxNodes,maxVisits){
     return false;
   }
   const satisfiable=solve();
-  if(limited)return {status:'unknown',nodes,visits};
+  if(limited)return {status:'unknown',reason:timedOut?'time_budget':'search_budget',nodes,visits};
   if(!satisfiable)return {status:'unsat',nodes,visits};
   return {status:'sat',nodes,visits,
     alternative:Array.from({length:cellCount},(_,i)=>assigned[i+1]===1?'1':'0').join('')};
@@ -149,15 +152,18 @@ function check(puzzle,reference,options={}){
        JSON.stringify(col)!==JSON.stringify(puzzle.cols[index]))
       return {status:'invalid',nodes:0,visits:0};
   }
+  const maxMs=Number.isFinite(options.maxMs)&&options.maxMs>=0?Math.min(options.maxMs,5000):Infinity;
+  const deadline=maxMs===Infinity?Infinity:Date.now()+maxMs;
   const maxVariables=Number.isInteger(options.maxVariables)?options.maxVariables:40000;
   const maxClauses=Number.isInteger(options.maxClauses)?options.maxClauses:120000;
   let cnf;
-  try{cnf=buildCnf(puzzle,reference,maxVariables,maxClauses);}
-  catch(e){if(e.message==='budget')return {status:'unknown',reason:'encoding_budget',nodes:0,visits:0};throw e;}
+  try{cnf=buildCnf(puzzle,reference,maxVariables,maxClauses,deadline);}
+  catch(e){if(e.message==='budget'||e.message==='time_budget')return {status:'unknown',reason:e.message==='budget'?'encoding_budget':'time_budget',nodes:0,visits:0};throw e;}
   if(cnf.status==='invalid')return {status:'invalid',nodes:0,visits:0};
+  if(Date.now()>=deadline)return {status:'unknown',reason:'time_budget',nodes:0,visits:0};
   const result=dpll(cnf,reference,
     Number.isInteger(options.maxNodes)?options.maxNodes:1200,
-    Number.isInteger(options.maxVisits)?options.maxVisits:180000);
+    Number.isInteger(options.maxVisits)?options.maxVisits:180000,deadline);
   const status=result.status==='sat'?'multiple':result.status==='unsat'?'unique':result.status;
   if(status==='multiple'){
     const other=result.alternative;
@@ -170,6 +176,7 @@ function check(puzzle,reference,options={}){
   }
   return {status,method:'sat-dfa-blocking-dpll-v1',nodes:result.nodes,visits:result.visits,
     variables:cnf.variables,clauses:cnf.clauses.length,
+    ...(result.reason?{reason:result.reason}:{}),
     ...(result.alternative?{alternative:result.alternative}:{})};
 }
 const api={check};
