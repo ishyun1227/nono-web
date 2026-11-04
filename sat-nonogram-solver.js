@@ -196,7 +196,43 @@ function check(puzzle,reference,options={}){
     ...(result.reason?{reason:result.reason}:{}),
     ...(result.alternative?{alternative:result.alternative}:{})};
 }
-const api={check};
+
+/** Compile a nonogram + blocked reference into CNF for an external CDCL solver.
+ * No JavaScript DPLL is run here. Returns invalid/unknown rather than a proof
+ * when the reference, clues or resource limits cannot be verified.
+ */
+function encode(puzzle,reference,options={}){
+  const n=puzzle?.size;
+  if(!Number.isInteger(n)||n<5||n>100||!Array.isArray(puzzle.rows)||!Array.isArray(puzzle.cols)||
+     puzzle.rows.length!==n||puzzle.cols.length!==n||
+     typeof reference!=='string'||reference.length!==n*n||!/^[01]+$/.test(reference)||
+     ![...puzzle.rows,...puzzle.cols].every(line=>validLine(line,n)))
+    return {status:'invalid'};
+  for(let index=0;index<n;index++){
+    const row=runs(reference.slice(index*n,(index+1)*n));
+    const col=runs(Array.from({length:n},(_,y)=>reference[y*n+index]).join(''));
+    if(JSON.stringify(row)!==JSON.stringify(puzzle.rows[index])||
+       JSON.stringify(col)!==JSON.stringify(puzzle.cols[index]))
+      return {status:'invalid'};
+  }
+  const remaining=Number.isFinite(options.maxMs)&&options.maxMs>=0?Math.min(options.maxMs,5000):5000;
+  const deadline=Date.now()+remaining;
+  let result;
+  try{
+    result=buildCnf(puzzle,reference,
+      Number.isInteger(options.maxVariables)?options.maxVariables:700000,
+      Number.isInteger(options.maxClauses)?options.maxClauses:1600000,
+      deadline);
+  }catch(e){
+    if(e.message==='budget'||e.message==='time_budget')
+      return {status:'unknown',reason:e.message==='budget'?'encoding_budget':'time_budget'};
+    throw e;
+  }
+  if(result.status==='invalid')return {status:'invalid'};
+  if(Date.now()>=deadline)return {status:'unknown',reason:'time_budget'};
+  return {status:'encoded',clauses:result.clauses,variables:result.variables,cellCount:result.cellCount};
+}
+const api={check,encode};
 root.NONO_RANDOM_SAT=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
