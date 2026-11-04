@@ -15,6 +15,7 @@ on:
       - index.html
       - tools/build.cjs
       - tests/random-puzzles.cjs
+      - tests/async-random-generator.cjs
       - tests/sat-uniqueness.cjs
       - tests/benchmark-sat-uniqueness.cjs
       - .github/workflows/random-puzzles.yml
@@ -32,6 +33,8 @@ jobs:
           node-version: '22'
       - name: Validate all size and difficulty combinations
         run: node tests/random-puzzles.cjs
+      - name: Check browser Worker generator contract
+        run: node tests/async-random-generator.cjs
       - name: Cross-check SAT solver against exhaustive solutions
         run: node tests/sat-uniqueness.cjs
       - name: Install pinned CaDiCaL and build deploy bundle
