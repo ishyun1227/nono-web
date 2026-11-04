@@ -45,4 +45,22 @@ jobs:
       - name: Verify professional CDCL uniqueness proofs
         run: node tests/cadical-integration.mjs
       - name: Benchmark real CaDiCaL 5-second puzzle limits up to 100x100
-        run: node tests/benchmark-cadical-five-seconds.mjs
+        shell: bash
+        run: |
+          set -o pipefail
+          node tests/benchmark-cadical-five-seconds.mjs | tee cadical-benchmark.log
+          {
+            echo "## CaDiCaL v6 — 실측 벤치마크"
+            echo '사용한 퍼즐: 시드 100 / 난이도 보통 / 최대 5초'
+            echo '### 테스트 로그'
+            echo '\`\`\`text'
+            cat cadical-benchmark.log
+            echo '\`\`\`'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Preserve benchmark log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cadical-5sec-benchmark
+          path: cadical-benchmark.log
+          if-no-files-found: ignore
