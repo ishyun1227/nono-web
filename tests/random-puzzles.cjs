@@ -50,6 +50,16 @@ for(const version of [1,2,3,4]){
  assert.deepEqual(api.fromSpec({...p}).rows,p.rows);
  assert.equal(api.answerFor(p),api.answerFor({...p,version}));
 }
+// v6 restoration is deterministic: proving uniqueness happens only at creation.
+for(const size of [5,10,25,50,75,100]){
+  const p=api.fromSpec({size,difficulty:'보통',seed:7654321,version:6});
+  const mask=api.answerFor(p);
+  assert.equal(p.designVersion,6);
+  assert.equal(mask.length,size*size);
+  assert.deepEqual(api.fromSpec({...p}).rows,p.rows);
+  assert(p.rows.every(line=>line[0]>0));
+  assert(p.cols.every(line=>line[0]>0));
+}
 const randomA=api.fromSpec({size:20,difficulty:'보통',seed:12345,version:4});
 const randomB=api.fromSpec({size:20,difficulty:'보통',seed:12346,version:4});
 assert.notDeepEqual(randomA.rows,randomB.rows,'Distinct seeds should produce distinct random puzzles');
