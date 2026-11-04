@@ -40,6 +40,21 @@ assert.equal(sat.check(full,'1'.repeat(25)).status,'unique');
 assert.equal(sat.check(diag,'1000001000001000001000001',{maxNodes:5000}).status,'multiple');
 assert.equal(sat.check(full,'0'.repeat(25)).status,'invalid');
 assert.equal(sat.check(diag,'1000001000001000001000001',{maxNodes:1}).status,'unknown');
+// The real wall-clock limit is independent of node and clause limits.
+const zeroTime=sat.check(full,'1'.repeat(25),{maxMs:0,maxNodes:1000000});
+assert.equal(zeroTime.status,'unknown');
+assert.equal(zeroTime.reason,'time_budget');
+// Huge puzzles must not crash or falsely claim uniqueness if the budget
+// expires during CNF construction. Keep this CI check short.
+for(const size of [75,100]){
+  const huge=gen.fromSpec({size,difficulty:'보통',seed:100,version:4});
+  const result=sat.check(huge,gen.answerFor(huge),{
+    maxMs:15,maxNodes:10000000,maxVisits:100000000,
+    maxVariables:700000,maxClauses:1600000
+  });
+  assert.equal(result.status,'unknown');
+}
+
 let solved=0,inconclusive=0;
 for(let n of [5,10]){
   for(let i=0;i<25;i++){
