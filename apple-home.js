@@ -94,7 +94,7 @@ function render(){
       try{
         const groups=[[5,10],[15,20],[25,30],[50,75,100]];
         const sizes=groups[state.group],size=sizes[Math.floor(Math.random()*sizes.length)];
-        const generated=window.NONO_RANDOM_PUZZLES.generate({size,difficulty:state.level});
+        const generated=await window.NONO_RANDOM_PUZZLES.generateAsync({size,difficulty:state.level,maxMs:5000});
         PUZZLES.push(generated);
         const option=document.createElement('option');
         option.value=generated.id;option.textContent=generated.name+' · '+generated.difficulty;
