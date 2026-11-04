@@ -5,6 +5,20 @@ for(const name of ['index.html','locale.js','locale-packs.js','locale-en-extra.j
   const target=path.join(output,name);fs.mkdirSync(path.dirname(target),{recursive:true});fs.copyFileSync(path.join(root,name),target);
 }
 
+// Bundle the pinned CaDiCaL CDCL WebAssembly engine on the same origin.
+// It runs in a module Web Worker; no CDN or runtime npm installation is used.
+const cadicalDir=path.join(root,'node_modules','cadical-wasm','dist');
+const destCadical=path.join(output,'vendor','cadical');
+fs.mkdirSync(destCadical,{recursive:true});
+for(const name of ['index.js','cadical.js','options.generated.js','cadical.wasm']){
+  const src=path.join(cadicalDir,name);
+  if(!fs.existsSync(src))throw Error('CaDiCaL package asset missing: '+src);
+  fs.copyFileSync(src,path.join(destCadical,name));
+}
+for(const name of ['random-unique-worker.js']){
+  fs.copyFileSync(path.join(root,name),path.join(output,name));
+}
+
 // The live Worker serves only ./dist, not the repository root.
 // Every approved settings picture must be copied into dist.
 for(const name of ['row-highlight','pointer-follow','hint-hud','filled-run','drag-hud']){
