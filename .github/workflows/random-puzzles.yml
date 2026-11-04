@@ -6,6 +6,10 @@ on:
       - random-puzzle-solver.js
       - sat-nonogram-solver.js
       - random-puzzles.js
+      - package-lock.json
+      - package.json
+      - tests/cadical-integration.mjs
+      - random-unique-worker.js
       - apple-home.js
       - apple-home.css
       - index.html
@@ -30,7 +34,9 @@ jobs:
         run: node tests/random-puzzles.cjs
       - name: Cross-check SAT solver against exhaustive solutions
         run: node tests/sat-uniqueness.cjs
-      - name: Build deploy bundle
+      - name: Install pinned CaDiCaL and build deploy bundle
         run: |
           npm ci
           npm run build
+      - name: Verify professional CDCL uniqueness proofs
+        run: node tests/cadical-integration.mjs
