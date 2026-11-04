@@ -9,6 +9,7 @@ on:
       - package-lock.json
       - package.json
       - tests/cadical-integration.mjs
+      - tests/benchmark-cadical-five-seconds.mjs
       - random-unique-worker.js
       - apple-home.js
       - apple-home.css
@@ -43,3 +44,5 @@ jobs:
           npm run build
       - name: Verify professional CDCL uniqueness proofs
         run: node tests/cadical-integration.mjs
+      - name: Benchmark real CaDiCaL 5-second puzzle limits up to 100x100
+        run: node tests/benchmark-cadical-five-seconds.mjs
