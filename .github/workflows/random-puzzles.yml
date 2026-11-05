@@ -20,6 +20,26 @@ on:
       - tests/sat-uniqueness.cjs
       - tests/benchmark-sat-uniqueness.cjs
       - .github/workflows/random-puzzles.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - random-puzzle-solver.js
+      - sat-nonogram-solver.js
+      - random-puzzles.js
+      - package-lock.json
+      - package.json
+      - tests/cadical-integration.mjs
+      - tests/benchmark-cadical-five-seconds.mjs
+      - random-unique-worker.js
+      - apple-home.js
+      - apple-home.css
+      - index.html
+      - tools/build.cjs
+      - tests/random-puzzles.cjs
+      - tests/async-random-generator.cjs
+      - tests/sat-uniqueness.cjs
+      - tests/benchmark-sat-uniqueness.cjs
+      - .github/workflows/random-puzzles.yml
   workflow_dispatch:
 permissions:
   contents: read
