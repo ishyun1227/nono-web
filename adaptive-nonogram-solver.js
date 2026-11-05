@@ -181,12 +181,22 @@ function solve(puzzle,options={}){
   const verified=parseInput(puzzle);
   if(!verified)return {status:'invalid',reason:'invalid_clues',cells:[]};
   const n=verified.size,area=n*n,cells=Array(area).fill(-1);
-  const maxMs=Number.isFinite(options.maxMs)?Math.max(0,Math.min(5000,options.maxMs)):1000;
+  if(options.initialCells!==undefined){
+    if(!Array.isArray(options.initialCells)||options.initialCells.length!==area||
+       !options.initialCells.every(v=>v===-1||v===0||v===1))
+      return {status:'invalid',reason:'invalid_initial_cells',cells:[]};
+    for(let i=0;i<area;i++)cells[i]=options.initialCells[i];
+  }
+  const maxMs=Number.isFinite(options.maxMs)?Math.max(0,Math.min(10000,options.maxMs)):1000;
   const deadline=Date.now()+maxMs,withTrace=options.captureTrace!==false;
   const trace=[],dirty=Array(2*n).fill(true),modes=Array(2*n).fill(null);
   const useEdge=options.edgePriority!==false;
   const cap=options.enumerationCap??ENUM_CAP;
-  let solved=0,iterations=0,modeSwitches=0,dpCalls=0,enumerationCalls=0;
+  let solved=cells.reduce((count,v)=>count+(v!==-1),0),
+      iterations=0,modeSwitches=0,dpCalls=0,enumerationCalls=0;
+  const stopAtCells=Number.isFinite(options.stopAtFraction)&&
+    options.stopAtFraction>0&&options.stopAtFraction<1
+    ?Math.ceil(area*options.stopAtFraction):area+1;
   const maxSteps=Number.isInteger(options.maxSteps)&&options.maxSteps>0?
     Math.min(options.maxSteps,25000):25000;
   const get=(line,p)=>line<n?cells[line*n+p]:cells[p*n+line-n];
@@ -237,6 +247,8 @@ function solve(puzzle,options={}){
       edgeDistance:Math.min(selected%n,n-1-selected%n)
     });
     if(solved===area)break;
+    if(solved>=stopAtCells)return {status:'partial',reason:'target_fraction',
+      cells,solved,trace,stats:{iterations,dpCalls,enumerationCalls,modeSwitches}};
   }
   const complete=solved===area;
   if(complete&&!matchesClues(cells,verified))
