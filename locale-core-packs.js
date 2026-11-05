@@ -4,6 +4,8 @@
 (()=>{'use strict';
 const locales=['zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
 const rows=[
+['✦ 새 랜덤 퍼즐 생성','✦ 生成随机谜题','✦ 生成隨機謎題','✦ Generar puzle aleatorio','✦ Gerar puzzle aleatório','✦ Générer une grille aléatoire','✦ Zufallsrätsel erstellen','✦ Buat teka-teki acak','✦ Tạo câu đố ngẫu nhiên','✦ สร้างปริศนาแบบสุ่ม'],
+['✦ 랜덤 퍼즐로 방 만들기','✦ 创建随机谜题房间','✦ 建立隨機謎題房間','✦ Crear sala con puzle aleatorio','✦ Criar sala com puzzle aleatório','✦ Créer une salle avec une grille aléatoire','✦ Raum mit Zufallsrätsel erstellen','✦ Buat ruang teka-teki acak','✦ Tạo phòng với câu đố ngẫu nhiên','✦ สร้างห้องด้วยปริศนาแบบสุ่ม'],
 ['게임 시작 →','开始游戏 →','開始遊戲 →','Comenzar partida →','Iniciar jogo →','Commencer →','Spiel starten →','Mulai bermain →','Bắt đầu chơi →','เริ่มเล่น →'],
 ['퍼즐 시작 →','开始谜题 →','開始謎題 →','Empezar puzle →','Iniciar puzzle →','Commencer la grille →','Rätsel starten →','Mulai teka-teki →','Bắt đầu câu đố →','เริ่มปริศนา →'],
 ['기록 도전 →','挑战纪录 →','挑戰紀錄 →','Intentar récord →','Tentar recorde →','Tenter un record →','Rekord versuchen →','Coba rekor →','Thử kỷ lục →','ท้าทายสถิติ →'],
