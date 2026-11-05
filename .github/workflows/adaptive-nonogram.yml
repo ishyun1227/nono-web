@@ -5,6 +5,7 @@ on:
     paths:
       - adaptive-nonogram-solver.js
       - tests/adaptive-nonogram-solver.cjs
+      - tests/benchmark-adaptive-nonogram.cjs
       - .github/workflows/adaptive-nonogram.yml
   pull_request:
     branches: [main]
@@ -25,3 +26,4 @@ jobs:
         with:
           node-version: '22'
       - run: node tests/adaptive-nonogram-solver.cjs
+      - run: node tests/benchmark-adaptive-nonogram.cjs
