@@ -46,6 +46,10 @@ for(let n=5;n<=10;n++){
   }
 }
 assert.equal(adaptive.analyzeLine([5],[0,-1,-1,-1,-1]).status,'contradiction');
+assert.deepEqual(adaptive.analyzeLine([0],Array(5).fill(-1)).forced,
+  Array.from({length:5},(_,pos)=>({pos,value:0})));
+assert.equal(adaptive.solve({size:5,rows:Array.from({length:5},()=>[0]),
+  cols:Array.from({length:5},()=>[0])},{maxMs:1000}).status,'solved');
 assert.equal(adaptive.analyzeLine([3],[-1,-1,-1,-1,-1]).forced.some(x=>x.pos===2&&x.value===1),true);
 const mid=Array(23).fill(-1),clue=[2,2,2,2];
 assert.equal(adaptive.analyzeLine(clue,mid).method,'dp','Large candidate range uses DFA');
