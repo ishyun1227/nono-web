@@ -6,6 +6,7 @@ on:
       - adaptive-nonogram-solver.js
       - tests/adaptive-nonogram-solver.cjs
       - tests/benchmark-adaptive-nonogram.cjs
+      - tests/benchmark-adaptive-sat.mjs
       - .github/workflows/adaptive-nonogram.yml
   pull_request:
     branches: [main]
@@ -27,3 +28,5 @@ jobs:
           node-version: '22'
       - run: node tests/adaptive-nonogram-solver.cjs
       - run: node tests/benchmark-adaptive-nonogram.cjs
+      - run: npm ci
+      - run: node tests/benchmark-adaptive-sat.mjs
