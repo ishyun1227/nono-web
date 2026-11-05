@@ -65,6 +65,7 @@ jobs:
           node --check tests/answer-bitpack.cjs
           node --check tests/puzzle-catalog.cjs
           node --check tests/seed-packed-migration.cjs
+          node --check tests/browser-cadical-v6.cjs
           node --check tools/curated-vox-answers.cjs
           node --check tools/curated-playtest-answers.cjs
       - name: Verify canonical catalog and pending quality reviews for all 12 puzzles
@@ -93,6 +94,8 @@ jobs:
         run: node tests/daily-rewards.cjs
       - name: Verify completed VOX preview mode
         run: node tests/voxel-preview.cjs
+      - name: Verify professional CaDiCaL WASM Worker in Chromium
+        run: node tests/browser-cadical-v6.cjs
       - name: Run browser test
         run: node tests/smoke.cjs
       - name: Validate database security rules

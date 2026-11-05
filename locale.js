@@ -7,6 +7,8 @@ const SUPPORTED=['ko','en','ja','zh-CN','zh-TW','es','pt-BR','fr','de','id','vi'
 const LEXICON=[
  ['🌐 언어','🌐 Language','🌐 言語'],
  // Main navigation and lobby
+ ['✦ 새 랜덤 퍼즐 생성','✦ Generate random puzzle','✦ ランダムパズルを生成'],
+ ['✦ 랜덤 퍼즐로 방 만들기','✦ Create a room with a random puzzle','✦ ランダムパズルでルーム作成'],
  ['⚙ 설정','⚙ Settings','⚙ 設定'],
  ['🛍 상점','🛍 Shop','🛍 ショップ'],
  ['홈','Home','ホーム'],['상점','Shop','ショップ'],['설정','Settings','設定'],
