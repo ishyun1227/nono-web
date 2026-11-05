@@ -4,6 +4,8 @@
 (()=>{'use strict';
 const ids=['en','ja','zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
 const rows=[
+['randomPuzzleAria','Generate a random puzzle ({size}, {level})','{size}・{level}のランダムパズルを生成','生成随机谜题（{size}，{level}）','生成隨機謎題（{size}，{level}）','Generar puzle aleatorio ({size}, {level})','Gerar puzzle aleatório ({size}, {level})','Générer une grille aléatoire ({size}, {level})','Zufallsrätsel erstellen ({size}, {level})','Buat teka-teki acak ({size}, {level})','Tạo câu đố ngẫu nhiên ({size}, {level})','สร้างปริศนาแบบสุ่ม ({size}, {level})'],
+['randomPuzzleRoomAria','Generate a random puzzle ({size}, {level}) and create a room','{size}・{level}のランダムパズルでルームを作成','生成随机谜题（{size}，{level}）并创建房间','生成隨機謎題（{size}，{level}）並建立房間','Crear una sala con puzle aleatorio ({size}, {level})','Criar sala com puzzle aleatório ({size}, {level})','Créer une salle avec une grille aléatoire ({size}, {level})','Raum mit Zufallsrätsel erstellen ({size}, {level})','Buat ruang dengan teka-teki acak ({size}, {level})','Tạo phòng với câu đố ngẫu nhiên ({size}, {level})','สร้างห้องด้วยปริศนาแบบสุ่ม ({size}, {level})'],
 ['example','View example: {name}','画像で説明：{name}','查看图示：{name}','查看圖解：{name}','Ver ejemplo: {name}','Ver exemplo: {name}','Voir l’exemple : {name}','Bildbeispiel: {name}','Lihat contoh: {name}','Xem ví dụ: {name}','ดูตัวอย่าง: {name}'],
 ['preview','Preview: {name}','プレビュー：{name}','预览：{name}','預覽：{name}','Vista previa: {name}','Prévia: {name}','Aperçu : {name}','Vorschau: {name}','Pratinjau: {name}','Xem trước: {name}','ตัวอย่าง: {name}'],
 ['completed','{a} / {b} completed','{a} / {b} 達成','已完成 {a} / {b}','完成 {a} / {b}','{a} de {b} completadas','{a} de {b} concluídas','{a} sur {b} terminées','{a} / {b} erledigt','{a} dari {b} selesai','Hoàn thành {a} / {b}','สำเร็จ {a} / {b}'],
@@ -38,6 +40,8 @@ const apply=(locale,key,args={})=>{
 };
 const make=(source,locale,t)=>{
  let m;
+ if((m=/^(.+?) 크기 (.+?) 난이도의 새 랜덤 퍼즐 생성( 및 방 만들기)?$/.exec(source)))
+   return apply(locale,m[3]?'randomPuzzleRoomAria':'randomPuzzleAria',{size:t(m[1]),level:t(m[2])});
  if((m=/^(.+?) 이미지로 설명보기$/.exec(source)))return apply(locale,'example',{name:t(m[1])});
  if((m=/^(.+?) 미리보기$/.exec(source)))return apply(locale,'preview',{name:t(m[1])});
  if((m=/^(\d+)\s*\/\s*(\d+)\s*달성$/.exec(source)))return apply(locale,'completed',{a:m[1],b:m[2]});
