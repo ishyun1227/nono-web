@@ -1,0 +1,32 @@
+name: Adaptive nonogram solver tests
+on:
+  push:
+    branches: [main]
+    paths:
+      - adaptive-nonogram-solver.js
+      - tests/adaptive-nonogram-solver.cjs
+      - tests/benchmark-adaptive-nonogram.cjs
+      - tests/benchmark-adaptive-sat.mjs
+      - .github/workflows/adaptive-nonogram.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - adaptive-nonogram-solver.js
+      - tests/adaptive-nonogram-solver.cjs
+      - .github/workflows/adaptive-nonogram.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node tests/adaptive-nonogram-solver.cjs
+      - run: node tests/benchmark-adaptive-nonogram.cjs
+      - run: npm ci
+      - run: node tests/benchmark-adaptive-sat.mjs

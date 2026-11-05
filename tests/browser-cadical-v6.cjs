@@ -38,7 +38,11 @@ let browser;
       size:10,difficulty:'보통',seed:100,maxMs:5000
     });
     const mask=window.NONO_RANDOM_PUZZLES.answerFor(puzzle);
-    return {size:puzzle.size,version:puzzle.designVersion,rows:puzzle.rows,
+    if(!window.NONO_ADAPTIVE_SOLVER)throw Error('Adaptive logical solver was not built');
+    const logic=window.NONO_ADAPTIVE_SOLVER.solve(puzzle,{maxMs:1500,captureTrace:true});
+    const wrong=logic.cells.reduce((n,v,i)=>n+(v!==-1&&v!==Number(mask[i])?1:0),0);
+    return {logic:{status:logic.status,solved:logic.solved,wrong,steps:logic.trace.length},
+      size:puzzle.size,version:puzzle.designVersion,rows:puzzle.rows,
       cols:puzzle.cols,mask,elapsedMs:performance.now()-start,
       saved:window.NONO_RANDOM_PUZZLES.restore().some(p=>p.id===puzzle.id)};
   });
@@ -46,6 +50,9 @@ let browser;
   assert.equal(outcome.version,6);
   assert.equal(outcome.mask.length,100);
   assert.equal(outcome.saved,true,'Only certified games should be registered');
+  assert(['solved','partial'].includes(outcome.logic.status),'Adaptive logic failed');
+  assert.equal(outcome.logic.wrong,0,'Adaptive deductions contradict certified answer');
+  assert(outcome.logic.steps>0,'Adaptive browser module did not provide a solve trace');
   assert(outcome.elapsedMs<5500,'One random puzzle should respect the time budget');
   const proof=solver.countSolutions({size:outcome.size,rows:outcome.rows,cols:outcome.cols},
     {reference:outcome.mask,maxChecks:50000,maxNodes:3000});
