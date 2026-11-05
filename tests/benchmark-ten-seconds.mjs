@@ -13,7 +13,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const adaptive=require('../adaptive-nonogram-solver.js');
 const sat=require('../sat-nonogram-solver.js');
-const MODES=['monkey','kniffen','adaptive','combine2','combine3','cadical','adaptive50_cadical','adaptivefull_cadical'];
+const MODES=['monkey','kniffen','adaptive','combine2','combine3','combine3_logic','cadical','adaptive50_cadical','adaptivefull_cadical'];
 const FIXTURES=['triangle','border','scrambled_triangle'], SIZES=[5,10,15,20,25,30,50,75,100];
 function clue(bits){const a=[];let k=0;for(const x of bits){if(x)k++;else if(k){a.push(k);k=0;}}if(k)a.push(k);return a.length?a:[0];}
 function permutation(n,salt){
@@ -107,19 +107,24 @@ async function run(size,kind,mode){
     const r=logic(puzzle,cells,deadline);
     next(r.cells);iterations+=r.iterations;
     if(r.status==='unknown')status='timeout';
-  }else if(mode==='combine2'||mode==='combine3'){
+  }else if(mode==='combine2'||mode==='combine3'||mode==='combine3_logic'){
     for(let pass=0;pass<2*size+2&&Date.now()<deadline;pass++){
       const before=known(cells);
       next(await monkey(puzzle,cells));
       if(known(cells)===size*size)break;
       next(await kniffen(puzzle,cells,true));
       if(known(cells)===size*size)break;
-      if(mode==='combine3'){
+      if(mode==='combine3_logic'){
         const r=logic(puzzle,cells,deadline);
         next(r.cells);iterations+=r.iterations;
         if(r.status==='unknown')break;
       }
       if(known(cells)===before)break;
+    }
+    if(mode==='combine3'&&known(cells)!==size*size&&Date.now()<deadline){
+      const r=await cadical(puzzle,reference,cells,deadline);
+      if(r.cells)next(r.cells);
+      status=r.status;reason=r.reason||'';
     }
   }else if(mode==='cadical'||mode==='adaptive50_cadical'||mode==='adaptivefull_cadical'){
     if(mode!=='cadical'){
