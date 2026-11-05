@@ -1,0 +1,46 @@
+name: Download nonogram solver source snapshots
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/download-nonogram-solvers.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Download both upstream MIT-licensed source archives
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p sources
+          curl --fail --show-error --silent --location --retry 3             "https://github.com/monkeyArms/nonogram/archive/a61efe2cb85452417fcdcdb6e2399eb4f7bd45b1.zip"             --output "sources/monkeyArms-nonogram-a61efe2.zip"
+          curl --fail --show-error --silent --location --retry 3             "https://github.com/kniffen/Nonogram-Maker/archive/de98a2e86b24a60635a0e7df0b089041bc8d1b43.zip"             --output "sources/kniffen-Nonogram-Maker-de98a2e.zip"
+          unzip -t -q "sources/monkeyArms-nonogram-a61efe2.zip"
+          unzip -t -q "sources/kniffen-Nonogram-Maker-de98a2e.zip"
+          (cd sources && sha256sum *.zip > SHA256SUMS.txt)
+          cat > sources/SOURCE_INFO.txt <<'EOF'
+          monkeyArms/nonogram
+          https://github.com/monkeyArms/nonogram
+          Commit: a61efe2cb85452417fcdcdb6e2399eb4f7bd45b1
+          License: MIT
+
+          kniffen/Nonogram-Maker
+          https://github.com/kniffen/Nonogram-Maker
+          Commit: de98a2e86b24a60635a0e7df0b089041bc8d1b43
+          License: MIT
+
+          These are unmodified upstream source archives for comparative tests.
+          They are NOT installed into the live NONO website.
+          EOF
+          ls -lh sources
+      - name: Upload both source archives
+        uses: actions/upload-artifact@v4
+        with:
+          name: nonogram-solvers-original-sources
+          path: sources/
+          if-no-files-found: error
+          retention-days: 30
