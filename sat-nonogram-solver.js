@@ -215,7 +215,7 @@ function encode(puzzle,reference,options={}){
        JSON.stringify(col)!==JSON.stringify(puzzle.cols[index]))
       return {status:'invalid'};
   }
-  const remaining=Number.isFinite(options.maxMs)&&options.maxMs>=0?Math.min(options.maxMs,5000):5000;
+  const remaining=Number.isFinite(options.maxMs)&&options.maxMs>=0?Math.min(options.maxMs,10000):10000;
   const deadline=Date.now()+remaining;
   let result;
   try{
