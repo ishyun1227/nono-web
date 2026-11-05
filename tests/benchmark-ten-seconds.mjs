@@ -14,11 +14,23 @@ const require=createRequire(import.meta.url);
 const adaptive=require('../adaptive-nonogram-solver.js');
 const sat=require('../sat-nonogram-solver.js');
 const MODES=['monkey','kniffen','adaptive','combine2','combine3','cadical','adaptive50_cadical','adaptivefull_cadical'];
-const FIXTURES=['triangle','border'], SIZES=[5,10,15,20,25,30,50,75,100];
+const FIXTURES=['triangle','border','scrambled_triangle'], SIZES=[5,10,15,20,25,30,50,75,100];
 function clue(bits){const a=[];let k=0;for(const x of bits){if(x)k++;else if(k){a.push(k);k=0;}}if(k)a.push(k);return a.length?a:[0];}
+function permutation(n,salt){
+  let state=(salt+Math.imul(n,0x9e3779b9))>>>0;
+  const a=Array.from({length:n},(_,i)=>i);
+  for(let i=n-1;i>0;i--){
+    state=(Math.imul(state,1664525)+1013904223)>>>0;
+    const j=state%(i+1);
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
 function fixture(n,kind){
+  const rowMap=permutation(n,0x12345),colMap=permutation(n,0x89abc);
   const bits=Array.from({length:n*n},(_,i)=>{
     const y=Math.floor(i/n),x=i%n;
+    if(kind==='scrambled_triangle')return colMap[x]<=rowMap[y]?1:0;
     return kind==='triangle'?(x<=y?1:0):(x===0||x===n-1||y===0||y===n-1?1:0);
   });
   return {puzzle:{size:n,rows:Array.from({length:n},(_,y)=>clue(bits.slice(y*n,(y+1)*n))),
