@@ -14,7 +14,9 @@
 (function(root){
 'use strict';
 const dfaCache=new Map(),ENUM_CAP=768,MAX_ENUM_CAP=3072;
+function normalizeClue(line){return line.length===1&&line[0]===0?[]:line;}
 function validClue(line,n){
+  if(Array.isArray(line)&&line.length===1&&line[0]===0)return true;
   return Array.isArray(line)&&line.length>0&&line.every(x=>Number.isInteger(x)&&x>=1&&x<=n)&&
     line.reduce((a,b)=>a+b,0)+line.length-1<=n;
 }
@@ -33,6 +35,7 @@ function combinationsAtMost(n,k,cap){
   return Math.round(count);
 }
 function upperBound(n,clue){
+  clue=normalizeClue(clue);
   const slack=n-clue.reduce((a,b)=>a+b,0)-(clue.length-1);
   return combinationsAtMost(slack+clue.length,clue.length,1000000000);
 }
@@ -143,6 +146,7 @@ function analyzeLine(clue,known,options={}){
   if(Date.now()>=deadline)return {status:'timeout'};
   const cap=Number.isInteger(options.enumerationCap)&&options.enumerationCap>0?
     Math.min(options.enumerationCap,MAX_ENUM_CAP):ENUM_CAP;
+  clue=normalizeClue(clue);
   const knownCount=known.reduce((a,b)=>a+(b!==-1),0);
   const upper=upperBound(known.length,clue);
   const allowEnum=upper<=cap||(knownCount>known.length/2&&upper<=MAX_ENUM_CAP);
