@@ -1,60 +1,64 @@
-# Nonogram solver 10-second benchmark — final three-fixture matrix
+# Nonogram — 10-second, nine-way solver benchmark
 
-**Last updated: 2026-11-05.** Real execution on GitHub Actions, `cadical-wasm@0.1.2`.
+**Verified run date: 2026-11-05**
 
-- Final run: https://github.com/ishyun1227/nono-web/actions/runs/42004561929
-- Initial two-fixture run: https://github.com/ishyun1227/nono-web/actions/runs/42003712576
-- Code: `tests/benchmark-ten-seconds.mjs`, workflow: `.github/workflows/benchmark-ten-seconds.yml`.
-- **216 independent evaluations**: 9 sizes × 3 proven-unique structural fixtures × 8 modes.
-- Results: **202 solved, 5 partial and 9 timeouts**. All finished models validated against their references.
-- Each solver/case runs in its own Node child process with a hard **10,000ms timeout** and an in-child 9,700ms deadline. Due to process teardown, a hard timeout's measured wall duration may slightly exceed 10,000ms.
-- `elapsedMs` measures the algorithm and SAT encoding+WASM initialization where applicable, **excluding child process startup**. `wallMs` (in the uploaded JSONL) includes startup.
-- Each fixture is run **once**, not repeated statistics. Mean timings below include successful cases only; **n/3 is crucial** when comparing speed.
-- All three fixtures have exactly one solution by construction: (1) triangular Ferrers grid, (2) frame border, (3) deterministic independent permutation of the triangle's row and column order. For (3), distinct row and column sums and nested fill sets uniquely determine the matrix. These are not representative arbitrary hard puzzles.
+- Latest GitHub Actions run: https://github.com/ishyun1227/nono-web/actions/runs/42005282153
+- Benchmark source: https://github.com/ishyun1227/nono-web/blob/main/tests/benchmark-ten-seconds.mjs
+- Upstream sources: `monkeyArms/nonogram@a61efe2` and `kniffen/Nonogram-Maker@de98a2e`. Original logic is retained; the latter has an initial-grid adapter for combined tests.
+- Comparison: nine implementations × nine grid sizes (5, 10, 15, 20, 25, 30, 50, 75, 100) × three uniquely solvable fixtures (triangle, border, shuffled triangle) = **243 solver executions**.
+- Outcomes: **226 fully solved, 5 partial, 12 timeouts**, no unverified "solved" verdict. This is one run with three designed fixtures per size—not a population benchmark of difficult puzzles.
+- Each case uses an isolated Node child process with a hard timeout configured to **10,000ms** and internal algorithm deadline 9,700ms. Termination overhead may extend observed process wall time slightly beyond 10 seconds.
+- `elapsedMs` measures solver work including CNF encoding and WASM startup where applicable but excluding the child process startup; `wallMs` in JSONL includes startup.
+- Two or three solvers are run sequentially, passing confirmed cells between them; a slow early solver consumes the same shared 10s deadline.
 
-## 3-fixture results: solved-case mean time, success count
+## All sizes: average successful solve time and success count
 
-| Size | monkeyArms | Nonogram-Maker | Adaptive | Combine 2 | Combine 3 | CaDiCaL | Adaptive 50% → CaDiCaL | Adaptive full → CaDiCaL |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 5×5 | 2.1 ms (3/3) | 1.0 ms (3/3) | 1.2 ms (3/3) | 2.1 ms (3/3) | 2.1 ms (3/3) | 19.0 ms (3/3) | 19.1 ms (3/3) | 1.2 ms (3/3) |
-| 10×10 | 3.4 ms (3/3) | 3.9 ms (3/3) | 2.1 ms (3/3) | 3.4 ms (3/3) | 3.4 ms (3/3) | 28.3 ms (3/3) | 28.6 ms (3/3) | 2.2 ms (3/3) |
-| 15×15 | 5.5 ms (3/3) | 10.6 ms (3/3) | 3.8 ms (3/3) | 5.7 ms (3/3) | 5.7 ms (3/3) | 47.9 ms (3/3) | 44.4 ms (3/3) | 4.1 ms (3/3) |
-| 20×20 | 8.2 ms (3/3) | 56.6 ms (3/3) | 5.6 ms (3/3) | 7.2 ms (3/3) | 8.4 ms (3/3) | 84.7 ms (3/3) | 74.5 ms (3/3) | 6.0 ms (3/3) |
-| 25×25 | 9.6 ms (2/3) | 223.8 ms (3/3) | 9.3 ms (3/3) | 159.7 ms (3/3) | 158.4 ms (3/3) | 109.9 ms (3/3) | 91.7 ms (3/3) | 9.7 ms (3/3) |
-| 30×30 | 7.9 ms (2/3) | 1960.8 ms (3/3) | 9.8 ms (3/3) | 972.3 ms (3/3) | 985.7 ms (3/3) | 88.7 ms (3/3) | 80.7 ms (3/3) | 8.1 ms (3/3) |
-| 50×50 | 15.0 ms (2/3) | 108.0 ms (2/3) | 25.1 ms (3/3) | 16.8 ms (2/3) | 18.0 ms (2/3) | 284.6 ms (3/3) | 304.6 ms (3/3) | 23.1 ms (3/3) |
-| 75×75 | 32.3 ms (2/3) | 419.2 ms (2/3) | 48.3 ms (3/3) | 34.2 ms (2/3) | 35.1 ms (2/3) | 652.2 ms (3/3) | 626.8 ms (3/3) | 47.1 ms (3/3) |
-| 100×100 | 26.3 ms (2/3) | 1239.1 ms (2/3) | 92.6 ms (3/3) | 29.7 ms (2/3) | 28.3 ms (2/3) | 1226.1 ms (3/3) | 1062.4 ms (3/3) | 93.6 ms (3/3) |
+**Important:** each cell says `time (successful/3)`. A mode with `2/3` has failed or timed out on the hardest fixture, so its fast average must not be ranked against a `3/3` solver without mentioning success rate.
 
-## Shuffled triangle only (the harder of the three)
+| Size | monkeyArms | Nonogram-Maker | Adaptive | 2 original combined | 3 original (with CaDiCaL) | 3 logic (with Adaptive) | CaDiCaL | Adaptive 50% → CaDiCaL | Adaptive full → CaDiCaL |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 5×5 | 3.2ms (3/3) | 1.3ms (3/3) | 1.8ms (3/3) | 3.1ms (3/3) | 3.1ms (3/3) | 3.0ms (3/3) | 26.1ms (3/3) | 30.4ms (3/3) | 1.8ms (3/3) |
+| 10×10 | 3.4ms (3/3) | 4.5ms (3/3) | 2.1ms (3/3) | 3.4ms (3/3) | 3.4ms (3/3) | 3.4ms (3/3) | 29.7ms (3/3) | 29.2ms (3/3) | 2.6ms (3/3) |
+| 15×15 | 5.5ms (3/3) | 9.3ms (3/3) | 4.0ms (3/3) | 5.2ms (3/3) | 5.5ms (3/3) | 5.6ms (3/3) | 45.0ms (3/3) | 41.9ms (3/3) | 3.5ms (3/3) |
+| 20×20 | 5.0ms (3/3) | 28.6ms (3/3) | 3.9ms (3/3) | 4.9ms (3/3) | 4.9ms (3/3) | 5.2ms (3/3) | 55.6ms (3/3) | 48.4ms (3/3) | 3.9ms (3/3) |
+| 25×25 | 5.4ms (2/3) | 176.8ms (3/3) | 5.5ms (3/3) | 128.4ms (3/3) | 125.2ms (3/3) | 117.1ms (3/3) | 60.1ms (3/3) | 64.4ms (3/3) | 5.9ms (3/3) |
+| 30×30 | 10.0ms (2/3) | 2359.9ms (3/3) | 10.9ms (3/3) | 1201.0ms (3/3) | 1126.1ms (3/3) | 1114.2ms (3/3) | 112.3ms (3/3) | 114.3ms (3/3) | 11.9ms (3/3) |
+| 50×50 | 11.5ms (2/3) | 79.6ms (2/3) | 17.4ms (3/3) | 12.5ms (2/3) | 12.5ms (2/3) | 11.3ms (2/3) | 206.2ms (3/3) | 214.1ms (3/3) | 17.3ms (3/3) |
+| 75×75 | 17.9ms (2/3) | 252.5ms (2/3) | 35.2ms (3/3) | 18.5ms (2/3) | 18.6ms (2/3) | 19.6ms (2/3) | 387.8ms (3/3) | 370.6ms (3/3) | 27.6ms (3/3) |
+| 100×100 | 48.7ms (2/3) | 1557.3ms (2/3) | 141.5ms (3/3) | 46.7ms (2/3) | 47.5ms (2/3) | 45.7ms (2/3) | 1836.1ms (3/3) | 1632.8ms (3/3) | 139.8ms (3/3) |
 
-| Size | monkeyArms | Nonogram-Maker | Adaptive | Combine 2 | Combine 3 | CaDiCaL | Adaptive 50% → CaDiCaL | Adaptive full → CaDiCaL |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| 25×25 | 99.8% partial | 636.9 ms | 13.8 ms | 460.8 ms | 459.5 ms | 132.9 ms | 108.1 ms | 14.9 ms |
-| 30×30 | 99.3% partial | 5847.8 ms | 17.4 ms | 2900.8 ms | 2940.8 ms | 144.3 ms | 119.0 ms | 13.5 ms |
-| 50×50 | 98.3% partial | TIMEOUT | 46.0 ms | TIMEOUT | TIMEOUT | 567.7 ms | 607.4 ms | 47.9 ms |
-| 75×75 | 92.8% partial | TIMEOUT | 102.1 ms | TIMEOUT | TIMEOUT | 1422.9 ms | 1281.4 ms | 98.7 ms |
-| 100×100 | 91.8% partial | TIMEOUT | 240.7 ms | TIMEOUT | TIMEOUT | 2924.0 ms | 2470.7 ms | 246.1 ms |
+## Shuffled triangle only: difficult structural fixture
 
-## Mode definitions
+| Size | monkeyArms | Nonogram-Maker | New Adaptive | Original 3-stage | CaDiCaL | 50% → CaDiCaL |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 25×25 | 99.8% partial | 636.9ms | 13.8ms | 364.1ms | 132.9ms | 108.1ms |
+| 30×30 | 99.3% partial | 7030.3ms | 18.3ms | 3358.6ms | 177.1ms | 155.9ms |
+| 50×50 | 98.3% partial | TIMEOUT | 35.6ms | TIMEOUT | 424.5ms | 433.5ms |
+| 75×75 | 92.8% partial | TIMEOUT | 81.9ms | TIMEOUT | 841.7ms | 739.5ms |
+| 100×100 | 91.8% partial | TIMEOUT | 364.5ms | TIMEOUT | 4352.2ms | 3742.0ms |
 
-- **monkeyArms**: original MIT-licensed `monkeyArms/nonogram` source at commit `a61efe2` (its native logical rules).
-- **Nonogram-Maker**: original MIT-licensed `kniffen/Nonogram-Maker` source at `de98a2e` (native line placement enumerator). Combined modes adapt the function signature to accept previously fixed cells without changing its underlying enumeration logic.
-- **Adaptive**: repository's new enumeration/DP line solver, prioritizing constrained lines and edges.
-- **Combine 2**: run monkeyArms then Nonogram-Maker, sharing fixed cells, repeat as needed.
-- **Combine 3**: monkeyArms then Nonogram-Maker then Adaptive, sharing fixed cells. Order matters because a slow earlier stage can consume the entire deadline.
-- **CaDiCaL**: solve from clues through encoded DFA CNF, removing the reference-exclusion clause (asserted correct); output independently validated.
-- **Adaptive 50% → CaDiCaL**: stop new logic after at least half of **all black AND white cells** are proven, hand known cells to CaDiCaL as unit clauses; if logic stalls early, hand off what it has.
-- **Adaptive full → CaDiCaL**: run new logic to its fixpoint, use CaDiCaL only if unsolved. In this corpus the adaptive logic always finished, so CaDiCaL was never invoked for that mode.
+The shuffled triangle is a row/column permutation of a Ferrers (nested-ones) matrix. Distinct row/column sums uniquely specify this matrix, so its uniqueness is not an assumption based solely on one retrieved solution. The border and ordinary triangle are also uniquely solvable by construction.
 
-## Observations
+## Definitive mode definitions
 
-- **Adaptive solved 27/27**, as did CaDiCaL alone, Adaptive 50%→CaDiCaL, and full Adaptive→CaDiCaL.
-- Original monkeyArms solved **22/27**; Nonogram-Maker 24/27; Combine 2 24/27; Combine 3 24/27.
-- The shuffled 100×100 board: monkeyArms left 91.8% solved; Nonogram-Maker and both fixed-order combinations hit 10s; new Adaptive finished in 240.66ms; CaDiCaL alone 2923.96ms; Adaptive 50%→CaDiCaL 2470.68ms.
-- The fixed 50% switch can sometimes accelerate CaDiCaL versus CaDiCaL alone, but it is much slower than allowing Adaptive to finish when the puzzle is straightforward. Best engineering default from this evidence: **Adaptive first; invoke CaDiCaL only upon logical stall or a configured meaningful time budget**.
-- These limited structural cases do **not** establish success or speed on arbitrarily challenging uniquely solvable nonograms. Those require a separately proven unique corpus with adequate repetitions.
+1. **monkeyArms:** standalone original six-rule human-logic solver.
+2. **Nonogram-Maker:** standalone original full line-pattern enumerator.
+3. **Adaptive:** new solver switching between full arrangement enumeration and DFA dynamic programming with constrained-line and edge priorities.
+4. **2 original combined:** monkeyArms then Nonogram-Maker until stable.
+5. **3 original (with CaDiCaL):** monkeyArms → Nonogram-Maker → CaDiCaL as a completion fallback for unresolved cells. Uniqueness proof time is intentionally *not* included after a grid is already completely solved because the measured endpoint is completion, not uniqueness certification.
+6. **3 logic (with Adaptive):** monkeyArms → Nonogram-Maker → Adaptive, with confirmed cells passed between stages.
+7. **CaDiCaL:** direct SAT solve from the given nonogram clues (the benchmark's reference-exclusion clause is removed before solving, verified programmatically).
+8. **Adaptive 50% → CaDiCaL:** run the Adaptive engine until at least 50% of all cells are known (both black and white), then pass those known values as SAT unit clauses and complete with CaDiCaL. If the first phase stalls, pass its partial state without inventing assignments.
+9. **Adaptive full → CaDiCaL:** run Adaptive to logical fixpoint; invoke CaDiCaL only if unfinished. Adaptive finished all 27 fixtures in this corpus, so no SAT call was needed here.
 
-## Evidence and reproduction
+## Interpretation
 
-GitHub Actions artifact names `nonogram-benchmark-5`, `nonogram-benchmark-10`, ..., `nonogram-benchmark-100` each contain 24 per-mode JSONL records. Source snapshots are fetched from pinned upstream commits, not unofficial rewrites. Neither the website's live player nor production puzzle generation was changed by this benchmark.
+- **New Adaptive, Adaptive-full→CaDiCaL, CaDiCaL alone, and 50%-handoff all completed 27/27.**
+- Original monkeyArms completed **22/27**; original Nonogram-Maker, the two-original combination, original three-stage combination, and the alternative three-logic combination each completed **24/27**.
+- On the shuffled **100×100**, Adaptive completed in **364.45ms**; CaDiCaL alone in **4352.19ms**; 50%-handoff in **3741.99ms**. Thus pre-solving half saved ~14% over CaDiCaL-only but was ~10× slower than Adaptive alone on this case.
+- On shuffled 50×50 through 100×100, original line enumeration is so expensive it reaches the 10s limit, preventing downstream stages in the fixed-order combinations from running. Ordering the solvers differently or imposing a smaller per-stage budget could change results.
+- Recommended runtime strategy based on *these fixtures*: **Adaptive first, CaDiCaL only if Adaptive stalls**, not an unconditional switch at 50%. A hard, diverse, separately uniqueness-certified puzzle corpus and repeated runs are still needed before claiming a universal winner.
+
+## Reproduction and artifacts
+
+The latest run page above provides artifact files named `nonogram-benchmark-5`, `nonogram-benchmark-10`, …, `nonogram-benchmark-100`. Each JSONL archive contains all 27 attempts for its board size, including status, reason, solve percentage, 50% handoff percentage, elapsed time and wall time. This work modified the GitHub benchmark and library, **not the production website's puzzle-solving UI**.
