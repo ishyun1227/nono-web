@@ -4,6 +4,10 @@ on:
     branches: [main]
     paths:
       - .github/workflows/download-nonogram-solvers.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - .github/workflows/download-nonogram-solvers.yml
   workflow_dispatch:
 permissions:
   contents: read
