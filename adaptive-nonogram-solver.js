@@ -173,8 +173,8 @@ function matchesClues(cells,puzzle){
     return result;
   }
   for(let i=0;i<n;i++)
-    if(JSON.stringify(runs('row',i))!==JSON.stringify(puzzle.rows[i])||
-       JSON.stringify(runs('col',i))!==JSON.stringify(puzzle.cols[i]))return false;
+    if(JSON.stringify(runs('row',i))!==JSON.stringify(normalizeClue(puzzle.rows[i]))||
+       JSON.stringify(runs('col',i))!==JSON.stringify(normalizeClue(puzzle.cols[i])))return false;
   return true;
 }
 function solve(puzzle,options={}){
