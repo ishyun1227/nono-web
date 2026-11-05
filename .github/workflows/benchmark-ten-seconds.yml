@@ -1,0 +1,56 @@
+name: Nonogram 10-second solver comparison
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/benchmark-ten-seconds.mjs'
+      - '.github/workflows/benchmark-ten-seconds.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        size: [5, 10, 15, 20, 25, 30, 50, 75, 100]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Download pinned original solvers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p sources/monkey/src sources/kniffen
+          for file in solver.js puzzle-line.js utility.js; do
+            curl -fLsS --retry 3 https://raw.githubusercontent.com/monkeyArms/nonogram/a61efe2cb85452417fcdcdb6e2399eb4f7bd45b1/src/$file -o sources/monkey/src/$file
+          done
+          curl -fLsS --retry 3 https://raw.githubusercontent.com/kniffen/Nonogram-Maker/de98a2e86b24a60635a0e7df0b089041bc8d1b43/solver.js -o sources/kniffen/solver.js
+          echo '{"type":"module"}' > sources/monkey/package.json
+          echo '{"type":"module"}' > sources/kniffen/package.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          let s=fs.readFileSync('sources/kniffen/solver.js','utf8');
+          const f='export default function solver(cols, rows, horizontalClues, verticalClues) {',
+                g='grid[y][x] = 0';
+          if(!s.includes(f)||!s.includes(g))throw Error('Unexpected upstream solver revision');
+          s=s.replace(f,'export default function solver(cols, rows, horizontalClues, verticalClues, seed) {');
+          s=s.replace(g,'grid[y][x] = seed?.[y]?.[x] ?? 0');
+          fs.writeFileSync('sources/kniffen/seeded-solver.js',s);
+          NODE
+      - name: Run all solvers with 10-second hard timeout
+        shell: bash
+        run: |
+          mkdir -p results
+          node tests/benchmark-ten-seconds.mjs --size ${{ matrix.size }} | tee results/size-${{ matrix.size }}.jsonl
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nonogram-benchmark-${{ matrix.size }}
+          path: results/*.jsonl
+          retention-days: 30
