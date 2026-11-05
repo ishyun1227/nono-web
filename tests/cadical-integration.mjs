@@ -50,5 +50,27 @@ for(const size of [5,10,15,20]){
     }finally{solver.dispose();}
   }
 }
+// Deterministic fixtures guard against false uniqueness and invalid CNF encoding.
+for(const item of [
+  {label:'all_black_unique',puzzle:{size:5,rows:Array.from({length:5},()=>[5]),cols:Array.from({length:5},()=>[5])},
+    reference:'1'.repeat(25),expected:'unsatisfiable'},
+  {label:'permutation_multiple',puzzle:{size:5,rows:Array.from({length:5},()=>[1]),cols:Array.from({length:5},()=>[1])},
+    reference:'1000001000001000001000001',expected:'satisfiable'}
+]){
+  const compiled=encoder.encode(item.puzzle,item.reference,{maxMs:5000});
+  assert.equal(compiled.status,'encoded',item.label+' must produce CNF');
+  const solver=await Cadical.create({quiet:true});
+  try{
+    solver.addClauses(compiled.clauses);
+    const decision=solver.solve();
+    assert.equal(decision,item.expected,item.label+' produced the wrong verdict');
+    if(decision==='satisfiable'){
+      const other=Array.from({length:item.reference.length},(_,i)=>solver.value(i+1)?'1':'0').join('');
+      assert(validOther(item.puzzle,item.reference,other),item.label+' invalid alternate answer');
+    }
+    results.push({size:5,seed:item.label,verdict:decision,elapsedMs:null});
+  }finally{solver.dispose();}
+}
+
 console.table(results);
 console.log('PASS real CaDiCaL/CDCL WASM proof agrees with independent nonogram solver');
