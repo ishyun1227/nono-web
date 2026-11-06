@@ -1,0 +1,61 @@
+name: Exact 25 50 75 90 percent handoff - certified unique puzzles
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/benchmark-exact-handoff-unique.mjs'
+      - '.github/workflows/benchmark-exact-handoff-unique.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        size: [5, 10, 15, 20, 25, 30, 50, 75, 100]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Re-certify uniqueness, execute seven methods with exact handoffs five times
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          node tests/benchmark-exact-handoff-unique.mjs --size ${{ matrix.size }} | tee results/exact-${{ matrix.size }}.jsonl
+      - name: Summarize exact handoff and timings
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          import fs from 'node:fs';
+          const f=fs.readdirSync('results').find(x=>x.endsWith('.jsonl'));
+          if(!f){console.log('No results found.');process.exit(0);}
+          const rows=fs.readFileSync('results/'+f,'utf8').trim().split('\n').map(JSON.parse);
+          const p=rows.find(x=>x.phase==='proof'),size=p?.size;
+          console.log('## '+size+'×'+size+' / unique proof: '+p?.status);
+          console.log('| Mode | Solved / 5 | Median ms | Mean ms | Exact threshold reached | SAT called |');
+          console.log('|---|---:|---:|---:|---:|---:|');
+          const modes=['adaptive','adaptivefull_cadical','cadical','adaptive25_cadical',
+            'adaptive50_cadical','adaptive75_cadical','adaptive90_cadical'];
+          for(const mode of modes){
+            const r=rows.filter(x=>x.mode===mode&&x.phase==='solver'),solved=r.filter(x=>x.status==='solved');
+            const vals=solved.map(x=>x.elapsedMs).sort((a,b)=>a-b);
+            const med=vals.length?vals[Math.floor(vals.length/2)].toFixed(2):'—';
+            const mean=vals.length?(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2):'—';
+            console.log('| '+mode+' | '+solved.length+'/5 | '+med+' | '+mean+' | '+
+              r.filter(x=>x.targetReached===true).length+'/5 | '+r.filter(x=>x.satCalled).length+'/5 |');
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: exact-unique-${{ matrix.size }}
+          path: results/*.jsonl
+          retention-days: 30
