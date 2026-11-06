@@ -83,3 +83,13 @@
 - **중요:** 이 결정은 풀이 전략에 관한 것이다. 랜덤 퍼즐 등록 전 **유일해 인증은 별도로 CaDiCaL의 차단절 UNSAT 판정이 반드시 필요**하다. Adaptive의 완성 여부가 유일해 증명이 될 수는 없다.
 - 이번 결정으로 기존 웹사이트 생성 코드가 자동 변경되지는 않는다. 실제 사이트 생성/검사 파이프라인에 풀이 정책을 적용하고 검증하는 작업은 후속 개발 사항이다.
 - 자세한 실험 결과: [실제로 논리가 막히는 유일해 18개 비교](NONOGRAM_ACTUAL_STALL_UNIQUE_RANDOM_COMPARISON_20261106.md)
+
+## 2026-11-06 런타임 풀이기 적용
+
+- 구현: [hybrid-nonogram-solver.js](../hybrid-nonogram-solver.js). **Adaptive 논리적 고정점 → 논리가 실제 멈춘 경우에만 CaDiCaL**을 실행해 정답 한 개를 찾는다. 정확한 행·열 힌트 대조와 이전 논리 확정 칸 검증을 거친다.
+- 브라우저 비동기 실행: [hybrid-solve-worker.js](../hybrid-solve-worker.js) (실제 CaDiCaL WASM); `NONO_RANDOM_PUZZLES.solveAsync(puzzle,{maxMs:10000})`에서 사용한다. 요청 시간 상한은 10초이며 정체 전에 시간 제한에 도달하면 결과를 `unknown`으로 반환한다.
+- 결과 예: `{status:'solved',method:'adaptive_then_cadical',cells:[...],logicSolved:123,satCalled:true,uniqueness:'not_checked'}`. 논리만으로 완성 시 `method:'adaptive'`, `satCalled:false`.
+- **정답 하나를 찾는 기능으로 유일해 인증을 대체하지 않는다.** 기존 [random-unique-worker.js](../random-unique-worker.js)가 원래 정답을 차단하는 CaDiCaL SAT에서 `UNSAT`가 나왔을 때만 `unique` 판정을 제공한다.
+- SAT 인코더에는 정답 찾기 전용 `encodeForSolve()`를 추가했다. 원래 유일해 증명용 `encode(puzzle,reference)`의 차단절은 삭제하지 않았다.
+- 실험/회귀 검사: `tests/hybrid-runtime-solver.mjs`, `tests/browser-hybrid-solver.cjs`, `tests/cadical-integration.mjs`, `tests/async-random-generator.cjs`.
+- **적용 범위:** 브라우저 앱 코드에서 비동기 풀이 API를 호출할 수 있게 구현했다. 자동 풀이 버튼이나 이용자 진행 상태·기록 변경은 추가하지 않았다. 난이도·재미도 평가도 아직 별도 작업이다.
