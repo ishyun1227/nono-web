@@ -1,0 +1,60 @@
+name: Five certified-unique random nonograms - three best solvers
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/benchmark-five-unique.mjs'
+      - '.github/workflows/benchmark-five-unique.yml'
+      - 'adaptive-nonogram-solver.js'
+      - 'sat-nonogram-solver.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 5
+      matrix:
+        size: [10, 15, 20, 25, 30]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Certify one new random UNIQUE puzzle and benchmark 3 algorithms five times
+        shell: bash
+        run: |
+          mkdir -p results
+          node tests/benchmark-five-unique.mjs --size ${{ matrix.size }} | tee results/unique-${{ matrix.size }}.jsonl
+      - name: Produce result summary
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          import fs from 'node:fs';
+          const path=fs.readdirSync('results').find(x=>x.endsWith('.jsonl'));
+          const rows=fs.readFileSync('results/'+path,'utf8').trim().split('\n').map(x=>JSON.parse(x));
+          const chosen=rows.find(x=>x.phase==='selection');
+          if(!chosen){console.log('No certified unique puzzle found; see logs.');process.exitCode=1;}
+          else{
+            console.log('## Unique random '+chosen.size+'×'+chosen.size+' (mask hash '+chosen.hash+')');
+            console.log('Uniqueness certified with reference-blocking SAT check. Seed attempt '+chosen.attempt+'.');
+            console.log('| Solver | Successful repeats / 5 | Median ms | Average ms | SAT invoked / 5 |');
+            console.log('|---|---:|---:|---:|---:|');
+            for(const mode of ['adaptive','adaptivefull_cadical','adaptive90_cadical']){
+              const a=rows.filter(x=>x.phase==='solver'&&x.mode===mode),v=a.filter(x=>x.status==='solved');
+              const t=v.map(x=>x.elapsedMs).sort((a,b)=>a-b);
+              const median=t.length?t[Math.floor(t.length/2)].toFixed(2):'—';
+              const mean=t.length?(t.reduce((a,b)=>a+b,0)/t.length).toFixed(2):'—';
+              console.log('| '+mode+' | '+v.length+'/5 | '+median+' | '+mean+' | '+a.filter(x=>x.satCalled).length+'/5 |');
+            }
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: five-unique-nonograms-${{ matrix.size }}
+          path: results/*.jsonl
+          retention-days: 30
