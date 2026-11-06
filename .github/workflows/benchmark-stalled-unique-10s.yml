@@ -1,0 +1,62 @@
+name: Actual logic stalls - uniquely solvable random puzzles - 7 solver modes
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/benchmark-stalled-unique-10s.mjs'
+      - '.github/workflows/benchmark-stalled-unique-10s.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 9
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        size: [5, 10, 15, 20, 25, 30]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Verify uniqueness of both independently random hard puzzles then compare seven solvers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p results
+          node tests/benchmark-stalled-unique-10s.mjs --size ${{ matrix.size }} | tee results/stalled-${{ matrix.size }}.jsonl
+      - name: Summarize fixed vs stalled-early transfer
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          import fs from 'node:fs';
+          const file=fs.readdirSync('results').find(x=>x.endsWith('.jsonl'));
+          if(!file){console.log('Missing results');process.exit(0);}
+          const data=fs.readFileSync('results/'+file,'utf8').trim().split('\n').map(JSON.parse);
+          for(const variant of [0,1]){
+            const proof=data.find(x=>x.phase==='proof'&&x.variant===variant);
+            console.log('## '+proof?.size+'×'+proof?.size+', fixture '+variant+' - SAT proof: '+proof?.status);
+            console.log('| Mode | Solved/5 | Median ms | Exact target/5 | Earlier-stall/5 | SAT calls/5 |');
+            console.log('|---|---:|---:|---:|---:|---:|');
+            for(const mode of ['adaptive','adaptivefull_cadical','cadical',
+              'adaptive25_cadical','adaptive50_cadical','adaptive75_cadical','adaptive90_cadical']){
+              const a=data.filter(x=>x.phase==='solver'&&x.variant===variant&&x.mode===mode);
+              const t=a.filter(x=>x.status==='solved').map(x=>x.elapsedMs).sort((a,b)=>a-b);
+              console.log('| '+mode+' | '+t.length+'/5 | '+(t.length?t[Math.floor(t.length/2)].toFixed(2):'—')+
+                ' | '+a.filter(x=>x.targetReached===true).length+
+                ' | '+a.filter(x=>x.handoffReason==='stalled_before_target').length+
+                ' | '+a.filter(x=>x.satCalled).length+' |');
+            }
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: stalled-unique-10s-${{ matrix.size }}
+          path: results/*
+          retention-days: 30
