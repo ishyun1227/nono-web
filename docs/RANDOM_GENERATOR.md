@@ -65,3 +65,12 @@
 ## 출처
 CaDiCaL WebAssembly: https://github.com/dgreensp/cadical-wasm
 CaDiCaL 원본: https://github.com/arminbiere/cadical
+
+## 2026-11-06 확정 풀이기와 유일해 인증 분리
+
+- 퍼즐을 실제로 푸는 알고리즘은 Adaptive가 논리적으로 막힐 때에만 CaDiCaL로 넘기는 하이브리드 방식을 채택했다. 브라우저 비동기 API: `NONO_RANDOM_PUZZLES.solveAsync(puzzle,{maxMs:10000})`.
+- **중요: 이 API의 `status:'solved'`는 정답 하나를 발견했다는 뜻이지 유일해라는 뜻이 아니다.** 모든 풀이 결과에는 `uniqueness:'not_checked'`를 표기하며, 이 API 호출만으로 후보를 로컬에 등록하거나 서버에 발행하지 않는다.
+- 랜덤 퍼즐 생성·등록은 기존 v6 CaDiCaL 차단절 기반 유일해 검사(`random-unique-worker.js`)에서 `UNSAT`로 판정한 경우에만 진행한다. 복수해·시간 초과·검증 오류는 등록하지 않는 정책을 유지한다.
+- 풀이 엔진은 별도 `hybrid-solve-worker.js`로 작동해 독립 유일해 인증기에 영향을 주지 않는다. 풀이와 인증을 매 후보마다 연속으로 실행하면 큰 퍼즐의 생성 시간만 늘 수 있으므로 자동 연결하지 않았다.
+- 배포 파일 생성은 `tools/build.cjs`가 새 엔진과 Worker를 정적 배포물에 포함한다. 브라우저 실제 실행 및 기존 유일해 생성 회귀 검사는 `.github/workflows/hybrid-runtime-solver.yml`에서 수행한다.
+- 난이도·재미도 점수 산정 및 서비스의 자동 풀이 UI는 이 단계에서 추가하지 않았다.
