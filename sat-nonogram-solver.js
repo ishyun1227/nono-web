@@ -59,8 +59,9 @@ function buildCnf(puzzle,reference,maxVariables,maxClauses,deadline){
       add(o?[-sv,-cv,o]:[-sv,-cv]);
     }
   }
-  // Require a different filled/empty value in at least one cell.
-  add(Array.from({length:cellCount},(_,i)=>reference[i]==='1'?-(i+1):i+1));
+  // Uniqueness mode MUST block the known valid reference. Solving mode has
+  // no reference and intentionally has no blocking clause.
+  if(reference!==null)add(Array.from({length:cellCount},(_,i)=>reference[i]==='1'?-(i+1):i+1));
   return {clauses,variables:variables.count,cellCount};
 }
 function dpll(cnf,reference,maxNodes,maxVisits,deadline){
@@ -234,7 +235,32 @@ function encode(puzzle,reference,options={}){
   if(Date.now()>=deadline)return {status:'unknown',reason:'time_budget'};
   return {status:'encoded',clauses:result.clauses,variables:result.variables,cellCount:result.cellCount};
 }
-const api={check,encode};
+/** CNF for finding ONE valid solution, never a proof that it is unique.
+ * Independent blocked-reference SAT/UNSAT proof remains encode().
+ */
+function encodeForSolve(puzzle,options={}){
+  const n=puzzle?.size;
+  if(!Number.isInteger(n)||n<5||n>100||!Array.isArray(puzzle.rows)||
+     !Array.isArray(puzzle.cols)||puzzle.rows.length!==n||puzzle.cols.length!==n||
+     ![...puzzle.rows,...puzzle.cols].every(line=>validLine(line,n))||
+     puzzle.rows.flat().reduce((a,b)=>a+b,0)!==puzzle.cols.flat().reduce((a,b)=>a+b,0))
+    return {status:'invalid'};
+  const remaining=Number.isFinite(options.maxMs)&&options.maxMs>=0?Math.min(options.maxMs,10000):10000;
+  const deadline=Date.now()+remaining;
+  try{
+    const result=buildCnf(puzzle,null,
+      Number.isInteger(options.maxVariables)?options.maxVariables:700000,
+      Number.isInteger(options.maxClauses)?options.maxClauses:1600000,deadline);
+    if(result.status==='invalid')return {status:'invalid'};
+    if(Date.now()>=deadline)return {status:'unknown',reason:'time_budget'};
+    return {status:'encoded',clauses:result.clauses,variables:result.variables,cellCount:result.cellCount};
+  }catch(error){
+    if(error.message==='budget'||error.message==='time_budget')
+      return {status:'unknown',reason:error.message==='budget'?'encoding_budget':'time_budget'};
+    throw error;
+  }
+}
+const api={check,encode,encodeForSolve};
 root.NONO_RANDOM_SAT=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
