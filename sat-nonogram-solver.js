@@ -8,8 +8,9 @@
 (function(root){
 'use strict';
 function runs(bits){const result=[];let count=0;for(const c of bits){if(c==='1')count++;else if(count){result.push(count);count=0;}}if(count)result.push(count);return result;}
-function validLine(line,n){return Array.isArray(line)&&line.length>0&&line.every(x=>Number.isInteger(x)&&x>=1&&x<=n)&&line.reduce((a,b)=>a+b,0)+line.length-1<=n;}
+function validLine(line,n){if(Array.isArray(line)&&line.length===1&&line[0]===0)return true;return Array.isArray(line)&&line.length>0&&line.every(x=>Number.isInteger(x)&&x>=1&&x<=n)&&line.reduce((a,b)=>a+b,0)+line.length-1<=n;}
 function automaton(clue){
+  if(clue.length===1&&clue[0]===0)clue=[];
   const gaps=Array.from({length:clue.length+1},(_,i)=>i),run=clue.map(()=>[]);
   let total=gaps.length;
   for(let j=0;j<clue.length;j++)for(let k=1;k<=clue[j];k++)run[j][k]=total++;
@@ -24,6 +25,7 @@ function automaton(clue){
   if(clue.length)accept.push(run[clue.length-1][clue[clue.length-1]]);
   return {total,zero,one,accept};
 }
+function sameHint(actual,expected){return JSON.stringify(actual)===JSON.stringify(expected.length===1&&expected[0]===0?[]:expected);}
 function buildCnf(puzzle,reference,maxVariables,maxClauses,deadline){
   const n=puzzle.size,cellCount=n*n,clauses=[],variables={count:cellCount};
   const cellVar=(axis,index,position)=>axis===0?index*n+position+1:position*n+index+1;
@@ -165,8 +167,8 @@ function check(puzzle,reference,options={}){
   for(let index=0;index<n;index++){
     const row=runs(reference.slice(index*n,(index+1)*n));
     const col=runs(Array.from({length:n},(_,y)=>reference[y*n+index]).join(''));
-    if(JSON.stringify(row)!==JSON.stringify(puzzle.rows[index])||
-       JSON.stringify(col)!==JSON.stringify(puzzle.cols[index]))
+    if(!sameHint(row,puzzle.rows[index])||
+       !sameHint(col,puzzle.cols[index]))
       return {status:'invalid',nodes:0,visits:0};
   }
   const maxMs=Number.isFinite(options.maxMs)&&options.maxMs>=0?Math.min(options.maxMs,5000):Infinity;
@@ -186,8 +188,8 @@ function check(puzzle,reference,options={}){
     const other=result.alternative;
     if(other===reference)throw Error('SAT blocking clause violated');
     for(let index=0;index<n;index++){
-      if(JSON.stringify(runs(other.slice(index*n,(index+1)*n)))!==JSON.stringify(puzzle.rows[index])||
-         JSON.stringify(runs(Array.from({length:n},(_,y)=>other[y*n+index]).join('')))!==JSON.stringify(puzzle.cols[index]))
+      if(!sameHint(runs(other.slice(index*n,(index+1)*n)),puzzle.rows[index])||
+         !sameHint(runs(Array.from({length:n},(_,y)=>other[y*n+index]).join('')),puzzle.cols[index]))
         throw Error('SAT produced an invalid alternate answer');
     }
   }
@@ -211,8 +213,8 @@ function encode(puzzle,reference,options={}){
   for(let index=0;index<n;index++){
     const row=runs(reference.slice(index*n,(index+1)*n));
     const col=runs(Array.from({length:n},(_,y)=>reference[y*n+index]).join(''));
-    if(JSON.stringify(row)!==JSON.stringify(puzzle.rows[index])||
-       JSON.stringify(col)!==JSON.stringify(puzzle.cols[index]))
+    if(!sameHint(row,puzzle.rows[index])||
+       !sameHint(col,puzzle.cols[index]))
       return {status:'invalid'};
   }
   const remaining=Number.isFinite(options.maxMs)&&options.maxMs>=0?Math.min(options.maxMs,10000):10000;
