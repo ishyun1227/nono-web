@@ -197,6 +197,10 @@ function solve(puzzle,options={}){
   const stopAtCells=Number.isFinite(options.stopAtFraction)&&
     options.stopAtFraction>0&&options.stopAtFraction<1
     ?Math.ceil(area*options.stopAtFraction):area+1;
+  // Opt-in exact handoff for benchmarks: cap committed cell deductions at the
+  // requested count, even if a line deduction finds many forced cells at once.
+  // When omitted, preserve legacy whole-line step behavior unchanged.
+  const exactStopAtFraction=options.exactStopAtFraction===true;
   const maxSteps=Number.isInteger(options.maxSteps)&&options.maxSteps>0?
     Math.min(options.maxSteps,25000):25000;
   const get=(line,p)=>line<n?cells[line*n+p]:cells[p*n+line-n];
@@ -209,6 +213,9 @@ function solve(puzzle,options={}){
     const position=line%n,edge=Math.min(position,n-1-position);
     return known*3+scarcity*2+(useEdge?0.4/(1+edge):0);
   }
+  if(exactStopAtFraction&&solved>=stopAtCells&&stopAtCells<=area)
+    return {status:'partial',reason:'target_fraction',cells,solved,trace,
+      stats:{iterations,dpCalls,enumerationCalls,modeSwitches}};
   while(dirty.some(Boolean)&&iterations<maxSteps){
     if(Date.now()>=deadline)return {status:'unknown',reason:'time_budget',cells,solved,trace,
       stats:{iterations,dpCalls,enumerationCalls,modeSwitches}};
@@ -238,6 +245,7 @@ function solve(puzzle,options={}){
         changes.push({row:Math.floor(id/n),col:id%n,value});
         // New information matters to the intersecting line only.
         dirty[selected<n?n+pos:pos]=true;
+        if(exactStopAtFraction&&solved>=stopAtCells)break;
       }
     }
     if(changes.length&&withTrace)trace.push({
