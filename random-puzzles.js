@@ -382,7 +382,50 @@ async function generateAsync({size,difficulty,seed,maxMs=5000}){
     worker.terminate();
   }
 }
-const api={generate,generateAsync,restore,register,fromSpec,answerFor,validSpec,LEVELS};
+/** Solve a puzzle on demand using the chosen Adaptive -> stalled -> CaDiCaL
+ * strategy. This does NOT certify a unique solution, register a puzzle, grant
+ * points, or change game progress. The unique-check Worker is kept separate.
+ */
+async function solveAsync(puzzle,{maxMs=10000,captureTrace=false}={}){
+  if(!root.NONO_ADAPTIVE_SOLVER?.validPuzzle(puzzle))
+    throw Error('퍼즐 행·열 힌트가 올바르지 않습니다.');
+  if(typeof root.Worker!=='function')
+    throw Error('이 브라우저에서는 자동 풀이기를 사용할 수 없습니다.');
+  const duration=Math.min(10000,Math.max(0,Number(maxMs)||0));
+  if(duration<=0)throw Error('풀이 시간이 0초입니다.');
+  const worker=new root.Worker('./hybrid-solve-worker.js?v=1',{type:'module'});
+  const result=await new Promise((resolve,reject)=>{
+    let timer,done=false;
+    const cleanup=()=>{
+      if(timer!==undefined)clearTimeout(timer);
+      worker.removeEventListener('message',onMessage);
+      worker.removeEventListener('error',onError);
+      worker.removeEventListener('messageerror',onError);
+      worker.terminate();
+    };
+    const finish=(value,error)=>{
+      if(done)return;
+      done=true;cleanup();
+      if(error)reject(error);
+      else resolve(value);
+    };
+    const onMessage=event=>{
+      if(event.data?.id!==1)return;
+      finish(event.data,false);
+    };
+    const onError=()=>finish(null,Error('자동 풀이기를 실행하지 못했습니다.'));
+    worker.addEventListener('message',onMessage);
+    worker.addEventListener('error',onError);
+    worker.addEventListener('messageerror',onError);
+    timer=setTimeout(()=>finish({status:'unknown',reason:'time_budget',
+      satCalled:false,uniqueness:'not_checked',cells:[]},false),duration+250);
+    worker.postMessage({id:1,puzzle:{size:puzzle.size,rows:puzzle.rows,cols:puzzle.cols},
+      maxMs:duration,captureTrace:captureTrace===true});
+  });
+  // A SAT solution is not unique certification, even when it solves 100%.
+  return {...result,uniqueness:'not_checked'};
+}
+const api={generate,generateAsync,solveAsync,restore,register,fromSpec,answerFor,validSpec,LEVELS};
 root.NONO_RANDOM_PUZZLES=api;
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
