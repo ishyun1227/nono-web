@@ -1,0 +1,45 @@
+name: Hybrid nonogram runtime solver + separate uniqueness proof
+on:
+  push:
+    branches: [main]
+    paths:
+      - adaptive-nonogram-solver.js
+      - hybrid-nonogram-solver.js
+      - hybrid-solve-worker.js
+      - sat-nonogram-solver.js
+      - random-puzzles.js
+      - random-unique-worker.js
+      - tools/build.cjs
+      - tests/hybrid-runtime-solver.mjs
+      - tests/browser-hybrid-solver.cjs
+      - .github/workflows/hybrid-runtime-solver.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies and assemble full browser distribution
+        run: npm ci
+      - name: Test logically complete and logically stalled hybrid paths with real CaDiCaL
+        run: node tests/hybrid-runtime-solver.mjs
+      - name: Verify independent uniqueness SAT logic is not weakened
+        run: |
+          node tests/sat-uniqueness.cjs
+          node tests/cadical-integration.mjs
+      - name: Protect v6 random generation and legacy behavior
+        run: |
+          node tests/random-puzzles.cjs
+          node tests/async-random-generator.cjs
+      - name: Install Chromium for real module-Worker integration
+        run: npx playwright install --with-deps chromium
+      - name: Test live Chromium hybrid solver without registering puzzles
+        run: node tests/browser-hybrid-solver.cjs
+      - name: Test existing v6 CaDiCaL unique verification in Chromium
+        run: node tests/browser-cadical-v6.cjs
