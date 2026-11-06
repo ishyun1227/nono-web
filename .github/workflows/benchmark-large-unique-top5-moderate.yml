@@ -1,0 +1,62 @@
+name: Large and giant MODERATE-density unique random nonograms - top five solvers
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/benchmark-large-unique-top5-moderate.mjs'
+      - '.github/workflows/benchmark-large-unique-top5-moderate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  compare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        size: [50, 75, 100]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Prove uniqueness then compare five strategies five times, max 10s each
+        shell: bash
+        run: |
+          mkdir -p results
+          node tests/benchmark-large-unique-top5-moderate.mjs --size ${{ matrix.size }} | tee results/unique-moderate-${{ matrix.size }}.jsonl
+      - name: Report provable uniqueness and 5-way solve speeds
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          import fs from 'node:fs';
+          const p=fs.readdirSync('results').find(x=>x.endsWith('.jsonl'));
+          if(!p){console.log('No result file');process.exit(0);}
+          const rows=fs.readFileSync('results/'+p,'utf8').trim().split('\n').map(s=>JSON.parse(s));
+          const sel=rows.find(x=>x.phase==='selection');
+          const sum=rows.find(x=>x.phase==='summary');
+          console.log('## Large random puzzle size', rows[0]?.size);
+          if(!sel){console.log('No proven unique puzzle:', JSON.stringify(sum));}
+          else{
+            const proof=rows.find(x=>x.phase==='proof'&&x.attempt===sel.attempt);
+            console.log('SAT unique confirmed. Density '+proof.density+'; hash '+proof.hash+'; seed '+proof.seed);
+            console.log('| Mode | Solved / 5 | Median ms | SAT invoked |');
+            console.log('|---|---:|---:|---:|');
+            for(const mode of ['adaptivefull_cadical','adaptive','adaptive90_cadical','adaptive75_cadical','adaptive50_cadical']){
+              const vals=rows.filter(x=>x.phase==='solver'&&x.mode===mode);
+              const solved=vals.filter(x=>x.status==='solved');
+              const t=solved.map(x=>x.elapsedMs).sort((a,b)=>a-b);
+              console.log('| '+mode+' | '+solved.length+'/5 | '+(t.length?t[Math.floor(t.length/2)].toFixed(2):'—')+' | '+vals.filter(x=>x.satCalled).length+'/5 |');
+            }
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: unique-moderate-top5-${{ matrix.size }}
+          path: results/*.jsonl
+          retention-days: 30
