@@ -1,0 +1,81 @@
+name: Nonogram random 10-second solver comparison
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/benchmark-random-ten-seconds.mjs'
+      - '.github/workflows/benchmark-random-ten-seconds.yml'
+      - 'sat-nonogram-solver.js'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        size: [5, 10, 15, 20, 25, 30, 50, 75, 100]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Fetch pinned original solver implementations
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p sources/monkey/src sources/kniffen
+          for file in solver.js puzzle-line.js utility.js; do
+            curl -fLsS --retry 3 https://raw.githubusercontent.com/monkeyArms/nonogram/a61efe2cb85452417fcdcdb6e2399eb4f7bd45b1/src/$file -o sources/monkey/src/$file
+          done
+          curl -fLsS --retry 3 https://raw.githubusercontent.com/kniffen/Nonogram-Maker/de98a2e86b24a60635a0e7df0b089041bc8d1b43/solver.js -o sources/kniffen/solver.js
+          echo '{"type":"module"}' > sources/monkey/package.json
+          echo '{"type":"module"}' > sources/kniffen/package.json
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          let s=fs.readFileSync('sources/kniffen/solver.js','utf8');
+          const f='export default function solver(cols, rows, horizontalClues, verticalClues) {',
+                g='grid[y][x] = 0';
+          if(!s.includes(f)||!s.includes(g))throw Error('Unexpected upstream solver revision');
+          s=s.replace(f,'export default function solver(cols, rows, horizontalClues, verticalClues, seed) {');
+          s=s.replace(g,'grid[y][x] = seed?.[y]?.[x] ?? 0');
+          fs.writeFileSync('sources/kniffen/seeded-solver.js',s);
+          NODE
+      - name: Run seeded random 12-way comparison, 10-second timeout per solve
+        shell: bash
+        run: |
+          mkdir -p results
+          node tests/benchmark-random-ten-seconds.mjs --size ${{ matrix.size }} | tee results/random-size-${{ matrix.size }}.jsonl
+      - name: Produce per-size report
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          import fs from 'node:fs';
+          const file=fs.readdirSync('results').find(x=>x.endsWith('.jsonl'));
+          const rows=fs.readFileSync('results/'+file,'utf8').trim().split('\n').map(x=>JSON.parse(x));
+          const size=rows[0].size;
+          console.log('## Random '+size+'×'+size+' · three fixed-seed Bernoulli boards');
+          console.log('Modes were independently limited to 10 seconds. Timed out, partial and error are not success.');
+          console.log('| Density | Uniqueness status | Actual black ratio | Mask hash |');
+          console.log('|---|---|---|---|');
+          for(const r of rows.filter(x=>x.mode==='uniqueness'))
+            console.log('| '+Math.round(r.density*100)+'% | '+r.status+' | '+(r.actualDensity*100).toFixed(1)+'% | '+r.maskHash+' |');
+          console.log('| Solver | Solved / 3 | Avg successful time (ms) | Reached requested handoff / 3 |');
+          console.log('|---|---:|---:|---:|');
+          for(const mode of [...new Set(rows.map(x=>x.mode))].filter(x=>x!=='uniqueness')){
+            const a=rows.filter(x=>x.mode===mode),ok=a.filter(x=>x.status==='solved');
+            const avg=ok.length?(ok.reduce((s,r)=>s+r.elapsedMs,0)/ok.length).toFixed(1):'—';
+            const targets=a.filter(x=>x.handoffReached!==null&&x.handoffReached!==undefined);
+            const hit=targets.length?targets.filter(x=>x.handoffReached===true).length+'/'+targets.length:'—';
+            console.log('| '+mode+' | '+ok.length+'/3 | '+avg+' | '+hit+' |');
+          }
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nonogram-random-${{ matrix.size }}
+          path: results/*.jsonl
+          retention-days: 30
