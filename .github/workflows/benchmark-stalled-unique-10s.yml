@@ -1,4 +1,4 @@
-name: Actual logic stalls - uniquely solvable random puzzles - 7 solver modes
+name: Logic stalls 5 to 100 - proven unique random/core - seven solvers
 on:
   push:
     branches: [main]
@@ -11,12 +11,12 @@ permissions:
 jobs:
   compare:
     runs-on: ubuntu-latest
-    timeout-minutes: 9
+    timeout-minutes: 12
     strategy:
       fail-fast: false
-      max-parallel: 6
+      max-parallel: 9
       matrix:
-        size: [5, 10, 15, 20, 25, 30]
+        size: [5, 10, 15, 20, 25, 30, 50, 75, 100]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
