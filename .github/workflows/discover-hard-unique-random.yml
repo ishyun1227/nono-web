@@ -1,0 +1,56 @@
+name: Discover logic-hard SAT-unique random nonograms
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'tests/find-hard-unique-random.mjs'
+      - '.github/workflows/discover-hard-unique-random.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    strategy:
+      fail-fast: false
+      max-parallel: 9
+      matrix:
+        size: [5, 10, 15, 20, 25, 30, 50, 75, 100]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci
+      - name: Search random puzzles; prove UNIQUE and Adaptive STALLED
+        shell: bash
+        env:
+          MAX_ATTEMPTS: 2500
+          MAX_WALL_MS: 230000
+          MAX_FOUND: 2
+        run: |
+          mkdir -p results
+          node tests/find-hard-unique-random.mjs ${{ matrix.size }} | tee results/hard-log-${{ matrix.size }}.jsonl || true
+      - name: Report independently certified hard puzzles
+        if: always()
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          import fs from 'node:fs';
+          const f=fs.readdirSync('results').find(x=>x.startsWith('hard-unique-')&&x.endsWith('.json'));
+          if(!f){console.log('Missing search output');process.exit(0);}
+          const data=JSON.parse(fs.readFileSync('results/'+f,'utf8'));
+          console.log('## '+data.size+'×'+data.size+' hard unique search');
+          console.log('Tested: '+data.counters.total+', Adaptive stalled: '+data.counters.adaptiveStalled+
+            ', multiple SAT: '+data.counters.satMultiple+', unknown SAT: '+data.counters.satUnknown+
+            ', proven hard unique: '+data.found.length);
+          for(const p of data.found)console.log('- '+p.id+' / seed '+p.seed+' / '+p.kind+
+            ' / known '+p.logicKnown+'/'+(p.size*p.size)+' / hash '+p.maskHash);
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: hard-unique-search-${{ matrix.size }}
+          path: results/*
+          retention-days: 30
