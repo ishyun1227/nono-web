@@ -1,4 +1,4 @@
-/* Benchmark unique random grids that STALL Adaptive line logic (5..30).
+/* Benchmark unique random and random-core stress-test grids that STALL Adaptive line logic (5..100).
  * SAT-certified via blocked-reference UNSAT on each fixture, then same puzzle
  * seven modes each five independent 10-second trials. 25/50/75/90 targets are
  * exact when reached; if logic stalls earlier, SAT fallback is called and
@@ -12,7 +12,7 @@ import {createRequire} from 'node:module';
 const require=createRequire(import.meta.url);
 const adaptive=require('../adaptive-nonogram-solver.js');
 const sat=require('../sat-nonogram-solver.js');
-const SIZES=[5,10,15,20,25,30];
+const SIZES=[5,10,15,20,25,30,50,75,100];
 const MODES=['adaptive','adaptivefull_cadical','cadical','adaptive25_cadical',
   'adaptive50_cadical','adaptive75_cadical','adaptive90_cadical'];
 const REPEATS=5,INTERNAL_LIMIT_MS=9700,HARD_LIMIT_MS=10000;
@@ -28,7 +28,7 @@ function hashMask(bits){
   for(const bit of bits){h^=bit;h=Math.imul(h,16777619)>>>0;}
   return h.toString(16).padStart(8,'0');
 }
-assert.equal(FIXTURES.length,12);
+assert.equal(FIXTURES.length,18);
 function fixture(n,variant=0){
   const p=FIXTURES.filter(v=>v.size===n)[variant];
   assert(p,'Missing fixture '+n);
