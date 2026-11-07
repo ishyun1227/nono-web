@@ -790,6 +790,72 @@ const {pathToFileURL}=require('node:url');
   if(smartEdges.savedSpeed!==22||smartEdges.storedSpeed!==22||!smartEdges.railHidden)
    throw Error('Speed persistence or hybrid strip visibility failed: '+JSON.stringify(smartEdges));
   console.log('Smart directional strips, 22-cell speed persistence and hybrid hiding passed.');
+  // Regress all six mobile modes at every size extremum on small portrait,
+  // standard portrait and landscape. Check the real transformed DOM geometry,
+  // including offset action buttons and the invisible miniature border.
+  for(const viewport of [
+   {width:390,height:844},{width:320,height:568},{width:844,height:390}
+  ]){
+   await mobile.setViewportSize(viewport);
+   await mobile.evaluate(()=>document.getElementById('nono-zoom-fit')?.click());
+   for(const mode of [
+    'fixed','trackpad','minimap','smartTrackpad','smartMinimap','smartHybrid'
+   ])for(const size of [65,100,150]){
+    await mobile.evaluate(({mode,size})=>{
+     const api=window.NONO_INPUT_CUSTOM;
+     api.set('mode',mode);api.set('size',size);
+    },{mode,size});
+    await mobile.evaluate(()=>new Promise(resolve=>
+     requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+    const measured=await mobile.evaluate(()=>{
+     const api=window.NONO_INPUT_CUSTOM;
+     const mode=api.settings.mode;
+     const pad=document.getElementById('nono-mobile-pad');
+     const nav=mode==='fixed'||mode==='smartTrackpad'?
+      pad.querySelector('.nono-dpad'):
+      mode==='trackpad'||mode==='smartHybrid'?
+      document.getElementById('nono-floating-zone'):
+      document.getElementById('nono-absolute-pad');
+     const action=pad.querySelector('.nono-pad-actions');
+     const elements=[nav,action,...action.querySelectorAll('button[data-nono-input]')];
+     if(mode==='minimap')elements.push(
+      ...pad.querySelectorAll('#nono-absolute-pad .nono-mini-extreme'));
+     if(mode==='smartMinimap')elements.push(
+      document.getElementById('nono-smart-edge-rail'),
+      ...pad.querySelectorAll('.nono-smart-edge-key'));
+     const boxes=elements.map(el=>{
+      const r=el.getBoundingClientRect();
+      return {name:el.id||el.className||el.tagName,
+       left:r.left,top:r.top,right:r.right,bottom:r.bottom,
+       hidden:getComputedStyle(el).display==='none'};
+     });
+     const board=document.querySelector('#game .board-scroll').getBoundingClientRect();
+     const bar=pad.querySelector('.nono-pad-top').getBoundingClientRect();
+     return {mode,size:api.settings.size,
+      width:innerWidth,height:innerHeight,
+      boxes,boardBottom:board.bottom,barTop:bar.top,
+      renderedScale:parseFloat(getComputedStyle(pad).getPropertyValue('--nono-pad-scale')),
+      reserved:parseFloat(document.documentElement.style.getPropertyValue('--nono-mobile-pad-reserve'))};
+    });
+    if(measured.size!==size||!measured.boxes.length||!measured.renderedScale)
+     throw Error('Mobile responsive mode/size lost: '+JSON.stringify(measured));
+    const visible=measured.boxes.filter(item=>!item.hidden);
+    const controlTop=Math.min(...visible.map(item=>item.top));
+    for(const box of visible){
+     if(box.left<-1||box.top<-1||box.right>measured.width+1||
+        box.bottom>measured.height+1||box.bottom>measured.barTop+1)
+      throw Error('Resized mobile control clipped '+JSON.stringify({viewport,mode,size,box,measured}));
+    }
+    if(measured.boardBottom>controlTop-3)
+     throw Error('Mobile input covers puzzle '+JSON.stringify({viewport,mode,size,measured}));
+   }
+  }
+  await mobile.setViewportSize({width:390,height:844});
+  await mobile.evaluate(()=>{
+   const api=window.NONO_INPUT_CUSTOM;
+   api.set('mode','fixed');api.set('size',100);
+  });
+  console.log('Mobile all-mode responsive dock bounds at 65/100/150% on three viewports passed.');
   if(mobileErrors.length)throw Error('Mobile game exceptions: '+mobileErrors.join(' | '));
   await mobileContext.close();
   console.log('Mobile app viewport, tap-vs-swipe and internal zoom panning passed.');
