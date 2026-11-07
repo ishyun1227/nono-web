@@ -197,7 +197,9 @@ function layoutTouchControls(){
  // source of truth; guessing from just the two fixed groups misses minigame
  // borders, hybrid pads, invisible edge buttons and stacked arrangements.
  const visible=!pad.hidden&&matchMedia('(max-width:900px) and (pointer:coarse)').matches;
- const reserve=visible?dock.reserve+(editing?30:0):0;
+ // Reserve a separate 40px row for the puzzle zoom controls between the
+ // board and the mobile input deck; neither may overlap the actual tiles.
+ const reserve=visible?dock.reserve+(editing?30:0)+40:0;
  document.documentElement.style.setProperty('--nono-dock-reserve',reserve+'px');
  // A move that only changes X need not rescan a 100x100 puzzle. Refit
  // when its actual reserved vertical space changes, and only then.
