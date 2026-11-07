@@ -103,6 +103,105 @@ const editbar=document.createElement('div');editbar.id='nono-pad-editbar';editba
 editbar.innerHTML='<strong>버튼 배치 편집</strong><small>✥ 이동을 끌면 그룹, 동작 버튼을 끌면 개별 위치가 바뀝니다.</small><button data-pad-edit="reset" type="button">기본 위치</button><button data-pad-edit="cancel" type="button">취소</button><button data-pad-edit="save" type="button">저장</button>';
 document.body.append(editbar);
 let editing=false,beforeEdit=null,drag=null,trackpadActive=null,miniActive=null;
+// Pure geometry shared by all six mobile input types. Use the ACTUAL
+// footprint, including invisible miniature border taps and per-button offsets.
+// The configured size remains saved; only the displayed scale is reduced if
+// otherwise it could cover the puzzle or escape a narrow/short viewport.
+function calculateMobileDock(width,height,requestedScale,mode,dpadPref,actionsPref,offsets,barTop){
+ const margin=8,gap=10;
+ const landscape=height<=470&&width>height;
+ const primarySize=mode==='minimap'?[208,208]:
+  mode==='smartMinimap'?[206,206]:
+  mode==='trackpad'?[160,132]:
+  mode==='smartHybrid'?[152,152]:
+  landscape?[116,98]:width<=480?[131,113]:[151,130];
+ const nav={width:primarySize[0],height:primarySize[1]};
+ // Each editable action may have an independent +/-60px offset. A group
+ // rectangle alone is insufficient to guarantee that its BUTTONS fit.
+ const actionWidth=landscape?142:width<=480?145:170;
+ const actionHeight=landscape?96:width<=480?113:130;
+ const cellGap=landscape?5:width<=480?6:8;
+ const itemW=(actionWidth-cellGap)/2,itemH=(actionHeight-cellGap)/2;
+ let minX=0,minY=0,maxX=actionWidth,maxY=actionHeight;
+ for(const [i,name] of ['fill','cross','clear','undo'].entries()){
+  const shift=offsets[name]||[0,0];
+  const x=(i%2)*(itemW+cellGap)+shift[0];
+  const y=Math.floor(i/2)*(itemH+cellGap)+shift[1];
+  minX=Math.min(minX,x);minY=Math.min(minY,y);
+  maxX=Math.max(maxX,x+itemW);maxY=Math.max(maxY,y+itemH);
+ }
+ const action={width:maxX-minX,height:maxY-minY,
+  driftX:(minX+maxX-actionWidth)/2,
+  driftY:(minY+maxY-actionHeight)/2};
+ const bottom=Math.min(height-margin,Math.max(30,barTop-8));
+ // Never use the puzzle's dedicated upper area as a control dock.
+ // Very short landscape screens need a proportionately smaller puzzle rail.
+ const boardFloor=Math.min(bottom-12,48+Math.max(65,Math.min(140,height*.23)));
+ const usable=Math.max(1,bottom-boardFloor);
+ const horizontal=Math.max(.1,Math.min(requestedScale,
+  (width-margin*2-gap)/(nav.width+action.width),usable/Math.max(nav.height,action.height)));
+ const vertical=Math.max(.1,Math.min(requestedScale,
+  (width-margin*2)/Math.max(nav.width,action.width),
+  (usable-gap)/(nav.height+action.height)));
+ // Prefer a two-column controller when it fits at approximately the same
+ // size. Otherwise stack the control and action decks below the puzzle.
+ const stacked=vertical>horizontal+.08;
+ const scale=stacked?vertical:horizontal;
+ const orderedLeft=dpadPref.x<=actionsPref.x;
+ let navX,navY,actionFootX,actionFootY,top;
+ if(!stacked){
+  const navW=nav.width*scale,actW=action.width*scale;
+  const span=navW+gap+actW;
+  const preferredMid=(dpadPref.x+actionsPref.x)*width/2;
+  const start=clamp(preferredMid-span/2,margin,width-margin-span);
+  navX=orderedLeft?start+navW/2:start+actW+gap+navW/2;
+  actionFootX=orderedLeft?start+navW+gap+actW/2:start+actW/2;
+  // Keep user-adjusted vertical preference within the safe bottom dock.
+  navY=clamp(dpadPref.y*height,boardFloor+nav.height*scale/2,
+   bottom-nav.height*scale/2);
+  actionFootY=clamp(actionsPref.y*height,boardFloor+action.height*scale/2,
+   bottom-action.height*scale/2);
+  top=Math.min(navY-nav.height*scale/2,
+   actionFootY-action.height*scale/2);
+ }else{
+  const navW=nav.width*scale,actW=action.width*scale;
+  navX=clamp(dpadPref.x*width,margin+navW/2,width-margin-navW/2);
+  actionFootX=clamp(actionsPref.x*width,margin+actW/2,width-margin-actW/2);
+  const total=nav.height*scale+gap+action.height*scale;
+  const desiredBottom=actionsPref.y*height+action.height*scale/2;
+  const stackBottom=clamp(desiredBottom,boardFloor+total,bottom);
+  top=stackBottom-total;
+  navY=top+nav.height*scale/2;
+  actionFootY=stackBottom-action.height*scale/2;
+ }
+ return {navX,navY,
+  actionX:actionFootX-action.driftX*scale,
+  actionY:actionFootY-action.driftY*scale,
+  reserve:Math.max(0,Math.ceil(height-top+7)),scale,stacked,
+  top,screenW:width,screenH:height};
+}
+function layoutTouchControls(){
+ const w=window.innerWidth,h=window.visualViewport?.height||window.innerHeight;
+ if(!w||!h)return;
+ const bar=pad.querySelector('.nono-pad-top')?.getBoundingClientRect();
+ const barTop=bar&&bar.height>15&&bar.top>h*.4?bar.top:h-40;
+ const dock=calculateMobileDock(w,h,state.size/100,state.mode,
+  state.dpad,state.actions,state.offsets,barTop);
+ pad.style.setProperty('--nono-pad-scale',String(dock.scale));
+ pad.style.setProperty('--nono-layout-nav-x',dock.navX.toFixed(2)+'px');
+ pad.style.setProperty('--nono-layout-nav-y',dock.navY.toFixed(2)+'px');
+ pad.style.setProperty('--nono-layout-actions-x',dock.actionX.toFixed(2)+'px');
+ pad.style.setProperty('--nono-layout-actions-y',dock.actionY.toFixed(2)+'px');
+ // Game fitting runs in another module. A single layout reserve is its
+ // source of truth; guessing from just the two fixed groups misses minigame
+ // borders, hybrid pads, invisible edge buttons and stacked arrangements.
+ const visible=!pad.hidden&&matchMedia('(max-width:900px) and (pointer:coarse)').matches;
+ document.documentElement.style.setProperty('--nono-dock-reserve',
+  (visible?dock.reserve:0)+'px');
+}
+window.addEventListener('resize',layoutTouchControls);
+window.visualViewport?.addEventListener('resize',layoutTouchControls);
+window.addEventListener('nono:mobile-pad-layout',layoutTouchControls);
 function apply(){
  const opacity=state.opacity/100,scale=state.size/100;
  pad.classList.toggle('nono-trackpad-mode',state.mode==='trackpad');
@@ -141,7 +240,9 @@ mini.style.setProperty('--nono-mini-gutter',(104*scale+8)+'px');
  mini.style.setProperty('--zone-x',state.dpad.x*100+'vw');
  mini.style.setProperty('--zone-y',state.dpad.y*100+'dvh');
  updateMiniCursor();
+ layoutTouchControls();
  window.dispatchEvent(new Event('nono:smart-controls-change'));
+ window.dispatchEvent(new Event('nono:mobile-controls-layout'));
  // Changes to on-screen controls do not require recalculating the board on each drag.
 }
 function insideTouch(el,x,y){
