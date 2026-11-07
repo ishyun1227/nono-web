@@ -494,5 +494,77 @@ for(const [dir,x,y,row,col] of [
 assert.equal(miniCursorUpdates,8,'all exterior touches update the mini position cursor');
 console.log('MINI_EXTREMES_PASS: four outside strips, both sides and all corners');
 
+// The same geometric solver used by ALL 6 touch modes must fit the real
+// footprint of every control, including invisible extreme-cell strips and
+// independently movable action buttons. Test narrow portrait and landscape.
+const layoutStart=controllerSource.indexOf('function calculateMobileDock(');
+const layoutEnd=controllerSource.indexOf('let lastDockReserve=',layoutStart);
+assert.ok(layoutStart>=0&&layoutEnd>layoutStart,'locate production dock solver');
+const mobileDock=new Function('clamp',
+ controllerSource.slice(layoutStart,layoutEnd)+';return calculateMobileDock;')(
+ (v,low,high)=>Math.max(low,Math.min(high,v)));
+let layoutCases=0,stackedCases=0,restrictedCases=0;
+for(const [width,height] of [
+ [320,480],[320,568],[375,667],[390,844],[430,932],
+ [600,900],[844,390],[568,320],[900,450]
+])for(const mode of [
+ 'fixed','trackpad','minimap','smartTrackpad','smartMinimap','smartHybrid'
+])for(const size of [65,100,125,150])for(const extreme of [false,true]){
+ const prefs=extreme?{
+  dpad:{x:.85,y:.17},actions:{x:.1,y:.96},
+  offsets:{fill:[-60,-60],cross:[60,-60],clear:[60,60],undo:[-60,60]}
+ }:{
+  dpad:{x:.21,y:.83},actions:{x:.79,y:.83},
+  offsets:{fill:[0,0],cross:[0,0],clear:[0,0],undo:[0,0]}
+ };
+ const dock=mobileDock(width,height,size/100,mode,
+  prefs.dpad,prefs.actions,prefs.offsets,height-43);
+ const landscape=height<=470&&width>height;
+ const primary=mode==='minimap'?[208,208]:mode==='smartMinimap'?[206,206]:
+  mode==='trackpad'?[160,132]:mode==='smartHybrid'?[152,152]:
+  landscape?[116,98]:width<=480?[131,113]:[151,130];
+ const aw=landscape?142:width<=480?145:170;
+ const ah=landscape?96:width<=480?113:130;
+ const gap=landscape?5:width<=480?6:8;
+ const cellWidth=(aw-gap)/2,cellHeight=(ah-gap)/2;
+ let minX=0,minY=0,maxX=aw,maxY=ah;
+ for(const [i,key] of ['fill','cross','clear','undo'].entries()){
+  const [dx,dy]=prefs.offsets[key];
+  const x=(i%2)*(cellWidth+gap)+dx,y=Math.floor(i/2)*(cellHeight+gap)+dy;
+  minX=Math.min(minX,x);minY=Math.min(minY,y);
+  maxX=Math.max(maxX,x+cellWidth);maxY=Math.max(maxY,y+cellHeight);
+ }
+ const scale=dock.scale;
+ const navRect={
+  left:dock.navX-primary[0]*scale/2,right:dock.navX+primary[0]*scale/2,
+  top:dock.navY-primary[1]*scale/2,bottom:dock.navY+primary[1]*scale/2
+ };
+ const actionRect={
+  left:dock.actionX+(minX-aw/2)*scale,right:dock.actionX+(maxX-aw/2)*scale,
+  top:dock.actionY+(minY-ah/2)*scale,bottom:dock.actionY+(maxY-ah/2)*scale
+ };
+ for(const [name,r] of [['navigation',navRect],['actions',actionRect]]){
+  assert.ok(r.left>=-0.01&&r.right<=width+.01&&
+   r.top>=0&&r.bottom<=height+.01,
+   mode+' '+size+'% '+name+' never escapes viewport');
+  assert.ok(r.bottom<=height-43,
+   mode+' '+size+'% '+name+' must stay above settings/collapse bar');
+ }
+ assert.ok(navRect.right+1<=actionRect.left||
+  actionRect.right+1<=navRect.left||
+  navRect.bottom+1<=actionRect.top||
+  actionRect.bottom+1<=navRect.top,
+  mode+' '+size+'% nav and action buttons must not overlap');
+ assert.ok(height-dock.reserve<=Math.min(navRect.top,actionRect.top)-4,
+  mode+' '+size+'% puzzle viewport must end above both controls');
+ assert.ok(scale<=size/100+.0001,'requested scale must not grow');
+ if(dock.stacked)stackedCases++;
+ if(dock.scale<size/100-.001)restrictedCases++;
+ layoutCases++;
+}
+assert.ok(stackedCases>0&&restrictedCases>0,
+ 'responsive controller has both stacking and viewport-fitting paths');
+console.log('MOBILE_DOCK_PASS: '+layoutCases+
+ ' cases, 6 modes, 65-150%, extreme offsets and landscape');
 console.log('LAPTOP_TRACKPAD_PASS: diagonal inside/outside and editing-only axis lock');
 console.log('SMART_TOUCH_PASS: cross center, actual board window, miniature edges and hybrid gestures');
