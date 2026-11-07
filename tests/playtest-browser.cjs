@@ -831,9 +831,14 @@ const {pathToFileURL}=require('node:url');
      });
      const board=document.querySelector('#game .board-scroll').getBoundingClientRect();
      const bar=pad.querySelector('.nono-pad-top').getBoundingClientRect();
+     const zoomEl=document.getElementById('nono-board-zoom');
+     const zoom=zoomEl.getBoundingClientRect();
+     const zoomVisible=getComputedStyle(zoomEl).display!=='none';
      return {mode,size:api.settings.size,
       width:innerWidth,height:innerHeight,
       boxes,boardBottom:board.bottom,barTop:bar.top,
+      zoomVisible,zoom:{left:zoom.left,top:zoom.top,
+       right:zoom.right,bottom:zoom.bottom},
       renderedScale:parseFloat(getComputedStyle(pad).getPropertyValue('--nono-pad-scale')),
       reserved:parseFloat(document.documentElement.style.getPropertyValue('--nono-mobile-pad-reserve'))};
     });
@@ -848,6 +853,12 @@ const {pathToFileURL}=require('node:url');
     }
     if(measured.boardBottom>controlTop-3)
      throw Error('Mobile input covers puzzle '+JSON.stringify({viewport,mode,size,measured}));
+    if(measured.zoomVisible&&
+      (measured.zoom.top<measured.boardBottom+2||
+       measured.zoom.bottom>controlTop-2||
+       measured.zoom.right>measured.width+1||
+       measured.zoom.left<-1))
+     throw Error('Mobile zoom overlaps puzzle or input '+JSON.stringify({viewport,mode,size,measured}));
    }
   }
   await mobile.setViewportSize({width:390,height:844});
