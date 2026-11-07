@@ -258,6 +258,13 @@ crossCenter.fire('pointermove',94,94,{pointerId:503});
 assert.ok(position.col>sameSmartBefore.col,
  'a reused smart pointerId must not permanently disable the control');
 crossCenter.fire('pointerup',94,94,{pointerId:503});
+// Even when the element loses capture, document pointermove must keep dragging.
+crossCenter.fire('pointerdown',75,75,{pointerId:504});
+const beforeDocumentMove={...position};
+document.fire('pointermove',{pointerId:504,clientX:98,clientY:98,preventDefault(){}});
+assert.ok(position.col>beforeDocumentMove.col&&position.row>beforeDocumentMove.row,
+ 'smart gesture must continue through document-level move fallback');
+document.fire('pointerup',{pointerId:504});
 const key=new Element;
 key.dataset.nonoInput='right';key.classList.add('nono-pad-key');
 position.col=20;
@@ -425,5 +432,11 @@ laptopZone.fire('pointermove',84,84,{pointerId:605});
 assert.ok(laptopPosition.row>reusedLaptop.row&&laptopPosition.col>reusedLaptop.col,
  'reused laptop pointerId after a lost release must not disable gestures');
 laptopZone.fire('pointerup',84,84,{pointerId:605});
+laptopZone.fire('pointerdown',60,60,{pointerId:606});
+const laptopDocBefore={...laptopPosition};
+laptopDocument.fire('pointermove',{pointerId:606,clientX:84,clientY:84,preventDefault(){}});
+assert.ok(laptopPosition.col>laptopDocBefore.col&&laptopPosition.row>laptopDocBefore.row,
+ 'laptop gesture continues after capture loss via document move listener');
+laptopDocument.fire('pointerup',{pointerId:606});
 console.log('LAPTOP_TRACKPAD_PASS: diagonal inside/outside and editing-only axis lock');
 console.log('SMART_TOUCH_PASS: cross center, actual board window, miniature edges and hybrid gestures');
