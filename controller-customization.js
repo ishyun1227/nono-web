@@ -88,8 +88,12 @@ function apply(){
  pad.classList.toggle('nono-smart-trackpad-mode',state.mode==='smartTrackpad');
  pad.classList.toggle('nono-smart-minimap-mode',state.mode==='smartMinimap');
  pad.classList.toggle('nono-smart-hybrid-mode',state.mode==='smartHybrid');
- if(state.mode!=='trackpad'||editing)trackpadActive=null;
- if(state.mode!=='minimap'||editing)miniActive=null;
+ // A mode change during a held gesture must release its history stroke and
+ // pointer capture. Just nulling the state leaves interrupted input behind.
+ if((state.mode!=='trackpad'||editing)&&trackpadActive)
+  trackpadEnd({pointerId:trackpadActive.id});
+ if((state.mode!=='minimap'||editing)&&miniActive)
+  miniEnd({pointerId:miniActive.id});
  pad.classList.toggle('nono-pad-editing',editing);
  pad.style.setProperty('--nono-pad-opacity',opacity);
  pad.style.setProperty('--nono-pad-scale',scale);
