@@ -336,6 +336,28 @@ assert.ok(position.row>previous.row&&position.col>previous.col,
  'releasing edit must immediately restore free movement');
 crossCenter.fire('pointerup',102,88);
 assert.equal(window.NONO_SMART_TOUCH.active,false);
+// If WebKit loses a smart thumb-circle capture during a long swipe,
+// continue handling document pointermove and finish on document pointerup.
+held.fill=false;position.row=20;position.col=20;change('smartTrackpad');
+crossCenter.fire('pointerdown',70,70,{pointerId:711});
+crossCenter.fire('lostpointercapture',70,70,{pointerId:711});
+document.fire('pointermove',{pointerId:711,button:0,clientX:95,clientY:95,preventDefault(){}});
+assert.ok(position.row>20&&position.col>20,
+ 'smart thumb keeps moving after lost capture via document');
+const captureMoved={...position};
+document.fire('pointerup',{pointerId:711});
+assert.equal(window.NONO_SMART_TOUCH.active,false);
+document.fire('pointermove',{pointerId:711,button:0,clientX:120,clientY:120,preventDefault(){}});
+assert.deepEqual(position,captureMoved,'smart gesture stops on document pointerup');
+crossCenter.fire('pointerdown',70,70,{pointerId:712});
+crossCenter.fire('pointermove',95,95,{pointerId:712});
+const abandoned={...position};
+crossCenter.fire('pointerdown',70,70,{pointerId:712});
+crossCenter.fire('pointermove',95,95,{pointerId:712});
+assert.ok(position.row>abandoned.row&&position.col>abandoned.col,
+ 'fresh smart pointerdown recovers from abandoned same-ID gesture');
+crossCenter.fire('pointerup',95,95,{pointerId:712});
+
 // Also run the ACTUAL production laptop-trackpad handler in a small DOM shim.
 // Passive movement is 2D; only a held edit action locks the first drag axis.
 const controllerSource=fs.readFileSync(path.join(__dirname,'..','controller-customization.js'),'utf8');
