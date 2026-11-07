@@ -209,7 +209,11 @@ function layoutTouchControls(){
  }
 }
 window.addEventListener('resize',layoutTouchControls);
-window.visualViewport?.addEventListener('resize',layoutTouchControls);
+window.visualViewport?.addEventListener('resize',()=>{
+ layoutTouchControls();
+ // Safari can resize the visual viewport without emitting window.resize.
+ window.dispatchEvent(new Event('nono:mobile-controls-layout'));
+});
 window.addEventListener('nono:mobile-pad-layout',layoutTouchControls);
 function apply(){
  const opacity=state.opacity/100,scale=state.size/100;
