@@ -1307,19 +1307,30 @@ function fitBoardToViewport(){
  const viewportH=window.visualViewport?.height||window.innerHeight;
  // A landscape control deck sits to the left, a portrait deck sits below.
  const touchDock=document.body.classList.contains('nono-touch-pad-visible');
- const sideDock=touchDock&&window.matchMedia('(max-height:470px) and (orientation:landscape) and (pointer:coarse)').matches;
+ // All mobile controllers now use a collision-free bottom dock, including
+ // landscape. The old landscape-only side subtraction left parts of the
+ // miniature and action buttons outside the available board region.
+ const sideDock=false;
  // Keep a small visible edge around the LEFT clues and TOP clues, too.
  // Larger edge space is reserved when a landscape touch pad is beside the grid.
  const fitGutter=12; // Keep actual text and its borders safely away from viewport edges.
  const availW=Math.max(1,viewportW-padW-(sideDock?235:0)-fitGutter*2);
- let reservedControls=touchDock&&!sideDock?178:0;
- if(reservedControls){
-  const controls=['#nono-mobile-pad .nono-dpad','#nono-mobile-pad .nono-pad-actions','#nono-floating-zone']
-    .map(selector=>document.querySelector(selector))
-    .filter(el=>el&&getComputedStyle(el).display!=='none');
-  for(const el of controls){
-    const top=el.getBoundingClientRect().top;
-    if(Number.isFinite(top))reservedControls=Math.max(reservedControls,Math.ceil(viewportH-top+5));
+ // The controller module owns the exact footprint (all six input types,
+ // transparent first/last-cell strips, individual button offsets and scale).
+ // The previous height guess ignored the 206px smart rail and 208px exterior
+ // hit region and could put the board directly beneath the enlarged pad.
+ const explicitDock=Number.parseFloat(document.documentElement.style.getPropertyValue('--nono-dock-reserve'))||0;
+ let reservedControls=touchDock?Math.max(0,explicitDock):0;
+ if(touchDock&&!reservedControls){
+  // Backward-compatible fallback if customization fails to initialize.
+  reservedControls=178;
+  const controls=['#nono-mobile-pad .nono-dpad','#nono-mobile-pad .nono-pad-actions',
+   '#nono-floating-zone','#nono-absolute-pad','#nono-smart-edge-rail'];
+  for(const selector of controls){
+   const el=document.querySelector(selector);
+   if(!el||getComputedStyle(el).display==='none')continue;
+   const top=el.getBoundingClientRect().top;
+   if(Number.isFinite(top))reservedControls=Math.max(reservedControls,Math.ceil(viewportH-top+8));
   }
   reservedControls=Math.min(Math.max(0,viewportH-120),reservedControls);
  }
@@ -2071,7 +2082,9 @@ function followPointerSelection(event){
  if(!cells||!Number.isInteger(next)||next<0||next>=puzzle.size*(puzzle.height||puzzle.size))return;
  updateLiveSelection(next,cells);
 }
-mount();initializeFrozenClues();setupPointer();window.addEventListener('resize',scheduleBoardFit);new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
+mount();initializeFrozenClues();setupPointer();window.addEventListener('resize',scheduleBoardFit);
+window.addEventListener('nono:mobile-controls-layout',scheduleBoardFit);
+new MutationObserver(scheduleBoardFit).observe(document.body,{attributes:true,attributeFilter:['data-nono-theme']});
 $('board').addEventListener('pointermove',followPointerSelection,{passive:true});
 window.addEventListener('blur',()=>{altClueSelection=null;releaseMove();keyboardDrag=null;});
 $('board').addEventListener('wheel',e=>{if(!prefs.zoomWheel||!e.ctrlKey)return;e.preventDefault();
