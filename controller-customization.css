@@ -588,7 +588,8 @@
  background:linear-gradient(145deg,#315975f0,#23415de8)!important;
  color:#d9fbff!important;font:800 13px/1 system-ui,sans-serif!important;
  box-shadow:0 3px 9px #0413258c!important;
- opacity:1!important;pointer-events:auto!important;touch-action:none!important;
+ /* Fully invisible hit targets: remain touchable without showing arrow controls. */
+ opacity:0!important;pointer-events:auto!important;touch-action:none!important;
  -webkit-user-select:none!important;user-select:none!important;
  -webkit-tap-highlight-color:transparent;
 }
