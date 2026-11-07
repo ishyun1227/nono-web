@@ -615,3 +615,37 @@
 #nono-mobile-pad.nono-minimap-mode.nono-pad-editing #nono-absolute-pad .nono-mini-extreme{
  display:none!important;
 }
+
+/* Responsive mobile dock (all six modes). These variables are computed from
+   viewport size, the requested control scale, invisible miniature edge-hit
+   regions, and individually offset action buttons. All touch surfaces remain
+   BELOW the reserved puzzle viewport and INSIDE visible screen bounds. */
+#nono-mobile-pad .nono-dpad{
+ left:var(--nono-layout-nav-x,var(--pad-x,21vw))!important;
+ top:var(--nono-layout-nav-y,var(--pad-y,83dvh))!important;
+}
+#nono-mobile-pad .nono-pad-actions{
+ left:var(--nono-layout-actions-x,var(--pad-x,79vw))!important;
+ top:var(--nono-layout-actions-y,var(--pad-y,83dvh))!important;
+}
+#nono-mobile-pad.nono-trackpad-mode #nono-floating-zone,
+#nono-mobile-pad.nono-smart-hybrid-mode #nono-floating-zone{
+ left:var(--nono-layout-nav-x,21vw)!important;
+ top:var(--nono-layout-nav-y,83dvh)!important;
+}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad,
+#nono-mobile-pad.nono-smart-minimap-mode #nono-absolute-pad{
+ left:var(--nono-layout-nav-x,21vw)!important;
+ top:var(--nono-layout-nav-y,83dvh)!important;
+}
+#nono-mobile-pad.nono-smart-minimap-mode #nono-smart-edge-rail{
+ left:var(--nono-layout-nav-x,21vw)!important;
+ top:var(--nono-layout-nav-y,83dvh)!important;
+}
+/* This is a true invisible hit region, not another decorated control. */
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-mini-extreme,
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-mini-extreme:active{
+ opacity:0!important;
+ box-shadow:none!important;background:transparent!important;
+ border-color:transparent!important;color:transparent!important;
+}
