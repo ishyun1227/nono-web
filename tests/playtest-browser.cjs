@@ -579,6 +579,48 @@ const {pathToFileURL}=require('node:url');
      actualBoardWindow.actual.some((v,i)=>Math.abs(v-actualBoardWindow.expected[i])>2))
    throw Error('Smart D-pad circle or on-board outline misaligned: '+JSON.stringify(actualBoardWindow));
   console.log('Smart D-pad center and 12x12 board overlay aligned with actual tiles.');
+  // Regression for iOS and Android missing pointerup/lostcapture: a new
+  // contact, including a REUSED pointerId, must recover a stalled touchpad.
+  const recoveredTouchpads=await mobile.evaluate(()=>{
+   const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
+   const result=[];
+   for(const [i,mode] of ['trackpad','smartTrackpad'].entries()){
+    api.set('mode',mode);api.set('trackpadSensitivity',100);nav.select(20,20);
+    const el=mode==='trackpad'?
+      document.getElementById('nono-floating-zone'):
+      document.querySelector('#nono-mobile-pad .nono-dpad .nono-pad-center');
+    const rect=el.getBoundingClientRect();
+    const x=(rect.left+rect.right)/2,y=(rect.top+rect.bottom)/2;
+    const pointer={pointerType:'touch',pointerId:3800+i,isPrimary:true,
+      button:0,buttons:1,bubbles:true,cancelable:true};
+    const send=(type,cx,cy,more={})=>el.dispatchEvent(
+      new PointerEvent(type,{...pointer,clientX:cx,clientY:cy,...more}));
+    send('pointerdown',x,y);
+    send('pointermove',x+12,y+12);
+    const first={...nav.position};
+    // Simulate release event being silently dropped, with ID reused.
+    send('pointerdown',x,y);
+    send('pointermove',x+12,y+12);
+    const second={...nav.position};
+    document.dispatchEvent(new PointerEvent('pointerup',{
+      ...pointer,clientX:x+12,clientY:y+12,buttons:0}));
+    const inactive=mode==='smartTrackpad'?!window.NONO_SMART_TOUCH.active:true;
+    send('pointerdown',x,y,{pointerId:3900+i});
+    send('pointermove',x+12,y+12,{pointerId:3900+i});
+    const again={...nav.position};
+    send('pointerup',x+12,y+12,{pointerId:3900+i,buttons:0});
+    result.push({mode,first,second,again,inactive});
+   }
+   return result;
+  });
+  for(const r of recoveredTouchpads){
+   if(r.first.row<=20||r.first.col<=20||
+     r.second.row<=r.first.row||r.second.col<=r.first.col||
+     r.again.row<=r.second.row||r.again.col<=r.second.col||!r.inactive)
+    throw Error('Trackpad recovery from lost/reused touch failed: '+JSON.stringify(r));
+  }
+  console.log('Laptop and smart touchpads recover from missed release, reused pointer ID and global pointerup.');
+
   // Hybrid is intentionally different: a visible full-board miniature square
   // for the FIRST touch, then captured relative movement outside the square.
   const hybridResult=await mobile.evaluate(async()=>{
