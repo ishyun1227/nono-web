@@ -428,6 +428,76 @@ const {pathToFileURL}=require('node:url');
      miniResult.afterRelease.col!==0||miniResult.mode!=='minimap')
     throw Error('Miniature free navigation or action-only paint lock failed: '+JSON.stringify(miniResult));
   console.log('Trackpad sizing and free miniature navigation versus locked editing passed.');
+
+  // The classic full-board miniature has thin OUTSIDE buttons for exact
+  // first/last row/column selection, including each extreme corner.
+  const miniatureEdges=await mobile.evaluate(()=>{
+   const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
+   api.set('size',100);api.set('mode','minimap');
+   const mini=document.getElementById('nono-absolute-pad');
+   const box=mini.getBoundingClientRect(),d=nav.dimensions;
+   const strips=Object.fromEntries(['up','down','left','right'].map(dir=>
+    [dir,mini.querySelector('[data-nono-mini-extreme="'+dir+'"]')]));
+   const results=[],startBoard=board.join('');
+   function tap(direction,x,y){
+    nav.select(20,20);
+    const target=strips[direction];
+    const visible=getComputedStyle(target).display!=='none';
+    target.dispatchEvent(new PointerEvent('pointerdown',{
+     bubbles:true,cancelable:true,pointerType:'touch',pointerId:1901+results.length,
+     button:0,buttons:1,isPrimary:true,clientX:x,clientY:y}));
+    results.push({direction,visible,row:nav.position.row,col:nav.position.col});
+   }
+   tap('up',box.left+box.width/2,box.top-14);
+   tap('down',box.left+box.width/2,box.bottom+14);
+   tap('left',box.left-14,box.top+box.height/2);
+   tap('right',box.right+14,box.top+box.height/2);
+   tap('up',box.left-14,box.top-14);
+   tap('up',box.right+14,box.top-14);
+   tap('down',box.left-14,box.bottom+14);
+   tap('down',box.right+14,box.bottom+14);
+   const rectangles=Object.fromEntries(Object.entries(strips).map(([dir,el])=>{
+    const r=el.getBoundingClientRect();
+    return [dir,{left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height}];
+   }));
+   const unchanged=board.join('')===startBoard;
+   api.set('size',150);
+   const scaled=Object.values(strips).map(el=>{
+    const r=el.getBoundingClientRect();
+    return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+   });
+   api.set('mode','smartMinimap');
+   const hiddenInSmart=Object.values(strips).every(el=>getComputedStyle(el).display==='none');
+   api.set('size',100);api.set('mode','minimap');
+   return {results,rectangles,scaled,hiddenInSmart,unchanged,
+    d,box:{left:box.left,right:box.right,top:box.top,bottom:box.bottom},
+    window:{width:innerWidth,height:innerHeight}};
+  });
+  const expectedExtreme=[
+   [0,Math.floor(miniatureEdges.d.width/2)],
+   [miniatureEdges.d.height-1,Math.floor(miniatureEdges.d.width/2)],
+   [Math.floor(miniatureEdges.d.height/2),0],
+   [Math.floor(miniatureEdges.d.height/2),miniatureEdges.d.width-1],
+   [0,0],[0,miniatureEdges.d.width-1],
+   [miniatureEdges.d.height-1,0],
+   [miniatureEdges.d.height-1,miniatureEdges.d.width-1]
+  ];
+  for(let i=0;i<expectedExtreme.length;i++){
+   const got=miniatureEdges.results[i],[row,col]=expectedExtreme[i];
+   if(!got.visible||got.row!==row||got.col!==col)
+    throw Error('Outside miniature edge touch failed: '+JSON.stringify({got,row,col}));
+  }
+  const ext=miniatureEdges;
+  if(!ext.unchanged||!ext.hiddenInSmart||
+     ext.rectangles.up.bottom>ext.box.top||
+     ext.rectangles.down.top<ext.box.bottom||
+     ext.rectangles.left.right>ext.box.left||
+     ext.rectangles.right.left<ext.box.right||
+     ext.scaled.some(r=>r.left<-1||r.top<-1||
+       r.right>ext.window.width+1||r.bottom>ext.window.height+1))
+   throw Error('Miniature edge bounds, non-editing, or smart isolation failed: '+JSON.stringify(ext));
+  console.log('Classic miniature edge strips navigate first/last rows, columns and corners.');
+
   // The ordinary miniature must show the CURRENT user-painted board.
   const ordinaryPreview=await mobile.evaluate(async()=>{
    const api=window.NONO_INPUT_CUSTOM,nav=window.NONO_TOUCH_CURSOR;
