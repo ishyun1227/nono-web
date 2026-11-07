@@ -40,7 +40,7 @@ class Element {
  }
  fire(type,x,y,props={}){
   const event={pointerId:1,button:0,clientX:x,clientY:y,
-   target:this,preventDefault(){},stopImmediatePropagation(){},...props};
+   target:this,preventDefault(){},stopPropagation(){},stopImmediatePropagation(){},...props};
   for(const fn of this.listeners[type]??[])fn(event);
  }
  setPointerCapture(){}
@@ -460,5 +460,39 @@ laptopDocument.fire('pointermove',{pointerId:606,clientX:84,clientY:84,preventDe
 assert.ok(laptopPosition.col>laptopDocBefore.col&&laptopPosition.row>laptopDocBefore.row,
  'laptop gesture continues after capture loss via document move listener');
 laptopDocument.fire('pointerup',{pointerId:606});
+// Test the REAL classic-miniature edge-strip creation and input handlers,
+// rather than reimplementing the navigation rule in the test.
+const edgeBuildStart=controllerSource.indexOf('const miniEdges={}');
+const edgeBuildEnd=controllerSource.indexOf('pad.prepend(mini);',edgeBuildStart)
+ + 'pad.prepend(mini);'.length;
+assert.ok(edgeBuildStart>0&&edgeBuildEnd>edgeBuildStart,
+ 'find miniature edge creation in production file');
+const miniEdges=new Function('document','mini','pad',
+ controllerSource.slice(edgeBuildStart,edgeBuildEnd)+';return miniEdges;')(
+ document,mini,pad);
+assert.deepEqual(Object.keys(miniEdges).sort(),['down','left','right','up'],
+ 'the classic miniature must offer all four outside targets');
+const miniBehaviorStart=controllerSource.indexOf('function miniatureCoordinates(e){');
+const miniBehaviorEnd=controllerSource.indexOf('function heldMiniAction(){',miniBehaviorStart);
+assert.ok(miniBehaviorStart>0&&miniBehaviorEnd>miniBehaviorStart);
+let miniCursorUpdates=0;
+new Function('mini','miniEdges','cursor','touchAllowed','updateMiniCursor',
+ controllerSource.slice(miniBehaviorStart,miniBehaviorEnd))(
+ mini,miniEdges,()=>nav,()=>true,()=>{miniCursorUpdates++});
+for(const [dir,x,y,row,col] of [
+ ['up',86,-7,0,26],['down',86,179,72,26],
+ ['left',-7,86,36,0],['right',179,86,36,52],
+ ['up',-12,-7,0,0],['up',181,-7,0,52],
+ ['down',-12,179,72,0],['down',181,179,72,52]
+]){
+ position.row=32;position.col=22;
+ const beforePaint=painted.length;
+ miniEdges[dir].fire('pointerdown',x,y);
+ assert.deepEqual(position,{row,col},dir+' miniature border jump');
+ assert.equal(painted.length,beforePaint,'border jump should only navigate, not paint');
+}
+assert.equal(miniCursorUpdates,8,'all exterior touches update the mini position cursor');
+console.log('MINI_EXTREMES_PASS: four outside strips, both sides and all corners');
+
 console.log('LAPTOP_TRACKPAD_PASS: diagonal inside/outside and editing-only axis lock');
 console.log('SMART_TOUCH_PASS: cross center, actual board window, miniature edges and hybrid gestures');
