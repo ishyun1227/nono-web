@@ -134,8 +134,15 @@ function touchAllowed(mode){
 // Laptop-style relative trackpad: movement is free in both axes unless
 // a Fill/X/Erase action is held. Active strokes lock on their first axis.
 zone.addEventListener('pointerdown',e=>{
- if(!touchAllowed('trackpad')||trackpadActive||e.button!==0||
+ if(!touchAllowed('trackpad')||e.button!==0||
     !insideTouch(zone,e.clientX,e.clientY))return;
+ // Mobile browsers may drop pointerup/lostpointercapture after a system
+ // gesture or multitouch interruption. A fresh press must never be blocked
+ // forever by the last gesture's stored pointer ID.
+ if(trackpadActive){
+  if(trackpadActive.id===e.pointerId)return;
+  trackpadEnd({pointerId:trackpadActive.id});
+ }
  e.preventDefault();
  const action=heldMiniAction();
  const nav=cursor(),p=nav?.position;
@@ -197,6 +204,14 @@ function trackpadEnd(e){
 }
 for(const name of ['pointerup','pointercancel','lostpointercapture'])
  zone.addEventListener(name,trackpadEnd);
+// Capture a release that no longer bubbles through the original touch area,
+// and clear abandoned state when the browser suspends or backgrounds the page.
+for(const name of ['pointerup','pointercancel'])
+ document.addEventListener(name,trackpadEnd,true);
+window.addEventListener('blur',()=>{if(trackpadActive)trackpadEnd({pointerId:trackpadActive.id})});
+document.addEventListener('visibilitychange',()=>{
+ if(document.hidden&&trackpadActive)trackpadEnd({pointerId:trackpadActive.id});
+});
 
 // Absolute miniature: pointing and dragging navigate freely in two axes.
 // Hold Fill / X / Erase with another finger to paint a straight row or column.
