@@ -467,9 +467,9 @@ const edgeBuildEnd=controllerSource.indexOf('pad.prepend(mini);',edgeBuildStart)
  + 'pad.prepend(mini);'.length;
 assert.ok(edgeBuildStart>0&&edgeBuildEnd>edgeBuildStart,
  'find miniature edge creation in production file');
-const miniEdges=new Function('document','mini','pad',
+const miniEdges=new Function('document','mini','pad','window',
  controllerSource.slice(edgeBuildStart,edgeBuildEnd)+';return miniEdges;')(
- document,mini,pad);
+ document,mini,pad,window);
 assert.deepEqual(Object.keys(miniEdges).sort(),['down','left','right','up'],
  'the classic miniature must offer all four outside targets');
 const miniBehaviorStart=controllerSource.indexOf('function miniatureCoordinates(e){');
