@@ -78,9 +78,18 @@ for(const [direction,glyph,label] of [
  const edge=document.createElement('button');
  edge.type='button';edge.className='nono-mini-extreme nono-mini-extreme-'+direction;
  edge.dataset.nonoMiniExtreme=direction;
- edge.textContent=glyph;edge.setAttribute('aria-label',label);
+ edge.textContent=glyph;edge.dataset.labelKey=label;
  mini.append(edge);miniEdges[direction]=edge;
 }
+function updateMiniEdgeLabels(){
+ const t=window.NONO_I18N?.translate;
+ for(const edge of Object.values(miniEdges)){
+  const label=edge.dataset.labelKey;
+  edge.setAttribute('aria-label',typeof t==='function'?t(label):label);
+ }
+}
+window.addEventListener('nono:languagechange',updateMiniEdgeLabels);
+updateMiniEdgeLabels();
 pad.prepend(mini);
 const miniCursor=mini.querySelector('.nono-absolute-cursor');
 function updateMiniCursor(){
