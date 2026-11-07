@@ -935,6 +935,14 @@ body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
   font-size:11px!important;padding:4px 6px!important
  }
  body.nono-mobile-app #game #nono-board-zoom #nono-zoom-fit{min-width:44px!important}
+ /* Zoom controls live in a dedicated dock row instead of floating on top
+    of puzzle clues/cells. When pad is collapsed, restore their bottom edge. */
+ body.nono-mobile-app.nono-touch-pad-visible #game #nono-board-zoom{
+  bottom:calc(var(--nono-mobile-pad-reserve,178px) - 40px)!important;
+ }
+ body.nono-mobile-app:not(.nono-touch-pad-visible) #game #nono-board-zoom{
+  bottom:3px!important;
+ }
 }
 
 `;document.head.append(css);
