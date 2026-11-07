@@ -473,11 +473,21 @@ function move(event,kind){
 for(const [element,kind] of [[crossCenter,'smartTrackpad'],[mini,'smartMinimap'],[zone,'smartHybrid']]){
  element.addEventListener('pointerdown',event=>begin(event,kind,element));
  element.addEventListener('pointermove',event=>move(event,kind));
- for(const name of ['pointerup','pointercancel','lostpointercapture'])
+ for(const name of ['pointerup','pointercancel'])
   element.addEventListener(name,event=>{
    if(gesture?.id===event.pointerId&&gesture.element===element)stop();
   });
 }
+// A gesture is not finished merely because WebKit loses pointer capture.
+// Continue following the same pointer over the board/other elements.
+document.addEventListener('pointermove',event=>{
+ const a=gesture;
+ if(a&&a.id===event.pointerId)move(event,a.mode);
+},true);
+for(const name of ['pointerup','pointercancel'])
+ document.addEventListener(name,event=>{
+  if(gesture?.id===event.pointerId)stop();
+ },true);
 // In smart trackpad mode the native cross must give ONE bounded cell per
 // physical touch. Intercept before the base D-pad key-repeat handler so
 // a held keyboard direction cannot compete with relative touch movement.
@@ -499,7 +509,7 @@ for(const button of Object.values(edgeButtons)){
  button.addEventListener('pointermove',event=>{
   if(gesture?.element===button)move(event,gesture.mode);
  });
- for(const name of ['pointerup','pointercancel','lostpointercapture'])
+ for(const name of ['pointerup','pointercancel'])
   button.addEventListener(name,event=>{
    if(gesture?.id===event.pointerId&&gesture.element===button)stop();
   });
