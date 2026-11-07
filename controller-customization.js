@@ -136,7 +136,7 @@ function calculateMobileDock(width,height,requestedScale,mode,dpadPref,actionsPr
  const bottom=Math.min(height-margin,Math.max(30,barTop-8));
  // Never use the puzzle's dedicated upper area as a control dock.
  // Very short landscape screens need a proportionately smaller puzzle rail.
- const boardFloor=Math.min(bottom-12,48+Math.max(65,Math.min(140,height*.23)));
+ const boardFloor=Math.min(bottom-12,48+Math.max(85,Math.min(145,height*.27))+16);
  const usable=Math.max(1,bottom-boardFloor);
  const horizontal=Math.max(.1,Math.min(requestedScale,
   (width-margin*2-gap)/(nav.width+action.width),usable/Math.max(nav.height,action.height)));
@@ -180,6 +180,7 @@ function calculateMobileDock(width,height,requestedScale,mode,dpadPref,actionsPr
   reserve:Math.max(0,Math.ceil(height-top+7)),scale,stacked,
   top,screenW:width,screenH:height};
 }
+let lastDockReserve=null;
 function layoutTouchControls(){
  const w=window.innerWidth,h=window.visualViewport?.height||window.innerHeight;
  if(!w||!h)return;
@@ -196,8 +197,14 @@ function layoutTouchControls(){
  // source of truth; guessing from just the two fixed groups misses minigame
  // borders, hybrid pads, invisible edge buttons and stacked arrangements.
  const visible=!pad.hidden&&matchMedia('(max-width:900px) and (pointer:coarse)').matches;
- document.documentElement.style.setProperty('--nono-dock-reserve',
-  (visible?dock.reserve:0)+'px');
+ const reserve=visible?dock.reserve+(editing?30:0):0;
+ document.documentElement.style.setProperty('--nono-dock-reserve',reserve+'px');
+ // A move that only changes X need not rescan a 100x100 puzzle. Refit
+ // when its actual reserved vertical space changes, and only then.
+ if(reserve!==lastDockReserve){
+  lastDockReserve=reserve;
+  window.dispatchEvent(new Event('nono:mobile-controls-layout'));
+ }
 }
 window.addEventListener('resize',layoutTouchControls);
 window.visualViewport?.addEventListener('resize',layoutTouchControls);
@@ -242,7 +249,6 @@ mini.style.setProperty('--nono-mini-gutter',(104*scale+8)+'px');
  updateMiniCursor();
  layoutTouchControls();
  window.dispatchEvent(new Event('nono:smart-controls-change'));
- window.dispatchEvent(new Event('nono:mobile-controls-layout'));
  // Changes to on-screen controls do not require recalculating the board on each drag.
 }
 function insideTouch(el,x,y){
