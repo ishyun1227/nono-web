@@ -379,10 +379,7 @@ function begin(event,kind,element){
  if(!live()||mode()!==kind||event.button!==0)return;
  // If iOS/Android lost the old release event, treat the next genuine
  // pointerdown as a new gesture, not as an input that must be ignored.
- if(gesture){
-  if(gesture.id===event.pointerId)return;
-  stop();
- }
+ if(gesture)stop();
  const region=kind==='smartHybrid'?
   (inside(zone,event.clientX,event.clientY)?'center':null):
   kind==='smartTrackpad'?
