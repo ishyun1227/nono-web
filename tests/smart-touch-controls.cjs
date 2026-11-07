@@ -38,8 +38,9 @@ class Element {
   };
   return boxes[strip]||this.rect;
  }
- fire(type,x,y){
-  const event={pointerId:1,button:0,clientX:x,clientY:y,preventDefault(){}};
+ fire(type,x,y,props={}){
+  const event={pointerId:1,button:0,clientX:x,clientY:y,
+   target:this,preventDefault(){},stopImmediatePropagation(){},...props};
   for(const fn of this.listeners[type]??[])fn(event);
  }
  setPointerCapture(){}
@@ -88,7 +89,9 @@ const document={
  querySelector:sel=>sel==='#board .cells'?cells:null,
  createElement:()=>new Element,
  createDocumentFragment:()=>({nodes:[],append(x){this.nodes.push(x)}}),
- addEventListener(){}
+ listeners:{},hidden:false,
+ addEventListener(n,fn){(this.listeners[n]??=[]).push(fn)},
+ fire(n,props){for(const fn of this.listeners[n]??[])fn(props)}
 };
 const callbacks={};
 const settings={mode:'smartMinimap',smartWindowCells:12,trackpadSensitivity:100,smartPanSpeed:14};
@@ -234,6 +237,25 @@ assert.equal(boardWindow.hidden,false);
 crossCenter.fire('pointermove',100,100);
 assert.equal(position.col,insidePos.col+1,'returning to center must not bank outside distance');
 crossCenter.fire('pointerup',100,100);
+// New finger must recover a stale captured smart gesture.
+position.row=20;position.col=20;
+crossCenter.fire('pointerdown',75,75,{pointerId:501});
+crossCenter.fire('pointermove',94,94,{pointerId:501});
+crossCenter.fire('pointerdown',75,75,{pointerId:502});
+assert.equal(window.NONO_SMART_TOUCH.active,true,'new press replaces a stale gesture');
+const recover={...position};
+crossCenter.fire('pointermove',94,94,{pointerId:502});
+assert.ok(position.row>=recover.row&&position.col>recover.col,
+ 'smart trackpad works after a missed prior pointerup');
+document.fire('pointerup',{pointerId:502});
+assert.equal(window.NONO_SMART_TOUCH.active,false,'global pointerup ends captured gesture');
+const key=new Element;
+key.dataset.nonoInput='right';key.classList.add('nono-pad-key');
+position.col=20;
+pad.fire('pointerdown',0,0,{pointerId:540,target:key});
+assert.equal(position.col,21,'smart cross arrow advances exactly one');
+pad.fire('pointerdown',0,0,{pointerId:541,target:key});
+assert.equal(position.col,22,'next arrow press advances one more');
 // Hybrid square displays the FULL puzzle miniature. It selects absolutely on
 // the first touch, then keeps relative motion under pointer capture outside.
 position.row=10;position.col=10;
@@ -322,9 +344,19 @@ const laptopNav={
   return this.move(col-laptopPosition.col,row-laptopPosition.row);
  }
 };
-new Function('zone','touchAllowed','insideTouch','heldMiniAction','cursor','state','trackpadActive',laptopCode)(
+const laptopDocument={hidden:false,listeners:{},
+ addEventListener(n,fn){(this.listeners[n]??=[]).push(fn)},
+ fire(n,event){for(const fn of this.listeners[n]??[])fn(event)}
+};
+const laptopWindow={listeners:{},
+ addEventListener(n,fn){(this.listeners[n]??=[]).push(fn)},
+ fire(n){for(const fn of this.listeners[n]??[])fn()}
+};
+new Function('zone','touchAllowed','insideTouch','heldMiniAction','cursor','state',
+ 'trackpadActive','document','window',laptopCode)(
  laptopZone,()=>true,(el,x,y)=>x>=10&&x<=162&&y>=10&&y<=162,
- ()=>laptopAction,()=>laptopNav,{trackpadSensitivity:100},null
+ ()=>laptopAction,()=>laptopNav,{trackpadSensitivity:100},null,
+ laptopDocument,laptopWindow
 );
 laptopZone.fire('pointerdown',60,60);
 laptopZone.fire('pointermove',84,84);
@@ -354,5 +386,27 @@ laptopZone.fire('pointermove',120,94);
 assert.equal(laptopPosition.row,lockedPosition.row+1,'releasing action restores vertical movement');
 assert.equal(laptopPosition.col,lockedPosition.col+1,'releasing action restores horizontal movement');
 laptopZone.fire('pointerup',120,94);
+// Missing pointerup, a new touch, a document release and tab blur.
+laptopAction=null;laptopPosition.row=20;laptopPosition.col=20;
+laptopZone.fire('pointerdown',60,60,{pointerId:601});
+laptopZone.fire('pointermove',84,84,{pointerId:601});
+laptopZone.fire('pointerdown',60,60,{pointerId:602});
+const beforeRecovery={...laptopPosition};
+laptopZone.fire('pointermove',84,84,{pointerId:602});
+assert.ok(laptopPosition.row>beforeRecovery.row&&laptopPosition.col>beforeRecovery.col,
+ 'fresh laptop touch recovers from missing old release');
+laptopDocument.fire('pointerup',{pointerId:602});
+laptopZone.fire('pointerdown',60,60,{pointerId:603});
+const afterDocRelease={...laptopPosition};
+laptopZone.fire('pointermove',84,84,{pointerId:603});
+assert.ok(laptopPosition.col>afterDocRelease.col,
+ 'document-level release enables later touches');
+laptopWindow.fire('blur');
+laptopZone.fire('pointerdown',60,60,{pointerId:604});
+const afterBlur={...laptopPosition};
+laptopZone.fire('pointermove',84,84,{pointerId:604});
+assert.ok(laptopPosition.row>afterBlur.row&&laptopPosition.col>afterBlur.col,
+ 'blur cancellation enables new gestures');
+laptopZone.fire('pointerup',84,84,{pointerId:604});
 console.log('LAPTOP_TRACKPAD_PASS: diagonal inside/outside and editing-only axis lock');
 console.log('SMART_TOUCH_PASS: cross center, actual board window, miniature edges and hybrid gestures');
