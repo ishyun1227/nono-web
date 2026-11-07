@@ -139,10 +139,7 @@ zone.addEventListener('pointerdown',e=>{
  // Mobile browsers may drop pointerup/lostpointercapture after a system
  // gesture or multitouch interruption. A fresh press must never be blocked
  // forever by the last gesture's stored pointer ID.
- if(trackpadActive){
-  if(trackpadActive.id===e.pointerId)return;
-  trackpadEnd({pointerId:trackpadActive.id});
- }
+ if(trackpadActive)trackpadEnd({pointerId:trackpadActive.id});
  e.preventDefault();
  const action=heldMiniAction();
  const nav=cursor(),p=nav?.position;
