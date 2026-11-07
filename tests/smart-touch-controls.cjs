@@ -249,6 +249,15 @@ assert.ok(position.row>=recover.row&&position.col>recover.col,
  'smart trackpad works after a missed prior pointerup');
 document.fire('pointerup',{pointerId:502});
 assert.equal(window.NONO_SMART_TOUCH.active,false,'global pointerup ends captured gesture');
+// Mobile browsers may reuse the exact same pointerId after a lost release.
+crossCenter.fire('pointerdown',75,75,{pointerId:503});
+crossCenter.fire('pointermove',94,94,{pointerId:503});
+const sameSmartBefore={...position};
+crossCenter.fire('pointerdown',75,75,{pointerId:503});
+crossCenter.fire('pointermove',94,94,{pointerId:503});
+assert.ok(position.col>sameSmartBefore.col,
+ 'a reused smart pointerId must not permanently disable the control');
+crossCenter.fire('pointerup',94,94,{pointerId:503});
 const key=new Element;
 key.dataset.nonoInput='right';key.classList.add('nono-pad-key');
 position.col=20;
@@ -408,5 +417,13 @@ laptopZone.fire('pointermove',84,84,{pointerId:604});
 assert.ok(laptopPosition.row>afterBlur.row&&laptopPosition.col>afterBlur.col,
  'blur cancellation enables new gestures');
 laptopZone.fire('pointerup',84,84,{pointerId:604});
+laptopZone.fire('pointerdown',60,60,{pointerId:605});
+laptopZone.fire('pointermove',84,84,{pointerId:605});
+const reusedLaptop={...laptopPosition};
+laptopZone.fire('pointerdown',60,60,{pointerId:605});
+laptopZone.fire('pointermove',84,84,{pointerId:605});
+assert.ok(laptopPosition.row>reusedLaptop.row&&laptopPosition.col>reusedLaptop.col,
+ 'reused laptop pointerId after a lost release must not disable gestures');
+laptopZone.fire('pointerup',84,84,{pointerId:605});
 console.log('LAPTOP_TRACKPAD_PASS: diagonal inside/outside and editing-only axis lock');
 console.log('SMART_TOUCH_PASS: cross center, actual board window, miniature edges and hybrid gestures');
