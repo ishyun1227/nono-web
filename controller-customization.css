@@ -572,3 +572,45 @@
  user-select:none!important;
 }
 #board > .nono-smart-board-window[hidden]{display:none!important}
+
+/* Classic miniature: accessible first/last rows and columns without trying
+   to hit sub-3px edge cells. The top/bottom strips extend over the corners,
+   so touching their ends can also select the four extreme corner cells. */
+#nono-absolute-pad .nono-mini-extreme{display:none!important}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad{
+ overflow:visible!important;
+}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-mini-extreme{
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ position:absolute!important;box-sizing:border-box!important;z-index:8!important;
+ min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;
+ border:1px solid #a8d6eea6!important;border-radius:7px!important;
+ background:linear-gradient(145deg,#315975f0,#23415de8)!important;
+ color:#d9fbff!important;font:800 13px/1 system-ui,sans-serif!important;
+ box-shadow:0 3px 9px #0413258c!important;
+ opacity:1!important;pointer-events:auto!important;touch-action:none!important;
+ -webkit-user-select:none!important;user-select:none!important;
+ -webkit-tap-highlight-color:transparent;
+}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-mini-extreme:active{
+ background:#71bcce!important;color:#082339!important;
+}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-mini-extreme-up{
+ top:-28px!important;left:-28px!important;
+ width:calc(100% + 56px)!important;height:24px!important;
+}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-mini-extreme-down{
+ bottom:-28px!important;left:-28px!important;
+ width:calc(100% + 56px)!important;height:24px!important;
+}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-mini-extreme-left{
+ left:-28px!important;top:0!important;
+ width:24px!important;height:100%!important;
+}
+#nono-mobile-pad.nono-minimap-mode #nono-absolute-pad .nono-mini-extreme-right{
+ right:-28px!important;top:0!important;
+ width:24px!important;height:100%!important;
+}
+#nono-mobile-pad.nono-minimap-mode.nono-pad-editing #nono-absolute-pad .nono-mini-extreme{
+ display:none!important;
+}
