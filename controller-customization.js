@@ -68,6 +68,19 @@ pad.prepend(zone);
 const mini=document.createElement('div');mini.id='nono-absolute-pad';
 mini.setAttribute('role','group');mini.setAttribute('aria-label','축소 퍼즐 위치 선택');
 mini.innerHTML='<span class="nono-absolute-label">퍼즐 축소판</span><span class="nono-absolute-cursor" aria-hidden="true"></span>';
+// Thin, outside-the-grid jump zones make the very first/last rows and
+// columns accessible without precision taps on tiny miniature cells.
+const miniEdges={};
+for(const [direction,glyph,label] of [
+ ['up','▲','축소판 맨 윗줄로 이동'],['down','▼','축소판 맨 아랫줄로 이동'],
+ ['left','◀','축소판 맨 왼쪽 열로 이동'],['right','▶','축소판 맨 오른쪽 열로 이동']
+]){
+ const edge=document.createElement('button');
+ edge.type='button';edge.className='nono-mini-extreme nono-mini-extreme-'+direction;
+ edge.dataset.nonoMiniExtreme=direction;
+ edge.textContent=glyph;edge.setAttribute('aria-label',label);
+ mini.append(edge);miniEdges[direction]=edge;
+}
 pad.prepend(mini);
 const miniCursor=mini.querySelector('.nono-absolute-cursor');
 function updateMiniCursor(){
@@ -114,7 +127,8 @@ function apply(){
  zone.style.setProperty('--zone-x',state.dpad.x*100+'vw');
  zone.style.setProperty('--zone-y',state.dpad.y*100+'dvh');
  zone.style.setProperty('--nono-trackpad-gutter',(80*scale+8)+'px');
- mini.style.setProperty('--nono-mini-gutter',(76*scale+8)+'px');
+ // Leave room for the outside edge controls even at 150% pad size.
+mini.style.setProperty('--nono-mini-gutter',(104*scale+8)+'px');
  mini.style.setProperty('--zone-x',state.dpad.x*100+'vw');
  mini.style.setProperty('--zone-y',state.dpad.y*100+'dvh');
  updateMiniCursor();
@@ -230,6 +244,24 @@ function miniatureCoordinates(e){
  const y=Math.max(0,Math.min(1,(e.clientY-r.top-inset)/Math.max(1,r.height-inset*2)));
  return {row:Math.min(d.height-1,Math.floor(y*d.height)),
   col:Math.min(d.width-1,Math.floor(x*d.width))};
+}
+// Edge strips stay outside the actual 152px miniature. Along each strip,
+// the other coordinate follows the contact point; the nearest corner is
+// therefore reachable by tapping the end of the top or bottom strip.
+for(const [direction,edge] of Object.entries(miniEdges)){
+ edge.addEventListener('pointerdown',e=>{
+  if(!touchAllowed('minimap')||e.button!==0)return;
+  e.preventDefault();e.stopPropagation();
+  const d=cursor()?.dimensions;
+  const p=miniatureCoordinates(e);
+  if(!p||!d)return;
+  const row=direction==='up'?0:direction==='down'?d.height-1:p.row;
+  const col=direction==='left'?0:direction==='right'?d.width-1:p.col;
+  cursor()?.select(row,col);
+  updateMiniCursor();
+ });
+ // Avoid a second synthetic click moving twice after touch.
+ edge.addEventListener('click',e=>e.preventDefault());
 }
 function heldMiniAction(){
  for(const name of ['fill','cross','clear']){
