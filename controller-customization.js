@@ -136,9 +136,8 @@ function touchAllowed(mode){
 zone.addEventListener('pointerdown',e=>{
  if(!touchAllowed('trackpad')||e.button!==0||
     !insideTouch(zone,e.clientX,e.clientY))return;
- // Mobile browsers may drop pointerup/lostpointercapture after a system
- // gesture or multitouch interruption. A fresh press must never be blocked
- // forever by the last gesture's stored pointer ID.
+ // Browsers can reuse a pointerId if the prior release was lost; always
+ // replace abandoned state when a genuinely new touch starts.
  if(trackpadActive)trackpadEnd({pointerId:trackpadActive.id});
  e.preventDefault();
  const action=heldMiniAction();
@@ -149,7 +148,7 @@ zone.addEventListener('pointerdown',e=>{
   stroke:action?nav?.beginStroke?.()??null:null};
  try{zone.setPointerCapture(e.pointerId)}catch(_){}
 });
-zone.addEventListener('pointermove',e=>{
+function trackpadMove(e){
  const a=trackpadActive;
  if(!a||a.id!==e.pointerId)return;
  if(!touchAllowed('trackpad')){trackpadEnd(e);return;}
@@ -192,15 +191,21 @@ zone.addEventListener('pointermove',e=>{
  const at=nav.position;
  if(at.col===0||at.col===nav.dimensions.width-1)a.residualX=0;
  if(at.row===0||at.row===nav.dimensions.height-1)a.residualY=0;
-});
+}
+// Listen at document capture too: the finger can leave the touchpad and
+// WebKit may drop element capture while the physical touch continues.
+zone.addEventListener('pointermove',trackpadMove);
+document.addEventListener('pointermove',trackpadMove,true);
 function trackpadEnd(e){
  if(trackpadActive?.id!==e.pointerId)return;
  const a=trackpadActive;trackpadActive=null;
  if(a.stroke!==null&&a.stroke!==undefined)cursor()?.endStroke?.(a.stroke);
  if(zone.hasPointerCapture?.(e.pointerId))try{zone.releasePointerCapture(e.pointerId)}catch(_){}
 }
-for(const name of ['pointerup','pointercancel','lostpointercapture'])
+for(const name of ['pointerup','pointercancel'])
  zone.addEventListener(name,trackpadEnd);
+// Losing capture alone does not imply an actual release; document-level
+// pointerup/cancel, blur, visibility loss and a fresh touch handle cleanup.
 // Capture a release that no longer bubbles through the original touch area,
 // and clear abandoned state when the browser suspends or backgrounds the page.
 for(const name of ['pointerup','pointercancel'])
