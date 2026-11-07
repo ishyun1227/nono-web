@@ -30,14 +30,21 @@ const boardWindow=document.createElement('div');
 boardWindow.className='nono-smart-board-window';
 boardWindow.setAttribute('aria-hidden','true');
 boardWindow.hidden=true;
+let boardLayoutKey='',boardLayoutCells=null,boardLayoutMeasuredAt=0;
 function updateBoardWindow(){
  if(mode()!=='smartTrackpad'||!live()||!viewport){
-  boardWindow.hidden=true;return;
+  boardWindow.hidden=true;boardLayoutKey='';return;
  }
  const board=document.getElementById('board');
  const cells=board?.querySelector('.cells');
  const d=dimensions(),v=viewport;
  if(!board||!cells||!d||!v)return;
+ const key=[v.top,v.left,v.rows,v.cols,d.width,d.height].join(':');
+ // On long drags, the selected cell can move dozens of times before
+ // the visible window scrolls. Avoid forcing a layout on every such move.
+ if(!boardWindow.hidden&&boardWindow.parentElement===board&&
+    boardLayoutCells===cells&&boardLayoutKey===key&&
+    Date.now()-boardLayoutMeasuredAt<160)return;
  const first=cells.children[v.top*d.width+v.left];
  const last=cells.children[(v.top+v.rows-1)*d.width+v.left+v.cols-1];
  if(!first||!last)return;
@@ -52,6 +59,7 @@ function updateBoardWindow(){
  boardWindow.style.width=(z.right-a.left)/sx+'px';
  boardWindow.style.height=(z.bottom-a.top)/sy+'px';
  boardWindow.hidden=false;
+ boardLayoutKey=key;boardLayoutCells=cells;boardLayoutMeasuredAt=Date.now();
 }
 const grid=document.createElement('div');
 grid.className='nono-smart-window-grid';
@@ -526,7 +534,9 @@ function sync(){
 }
 window.addEventListener('nono:smart-controls-change',sync);
 window.addEventListener('nono:touch-cursor',()=>{if(modes.has(mode()))updateWindow()});
-window.addEventListener('resize',()=>{if(supported())updateWindow()});
+window.addEventListener('resize',()=>{
+ boardLayoutKey='';if(supported())updateWindow();
+});
 window.addEventListener('nono:languagechange',()=>{
  updateHybridLabel();updateEdgeLabels();updateWindow();
  updateRegularMiniPreview();
