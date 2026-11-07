@@ -376,7 +376,13 @@ function stop(){
   try{a.element.releasePointerCapture(a.id)}catch(_){}
 }
 function begin(event,kind,element){
- if(!live()||mode()!==kind||gesture||event.button!==0)return;
+ if(!live()||mode()!==kind||event.button!==0)return;
+ // If iOS/Android lost the old release event, treat the next genuine
+ // pointerdown as a new gesture, not as an input that must be ignored.
+ if(gesture){
+  if(gesture.id===event.pointerId)return;
+  stop();
+ }
  const region=kind==='smartHybrid'?
   (inside(zone,event.clientX,event.clientY)?'center':null):
   kind==='smartTrackpad'?
@@ -467,6 +473,21 @@ for(const [element,kind] of [[crossCenter,'smartTrackpad'],[mini,'smartMinimap']
    if(gesture?.id===event.pointerId&&gesture.element===element)stop();
   });
 }
+// In smart trackpad mode the native cross must give ONE bounded cell per
+// physical touch. Intercept before the base D-pad key-repeat handler so
+// a held keyboard direction cannot compete with relative touch movement.
+pad.addEventListener('pointerdown',event=>{
+ if(mode()!=='smartTrackpad'||!live())return;
+ const key=event.target;
+ const direction=key?.dataset?.nonoInput;
+ const vector=vectors[direction];
+ if(!vector||!key?.classList?.contains('nono-pad-key'))return;
+ if(event.button!==0)return;
+ event.preventDefault();
+ event.stopImmediatePropagation();
+ const p=nav()?.position;
+ if(p)selection(p.row+vector.y,p.col+vector.x);
+},true);
 // Starting on a side strip and dragging from the center both scroll.
 for(const button of Object.values(edgeButtons)){
  button.addEventListener('pointerdown',event=>{if(mode()==='smartMinimap')begin(event,mode(),button)});
@@ -550,6 +571,10 @@ if(boardRoot&&typeof MutationObserver==='function'){
  observer.observe(boardRoot,{subtree:true,childList:true,attributes:true,
   attributeFilter:['class'],attributeOldValue:true});
 }
+// Lost pointer capture must not leave any smart mode permanently stuck.
+// Releases are also observed on document for mobile browser edge cases.
+for(const name of ['pointerup','pointercancel'])
+ document.addEventListener(name,event=>{if(gesture?.id===event.pointerId)stop()},true);
 window.addEventListener('blur',stop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop()});
 window.NONO_SMART_TOUCH={get viewport(){return viewport?{...viewport}:null},
