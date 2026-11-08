@@ -1368,6 +1368,25 @@ function fitBoardToViewport(){
   return {font,slotWidth,slotHeight,rowWidth,colHeight,
    fullWidth:cell*n+rowWidth*sides,fullHeight:cell*h+colHeight*sides};
  }
+ // Width is the puzzle's maximum natural fit. Publish its full grid+clue
+ // height so touch controls use only space the puzzle does not need.
+ // This calculation does not depend on the existing control reserve and
+ // therefore cannot oscillate when pad size or puzzle dimensions change.
+ if(mobileApp){
+  let widthLow=.5,widthHigh=cap;
+  for(let k=0;k<30;k++){
+   const mid=(widthLow+widthHigh)/2;
+   if(dimensions(mid).fullWidth<=availW)widthLow=mid;
+   else widthHigh=mid;
+  }
+  const idealHeight=Math.ceil(dimensions(widthLow).fullHeight);
+  const root=document.documentElement;
+  const previous=Number.parseFloat(root.style.getPropertyValue('--nono-puzzle-ideal-height'));
+  if(previous!==idealHeight){
+   root.style.setProperty('--nono-puzzle-ideal-height',idealHeight+'px');
+   window.dispatchEvent(new Event('nono:puzzle-priority-change'));
+  }
+ }
  let low=.5,high=cap;
  for(let k=0;k<35;k++){
   const mid=(low+high)/2,d=dimensions(mid);
