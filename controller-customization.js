@@ -111,9 +111,8 @@ function calculateMobileDock(width,height,requestedScale,mode,dpadPref,actionsPr
  const margin=8,gap=10;
  const landscape=height<=470&&width>height;
  const primarySize=mode==='minimap'?[208,208]:
-  mode==='smartMinimap'?[206,206]:
-  mode==='trackpad'?[160,132]:
-  mode==='smartHybrid'?[152,152]:
+  mode==='smartMinimap'||mode==='smartTrackpad'?[206,206]:
+  mode==='trackpad'||mode==='smartHybrid'?[160,132]:
   landscape?[116,98]:width<=480?[131,113]:[151,130];
  const nav={width:primarySize[0],height:primarySize[1]};
  // Each editable action may have an independent +/-60px offset. A group
@@ -134,50 +133,41 @@ function calculateMobileDock(width,height,requestedScale,mode,dpadPref,actionsPr
   driftX:(minX+maxX-actionWidth)/2,
   driftY:(minY+maxY-actionHeight)/2};
  const bottom=Math.min(height-margin,Math.max(30,barTop-8));
- // Never use the puzzle's dedicated upper area as a control dock.
- // Very short landscape screens need a proportionately smaller puzzle rail.
- const boardFloor=Math.min(bottom-12,48+Math.max(85,Math.min(145,height*.27))+16);
- const usable=Math.max(1,bottom-boardFloor);
- const horizontal=Math.max(.1,Math.min(requestedScale,
-  (width-margin*2-gap)/(nav.width+action.width),usable/Math.max(nav.height,action.height)));
- const vertical=Math.max(.1,Math.min(requestedScale,
-  (width-margin*2)/Math.max(nav.width,action.width),
-  (usable-gap)/(nav.height+action.height)));
- // Prefer a two-column controller when it fits at approximately the same
- // size. Otherwise stack the control and action decks below the puzzle.
- const stacked=vertical>horizontal+.08;
- const scale=stacked?vertical:horizontal;
+ // PUZZLE FIRST: protect the full grid plus clue area before sizing controls.
+ // The game fitter publishes the height needed at the width-limited cell size.
+ // Keep a small usable input rail only when a very tall puzzle cannot fit.
+ const topChrome=48,boardGutter=24,zoomRail=40;
+ const preferred=Number.parseFloat(document.documentElement.style.getPropertyValue('--nono-puzzle-ideal-height'));
+ const minInputRail=Math.min(160,Math.max(96,height*.4));
+ const puzzleCeiling=Math.max(90,height-topChrome-boardGutter-minInputRail);
+ const puzzleHeight=Math.min(puzzleCeiling,
+  Math.max(90,Number.isFinite(preferred)&&preferred>0?preferred:height*.52));
+ const maxDockReserve=Math.max(70,height-topChrome-boardGutter-puzzleHeight);
+ const boardFloor=Math.min(bottom-12,Math.max(topChrome+24,
+  height-maxDockReserve+zoomRail+7));
+ const usable=Math.max(12,bottom-boardFloor);
+ // Never stack the navigation and action groups merely to grow the pad.
+ // Their saved order is preserved; the visible scale yields to the puzzle.
+ const scale=Math.max(.1,Math.min(requestedScale,
+  (width-margin*2-gap)/(nav.width+action.width),
+  usable/Math.max(nav.height,action.height)));
  const orderedLeft=dpadPref.x<=actionsPref.x;
- let navX,navY,actionFootX,actionFootY,top;
- if(!stacked){
-  const navW=nav.width*scale,actW=action.width*scale;
-  const span=navW+gap+actW;
-  const preferredMid=(dpadPref.x+actionsPref.x)*width/2;
-  const start=clamp(preferredMid-span/2,margin,width-margin-span);
-  navX=orderedLeft?start+navW/2:start+actW+gap+navW/2;
-  actionFootX=orderedLeft?start+navW+gap+actW/2:start+actW/2;
-  // Keep user-adjusted vertical preference within the safe bottom dock.
-  navY=clamp(dpadPref.y*height,boardFloor+nav.height*scale/2,
-   bottom-nav.height*scale/2);
-  actionFootY=clamp(actionsPref.y*height,boardFloor+action.height*scale/2,
-   bottom-action.height*scale/2);
-  top=Math.min(navY-nav.height*scale/2,
-   actionFootY-action.height*scale/2);
- }else{
-  const navW=nav.width*scale,actW=action.width*scale;
-  navX=clamp(dpadPref.x*width,margin+navW/2,width-margin-navW/2);
-  actionFootX=clamp(actionsPref.x*width,margin+actW/2,width-margin-actW/2);
-  const total=nav.height*scale+gap+action.height*scale;
-  const desiredBottom=actionsPref.y*height+action.height*scale/2;
-  const stackBottom=clamp(desiredBottom,boardFloor+total,bottom);
-  top=stackBottom-total;
-  navY=top+nav.height*scale/2;
-  actionFootY=stackBottom-action.height*scale/2;
- }
+ const navW=nav.width*scale,actW=action.width*scale;
+ const span=navW+gap+actW;
+ const preferredMid=(dpadPref.x+actionsPref.x)*width/2;
+ const start=clamp(preferredMid-span/2,margin,width-margin-span);
+ const navX=orderedLeft?start+navW/2:start+actW+gap+navW/2;
+ const actionFootX=orderedLeft?start+navW+gap+actW/2:start+actW/2;
+ const navY=clamp(dpadPref.y*height,boardFloor+nav.height*scale/2,
+  bottom-nav.height*scale/2);
+ const actionFootY=clamp(actionsPref.y*height,boardFloor+action.height*scale/2,
+  bottom-action.height*scale/2);
+ const top=Math.min(navY-nav.height*scale/2,
+  actionFootY-action.height*scale/2);
  return {navX,navY,
   actionX:actionFootX-action.driftX*scale,
   actionY:actionFootY-action.driftY*scale,
-  reserve:Math.max(0,Math.ceil(height-top+7)),scale,stacked,
+  reserve:Math.max(0,Math.ceil(height-top+7)),scale,stacked:false,
   top,screenW:width,screenH:height};
 }
 let lastDockReserve=null;
@@ -215,6 +205,7 @@ window.visualViewport?.addEventListener('resize',()=>{
  window.dispatchEvent(new Event('nono:mobile-controls-layout'));
 });
 window.addEventListener('nono:mobile-pad-layout',layoutTouchControls);
+window.addEventListener('nono:puzzle-priority-change',layoutTouchControls);
 function apply(){
  const opacity=state.opacity/100,scale=state.size/100;
  pad.classList.toggle('nono-trackpad-mode',state.mode==='trackpad');
