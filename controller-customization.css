@@ -634,10 +634,12 @@
  top:var(--nono-layout-nav-y,83dvh)!important;
 }
 #nono-mobile-pad.nono-minimap-mode #nono-absolute-pad,
+#nono-mobile-pad.nono-smart-trackpad-mode #nono-absolute-pad,
 #nono-mobile-pad.nono-smart-minimap-mode #nono-absolute-pad{
  left:var(--nono-layout-nav-x,21vw)!important;
  top:var(--nono-layout-nav-y,83dvh)!important;
 }
+#nono-mobile-pad.nono-smart-trackpad-mode #nono-smart-edge-rail,
 #nono-mobile-pad.nono-smart-minimap-mode #nono-smart-edge-rail{
  left:var(--nono-layout-nav-x,21vw)!important;
  top:var(--nono-layout-nav-y,83dvh)!important;
