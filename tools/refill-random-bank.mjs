@@ -18,9 +18,9 @@ const integer=(key,fallback,max)=>{
 };
 const result=await refill(store,{
   maxPublished:integer('RANDOM_BANK_MAX_PUBLISHED',12,100),
-  maxAttempts:integer('RANDOM_BANK_MAX_ATTEMPTS',144,1000),
+  maxAttempts:integer('RANDOM_BANK_MAX_ATTEMPTS',1200,5000),
   maxMs:integer('RANDOM_BANK_MAX_MS',300000,900000),
-  perBucketAttempts:integer('RANDOM_BANK_PER_BUCKET_ATTEMPTS',4,100),
+  perBucketAttempts:integer('RANDOM_BANK_PER_BUCKET_ATTEMPTS',0,1000),
   log:(name,details)=>console.log(JSON.stringify({event:name,...details}))
 });
 console.log(JSON.stringify({
