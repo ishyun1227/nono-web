@@ -165,6 +165,41 @@ assert(requests[1].uri.includes('10_%EB%B3%B4%ED%86%B5'));
 assert.equal(requests[1].headers['If-Match'],'null_etag');
 console.log('PASS restricted service-account URL, OAuth JWT and conditional no-overwrite REST writes');
 
+let savedRuleValue={rules:{'.read':false,'.write':false}};
+let remoteEtag='"rules-v1"';
+const etagHeaders=[];
+const rulesFetch=async(uri,opts)=>{
+  if(opts.method==='POST')return {ok:true,json:async()=>({access_token:'etag-test-token',expires_in:3600})};
+  etagHeaders.push(opts.headers);
+  if(opts.method==='GET')return {
+    ok:true,headers:{get:key=>key.toLowerCase()==='etag'?remoteEtag:null},
+    json:async()=>structuredClone(savedRuleValue)
+  };
+  if(opts.method==='PUT'){
+    if(opts.headers['If-Match']!==remoteEtag)
+      return {ok:false,status:412,json:async()=>structuredClone(savedRuleValue)};
+    savedRuleValue=JSON.parse(opts.body);
+    remoteEtag='"rules-v2"';
+    return {ok:true,status:200,json:async()=>structuredClone(savedRuleValue)};
+  }
+  throw Error('Unexpected method '+opts.method);
+};
+const rulesAdmin=makeAdminStore({
+  serviceAccountJson:account,databaseUrl:'https://demo.firebaseio.com',fetchFn:rulesFetch
+});
+const readWithTag=await rulesAdmin.getWithEtag('.settings/rules');
+assert.equal(readWithTag.etag,'"rules-v1"');
+assert.equal(etagHeaders[0]['X-Firebase-ETag'],'true');
+assert.deepEqual(await rulesAdmin.putIfMatch('.settings/rules',readWithTag.value,readWithTag.etag),
+  {written:true});
+assert.equal(etagHeaders[1]['If-Match'],'"rules-v1"');
+assert.deepEqual(await rulesAdmin.putIfMatch('.settings/rules',readWithTag.value,readWithTag.etag),
+  {written:false});
+await assert.rejects(
+  rulesAdmin.putIfMatch('.settings/rules',readWithTag.value,'bad\netag'),/ETag/);
+console.log('PASS Firebase ETag fetch, conditional rules PUT, conflict refusal and invalid tag rejection');
+
+
 const approved=JSON.parse(readFileSync(new URL('../database.rules.json',import.meta.url),'utf8'));
 assert.equal(assertLiveBankRules(JSON.stringify(approved),approved),true);
 assert.doesNotThrow(()=>assertTargetAccount({type:'service_account',project_id:TARGET_PROJECT},TARGET_DATABASE_URL));
