@@ -118,6 +118,16 @@ assert.equal((await proveUnique(black,'1'.repeat(25),{maxMs:5000})).status,'uniq
 assert.equal((await proveUnique(many,'1000001000001000001000001',{maxMs:5000})).status,'multiple');
 assert.equal((await proveUnique(black,'0'.repeat(25),{maxMs:5000})).status,'unknown');
 console.log('PASS real CaDiCaL UNSAT uniqueness, SAT second answer, invalid reference rejection');
+let produced=null;
+for(let seed=0;seed<128;seed++){
+  const candidate=await attempt({size:5,difficulty:'쉬움',seed,logicMs:1000,proofMs:2500});
+  if(candidate.status==='accepted'){produced=candidate;break;}
+}
+assert(produced,'Actual random v6 pipeline must be able to publish at least one independently certified easy 5×5 puzzle');
+assert.equal(produced.spec.verifiedBy,'cadical_reference_blocking_unsat_v1');
+assert.equal(produced.grade.difficulty,'쉬움');
+console.log('PASS real v6 random grid -> Adaptive easy classification -> CaDiCaL uniqueness -> publishable spec, seed '+produced.spec.seed);
+
 
 assert.throws(()=>validateDatabaseUrl('https://malicious.example.com'));
 assert.throws(()=>validateDatabaseUrl('http://demo.firebaseio.com'));
