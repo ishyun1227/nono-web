@@ -119,10 +119,14 @@ assert.equal((await proveUnique(many,'1000001000001000001000001',{maxMs:5000})).
 assert.equal((await proveUnique(black,'0'.repeat(25),{maxMs:5000})).status,'unknown');
 console.log('PASS real CaDiCaL UNSAT uniqueness, SAT second answer, invalid reference rejection');
 let produced=null;
+const rejectedReasons={};
 for(let seed=0;seed<128;seed++){
   const candidate=await attempt({size:5,difficulty:'쉬움',seed,logicMs:1000,proofMs:2500});
   if(candidate.status==='accepted'){produced=candidate;break;}
+  const label=candidate.reason+':'+(candidate.grade?.difficulty||'none');
+  rejectedReasons[label]=(rejectedReasons[label]||0)+1;
 }
+console.log('Observed live 5x5 v6 generator rejection statistics',rejectedReasons);
 assert(produced,'Actual random v6 pipeline must be able to publish at least one independently certified easy 5×5 puzzle');
 assert.equal(produced.spec.verifiedBy,'cadical_reference_blocking_unsat_v1');
 assert.equal(produced.grade.difficulty,'쉬움');
