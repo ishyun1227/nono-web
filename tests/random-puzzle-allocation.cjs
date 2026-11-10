@@ -7,7 +7,7 @@ const bank=require('../random-puzzle-allocation.js');
 const mk=(id,size=10,difficulty='보통',verified=true)=>({
   id,size,difficulty,verified,designVersion:6,version:6,seed:100
 });
-let stored=[],generated=0,queries=[],completion={},cloud={},pending=[];
+let stored=[],generated=0,queries=[],completion={},cloud={},pending=[],signals=[];
 globalThis.NONO_RANDOM_PUZZLES={
   validSpec:spec=>Number.isInteger(spec.size)&&Number.isInteger(spec.seed)&&
     ['쉬움','보통','어려움','전문가'].includes(spec.difficulty),
@@ -30,8 +30,10 @@ globalThis.NONO_AUTH_READY_DETAIL={
     ref:(db,p)=>p,
     get:async key=>{
       queries.push(key);
-      return {val:()=>cloud[key]||null};
-    }
+      return {val:()=>cloud[key]||null,exists:()=>Boolean(cloud[key])};
+    },
+    set:async(key,value)=>{signals.push({key,value});cloud[key]=value;},
+    serverTimestamp:()=>Date.now()
   }
 };
 (async()=>{
@@ -93,5 +95,24 @@ globalThis.NONO_AUTH_READY_DETAIL={
   await assert.rejects(bank.choose({group:0,difficulty:'보통',
     localPuzzles:[mk('random-unapproved',10,'보통',false)]}),/유일해/);
   await assert.rejects(bank.choose({group:9,difficulty:'보통'}),/조건/);
-  console.log('PASS completed and in-progress separation, bank/local exclusion, instant-only exhaustion, invalid proof rejection, outage handling');
+  // A player who has completed 90 out of 100 available in the same bucket
+  // requests +100 on the server. Clients cannot write the actual bank.
+  const samples=Array.from({length:100},(_,i)=>mk('random-low-'+i));
+  const done90=Object.fromEntries(samples.slice(0,90).map((v,i)=>[v.id,i+1]));
+  globalThis.NONO_AUTH_READY_DETAIL.auth.currentUser={uid:'refilltest',isAnonymous:false};
+  globalThis.NONO_AUTH_READY_DETAIL.databaseSdk.get=async key=>({
+    val:()=>cloud[key]||null,exists:()=>Boolean(cloud[key])
+  });
+  await bank.requestRestockIfLow(samples,[10],'보통',done90);
+  assert.equal(signals.length,1,'10 left -> exactly one refill request');
+  assert.equal(signals[0].key,'randomRestockRequests/refilltest/10_보통');
+  await bank.requestRestockIfLow(samples,[10],'보통',done90);
+  assert.equal(signals.length,1,'Repeated clicks do not queue duplicate requests');
+  globalThis.NONO_AUTH_READY_DETAIL.auth.currentUser={uid:'another',isAnonymous:false};
+  await bank.requestRestockIfLow(samples,[10],'보통',Object.fromEntries(samples.slice(0,89).map(v=>[v.id,1])));
+  assert.equal(signals.length,1,'11 remaining -> no refill');
+  globalThis.NONO_AUTH_READY_DETAIL.auth.currentUser={uid:'anonymous-test',isAnonymous:true};
+  await bank.requestRestockIfLow(samples,[10],'보통',done90);
+  assert.equal(signals.length,1,'Anonymous players cannot write verified account restock requests');
+  console.log('PASS completed and in-progress separation, bank/local exclusion, 10-left signal, no duplicate requests, instant-only exhaustion, invalid proof rejection, outage handling');
 })().catch(error=>{console.error(error);process.exitCode=1;});
