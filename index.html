@@ -778,7 +778,7 @@ function installResume(){
     '<div id="nono-resume-items" class="nono-resume-items" aria-live="polite"></div>'
   ].join('');
   setup.after(view);
-  let shared=[],stop=null,epoch=0,watchedUid=null;
+  let shared=[],sharedPendingIds=new Set(),stop=null,epoch=0,watchedUid=null;
   const puzzleOf=id=>PUZZLES.find(item=>item.id===id);
   const progressFor=(value,p)=>{
     if(!p||typeof value!=='string')return 0;
@@ -857,12 +857,12 @@ function installResume(){
           typeof value==='string'&&value.length===p.size*(p.height||p.size)?value.split(''):null;
         if(!progressBoard||isSolved(progressBoard,p))return null;
         const valueString=progressBoard.join('');
-        if(!/[12]/.test(valueString))return null;
-        return {kind:'coop',code,id:p.id,p,size:p.size,time:Number(visits[code])||Number(info.createdAt)||0,progress:progressFor(valueString,p)};
+        return {kind:'coop',code,id:p.id,p,size:p.size,time:Number(visits[code])||Number(info.createdAt)||0,progress:progressFor(valueString,p),hasMoves:/[12]/.test(valueString)};
       }catch(error){console.warn('협동 퍼즐 불러오기 실패',code,error);return null;}
     }));
     if(request!==epoch)return;
-    shared=rows.filter(Boolean);render();
+    sharedPendingIds=new Set(rows.filter(Boolean).map(item=>item.id));
+    shared=rows.filter(item=>item?.hasMoves);render();
   }
   async function refresh(){
     if(!onlineReady()){render();return;}
@@ -883,14 +883,50 @@ function installResume(){
   }
   function watch(){
     if(!onlineReady()||(stop&&watchedUid===currentId()))return;
-    if(stop){stop();stop=null;}watchedUid=currentId();shared=[];
+    if(stop){stop();stop=null;}watchedUid=currentId();shared=[];sharedPendingIds.clear();
     stop=onValue(ref(database,`userRooms/${currentId()}`),()=>{refresh().catch(console.warn);},
       error=>console.warn('내 퍼즐 목록 접근 실패: Firebase 규칙 확인',error));
   }
+  // This index is for *random assignment avoidance*, not completed history.
+  // Scan ALL saved solo IDs, not only the five visible resume cards.
+  function pendingPuzzleIds(){
+    const ids=new Set(sharedPendingIds);
+    const prefix='nono-web-puzzle-v1:';
+    for(let i=0;i<storage.length;i++){
+      const key=storage.key(i);
+      if(typeof key!=='string'||!key.startsWith(prefix))continue;
+      const id=key.slice(prefix.length);
+      if(!/^random-[a-z0-9-]{1,85}$/.test(id))continue;
+      try{
+        const saved=JSON.parse(storage.getItem(key)||'null');
+        if(saved&&Number(saved.startedAt)>0&&!Number(saved.finishedAt)&&
+           typeof saved.board==='string'&&/^[012]+$/.test(saved.board)&&
+           saved.board.length>=25&&saved.board.length<=10000)
+          ids.add(id);
+      }catch(_){}
+    }
+    // A race joined on this device is pending even if no square was edited.
+    for(const item of raceSaves())
+      if(/^random-[a-z0-9-]{1,85}$/.test(item.puzzleId||''))ids.add(item.puzzleId);
+    // The current game may not have been persisted yet (zero moves).
+    if(!$('game').classList.contains('hidden')&&!finished&&puzzle?.generated)
+      ids.add(puzzle.id);
+    return [...ids];
+  }
   window.addEventListener('focus',()=>{refresh().catch(console.warn);});
   render();
-  return {watch,refresh,render};
+  return {watch,refresh,render,pendingPuzzleIds};
 }
+window.NONO_RANDOM_IN_PROGRESS=Object.freeze({
+  async all(){
+    // Pull another device's unfinished solo saves through the established
+    // private account sync before checking the local cache.
+    if(window.NONO_ACCOUNT?.isSignedIn?.())
+      await window.NONO_ACCOUNT.syncNow();
+    await resumeHub?.refresh();
+    return resumeHub?.pendingPuzzleIds?.()||[];
+  }
+});
 initHome();resumeHub=installResume();connectFirebase();
 
 </script>
