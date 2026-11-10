@@ -253,4 +253,35 @@ assert.equal((await concurrent.get('.settings/rules')).rules.userCompleted,undef
   'Failed ETag precondition cannot partly activate rules');
 console.log('PASS live rooms-rule preservation, only three bank subtrees changed, ETag concurrent-update protection, idempotent deployment');
 
+const noTagStore=new Store({'.settings':{rules:older}});
+noTagStore.getWithEtag=async path=>({value:await noTagStore.get(path),etag:null});
+await assert.rejects(
+  activateBankRules(noTagStore,{expected:approved}),/explicit operator-approved/);
+assert.deepEqual(await noTagStore.get('.settings/rules'),older,
+  'Missing ETag cannot silently trigger a full-rule overwrite');
+const noTagOutcome=await activateBankRules(noTagStore,{
+  expected:approved,allowUnversionedRulesWrite:true
+});
+assert.equal(noTagOutcome.deployed,true);
+assert.equal(noTagOutcome.concurrencyProtection,'double_read_nonatomic');
+assert.deepEqual((await noTagStore.get('.settings/rules')).rules.rooms,older.rules.rooms);
+const staleReadStore=new Store({'.settings':{rules:older}});
+const unmodifiedGet=staleReadStore.get.bind(staleReadStore);
+let rulesReadCount=0;
+staleReadStore.get=async path=>{
+  if(path==='.settings/rules'&&++rulesReadCount===2){
+    const modified=await unmodifiedGet(path);
+    modified.rules.rooms.externalEdit={'.read':false};
+    await staleReadStore.put(path,modified);
+  }
+  return unmodifiedGet(path);
+};
+staleReadStore.getWithEtag=async path=>({value:await staleReadStore.get(path),etag:null});
+await assert.rejects(activateBankRules(staleReadStore,{
+  expected:approved,allowUnversionedRulesWrite:true
+}),/changed after the first read/);
+assert.equal((await staleReadStore.get('.settings/rules')).rules.userCompleted,undefined);
+console.log('PASS Firebase rules missing-ETag production fallback: explicit approval only, double-read conflict refusal and unrelated rooms preserved');
+
+
 
