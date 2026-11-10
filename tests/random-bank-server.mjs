@@ -8,6 +8,7 @@ import {validateDatabaseUrl,validateCredential,makeAdminStore} from '../tools/ra
 import {generateKeyPairSync} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {assertTargetAccount,assertLiveBankRules,TARGET_PROJECT,TARGET_DATABASE_URL} from '../tools/random-bank-live-rules.mjs';
+import {approveRulesActivation,activateBankRules} from '../tools/activate-random-bank-rules.mjs';
 
 const deep=v=>v===undefined?null:structuredClone(v);
 class Store {
@@ -170,4 +171,26 @@ const unsafeWrite=structuredClone(approved);
 unsafeWrite.rules.randomPuzzleBank['$bucket']['.write']=true;
 assert.throws(()=>assertLiveBankRules(unsafeWrite,approved),/randomPuzzleBank/);
 console.log('PASS fail-closed production project and remote Firebase security-rules preflight');
+
+const older=structuredClone(approved);
+delete older.rules.userCompleted;
+delete older.rules.randomPuzzleBank;
+delete older.rules.randomRestockRequests;
+const activationPlan=approveRulesActivation(older,approved);
+assert.equal(activationPlan.alreadyUpdated,false);
+assert.equal(activationPlan.changedNodes.length,3);
+const fakeRules=new Store({'.settings':{rules:older}});
+const activated=await activateBankRules(fakeRules,{expected:approved});
+assert.equal(activated.deployed,true);
+assert.equal(assertLiveBankRules(await fakeRules.get('.settings/rules'),approved),true);
+const secondActivation=await activateBankRules(fakeRules,{expected:approved});
+assert.equal(secondActivation.alreadyActive,true);
+assert.equal(secondActivation.deployed,false,'Deploy exactly once when already active');
+const unrelated=structuredClone(older);
+unrelated.rules.privateAnswers={'.read':true,'.write':false};
+assert.throws(()=>approveRulesActivation(unrelated,approved),/privateAnswers/);
+assert.equal((await fakeRules.get('.settings/rules')).rules.privateAnswers['.read'],false,
+  'Unrelated rules must never be overwritten by activation logic');
+console.log('PASS reviewed rules-only activation preserves every unrelated production rule and is idempotent');
+
 
