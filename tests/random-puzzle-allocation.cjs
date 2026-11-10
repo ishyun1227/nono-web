@@ -7,7 +7,7 @@ const bank=require('../random-puzzle-allocation.js');
 const mk=(id,size=10,difficulty='보통',verified=true)=>({
   id,size,difficulty,verified,designVersion:6,version:6,seed:100
 });
-let stored=[],generated=0,queries=[],completion={},cloud={};
+let stored=[],generated=0,queries=[],completion={},cloud={},pending=[];
 globalThis.NONO_RANDOM_PUZZLES={
   validSpec:spec=>Number.isInteger(spec.size)&&Number.isInteger(spec.seed)&&
     ['쉬움','보통','어려움','전문가'].includes(spec.difficulty),
@@ -18,6 +18,7 @@ globalThis.NONO_RANDOM_PUZZLES={
     return mk('random-generated-'+generated,size,difficulty);
   }
 };
+globalThis.NONO_RANDOM_IN_PROGRESS={all:async()=>pending.slice()};
 globalThis.NONO_COMPLETED_PUZZLES={
   ready:async()=>true,
   all:()=>({...completion}),
@@ -60,20 +61,37 @@ globalThis.NONO_AUTH_READY_DETAIL={
   assert.equal(r.source,'local');
   assert.equal(r.puzzle.id,'random-cache-1');
   assert.equal(generated,0);
+  // A coop room can still be unfinished even if no completion was recorded.
+  // Its puzzle must not be selected from the bank.
+  completion={'random-bank-1':111};
+  pending=['random-bank-2'];
+  r=await bank.choose({group:0,difficulty:'보통'});
+  assert.equal(r.source,'local');
+  assert.equal(r.puzzle.id,'random-cache-1');
+  assert.equal(globalThis.NONO_COMPLETED_PUZZLES.has('random-bank-2'),false,
+    'Pending puzzle must not be recorded as completed');
+  // Race/solo resumed puzzles also block local reuse; only exhaustion generates.
+  completion['random-bank-2']=112;
+  pending=['random-cache-1'];
+  r=await bank.choose({group:0,difficulty:'보통'});
+  assert.equal(r.source,'generated');
+  assert.equal(generated,1);
+  assert.equal(globalThis.NONO_COMPLETED_PUZZLES.has('random-cache-1'),false);
+  pending=[];
   completion['random-cache-1']=113;
   r=await bank.choose({group:0,difficulty:'보통'});
   assert.equal(r.source,'generated');
   assert(r.puzzle.id.startsWith('random-generated-'));
-  assert.equal(generated,1);
+  assert.equal(generated,2);
   // A server outage must not cause approval of unverified local puzzles.
   globalThis.NONO_AUTH_READY_DETAIL.databaseSdk.get=async()=>{throw Error('offline');};
   r=await bank.choose({group:0,difficulty:'보통',localPuzzles:[mk('random-unapproved',10,'보통',false)]});
   assert.equal(r.source,'generated');
-  assert.equal(generated,2);
+  assert.equal(generated,3);
   // A generated puzzle must be marked independently certified by the generator.
   globalThis.NONO_RANDOM_PUZZLES.generateAsync=async()=>mk('random-unsafe',10,'보통',false);
   await assert.rejects(bank.choose({group:0,difficulty:'보통',
     localPuzzles:[mk('random-unapproved',10,'보통',false)]}),/유일해/);
   await assert.rejects(bank.choose({group:9,difficulty:'보통'}),/조건/);
-  console.log('PASS user-unseen bank-first assignment, local certified fallback, instant-only exhaustion, invalid proof rejection, outage handling');
+  console.log('PASS completed and in-progress separation, bank/local exclusion, instant-only exhaustion, invalid proof rejection, outage handling');
 })().catch(error=>{console.error(error);process.exitCode=1;});
