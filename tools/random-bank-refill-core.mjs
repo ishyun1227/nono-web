@@ -23,7 +23,7 @@ function goodCandidate(result,b){
 }
 export async function refill(store,{
   buckets=BUCKETS,maxPublished=12,maxAttempts=144,maxMs=300000,
-  perBucketAttempts=4,makeAttempt=attempt,now=Date.now,log=()=>{}
+  perBucketAttempts=0,makeAttempt=attempt,now=Date.now,log=()=>{}
 }={}){
   if(!store?.get||!store?.put||!store?.create||!store?.remove)
     throw Error('A privileged Firebase data adapter is required');
@@ -33,8 +33,10 @@ export async function refill(store,{
     throw Error('Unknown inventory bucket');
   const deadline=now()+clamp(maxMs,300000,900000);
   const limit=clamp(maxPublished,12,100);
-  const attemptLimit=clamp(maxAttempts,144,1000);
-  const perBucket=clamp(perBucketAttempts,4,100);
+  const attemptLimit=clamp(maxAttempts,1200,5000);
+  const perBucket=clamp(perBucketAttempts,0,1000);
+  const automaticQuota=size=>size<=5?400:size<=10?200:size<=15?100:size<=20?60:
+    size<=25?36:size<=30?24:size<=50?10:size<=75?4:2;
   const control=values(await store.get('randomBankControl'));
   const offset=clamp(Number(control.cursor),0,buckets.length-1)%buckets.length;
   const requests=values(await store.get('randomRestockRequests'));
@@ -77,7 +79,8 @@ export async function refill(store,{
     const entry={bucket:b.key,before:count,target,accepted:0,attempted:0,failed:0};
     // Each bucket gets a small fair share; unfinished targets persist.
     if(count<target){
-      for(let k=0;k<perBucket&&count<target&&
+      const quota=perBucket||automaticQuota(b.size);
+      for(let k=0;k<quota&&count<target&&
           totalAttempts<attemptLimit&&published<limit&&now()<deadline;k++){
         totalAttempts++;entry.attempted++;
         let candidate;
