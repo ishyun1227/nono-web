@@ -6,6 +6,7 @@ on:
       - tools/random-bank-generator.mjs
       - tools/random-bank-refill-core.mjs
       - tools/random-bank-admin.mjs
+      - tools/random-bank-live-rules.mjs
       - tools/refill-random-bank.mjs
       - random-puzzle-allocation.js
       - database.rules.json
@@ -30,6 +31,7 @@ jobs:
         run: |
           node --check tools/random-bank-generator.mjs
           node --check tools/random-bank-admin.mjs
+          node --check tools/random-bank-live-rules.mjs
           node --check tools/random-bank-refill-core.mjs
           node --check tools/refill-random-bank.mjs
           node --check tests/random-bank-server.mjs
