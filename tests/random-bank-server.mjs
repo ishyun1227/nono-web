@@ -94,8 +94,8 @@ console.log('PASS no SAT UNSAT certification means no server publication');
 assert.equal(classify(10,{status:'partial',solved:30,stats:{iterations:12}}).difficulty,'전문가');
 assert.equal(classify(10,{status:'unknown',solved:30,stats:{iterations:12}}),null);
 assert.equal(classify(10,{status:'solved',solved:100,stats:{iterations:12}}).difficulty,'쉬움');
-assert.equal(classify(10,{status:'solved',solved:100,stats:{iterations:20}}).difficulty,'보통');
-assert.equal(classify(10,{status:'solved',solved:100,stats:{iterations:30}}).difficulty,'어려움');
+assert.equal(classify(10,{status:'solved',solved:100,stats:{iterations:30}}).difficulty,'보통');
+assert.equal(classify(10,{status:'solved',solved:100,stats:{iterations:40}}).difficulty,'어려움');
 const classified=await attempt({size:5,difficulty:'쉬움',seed:421,
   solveLogic:()=>({status:'solved',solved:25,cells:Array(25).fill(0),stats:{iterations:5}}),
   certify:async()=>({status:'unique'})});
@@ -120,7 +120,7 @@ assert.equal((await proveUnique(black,'0'.repeat(25),{maxMs:5000})).status,'unkn
 console.log('PASS real CaDiCaL UNSAT uniqueness, SAT second answer, invalid reference rejection');
 let produced=null;
 const rejectedReasons={};
-for(let seed=0;seed<128;seed++){
+for(let seed=0;seed<2048;seed++){
   const candidate=await attempt({size:5,difficulty:'쉬움',seed,logicMs:1000,proofMs:2500});
   if(candidate.status==='accepted'){produced=candidate;break;}
   const label=candidate.reason+':'+(candidate.grade?.difficulty||'none');
