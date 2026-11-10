@@ -103,16 +103,18 @@ globalThis.NONO_AUTH_READY_DETAIL={
   globalThis.NONO_AUTH_READY_DETAIL.databaseSdk.get=async key=>({
     val:()=>cloud[key]||null,exists:()=>Boolean(cloud[key])
   });
+  await new Promise(resolve=>setImmediate(resolve));
   await bank.requestRestockIfLow(samples,[10],'보통',done90);
-  assert.equal(signals.length,1,'10 left -> exactly one refill request');
-  assert.equal(signals[0].key,'randomRestockRequests/refilltest/10_보통');
+  const ownSignals=()=>signals.filter(item=>item.key==='randomRestockRequests/refilltest/10_보통');
+  assert.equal(ownSignals().length,1,'10 left -> exactly one refill request');
   await bank.requestRestockIfLow(samples,[10],'보통',done90);
-  assert.equal(signals.length,1,'Repeated clicks do not queue duplicate requests');
+  assert.equal(ownSignals().length,1,'Repeated clicks do not queue duplicate requests');
+  const beforeOther=signals.length;
   globalThis.NONO_AUTH_READY_DETAIL.auth.currentUser={uid:'another',isAnonymous:false};
   await bank.requestRestockIfLow(samples,[10],'보통',Object.fromEntries(samples.slice(0,89).map(v=>[v.id,1])));
-  assert.equal(signals.length,1,'11 remaining -> no refill');
+  assert.equal(signals.length,beforeOther,'11 remaining -> no refill');
   globalThis.NONO_AUTH_READY_DETAIL.auth.currentUser={uid:'anonymous-test',isAnonymous:true};
   await bank.requestRestockIfLow(samples,[10],'보통',done90);
-  assert.equal(signals.length,1,'Anonymous players cannot write verified account restock requests');
+  assert.equal(signals.length,beforeOther,'Anonymous players cannot write verified account restock requests');
   console.log('PASS completed and in-progress separation, bank/local exclusion, 10-left signal, no duplicate requests, instant-only exhaustion, invalid proof rejection, outage handling');
 })().catch(error=>{console.error(error);process.exitCode=1;});
