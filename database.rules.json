@@ -15,6 +15,15 @@
         }
       }
     },
+    "userCompleted": {
+      "$uid": {
+        ".read": "auth != null && auth.uid == $uid && auth.token.firebase.sign_in_provider != 'anonymous'",
+        "$puzzle": {
+          ".write": "auth != null && auth.uid == $uid && auth.token.firebase.sign_in_provider != 'anonymous' && $puzzle.matches(/^[a-zA-Z0-9_-]{1,90}$/) && !data.exists() && newData.exists()",
+          ".validate": "newData.isNumber() && newData.val() == now"
+        }
+      }
+    },
     "rooms": {
       "$room": {
         "meta": {
