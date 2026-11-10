@@ -1,6 +1,6 @@
 /* Scheduled privileged inventory refill job.
  * Required GitHub Actions secrets:
- *   FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON   newly issued dedicated server key
+ *   FIREBASE_SERVICE_ACCOUNT_JSON   repository's existing Firebase server key
  * The Firebase database URL is pinned to the reviewed website configuration.
  * Do not use any client SDK / publish credentials to the website.
  */
@@ -8,10 +8,10 @@ import {makeAdminStore,validateCredential,validateDatabaseUrl} from './random-ba
 import {assertTargetAccount,checkLiveBankRules,TARGET_DATABASE_URL} from './random-bank-live-rules.mjs';
 import {refill} from './random-bank-refill-core.mjs';
 
-const credentials=process.env.FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON;
+const credentials=process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
 const databaseUrl=TARGET_DATABASE_URL;
 if(!credentials)
-  throw Error('Server refill disabled: configure a NEW FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON GitHub Actions secret; never reuse a previously exposed key');
+  throw Error('Server refill disabled: existing FIREBASE_SERVICE_ACCOUNT_JSON GitHub Actions secret was not provided');
 assertTargetAccount(validateCredential(credentials),validateDatabaseUrl(databaseUrl));
 const store=makeAdminStore({serviceAccountJson:credentials,databaseUrl});
 await checkLiveBankRules(store);
