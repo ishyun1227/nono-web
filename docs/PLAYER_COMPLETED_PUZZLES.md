@@ -45,3 +45,22 @@
 - `tests/completed-puzzles.cjs`: Chromium에서 모드 간 중복 제거, 체험 완료, 중도 시작 제외, 리로드 유지, 비회원→계정 병합, 계정 간 격리.
 - `tests/user-completed-rules.cjs`: Firebase 에뮬레이터에서 소유자만 읽기/쓰기, 추가만 가능, 타인·비회원 접근 금지, 다건 추가.
 - `.github/workflows/completed-puzzles.yml`: 전체 자동 검사.
+
+## 2026-11-10 랜덤 퍼즐 배정 기능 연결
+
+- `apple-home.js`의 랜덤 게임 버튼을 `random-puzzle-allocation.js`에 연결했다. 버튼을 누르면 `NONO_COMPLETED_PUZZLES.ready()`로 현재 플레이어 완료 기록을 동기화하고 **완료한 ID를 배제**한다. **게임을 시작하거나 중간에 멈춘 퍼즐은 경험으로 계산하지 않는다.**
+- 순서: **① 서버의 읽기 전용, 미완료·검증된 v6 랜덤 퍼즐 보관함 → ② 브라우저에 보관된 유일해 인증 완료 v6 퍼즐 중 미완료 → ③ 없으면 즉석 생성 + CaDiCaL의 독립 유일해 검증**.
+- 서버 버킷 경로: `randomPuzzleBank/{size}_{difficulty}/{puzzleId}`. 서버 운영자가 퍼즐을 발행할 때 `{id,version:6,size,difficulty,seed,verified:true}`를 기록한다. 클라이언트는 **읽기만 허용**하고 등록·수정·삭제 권한이 없다. 유효하지 않은 스펙, 인증되지 않은 스펙은 배제한다.
+- 퍼즐을 고른 뒤 기존 `startAlone()` 또는 `createRoom()`을 그대로 호출한다. **멀티플레이 방 생성자는 미완료 퍼즐을 골라야 하고, 다른 참가자는 입장 때 이미 완료한 랜덤 퍼즐인지 따로 검사한다.** 이미 완료한 경우 방 입장을 거절하고 다른 방/퍼즐을 안내한다. 다른 사용자 완료 목록을 노출하지 않는다.
+- 즉석 생성 퍼즐은 SAT 유일해 검증 통과 시에만 `verified:true`로 로컬에 기록한다. 저장 공간이 100개로 가득 차면 **완료된 퍼즐의 로컬 캐시부터 정리**하고, 아직 진행 중인 퍼즐 복원 항목은 유지한다.
+- 사용 API: `await NONO_RANDOM_ALLOCATION.choose({group:0..3,difficulty:'보통',localPuzzles:PUZZLES})` → `{puzzle,source:'bank'|'local'|'generated',syncStatus}`.
+- **현재 공용 은행의 실제 데이터 적재/서버 정기 자동 생성은 별도 단계**다. 보관함이 비어 있으면 검증된 로컬 퍼즐 또는 즉석 생성이 사용된다. **운영 Firebase 규칙 배포 여부도 따로 확인**해야 한다.
+- 현재 생성기에서 `difficulty`는 사용자가 선택한 목표 레이블일 뿐, 쉬움·보통·어려움과 전문가의 논리 정체 기준을 자동으로 판정해 **난이도별로 검증된 재고를 채우는 작업은 아직 미완성**이다. 따라서 이 변경만으로 전문가 난이도를 보장한다고 주장하지 않는다.
+- 정답을 시드로 재현하는 현 구조는 정답 은닉이나 부정행위 방지를 보장하지 않는다. 새로운 개인 완료 인덱스는 **배정 중복 방지용**이고 보상 검증과 분리한다.
+
+### 검증
+
+- `tests/random-puzzle-allocation.cjs`: 서버/로컬/즉석 생성 우선순위, 완료 필터, 검증 여부, 서버 연결 장애.
+- `tests/browser-random-allocation.cjs`: 버튼이 완료하지 않은 로컬 검증 퍼즐을 즉시 배정하는지 확인.
+- `tests/random-puzzle-bank-rules.cjs`: Firebase 공용 퍼즐 버킷의 읽기 및 클라이언트 쓰기 금지.
+- `.github/workflows/random-allocation.yml`: Node·Chromium·Firebase 에뮬레이터 통합 검증.
