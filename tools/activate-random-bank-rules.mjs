@@ -48,8 +48,8 @@ export async function activateBankRules(store,{expected=JSON.parse(
 if(process.argv[1]&&import.meta.url.endsWith(process.argv[1].replaceAll('\\','/'))){
   if(process.env.CONFIRM_FIREBASE_PROJECT!==TARGET_PROJECT)
     throw Error('Explicit confirmation of the target Firebase project is required');
-  const key=process.env.FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON;
-  if(!key)throw Error('Missing NEW FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON secret');
+  const key=process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+  if(!key)throw Error('Missing existing FIREBASE_SERVICE_ACCOUNT_JSON GitHub Actions secret');
   assertTargetAccount(validateCredential(key),validateDatabaseUrl(TARGET_DATABASE_URL));
   const store=makeAdminStore({serviceAccountJson:key,databaseUrl:TARGET_DATABASE_URL});
   const outcome=await activateBankRules(store);
