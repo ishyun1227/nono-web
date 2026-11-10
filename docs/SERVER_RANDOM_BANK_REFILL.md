@@ -43,7 +43,7 @@
 
 1. **기존 Firebase 서비스 계정 키를 그대로 쓰기로 한 결정에 맞춰** 기존 GitHub Actions 비밀정보 `FIREBASE_SERVICE_ACCOUNT_JSON`을 사용한다. 새 JSON을 발급하거나 기존 키를 재등록할 필요는 없다. 단, 이전에 노출된 관리자 키는 **제3자의 무단 접근 위험이 있다**. 이 위험은 키를 재사용하는 한 남는다.
 2. GitHub [Actions → Activate production random puzzle bank](https://github.com/ishyun1227/nono-web/actions/workflows/activate-random-bank.yml)에서 **Run workflow**를 누르고 `confirm_project`에 `nono-web-ishyun-20261020`을 입력한다. 이 단계는 사용자의 명시적인 운영 규칙 배포·최초 퍼즐 생성 승인을 필요로 한다. **키나 비밀번호를 채팅·커밋·노션에 올리지 않는다.**
-3. 실행기가 **현재 운영 Firebase 규칙**을 먼저 읽고 루트 읽기·쓰기 차단을 확인한다. 이후 `userCompleted`, `randomPuzzleBank`, `randomRestockRequests` 세 항목만 신규 규칙으로 갱신하고, **`rooms`를 포함한 다른 모든 기존 규칙은 그대로 보존**한다. 동시에 다른 관리자가 규칙을 바꿨다면 Firebase ETag 일치 검사가 실패해 운영 규칙을 덮어쓰지 않는다. 규칙 활성화가 성공하면 **최대 2개**의 퍼즐로 운영 저장을 시험한다.
+3. 실행기가 **현재 운영 Firebase 규칙**을 먼저 읽고 루트 읽기·쓰기 차단을 확인한다. 이후 `userCompleted`, `randomPuzzleBank`, `randomRestockRequests` 세 항목만 신규 규칙으로 갱신하고, **`rooms`를 포함한 다른 모든 기존 규칙은 그대로 보존**한다. Firebase가 규칙 조회에 ETag를 제공하면 조건부 갱신으로 동시 수정을 차단한다. **실제 운영 서버처럼 ETag가 반환되지 않으면**, 이 수동 승인 작업에서만 운영 규칙을 **두 번 읽어 일치하는지 확인**한 뒤 갱신한다. 이 대체 방식은 동시 편집을 완전히 막는 원자적 거래는 아니므로 해당 짧은 구간에서 다른 관리자가 규칙을 편집하지 않아야 한다. 규칙 활성화가 성공하면 **최대 2개**의 퍼즐로 운영 저장을 시험한다.
 4. 첫 활성화 작업이 성공하면 **Server random puzzle bank refill**이 매시간 17분(UTC)에 자동으로 보충을 시도한다. 필요하면 별도로 수동 실행할 수 있다.
 5. 실행 로그에서 `verified_random_bank_rules_activation`, `production_security_preflight_passed`와 `refill_complete`를 확인하고 `published` 수치 및 서버 `randomPuzzleBank` 실제 재고를 확인한다. **퍼즐 0개인 상태도 실행 성공으로 표시될 수 있어 실제 재고를 반드시 확인해야 한다.**
 
