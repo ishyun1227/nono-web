@@ -1,0 +1,40 @@
+name: Per-player completed puzzle index
+on:
+  push:
+    branches: [main]
+    paths:
+      - completed-puzzles.js
+      - database.rules.json
+      - index.html
+      - tools/build.cjs
+      - tests/completed-puzzles.cjs
+      - tests/user-completed-rules.cjs
+      - .github/workflows/completed-puzzles.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and build browser assets
+        run: npm ci
+      - name: Parse completion index, browser test, and RTDB rules
+        run: |
+          node --check completed-puzzles.js
+          node --check tests/completed-puzzles.cjs
+          node --check tests/user-completed-rules.cjs
+          node -e "JSON.parse(require('node:fs').readFileSync('database.rules.json','utf8'))"
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Verify cross-mode completed IDs, reload, and account separation
+        run: node tests/completed-puzzles.cjs
+      - name: Verify Firebase owner-only access and immutable records
+        run: npx firebase emulators:exec --project demo-nono --only database,auth "node tests/user-completed-rules.cjs"
+      - name: Verify existing completion history
+        run: node tests/completion-history.cjs
