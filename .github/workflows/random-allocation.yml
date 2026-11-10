@@ -1,0 +1,52 @@
+name: Shared random puzzle assignment and private completion
+on:
+  push:
+    branches: [main]
+    paths:
+      - random-puzzle-allocation.js
+      - random-puzzles.js
+      - apple-home.js
+      - index.html
+      - tools/build.cjs
+      - database.rules.json
+      - completed-puzzles.js
+      - tests/random-puzzle-allocation.cjs
+      - tests/browser-random-allocation.cjs
+      - tests/random-puzzle-bank-rules.cjs
+      - .github/workflows/random-allocation.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies and build site
+        run: npm ci
+      - name: Check JavaScript and Firebase rule syntax
+        run: |
+          node --check random-puzzle-allocation.js
+          node --check random-puzzles.js
+          node --check apple-home.js
+          node --check tests/random-puzzle-allocation.cjs
+          node --check tests/browser-random-allocation.cjs
+          node --check tests/random-puzzle-bank-rules.cjs
+          node -e "JSON.parse(require('node:fs').readFileSync('database.rules.json','utf8'))"
+      - name: Test pool selection and no-repeat behavior
+        run: |
+          node tests/random-puzzle-allocation.cjs
+          node tests/async-random-generator.cjs
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Test real random game button and personal completion policy
+        run: |
+          node tests/browser-random-allocation.cjs
+          node tests/completed-puzzles.cjs
+          node tests/browser-cadical-v6.cjs
+      - name: Check read-only shared bank security
+        run: npx firebase emulators:exec --project demo-nono --only database,auth "node tests/random-puzzle-bank-rules.cjs"
