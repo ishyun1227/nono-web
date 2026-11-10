@@ -304,10 +304,22 @@ function answerFor(spec){
 function register(p){
   if(!validPuzzle(p))throw Error('랜덤 퍼즐 형식이 올바르지 않습니다.');
   const exact=fromSpec(p);
+  // Only v6 puzzles whose SAT certification was confirmed by the caller
+  // may be recycled by the shared-bank random assignment selector.
+  if(p.verified===true&&exact.designVersion===6)exact.verified=true;
   if(JSON.stringify(exact.rows)!==JSON.stringify(p.rows)||JSON.stringify(exact.cols)!==JSON.stringify(p.cols))
     throw Error('퍼즐 힌트가 생성 정보와 일치하지 않습니다.');
-  const old=readList().filter(item=>item.id!==exact.id);
-  if(old.length>=LIMIT)throw Error('저장된 랜덤 퍼즐이 100개입니다. 기존 퍼즐 정리 후 다시 시도하세요.');
+  let old=readList().filter(item=>item.id!==exact.id);
+  if(old.length>=LIMIT){
+    // Make space only by discarding the local *copies* of completed puzzles.
+    // Never discard unfinished games or their resumable source specs.
+    const completed=root.NONO_COMPLETED_PUZZLES?.all?.()||{};
+    const keep=old.filter(item=>!Object.prototype.hasOwnProperty.call(completed,item.id));
+    if(keep.length>=LIMIT)
+      throw Error('진행 중인 랜덤 퍼즐 저장 한도에 도달했습니다.');
+    old=[...keep,...old.filter(item=>Object.prototype.hasOwnProperty.call(completed,item.id))]
+      .slice(0,LIMIT-1);
+  }
   try{
     if(!root.localStorage)throw Error('브라우저 저장소를 사용할 수 없습니다.');
     root.localStorage.setItem(KEY,JSON.stringify([exact,...old]));
@@ -371,7 +383,7 @@ async function generateAsync({size,difficulty,seed,maxMs=5000}){
       if(verdict.status==='unique'){
         // Do not approve results delivered after the overall time limit.
         if(Date.now()>until)break;
-        return register(fromSpec({...spec,id:'random-'+Date.now().toString(36)+'-'+candidateSeed.toString(36)}));
+        return register({...fromSpec({...spec,id:'random-'+Date.now().toString(36)+'-'+candidateSeed.toString(36)}),verified:true});
       }
       if(verdict.status==='error'||verdict.status==='invalid')
         throw Error('전문 유일해 검사 오류: '+(verdict.reason||'잘못된 제약조건'));
