@@ -67,6 +67,33 @@ async function cloudCandidates(sizes,difficulty,api){
   }));
   return batches.flat();
 }
+// Ask the privileged scheduled job to refill ONLY when this signed-in
+// player's unfinished bank choices in a particular size/level reach <=10.
+// The backend checks authoritative completed IDs; clients cannot publish.
+const requestedThisSession=new Set();
+async function requestRestockIfLow(candidates,sizes,difficulty,completed){
+  const ready=root.NONO_AUTH_READY_DETAIL;
+  const auth=ready?.auth?.currentUser,sdk=ready?.databaseSdk,db=ready?.database;
+  if(!auth||auth.isAnonymous||!sdk?.get||!sdk?.ref||!sdk?.set||!sdk?.serverTimestamp||!db)
+    return;
+  for(const size of sizes){
+    const bucket=size+'_'+difficulty;
+    const items=candidates.filter(p=>p.size===size&&p.difficulty===difficulty);
+    // No completed history for this bucket? Initial 100-stock job handles it.
+    if(!items.length)continue;
+    const available=items.reduce((sum,p)=>sum+(Object.hasOwn(completed,p.id)?0:1),0);
+    if(available>10||requestedThisSession.has(auth.uid+':'+bucket))continue;
+    requestedThisSession.add(auth.uid+':'+bucket);
+    try{
+      const path=sdk.ref(db,'randomRestockRequests/'+auth.uid+'/'+bucket);
+      if(!(await sdk.get(path)).exists())
+        await sdk.set(path,sdk.serverTimestamp());
+    }catch(error){
+      requestedThisSession.delete(auth.uid+':'+bucket);
+      console.warn('퍼즐 보충 요청은 아직 서버에 전달되지 않았어요.',error);
+    }
+  }
+}
 async function choose({group,difficulty,localPuzzles=[]}={}){
   const api=root.NONO_RANDOM_PUZZLES;
   const completion=root.NONO_COMPLETED_PUZZLES;
@@ -85,6 +112,8 @@ async function choose({group,difficulty,localPuzzles=[]}={}){
   for(const id of pending)
     if(typeof id==='string'&&idPattern.test(id))blocked[id]=true;
   const cloud=await cloudCandidates(sizes,difficulty,api);
+  // Do not delay gameplay for the scheduled refill request.
+  void requestRestockIfLow(cloud,sizes,difficulty,done);
   const bank=pickUnseen(cloud,blocked);
   if(bank)return {puzzle:bank,source:'bank',syncStatus:synced};
   const local=(localPuzzles.length?localPuzzles:api.restore())
@@ -99,7 +128,7 @@ async function choose({group,difficulty,localPuzzles=[]}={}){
     throw Error('유일해가 확인된 새 퍼즐을 배정하지 못했습니다.');
   return {puzzle,source:'generated',syncStatus:synced};
 }
-const api={choose,pickUnseen,verifiedLocal,verifiedBank,cloudCandidates,groupSizes};
+const api={choose,pickUnseen,verifiedLocal,verifiedBank,cloudCandidates,requestRestockIfLow,groupSizes};
 root.NONO_RANDOM_ALLOCATION=Object.freeze(api);
 if(typeof module!=='undefined'&&module.exports)module.exports=api;
 })(typeof window!=='undefined'?window:globalThis);
