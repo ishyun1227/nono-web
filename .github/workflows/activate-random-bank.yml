@@ -41,6 +41,12 @@ jobs:
           node --check tools/activate-random-bank-rules.mjs
           node tests/random-bank-server.mjs
       - name: Activate only reviewed random-bank Firebase security rules
+        env:
+          # This operator-confirmed workflow is allowed to use a checked
+          # read-diff-read fallback when Firebase's rules endpoint lacks ETag.
+          # Unlike an ETag transaction, it cannot eliminate all concurrent
+          # Firebase Console edit races. Keep this off in scheduled jobs.
+          ALLOW_FIREBASE_RULES_UNVERSIONED_UPDATE: "true"
         run: node tools/activate-random-bank-rules.mjs
       - name: Test initial production refill with at most two uniquely proved puzzles
         env:
