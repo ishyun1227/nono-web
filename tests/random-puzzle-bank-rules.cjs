@@ -37,6 +37,24 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
       {id:'random-fake',verified:true,version:6,seed:20,size:10,difficulty:'보통'}));
     await assertFails(set(ref(bob,'randomPuzzleBank/10_보통/random-bank-10-100'),null));
     await assertFails(remove(ref(anon,'randomPuzzleBank/10_보통/random-bank-10-100')));
+    // New auto-assigned rooms must carry an immutable fresh-only marker.
+    // Existing manually chosen generated rooms must still permit replay.
+    const randSpec={version:6,size:10,seed:100,difficulty:'보통'};
+    const room=(id,fresh)=>({
+      host:'alice',mode:'race',puzzleId:id,size:10,status:'lobby',
+      createdAt:require('firebase/database').serverTimestamp(),startedAt:0,
+      format:2,randomSpec:randSpec,...(fresh?{randomFresh:true}:{})
+    });
+    await assertSucceeds(set(ref(alice,'rooms/FRESH1/meta'),room('random-bank-10-100',true)));
+    assert.equal((await get(ref(alice,'rooms/FRESH1/meta/randomFresh'))).val(),true);
+    await assertSucceeds(set(ref(alice,'rooms/MANUAL/meta'),room('random-bank-10-100',false)));
+    assert.equal((await get(ref(alice,'rooms/MANUAL/meta/randomFresh'))).val(),null);
+    await assertFails(set(ref(alice,'rooms/FRESH2/meta'),{
+      host:'alice',mode:'race',puzzleId:'heart5',size:5,status:'lobby',
+      createdAt:require('firebase/database').serverTimestamp(),startedAt:0,
+      randomFresh:true,format:2
+    }));
+    console.log('PASS fresh-only auto-assigned room flag and backward-compatible manual generated rooms');
     console.log('PASS shared random puzzle bank auth reads, bucket allowlist, forbidden client writes and deletes');
   }finally{await env.cleanup();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
