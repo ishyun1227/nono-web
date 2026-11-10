@@ -118,7 +118,7 @@ function render(){
         }
         selectPuzzle(selected);render();
         if(requestedMode==='practice')await startAlone();
-        else await createRoom();
+        else await createRoom({requireUnseen:true});
       }catch(error){
         console.error('랜덤 퍼즐 배정 실패',error);
         toast(error?.message||'퍼즐을 생성하지 못했어요.');
