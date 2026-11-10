@@ -68,10 +68,38 @@ export function makeAdminStore({serviceAccountJson,databaseUrl,fetchFn=fetch}){
     const data=await response.json();
     return conditional?{created:true}:data;
   }
+  // Firebase's versioned conditional REST writes protect the entire ruleset
+  // from clobbering a concurrent admin edit. Never log access tokens/ETags.
+  async function etagRequest(method,path,value,etag,renew=false){
+    if(path!=='.settings/rules')throw Error('ETag rules operation is restricted to .settings/rules');
+    const uri=new URL(base+'/.settings/rules.json');
+    uri.searchParams.set('access_token',await token(renew));
+    const headers={'Content-Type':'application/json'};
+    if(method==='GET')headers['X-Firebase-ETag']='true';
+    else{
+      if(typeof etag!=='string'||!etag||/[\r\n]/.test(etag))
+        throw Error('Missing or invalid Firebase rules ETag');
+      headers['If-Match']=etag;
+    }
+    const response=await fetchFn(uri,{method,headers,
+      ...(method==='PUT'?{body:JSON.stringify(value)}:{})});
+    if((response.status===401||response.status===403)&&!renew)
+      return etagRequest(method,path,value,etag,true);
+    if(method==='PUT'&&response.status===412)return {written:false};
+    if(!response.ok)throw Error('Firebase rules conditional '+method+' failed, HTTP '+response.status);
+    const result=await response.json();
+    if(method==='PUT')return {written:true};
+    const received=response.headers?.get?.('etag');
+    if(typeof received!=='string'||!received)
+      throw Error('Firebase rules ETag is not available; refusing unguarded production update');
+    return {value:result,etag:received};
+  }
   return {
     get:path=>request('GET',path),
     put:(path,value)=>request('PUT',path,value),
     create:(path,value)=>request('PUT',path,value,true),
-    remove:path=>request('DELETE',path)
+    remove:path=>request('DELETE',path),
+    getWithEtag:path=>etagRequest('GET',path),
+    putIfMatch:(path,value,etag)=>etagRequest('PUT',path,value,etag)
   };
 }
