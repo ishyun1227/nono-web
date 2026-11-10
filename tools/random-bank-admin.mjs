@@ -90,9 +90,10 @@ export function makeAdminStore({serviceAccountJson,databaseUrl,fetchFn=fetch}){
     const result=await response.json();
     if(method==='PUT')return {written:true};
     const received=response.headers?.get?.('etag');
-    if(typeof received!=='string'||!received)
-      throw Error('Firebase rules ETag is not available; refusing unguarded production update');
-    return {value:result,etag:received};
+    // The production /.settings/rules REST endpoint may not supply an ETag,
+    // even when requested. The caller must decide whether a separately
+    // authorized read-diff-read fallback is appropriate.
+    return {value:result,etag:typeof received==='string'&&received?received:null};
   }
   return {
     get:path=>request('GET',path),
