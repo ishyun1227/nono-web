@@ -1,0 +1,56 @@
+name: Activate production random puzzle bank
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_project:
+        description: "Type nono-web-ishyun-20261020 to approve live Firebase rules and first two puzzles"
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: server-random-puzzle-bank-writer
+  cancel-in-progress: false
+jobs:
+  activate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    env:
+      CONFIRM_FIREBASE_PROJECT: ${{ inputs.confirm_project }}
+      FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate explicit target and dedicated newly issued key
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$CONFIRM_FIREBASE_PROJECT" != "nono-web-ishyun-20261020" ]; then
+            echo "::error::Wrong project confirmation. Production write blocked."
+            exit 1
+          fi
+          if [ -z "$FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::Missing new FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON secret; never use the previously exposed key."
+            exit 1
+          fi
+      - name: Install and test deterministic generator and guarded activation
+        run: |
+          npm ci
+          node --check tools/activate-random-bank-rules.mjs
+          node tests/random-bank-server.mjs
+      - name: Activate only reviewed random-bank Firebase security rules
+        run: node tools/activate-random-bank-rules.mjs
+      - name: Test initial production refill with at most two uniquely proved puzzles
+        env:
+          RANDOM_BANK_MAX_PUBLISHED: "2"
+          RANDOM_BANK_MAX_ATTEMPTS: "120"
+          RANDOM_BANK_MAX_MS: "45000"
+          RANDOM_BANK_PER_BUCKET_ATTEMPTS: "0"
+        run: node tools/refill-random-bank.mjs
+      - name: Summarize activation
+        if: success()
+        run: |
+          echo "Production random bank security rules verified; initial server generation executed." >> "$GITHUB_STEP_SUMMARY"
+          echo "Hourly generator is configured separately; monitor its published counts." >> "$GITHUB_STEP_SUMMARY"
