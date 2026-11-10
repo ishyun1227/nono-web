@@ -15,6 +15,15 @@
         }
       }
     },
+    "randomRestockRequests": {
+      "$uid": {
+        "$bucket": {
+          ".read": "auth != null && auth.uid == $uid && auth.token.firebase.sign_in_provider != 'anonymous' && $bucket.matches(/^(5|10|15|20|25|30|50|75|100)_(쉬움|보통|어려움|전문가)$/)",
+          ".write": "auth != null && auth.uid == $uid && auth.token.firebase.sign_in_provider != 'anonymous' && $bucket.matches(/^(5|10|15|20|25|30|50|75|100)_(쉬움|보통|어려움|전문가)$/) && !data.exists() && newData.exists()",
+          ".validate": "newData.isNumber() && newData.val() == now"
+        }
+      }
+    },
     "randomPuzzleBank": {
       "$bucket": {
         ".read": "auth != null && $bucket.matches(/^(5|10|15|20|25|30|50|75|100)_(쉬움|보통|어려움|전문가)$/)",
