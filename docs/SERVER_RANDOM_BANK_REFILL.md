@@ -46,11 +46,11 @@
    - 이름: `FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON`
    - 값: 새 전용 서비스 계정의 JSON 전체. **이 대화, 저장소 코드, 노션에 키를 올리지 않는다.**
    - 데이터베이스 URL은 웹앱에서 이미 검증한 공개 URL `https://nono-web-ishyun-20261020-default-rtdb.asia-southeast1.firebasedatabase.app`로 고정했으므로 `FIREBASE_DATABASE_URL`을 별도로 만들지 않는다.
-3. `database.rules.json`의 **현재 운영 규칙과의 차이를 검토한 뒤** Firebase Realtime Database → Rules에서 배포하거나 검증된 전용 Firebase CLI 배포 절차를 수행한다. Firebase 규칙 배포는 **기존 모든 규칙을 덮어쓸 수 있으므로** 현재 운영 규칙을 먼저 비교해야 한다. 서버 작업은 원격의 `userCompleted`, `randomPuzzleBank`, `randomRestockRequests` 보안 규칙 및 루트 접근 차단 조건이 코드와 다르면 **저장을 시작하지 않는다.**
-4. GitHub **Actions → Server random puzzle bank refill → Run workflow**로 처음 실행하거나 다음 매시간 17분(UTC) 예약을 확인한다. `push` 시 소량 테스트는 워크플로 파일 자체가 변경된 경우에만 실행한다.
-5. Actions 로그에 `production_security_preflight_passed`와 `refill_complete`가 모두 있어야 실제 서버 생성이 수행된 것이다. `published`를 확인하고 Firebase `randomPuzzleBank`와 `randomBankState`에서 수량을 점검한다. **비밀키가 없으면 테스트 잡은 정상 종료될 수 있어도 운영 생성 단계는 'skipped'로 표시되며 활성화된 것이 아니다.**
+3. GitHub **Actions → Activate production random puzzle bank → Run workflow**에서 `confirm_project`에 `nono-web-ishyun-20261020`을 입력한다. 새 전용 비밀키만 사용해 **현재 Firebase 운영 규칙과 저장소 규칙을 비교**한다. `userCompleted`, `randomPuzzleBank`, `randomRestockRequests` 세 항목 외 다른 규칙이 다르면 **배포하지 않고 중단**한다. 같으면 새 규칙을 반영하고 **최대 2개**의 검증된 퍼즐로 운영 저장을 시험한다.
+4. 최초 활성화가 성공하면 **Actions → Server random puzzle bank refill**이 매시간 17분(UTC) 자동으로 보충을 시도한다. 수동 **Run workflow**도 가능하다.
+5. 서버 로그의 `production_security_preflight_passed`와 `refill_complete`를 확인하고 Firebase `randomPuzzleBank` 실제 재고를 확인한다. **비밀키가 없으면 예약 실행이 성공으로 표시돼도 생성 단계는 skipped 상태이고 활성화된 것이 아니다.**
 
-설정 파일: `.github/workflows/server-random-bank-refill.yml`, `tools/refill-random-bank.mjs`, `tools/random-bank-live-rules.mjs`. 생성기: `tools/random-bank-generator.mjs`, 보충 관리자: `tools/random-bank-refill-core.mjs`, 서버 인증: `tools/random-bank-admin.mjs`.
+설정 파일: `.github/workflows/server-random-bank-refill.yml`, `.github/workflows/activate-random-bank.yml`, `tools/refill-random-bank.mjs`, `tools/random-bank-live-rules.mjs`, `tools/activate-random-bank-rules.mjs`. 생성기: `tools/random-bank-generator.mjs`, 보충 관리자: `tools/random-bank-refill-core.mjs`, 서버 인증: `tools/random-bank-admin.mjs`.
 
 **보안:** 운영 Firebase 프로젝트·DB URL 고정 및 **실제 배포된 Firebase 규칙 검사**를 통과해야 쓰기 작업을 시작한다. 클라이언트의 `randomPuzzleBank` 쓰기 권한은 계속 금지한다. 서버 서비스 계정은 GitHub Actions 환경에만 주입하고 빌드 파일에 포함하지 않는다. 사용자 완료 관계 역시 개인 계정 아래에만 저장한다.
 
