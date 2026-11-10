@@ -1,17 +1,21 @@
 /* Scheduled privileged inventory refill job.
  * Required GitHub Actions secrets:
- *   FIREBASE_SERVICE_ACCOUNT_JSON   Google service account JSON (full)
- *   FIREBASE_DATABASE_URL           https://...firebaseio.com or ...firebasedatabase.app
+ *   FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON   newly issued dedicated server key
+ * The Firebase database URL is pinned to the reviewed website configuration.
  * Do not use any client SDK / publish credentials to the website.
  */
-import {makeAdminStore} from './random-bank-admin.mjs';
+import {makeAdminStore,validateCredential,validateDatabaseUrl} from './random-bank-admin.mjs';
+import {assertTargetAccount,checkLiveBankRules,TARGET_DATABASE_URL} from './random-bank-live-rules.mjs';
 import {refill} from './random-bank-refill-core.mjs';
 
-const credentials=process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-const databaseUrl=process.env.FIREBASE_DATABASE_URL;
-if(!credentials||!databaseUrl)
-  throw Error('Server refill disabled: configure FIREBASE_SERVICE_ACCOUNT_JSON and FIREBASE_DATABASE_URL as GitHub Actions secrets');
+const credentials=process.env.FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON;
+const databaseUrl=TARGET_DATABASE_URL;
+if(!credentials)
+  throw Error('Server refill disabled: configure a NEW FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON GitHub Actions secret; never reuse a previously exposed key');
+assertTargetAccount(validateCredential(credentials),validateDatabaseUrl(databaseUrl));
 const store=makeAdminStore({serviceAccountJson:credentials,databaseUrl});
+await checkLiveBankRules(store);
+console.log(JSON.stringify({event:'production_security_preflight_passed',rules:'verified',project:'verified'}));
 const integer=(key,fallback,max)=>{
   const value=Number(process.env[key]);
   return Number.isSafeInteger(value)&&value>=0?Math.min(value,max):fallback;
