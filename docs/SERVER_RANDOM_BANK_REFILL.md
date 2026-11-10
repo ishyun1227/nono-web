@@ -41,14 +41,11 @@
 
 현재 GitHub 파일만 추가했다고 운영 Firebase에 자동으로 접근할 수 있는 것은 아니다.
 
-1. **기존에 채팅으로 노출된 Firebase 서비스 계정 키는 재사용하면 안 된다.** Google Cloud 프로젝트 `nono-web-ishyun-20261020`에서 권한을 최소화한 **새 전용 서비스 계정 및 JSON 키**를 발급하고 이전 노출 키를 폐기·교체한다. 외부 GitHub Actions에서 실행되므로 새 키는 GitHub Secrets에만 보관한다.
-2. GitHub 저장소 **Settings → Secrets and variables → Actions → New repository secret**에서 **단 한 개의 새 비밀정보**를 등록한다.
-   - 이름: `FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON`
-   - 값: 새 전용 서비스 계정의 JSON 전체. **이 대화, 저장소 코드, 노션에 키를 올리지 않는다.**
-   - 데이터베이스 URL은 웹앱에서 이미 검증한 공개 URL `https://nono-web-ishyun-20261020-default-rtdb.asia-southeast1.firebasedatabase.app`로 고정했으므로 `FIREBASE_DATABASE_URL`을 별도로 만들지 않는다.
-3. GitHub **Actions → Activate production random puzzle bank → Run workflow**에서 `confirm_project`에 `nono-web-ishyun-20261020`을 입력한다. 새 전용 비밀키만 사용해 **현재 Firebase 운영 규칙과 저장소 규칙을 비교**한다. `userCompleted`, `randomPuzzleBank`, `randomRestockRequests` 세 항목 외 다른 규칙이 다르면 **배포하지 않고 중단**한다. 같으면 새 규칙을 반영하고 **최대 2개**의 검증된 퍼즐로 운영 저장을 시험한다.
-4. 최초 활성화가 성공하면 **Actions → Server random puzzle bank refill**이 매시간 17분(UTC) 자동으로 보충을 시도한다. 수동 **Run workflow**도 가능하다.
-5. 서버 로그의 `production_security_preflight_passed`와 `refill_complete`를 확인하고 Firebase `randomPuzzleBank` 실제 재고를 확인한다. **비밀키가 없으면 예약 실행이 성공으로 표시돼도 생성 단계는 skipped 상태이고 활성화된 것이 아니다.**
+1. **기존 Firebase 서비스 계정 키를 그대로 쓰기로 한 결정에 맞춰** 기존 GitHub Actions 비밀정보 `FIREBASE_SERVICE_ACCOUNT_JSON`을 사용한다. 새 JSON을 발급하거나 기존 키를 재등록할 필요는 없다. 단, 이전에 노출된 관리자 키는 **제3자의 무단 접근 위험이 있다**. 이 위험은 키를 재사용하는 한 남는다.
+2. GitHub [Actions → Activate production random puzzle bank](https://github.com/ishyun1227/nono-web/actions/workflows/activate-random-bank.yml)에서 **Run workflow**를 누르고 `confirm_project`에 `nono-web-ishyun-20261020`을 입력한다. 이 단계는 사용자의 명시적인 운영 규칙 배포·최초 퍼즐 생성 승인을 필요로 한다. **키나 비밀번호를 채팅·커밋·노션에 올리지 않는다.**
+3. 실행기가 실제 Firebase 규칙을 읽어 저장소의 `userCompleted`, `randomPuzzleBank`, `randomRestockRequests` 이외의 운영 규칙과 비교한다. 서로 다르면 기존 규칙을 덮어쓰지 않고 실패한다. 안전한 경우 세 가지 규칙을 활성화하고 **최대 2개**의 퍼즐로 운영 저장을 시험한다.
+4. 첫 활성화 작업이 성공하면 **Server random puzzle bank refill**이 매시간 17분(UTC)에 자동으로 보충을 시도한다. 필요하면 별도로 수동 실행할 수 있다.
+5. 실행 로그에서 `verified_random_bank_rules_activation`, `production_security_preflight_passed`와 `refill_complete`를 확인하고 `published` 수치 및 서버 `randomPuzzleBank` 실제 재고를 확인한다. **퍼즐 0개인 상태도 실행 성공으로 표시될 수 있어 실제 재고를 반드시 확인해야 한다.**
 
 설정 파일: `.github/workflows/server-random-bank-refill.yml`, `.github/workflows/activate-random-bank.yml`, `tools/refill-random-bank.mjs`, `tools/random-bank-live-rules.mjs`, `tools/activate-random-bank-rules.mjs`. 생성기: `tools/random-bank-generator.mjs`, 보충 관리자: `tools/random-bank-refill-core.mjs`, 서버 인증: `tools/random-bank-admin.mjs`.
 
