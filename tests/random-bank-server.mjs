@@ -26,6 +26,15 @@ class Store {
     for(const part of parts.slice(0,-1)){item=item?.[part];if(!item)return true;}
     delete item[parts.at(-1)];return true;
   }
+  async getWithEtag(path){
+    const value=await this.get(path);
+    return {value,etag:JSON.stringify(value)};
+  }
+  async putIfMatch(path,value,etag){
+    if(JSON.stringify(await this.get(path))!==etag)return {written:false};
+    await this.put(path,value);
+    return {written:true};
+  }
 }
 const main={size:10,difficulty:'보통',key:'10_보통'};
 let nextSeed=123,makeCalls=0;
@@ -176,21 +185,37 @@ const older=structuredClone(approved);
 delete older.rules.userCompleted;
 delete older.rules.randomPuzzleBank;
 delete older.rules.randomRestockRequests;
+// The production server has a newer multiplayer rooms policy than GitHub.
+// That must be preserved byte-for-byte, not treated as a blocker or overwritten.
+older.rules.rooms.metaProductionFlag={'.read':false,'.write':false};
 const activationPlan=approveRulesActivation(older,approved);
 assert.equal(activationPlan.alreadyUpdated,false);
 assert.equal(activationPlan.changedNodes.length,3);
+assert.deepEqual(activationPlan.merged.rules.rooms,older.rules.rooms);
 const fakeRules=new Store({'.settings':{rules:older}});
 const activated=await activateBankRules(fakeRules,{expected:approved});
 assert.equal(activated.deployed,true);
 assert.equal(assertLiveBankRules(await fakeRules.get('.settings/rules'),approved),true);
+assert.deepEqual((await fakeRules.get('.settings/rules')).rules.rooms,older.rules.rooms,
+  'Existing production rooms rules must be preserved');
 const secondActivation=await activateBankRules(fakeRules,{expected:approved});
 assert.equal(secondActivation.alreadyActive,true);
 assert.equal(secondActivation.deployed,false,'Deploy exactly once when already active');
 const unrelated=structuredClone(older);
 unrelated.rules.privateAnswers={'.read':true,'.write':false};
-assert.throws(()=>approveRulesActivation(unrelated,approved),/privateAnswers/);
-assert.equal((await fakeRules.get('.settings/rules')).rules.privateAnswers['.read'],false,
-  'Unrelated rules must never be overwritten by activation logic');
-console.log('PASS reviewed rules-only activation preserves every unrelated production rule and is idempotent');
+const preservedPlan=approveRulesActivation(unrelated,approved);
+assert.equal(preservedPlan.merged.rules.privateAnswers['.read'],true,
+  'Unrelated remote rule is never silently replaced');
+const openRoot=structuredClone(older);openRoot.rules['.read']=true;
+assert.throws(()=>approveRulesActivation(openRoot,approved),/root/);
+const concurrent=new Store({'.settings':{rules:older}});
+concurrent.putIfMatch=async()=>{
+  await concurrent.put('.settings/rules',{...older,rules:{...older.rules,roomSideEdit:true}});
+  return {written:false};
+};
+await assert.rejects(activateBankRules(concurrent,{expected:approved}),/concurrently/);
+assert.equal((await concurrent.get('.settings/rules')).rules.userCompleted,undefined,
+  'Failed ETag precondition cannot partly activate rules');
+console.log('PASS live rooms-rule preservation, only three bank subtrees changed, ETag concurrent-update protection, idempotent deployment');
 
 
