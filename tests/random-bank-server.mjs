@@ -1,0 +1,140 @@
+/* Server refill planner regression tests with an in-memory, privileged RTDB.
+ * No credentials or live Firebase are used here.
+ */
+import assert from 'node:assert/strict';
+import {refill} from '../tools/random-bank-refill-core.mjs';
+import {attempt,classify,proveUnique,puzzleSpec,BUCKETS} from '../tools/random-bank-generator.mjs';
+import {validateDatabaseUrl,validateCredential,makeAdminStore} from '../tools/random-bank-admin.mjs';
+import {generateKeyPairSync} from 'node:crypto';
+
+const deep=v=>v===undefined?null:structuredClone(v);
+class Store {
+  constructor(data={}){this.data=deep(data);this.writes=[];}
+  parts(path){return path.split('/');}
+  async get(path){let item=this.data;for(const part of this.parts(path)){if(!item||typeof item!=='object')return null;item=item[part];}return deep(item);}
+  async put(path,value){let item=this.data;const parts=this.parts(path);
+    for(const part of parts.slice(0,-1))item=item[part]??={};
+    item[parts.at(-1)]=deep(value);this.writes.push({path,value:deep(value)});return deep(value);}
+  async create(path,value){
+    if(await this.get(path)!==null)return {created:false};
+    await this.put(path,value);return {created:true};
+  }
+  async remove(path){let item=this.data,parts=this.parts(path);
+    for(const part of parts.slice(0,-1)){item=item?.[part];if(!item)return true;}
+    delete item[parts.at(-1)];return true;
+  }
+}
+const main={size:10,difficulty:'보통',key:'10_보통'};
+let nextSeed=123,makeCalls=0;
+const good=async ({size,difficulty})=>{
+  makeCalls++;
+  const spec=puzzleSpec(size,difficulty,nextSeed++);
+  return {status:'accepted',spec:{...spec,verified:true,
+    verifiedBy:'cadical_reference_blocking_unsat_v1'},
+    grade:{difficulty},proof:{status:'unique'}};
+};
+const first=new Store();
+let result=await refill(first,{
+  buckets:[main],makeAttempt:good,maxPublished:3,maxAttempts:10,
+  perBucketAttempts:3,maxMs:10000
+});
+assert.equal(result.published,3);
+assert.equal(Object.keys((await first.get('randomPuzzleBank/10_보통'))||{}).length,3);
+assert.equal((await first.get('randomBankControl/cursor')),0);
+result=await refill(first,{buckets:[main],makeAttempt:good,
+  maxPublished:3,perBucketAttempts:3,maxMs:10000});
+assert.equal(result.published,3);
+assert.equal(Object.keys(await first.get('randomPuzzleBank/10_보통')).length,6);
+console.log('PASS initially empty bank fills in bounded, resumable batches');
+
+const inventory=Object.fromEntries(Array.from({length:100},(_,i)=>[
+  'random-10-1-'+i,{...puzzleSpec(10,'보통',i),verified:true}
+]));
+const completed=Object.fromEntries(Object.keys(inventory).slice(0,90).map((id,i)=>[id,i+1]));
+const restock=new Store({
+  randomPuzzleBank:{'10_보통':inventory},
+  randomBankState:{'10_보통':{target:100}},
+  randomRestockRequests:{alice:{'10_보통':1234}},
+  userCompleted:{alice:completed}
+});
+result=await refill(restock,{buckets:[main],makeAttempt:good,
+  maxPublished:2,perBucketAttempts:2,maxMs:10000});
+assert.equal(result.verifiedRequests,1);
+assert.equal(result.published,2);
+assert.equal((await restock.get('randomBankState/10_보통')).target,200);
+assert.equal(await restock.get('randomRestockRequests/alice/10_보통'),null);
+assert.equal(Object.keys(await restock.get('randomPuzzleBank/10_보통')).length,102);
+await restock.put('randomRestockRequests/alice/10_보통',5555);
+result=await refill(restock,{buckets:[main],makeAttempt:good,
+  maxPublished:2,perBucketAttempts:2,maxMs:10000});
+assert.equal((await restock.get('randomBankState/10_보통')).target,200,
+  'Requests during an outstanding batch must not stack further +100');
+const untriggered=new Store({
+  randomPuzzleBank:{'10_보통':inventory},
+  userCompleted:{alice:Object.fromEntries(Object.keys(inventory).slice(0,4).map(id=>[id,1]))},
+  randomRestockRequests:{alice:{'10_보통':1}}
+});
+result=await refill(untriggered,{buckets:[main],makeAttempt:good});
+assert.equal(result.published,0);
+assert.equal(result.rejectedRequests,1);
+assert.equal(await untriggered.get('randomRestockRequests/alice/10_보통'),null);
+console.log('PASS backend independently validates 10 remaining, adds 100 target once, ignores unverified demand');
+
+const rejected=new Store();
+result=await refill(rejected,{buckets:[main],maxPublished:3,
+  perBucketAttempts:3,makeAttempt:async({size,difficulty})=>({
+    status:'accepted',grade:{difficulty},proof:{status:'multiple'},
+    spec:{...puzzleSpec(size,difficulty,42),verified:true,
+      verifiedBy:'cadical_reference_blocking_unsat_v1'}
+  })});
+assert.equal(result.published,0);
+assert.equal(await rejected.get('randomPuzzleBank/10_보통'),null);
+console.log('PASS no SAT UNSAT certification means no server publication');
+
+assert.equal(classify(10,{status:'partial',solved:30,stats:{iterations:12}}).difficulty,'전문가');
+assert.equal(classify(10,{status:'unknown',solved:30,stats:{iterations:12}}),null);
+assert.equal(classify(10,{status:'solved',solved:100,stats:{iterations:12}}).difficulty,'쉬움');
+assert.equal(classify(10,{status:'solved',solved:100,stats:{iterations:20}}).difficulty,'보통');
+assert.equal(classify(10,{status:'solved',solved:100,stats:{iterations:30}}).difficulty,'어려움');
+const classified=await attempt({size:5,difficulty:'쉬움',seed:421,
+  solveLogic:()=>({status:'solved',solved:25,cells:Array(25).fill(0),stats:{iterations:5}}),
+  certify:async()=>({status:'unique'})});
+assert.equal(classified.status,'rejected',
+  'Contradictory fake solver must not certify by merely returning solved');
+const mockedLogic=await attempt({size:5,difficulty:'전문가',seed:10,
+  solveLogic:()=>({status:'partial',solved:10,stats:{iterations:8}}),
+  certify:async()=>({status:'unique'})});
+assert.equal(mockedLogic.status,'accepted');
+assert.equal(mockedLogic.spec.verifiedBy,'cadical_reference_blocking_unsat_v1');
+const unproved=await attempt({size:5,difficulty:'전문가',seed:10,
+  solveLogic:()=>({status:'partial',solved:10,stats:{iterations:8}}),
+  certify:async()=>({status:'unknown'})});
+assert.notEqual(unproved.status,'accepted');
+console.log('PASS provisional 3 logical levels, stalled expert, fail-closed candidate checks');
+
+const black={size:5,rows:Array.from({length:5},()=>[5]),cols:Array.from({length:5},()=>[5])};
+const many={size:5,rows:Array.from({length:5},()=>[1]),cols:Array.from({length:5},()=>[1])};
+assert.equal((await proveUnique(black,'1'.repeat(25),{maxMs:5000})).status,'unique');
+assert.equal((await proveUnique(many,'1000001000001000001000001',{maxMs:5000})).status,'multiple');
+assert.equal((await proveUnique(black,'0'.repeat(25),{maxMs:5000})).status,'unknown');
+console.log('PASS real CaDiCaL UNSAT uniqueness, SAT second answer, invalid reference rejection');
+
+assert.throws(()=>validateDatabaseUrl('https://malicious.example.com'));
+assert.throws(()=>validateDatabaseUrl('http://demo.firebaseio.com'));
+assert.equal(validateDatabaseUrl('https://demo.firebaseio.com'),'https://demo.firebaseio.com');
+const keys=generateKeyPairSync('rsa',{modulusLength:2048});
+const account={type:'service_account',client_email:'a@b.gserviceaccount.com',
+  private_key:keys.privateKey.export({format:'pem',type:'pkcs8'})};
+assert.equal(validateCredential(account).client_email,account.client_email);
+const requests=[];
+const fakeFetch=async(url,opts)=>{
+  requests.push({uri:url.toString(),method:opts.method,headers:opts.headers,body:opts.body});
+  return opts.method==='POST'?{ok:true,json:async()=>({access_token:'fake-token',expires_in:3600})}:
+    {ok:true,json:async()=>({ok:true})};
+};
+const admin=makeAdminStore({serviceAccountJson:account,databaseUrl:'https://demo.firebaseio.com',fetchFn:fakeFetch});
+await admin.create('randomPuzzleBank/10_보통/random-10-1-100',{verified:true});
+assert(requests[1].uri.includes('access_token=fake-token'));
+assert(requests[1].uri.includes('10_%EB%B3%B4%ED%86%B5'));
+assert.equal(requests[1].headers['If-Match'],'null_etag');
+console.log('PASS restricted service-account URL, OAuth JWT and conditional no-overwrite REST writes');
