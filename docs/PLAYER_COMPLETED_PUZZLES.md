@@ -64,3 +64,15 @@
 - `tests/browser-random-allocation.cjs`: 버튼이 완료하지 않은 로컬 검증 퍼즐을 즉시 배정하는지 확인.
 - `tests/random-puzzle-bank-rules.cjs`: Firebase 공용 퍼즐 버킷의 읽기 및 클라이언트 쓰기 금지.
 - `.github/workflows/random-allocation.yml`: Node·Chromium·Firebase 에뮬레이터 통합 검증.
+
+## 2026-11-10 진행 중 퍼즐의 새 랜덤 배정 제외
+
+- **완료한 퍼즐만 '경험한 퍼즐'로 계산**하는 정책은 그대로 유지한다. 진행 중·중단 상태는 완료 목록 `userCompleted`에 기록하지 않는다.
+- 새 랜덤 배정 시 별도의 **진행 중 제외 집합**을 수집한 후 `완료 ID ∪ 진행 중 ID`를 후보에서 배제한다. 서버 보관함·로컬 검증 캐시·즉석 생성 결과 모두에 적용한다.
+- 혼자 풀기: `nono-web-puzzle-v1:random-...` 저장 상태 전체(화면에 표시되는 상위 5개가 아님)를 검사한다. `startedAt > 0`, `finishedAt = 0`, 유효한 보드 데이터면 입력이 하나도 없는 상태도 진행 중으로 본다.
+- 대결: 현재 플레이어의 `nono-race-resume-v2:{uid}`에 남은 미완료 대결방 퍼즐 ID를 제외한다.
+- 협동: 기존 `userRooms/{uid}`에서 참가한 협동방들의 메타·숫자 기록을 읽어 미완료 퍼즐 ID를 제외한다. 아직 한 칸도 건드리지 않은 방도 제외 대상이며, 실제 '이어서 풀기' 화면에는 기존대로 입력이 있는 게임만 표시한다.
+- 현재 게임 화면에서 아직 저장되지 않은 랜덤 퍼즐도 새 게임 후보에서 제외한다.
+- 로그인 사용자의 혼자 풀기 저장 데이터는 배정 전 기존 `NONO_ACCOUNT.syncNow()`로 계정 동기화를 시도한다. 서버 연결 실패 시 로컬 데이터로 계속 확인한다. 대결의 타 기기 미저장 이어하기 기록 등 **이미 접근할 수 없는 상태까지 보장하지 않는다**.
+- 새 API: `await NONO_RANDOM_IN_PROGRESS.all()` → 진행 중인 랜덤 퍼즐 ID 배열. `NONO_COMPLETED_PUZZLES.all()` 결과에는 절대 추가하지 않는다.
+- 테스트: `tests/random-puzzle-allocation.cjs`, `tests/browser-random-allocation.cjs`, `tests/browser-random-inprogress-coop.cjs` (Firebase 에뮬레이터+실제 Chromium에서 무입력 협동방까지 검증).
