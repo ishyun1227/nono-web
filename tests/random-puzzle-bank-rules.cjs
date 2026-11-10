@@ -55,6 +55,25 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
       randomFresh:true,format:2
     }));
     console.log('PASS fresh-only auto-assigned room flag and backward-compatible manual generated rooms');
+    // A real signed-in player may request refill, but cannot fake remaining
+    // counts or modify the shared bank; the trusted producer rechecks history.
+    const account=env.authenticatedContext('alice',{firebase:{sign_in_provider:'google.com'}}).database();
+    const other=env.authenticatedContext('bob',{firebase:{sign_in_provider:'google.com'}}).database();
+    const request=ref(account,'randomRestockRequests/alice/10_보통');
+    await assertSucceeds(set(request,require('firebase/database').serverTimestamp()));
+    assert((await assertSucceeds(get(request))).val()>0);
+    await assertFails(set(request,require('firebase/database').serverTimestamp()));
+    await assertFails(set(ref(other,'randomRestockRequests/alice/5_쉬움'),
+      require('firebase/database').serverTimestamp()));
+    await assertFails(get(ref(other,'randomRestockRequests/alice/10_보통')));
+    await assertFails(set(ref(account,'randomRestockRequests/alice/10_미평가'),
+      require('firebase/database').serverTimestamp()));
+    await assertFails(set(ref(account,'randomRestockRequests/alice/5_쉬움'),42));
+    await assertFails(set(ref(anon,'randomRestockRequests/guest/10_보통'),
+      require('firebase/database').serverTimestamp()));
+    await assertFails(get(ref(stranger,'randomRestockRequests/alice/10_보통')));
+    await assertFails(remove(request));
+    console.log('PASS authenticated append-once per-player low-stock requests, no forged timestamps or client-side deletes');
     console.log('PASS shared random puzzle bank auth reads, bucket allowlist, forbidden client writes and deletes');
   }finally{await env.cleanup();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
