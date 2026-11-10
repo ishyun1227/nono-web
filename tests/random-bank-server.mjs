@@ -6,6 +6,8 @@ import {refill} from '../tools/random-bank-refill-core.mjs';
 import {attempt,classify,proveUnique,puzzleSpec,BUCKETS} from '../tools/random-bank-generator.mjs';
 import {validateDatabaseUrl,validateCredential,makeAdminStore} from '../tools/random-bank-admin.mjs';
 import {generateKeyPairSync} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {assertTargetAccount,assertLiveBankRules,TARGET_PROJECT,TARGET_DATABASE_URL} from '../tools/random-bank-live-rules.mjs';
 
 const deep=v=>v===undefined?null:structuredClone(v);
 class Store {
@@ -152,3 +154,20 @@ assert(requests[1].uri.includes('access_token=fake-token'));
 assert(requests[1].uri.includes('10_%EB%B3%B4%ED%86%B5'));
 assert.equal(requests[1].headers['If-Match'],'null_etag');
 console.log('PASS restricted service-account URL, OAuth JWT and conditional no-overwrite REST writes');
+
+const approved=JSON.parse(readFileSync(new URL('../database.rules.json',import.meta.url),'utf8'));
+assert.equal(assertLiveBankRules(JSON.stringify(approved),approved),true);
+assert.doesNotThrow(()=>assertTargetAccount({type:'service_account',project_id:TARGET_PROJECT},TARGET_DATABASE_URL));
+assert.throws(()=>assertTargetAccount({type:'service_account',project_id:'other-project'},TARGET_DATABASE_URL),/project/);
+assert.throws(()=>assertTargetAccount({type:'service_account',project_id:TARGET_PROJECT},'https://other.firebaseio.com'),/endpoint/);
+const overlyPermissive=structuredClone(approved);
+overlyPermissive.rules['.read']=true;
+assert.throws(()=>assertLiveBankRules(overlyPermissive,approved),/root/);
+const missingBank=structuredClone(approved);
+delete missingBank.rules.randomPuzzleBank;
+assert.throws(()=>assertLiveBankRules(missingBank,approved),/randomPuzzleBank/);
+const unsafeWrite=structuredClone(approved);
+unsafeWrite.rules.randomPuzzleBank['$bucket']['.write']=true;
+assert.throws(()=>assertLiveBankRules(unsafeWrite,approved),/randomPuzzleBank/);
+console.log('PASS fail-closed production project and remote Firebase security-rules preflight');
+
