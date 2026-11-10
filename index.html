@@ -584,7 +584,7 @@ async function quickMatch(){
   }catch(error){firebaseError(error);}
   finally{busyMatch=false;$('quick-match').disabled=false;}
 }
-async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toast('멀티플레이를 사용하려면 먼저 Firebase를 연결해야 해요.');return;}if(!window.NONO_ACCOUNT?.require())return false;if(!['race','coop'].includes(mode))return false;if(puzzle.size>=30&&!puzzle.generated){toast('큰 그림 퍼즐은 현재 혼자 풀기에서만 지원해요.');return false;}const makePublic=typeof options.publicRoom==='boolean'?options.publicRoom:Boolean($('public-room-toggle')?.checked);const autoMatch=options.autoMatch===true;busyRoom=true;try{
+async function createRoom(options={}){if(busyRoom)return;if(!onlineReady()){toast('멀티플레이를 사용하려면 먼저 Firebase를 연결해야 해요.');return;}if(!window.NONO_ACCOUNT?.require())return false;if(!['race','coop'].includes(mode))return false;if(puzzle.size>=30&&!puzzle.generated){toast('큰 그림 퍼즐은 현재 혼자 풀기에서만 지원해요.');return false;}if(puzzle.generated&&window.NONO_COMPLETED_PUZZLES?.has(puzzle.id)){toast('이미 완료한 랜덤 퍼즐입니다. 새 랜덤 퍼즐을 받아 주세요.');return false;}const makePublic=typeof options.publicRoom==='boolean'?options.publicRoom:Boolean($('public-room-toggle')?.checked);const autoMatch=options.autoMatch===true;busyRoom=true;try{
   const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';let code='';for(const value of crypto.getRandomValues(new Uint8Array(6)))code+=chars[value%chars.length];
   const randomSpec=puzzle.generated?{version:puzzle.designVersion||1,size:puzzle.size,seed:puzzle.seed,difficulty:puzzle.difficulty}:null;
   if(puzzle.generated&&!window.NONO_RANDOM_PUZZLES?.validSpec(randomSpec))throw Error('랜덤 퍼즐 생성 정보가 없어요. 새로 생성해 주세요.');
@@ -631,6 +631,14 @@ async function enterRoom(code){if(!/^[A-HJ-NP-Z2-9]{6}$/.test(code)){toast('6자
   try{
     const snap=await get(ref(database,`rooms/${code}/meta`));if(!snap.exists()){toast('존재하지 않는 방이에요.');return;}
     const info=snap.val(),p=ensureRoomPuzzle(info);if(!p){toast('지원하지 않는 퍼즐이에요.');return;}
+    if(info.randomSpec&&window.NONO_COMPLETED_PUZZLES){
+      // The room creator selects a fresh puzzle for themselves. Each joiner
+      // must separately confirm it has not been completed on their account.
+      await window.NONO_COMPLETED_PUZZLES.ready();
+      if(window.NONO_COMPLETED_PUZZLES.has(info.puzzleId)){
+        toast('이미 완료한 랜덤 퍼즐입니다. 다른 방에서 새 퍼즐을 선택해 주세요.');return;
+      }
+    }
     if(roomCode&&roomCode!==code)await leaveGame();
     const members=(await get(ref(database,`rooms/${code}/players`))).val()||{};
     const existing=Object.keys(members).find(slot=>members[slot]?.uid===currentId());
@@ -924,6 +932,7 @@ initHome();resumeHub=installResume();connectFirebase();
 <script src="./shop.js?v=1"></script>
 <script src="./home-sidebars.js?v=1"></script>
 <script src="./completed-puzzles.js?v=1"></script>
+<script src="./random-puzzle-allocation.js?v=1"></script>
 <script src="./account.js?v=1"></script>
 <script src="./community.js?v=1"></script>
 
