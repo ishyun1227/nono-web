@@ -36,7 +36,7 @@ const fs=require('node:fs'),assert=require('node:assert/strict');
     await assertFails(set(ref(unauth,'userCompleted/alice/random-hijack'),serverTimestamp()));
     await assertFails(set(item,serverTimestamp()));
     await assertFails(set(ref(alice,'userCompleted/alice/random-invalid'),42));
-    await assertFails(set(ref(alice,'userCompleted/alice/bad.id'),serverTimestamp()));
+    await assertFails(set(ref(alice,'userCompleted/alice/bad!id'),serverTimestamp()));
     await assertFails(remove(item));
     await assertFails(update(ref(alice,'userCompleted/alice'),{'random-12-ghi':serverTimestamp()}));
     await assertSucceeds(set(ref(bob,'userCompleted/bob/random-10-abc'),serverTimestamp()));
