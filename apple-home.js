@@ -86,13 +86,13 @@ function render(){
     puzzleRow.append(b);
   });
   if(mode()!=='record'&&state.level!=='미평가'){
-    const make=makeButton('✦ 새로운 랜덤 퍼즐 받기',false,false,async()=>{
+    const make=makeButton('✦ 새 랜덤 퍼즐 생성',false,false,async()=>{
       if(!window.NONO_RANDOM_ALLOCATION?.choose){
-        toast('랜덤 퍼즐 배정기를 불러오지 못했어요.');return;
+        toast('랜덤 생성기를 불러오지 못했어요.');return;
       }
       const requestedGroup=state.group,requestedLevel=state.level,requestedMode=mode();
       if(requestedMode!=='practice'&&!window.NONO_ACCOUNT?.require())return;
-      make.disabled=true;make.textContent='미완료 퍼즐 검색 중…';
+      make.disabled=true;make.textContent='퍼즐 생성 중…';
       await new Promise(resolve=>requestAnimationFrame(resolve));
       try{
         const assigned=await window.NONO_RANDOM_ALLOCATION.choose({
@@ -121,13 +121,13 @@ function render(){
         else await createRoom();
       }catch(error){
         console.error('랜덤 퍼즐 배정 실패',error);
-        toast(error?.message||'미완료 퍼즐을 배정하지 못했어요.');
+        toast(error?.message||'퍼즐을 생성하지 못했어요.');
         render();
       }
     });
     make.classList.add('nono-apple-random-generate');
-    make.setAttribute('aria-label',sizeGroups[state.group].name+' 크기 '+state.level+' 난이도에서 아직 완료하지 않은 랜덤 퍼즐 배정'+(mode()==='practice'?'':' 및 방 만들기'));
-    make.textContent=mode()==='practice'?'✦ 새로운 랜덤 퍼즐 받기':'✦ 새로운 랜덤 퍼즐로 방 만들기';
+    make.setAttribute('aria-label',sizeGroups[state.group].name+' 크기 '+state.level+' 난이도의 새 랜덤 퍼즐 생성'+(mode()==='practice'?'':' 및 방 만들기'));
+    make.textContent=mode()==='practice'?'✦ 새 랜덤 퍼즐 생성':'✦ 랜덤 퍼즐로 방 만들기';
     puzzleRow.append(make);
   }
   if(!choices.length){
