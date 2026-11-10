@@ -10,9 +10,9 @@ on:
         required: false
         default: "12"
       max_attempts:
-        description: "Maximum generation attempts (up to 1000)"
+        description: "Maximum generation attempts (up to 5000)"
         required: false
-        default: "144"
+        default: "1200"
       max_ms:
         description: "Generation budget in milliseconds (up to 900000)"
         required: false
@@ -38,9 +38,9 @@ jobs:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
           RANDOM_BANK_MAX_PUBLISHED: ${{ github.event_name == 'workflow_dispatch' && inputs.max_published || '12' }}
-          RANDOM_BANK_MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_attempts || '144' }}
+          RANDOM_BANK_MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_attempts || '1200' }}
           RANDOM_BANK_MAX_MS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_ms || '120000' }}
-          RANDOM_BANK_PER_BUCKET_ATTEMPTS: "4"
+          RANDOM_BANK_PER_BUCKET_ATTEMPTS: "0"
         run: |
           if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ] || [ -z "$FIREBASE_DATABASE_URL" ]; then
             echo "::warning::Random bank refill NOT activated: configure FIREBASE_SERVICE_ACCOUNT_JSON and FIREBASE_DATABASE_URL in GitHub Actions secrets."
