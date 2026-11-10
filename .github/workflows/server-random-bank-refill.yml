@@ -1,0 +1,50 @@
+name: Server random puzzle bank refill
+on:
+  schedule:
+    # Runs on a GitHub-hosted server, independent from players' browsers.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+    inputs:
+      max_published:
+        description: "Maximum certified puzzles to publish this run (up to 100)"
+        required: false
+        default: "12"
+      max_attempts:
+        description: "Maximum generation attempts (up to 1000)"
+        required: false
+        default: "144"
+      max_ms:
+        description: "Generation budget in milliseconds (up to 900000)"
+        required: false
+        default: "300000"
+permissions:
+  contents: read
+concurrency:
+  group: server-random-puzzle-bank-writer
+  cancel-in-progress: false
+jobs:
+  refill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install deterministic generator and real CaDiCaL WASM
+        run: npm ci
+      - name: Run authenticated server bank refill
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
+          RANDOM_BANK_MAX_PUBLISHED: ${{ github.event_name == 'workflow_dispatch' && inputs.max_published || '12' }}
+          RANDOM_BANK_MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_attempts || '144' }}
+          RANDOM_BANK_MAX_MS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_ms || '120000' }}
+          RANDOM_BANK_PER_BUCKET_ATTEMPTS: "4"
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ] || [ -z "$FIREBASE_DATABASE_URL" ]; then
+            echo "::warning::Random bank refill NOT activated: configure FIREBASE_SERVICE_ACCOUNT_JSON and FIREBASE_DATABASE_URL in GitHub Actions secrets."
+            echo "Refill skipped (credentials unavailable)." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node tools/refill-random-bank.mjs
