@@ -25,9 +25,9 @@ export function classify(size,logic){
      !Number.isInteger(logic.stats?.iterations))return null;
   // Provisional, reproducible normalized line-analysis effort (NOT a
   // validated measure of human difficulty). May be calibrated later.
-  const score=logic.stats.iterations/size;
+  const score=logic.stats.iterations/(2*size);
   return {
-    difficulty:score<=1.25?'쉬움':score<=2.25?'보통':'어려움',
+    difficulty:score<=1.25?'쉬움':score<=1.8?'보통':'어려움',
     score:Math.round(score*10000)/10000,method:'adaptive_line_passes_v1'
   };
 }
