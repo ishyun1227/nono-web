@@ -17,13 +17,13 @@ jobs:
     timeout-minutes: 12
     env:
       CONFIRM_FIREBASE_PROJECT: ${{ inputs.confirm_project }}
-      FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON }}
+      FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Validate explicit target and dedicated newly issued key
+      - name: Validate exact project and existing GitHub-stored Firebase key
         shell: bash
         run: |
           set -euo pipefail
@@ -31,8 +31,8 @@ jobs:
             echo "::error::Wrong project confirmation. Production write blocked."
             exit 1
           fi
-          if [ -z "$FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON" ]; then
-            echo "::error::Missing new FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON secret; never use the previously exposed key."
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::error::Existing FIREBASE_SERVICE_ACCOUNT_JSON GitHub secret is missing."
             exit 1
           fi
       - name: Install and test deterministic generator and guarded activation
