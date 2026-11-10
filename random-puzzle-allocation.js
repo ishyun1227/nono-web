@@ -71,6 +71,7 @@ async function cloudCandidates(sizes,difficulty,api){
 // player's unfinished bank choices in a particular size/level reach <=10.
 // The backend checks authoritative completed IDs; clients cannot publish.
 const requestedThisSession=new Set();
+let recentlySelectedBank=null;
 async function requestRestockIfLow(candidates,sizes,difficulty,completed){
   const ready=root.NONO_AUTH_READY_DETAIL;
   const auth=ready?.auth?.currentUser,sdk=ready?.databaseSdk,db=ready?.database;
@@ -112,6 +113,12 @@ async function choose({group,difficulty,localPuzzles=[]}={}){
   for(const id of pending)
     if(typeof id==='string'&&idPattern.test(id))blocked[id]=true;
   const cloud=await cloudCandidates(sizes,difficulty,api);
+  // Keep only the current account's latest bank snapshot so the 90th
+  // completion can request replenishment without waiting for another click.
+  recentlySelectedBank={
+    uid:root.NONO_AUTH_READY_DETAIL?.auth?.currentUser?.uid||null,
+    sizes:sizes.slice(),difficulty,candidates:cloud
+  };
   // Do not delay gameplay for the scheduled refill request.
   void requestRestockIfLow(cloud,sizes,difficulty,done);
   const bank=pickUnseen(cloud,blocked);
@@ -127,6 +134,19 @@ async function choose({group,difficulty,localPuzzles=[]}={}){
   if(!puzzle||puzzle.verified!==true||Object.hasOwn(blocked,puzzle.id)||completion?.has?.(puzzle.id))
     throw Error('유일해가 확인된 새 퍼즐을 배정하지 못했습니다.');
   return {puzzle,source:'generated',syncStatus:synced};
+}
+function onCompletion(event){
+  const id=event?.detail?.puzzleId;
+  const bank=recentlySelectedBank;
+  if(typeof id!=='string'||!idPattern.test(id)||!bank||
+     !bank.uid||bank.uid!==root.NONO_AUTH_READY_DETAIL?.auth?.currentUser?.uid||
+     !bank.candidates.some(item=>item.id===id))return;
+  const done=root.NONO_COMPLETED_PUZZLES?.all?.()||{};
+  void requestRestockIfLow(bank.candidates,bank.sizes,bank.difficulty,done);
+}
+if(typeof root.addEventListener==='function'){
+  root.addEventListener('nono:completion-confirmed',onCompletion);
+  root.addEventListener('nono:private-puzzle-completed',onCompletion);
 }
 const api={choose,pickUnseen,verifiedLocal,verifiedBank,cloudCandidates,requestRestockIfLow,groupSizes};
 root.NONO_RANDOM_ALLOCATION=Object.freeze(api);
