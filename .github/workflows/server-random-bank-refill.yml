@@ -1,5 +1,9 @@
 name: Server random puzzle bank refill
 on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/server-random-bank-refill.yml'
   schedule:
     # Runs on a GitHub-hosted server, independent from players' browsers.
     - cron: "17 * * * *"
@@ -31,20 +35,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
-      - name: Install deterministic generator and real CaDiCaL WASM
-        run: npm ci
-      - name: Run authenticated server bank refill
+      - name: Check independent, rotated production service-account readiness
+        id: activation
         env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-          FIREBASE_DATABASE_URL: ${{ secrets.FIREBASE_DATABASE_URL }}
-          RANDOM_BANK_MAX_PUBLISHED: ${{ github.event_name == 'workflow_dispatch' && inputs.max_published || '12' }}
-          RANDOM_BANK_MAX_ATTEMPTS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_attempts || '1200' }}
-          RANDOM_BANK_MAX_MS: ${{ github.event_name == 'workflow_dispatch' && inputs.max_ms || '120000' }}
-          RANDOM_BANK_PER_BUCKET_ATTEMPTS: "0"
+          FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON }}
+        shell: bash
         run: |
-          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ] || [ -z "$FIREBASE_DATABASE_URL" ]; then
-            echo "::warning::Random bank refill NOT activated: configure FIREBASE_SERVICE_ACCOUNT_JSON and FIREBASE_DATABASE_URL in GitHub Actions secrets."
-            echo "Refill skipped (credentials unavailable)." >> "$GITHUB_STEP_SUMMARY"
+          if [ -z "$FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Random puzzle server is NOT active: a new FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON GitHub Actions secret is required. Previously disclosed keys must NOT be reused."
+            echo "## NOT ACTIVE: Dedicated new Firebase service-account secret is missing." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          node tools/refill-random-bank.mjs
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+          echo "A dedicated key was supplied. Production project and deployed database rules will be checked before any writes." >> "$GITHUB_STEP_SUMMARY"
+      - name: Install deterministic generator and real CaDiCaL WASM
+        if: steps.activation.outputs.ready == 'true'
+        run: npm ci
+      - name: Run authenticated server bank refill
+        if: steps.activation.outputs.ready == 'true'
+        env:
+          FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON }}
+          RANDOM_BANK_MAX_PUBLISHED: ${{ github.event_name == 'push' && '2' || (github.event_name == 'workflow_dispatch' && inputs.max_published || '12') }}
+          RANDOM_BANK_MAX_ATTEMPTS: ${{ github.event_name == 'push' && '120' || (github.event_name == 'workflow_dispatch' && inputs.max_attempts || '1200') }}
+          RANDOM_BANK_MAX_MS: ${{ github.event_name == 'push' && '45000' || (github.event_name == 'workflow_dispatch' && inputs.max_ms || '120000') }}
+          RANDOM_BANK_PER_BUCKET_ATTEMPTS: "0"
+        run: node tools/refill-random-bank.mjs
