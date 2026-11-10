@@ -41,17 +41,18 @@
 
 현재 GitHub 파일만 추가했다고 운영 Firebase에 자동으로 접근할 수 있는 것은 아니다.
 
-1. GitHub 저장소 **Settings → Secrets and variables → Actions**에 아래 두 개의 **Repository secret**을 등록한다. 채팅이나 커밋에 키를 올리지 않는다.
-   - `FIREBASE_SERVICE_ACCOUNT_JSON`: 대상 Firebase 프로젝트에 쓸 수 있는 **서버용 Google 서비스 계정 JSON 전체** (private_key 포함).
-   - `FIREBASE_DATABASE_URL`: 같은 프로젝트의 **정확한 Firebase Realtime Database HTTPS URL**. 예: `https://PROJECT-default-rtdb.REGION.firebasedatabase.app` (예시일 뿐 실제 값 아님).
-2. 사용자 보충 요청·읽기 권한을 사용하려면 `database.rules.json`을 **별도 검토 후 운영 Realtime Database에 배포**한다. 기존 다른 규칙을 덮어쓰지 않도록 배포 전 실제 설정과 비교한다.
-3. GitHub **Actions → Server random puzzle bank refill → Run workflow**로 수동 1회 실행하거나 다음 예약 실행을 확인한다.
-4. Actions 로그의 `refill_complete`에서 `published`(이번에 추가된 수량), `bucketsVisited`, `verifiedRestockRequests`를 확인한다. **서버 인증정보가 없으면 의도적으로 경고를 띄우고 생성을 건너뛴다.**
-5. 운영 Firebase의 `randomPuzzleBank`와 `randomBankState`를 조회하여 실제 재고를 확인한다. 서버 작업 1회당 발행량·시도 횟수·실행시간은 상한이 있다. 예약 작업이 수량 목표를 즉시 채우지는 않는다.
+1. **기존에 채팅으로 노출된 Firebase 서비스 계정 키는 재사용하면 안 된다.** Google Cloud 프로젝트 `nono-web-ishyun-20261020`에서 권한을 최소화한 **새 전용 서비스 계정 및 JSON 키**를 발급하고 이전 노출 키를 폐기·교체한다. 외부 GitHub Actions에서 실행되므로 새 키는 GitHub Secrets에만 보관한다.
+2. GitHub 저장소 **Settings → Secrets and variables → Actions → New repository secret**에서 **단 한 개의 새 비밀정보**를 등록한다.
+   - 이름: `FIREBASE_RANDOM_BANK_SERVICE_ACCOUNT_JSON`
+   - 값: 새 전용 서비스 계정의 JSON 전체. **이 대화, 저장소 코드, 노션에 키를 올리지 않는다.**
+   - 데이터베이스 URL은 웹앱에서 이미 검증한 공개 URL `https://nono-web-ishyun-20261020-default-rtdb.asia-southeast1.firebasedatabase.app`로 고정했으므로 `FIREBASE_DATABASE_URL`을 별도로 만들지 않는다.
+3. `database.rules.json`의 **현재 운영 규칙과의 차이를 검토한 뒤** Firebase Realtime Database → Rules에서 배포하거나 검증된 전용 Firebase CLI 배포 절차를 수행한다. Firebase 규칙 배포는 **기존 모든 규칙을 덮어쓸 수 있으므로** 현재 운영 규칙을 먼저 비교해야 한다. 서버 작업은 원격의 `userCompleted`, `randomPuzzleBank`, `randomRestockRequests` 보안 규칙 및 루트 접근 차단 조건이 코드와 다르면 **저장을 시작하지 않는다.**
+4. GitHub **Actions → Server random puzzle bank refill → Run workflow**로 처음 실행하거나 다음 매시간 17분(UTC) 예약을 확인한다. `push` 시 소량 테스트는 워크플로 파일 자체가 변경된 경우에만 실행한다.
+5. Actions 로그에 `production_security_preflight_passed`와 `refill_complete`가 모두 있어야 실제 서버 생성이 수행된 것이다. `published`를 확인하고 Firebase `randomPuzzleBank`와 `randomBankState`에서 수량을 점검한다. **비밀키가 없으면 테스트 잡은 정상 종료될 수 있어도 운영 생성 단계는 'skipped'로 표시되며 활성화된 것이 아니다.**
 
-설정 파일: `.github/workflows/server-random-bank-refill.yml`, `tools/refill-random-bank.mjs`. 생성기: `tools/random-bank-generator.mjs`, 보충 관리자: `tools/random-bank-refill-core.mjs`, 서버 인증: `tools/random-bank-admin.mjs`.
+설정 파일: `.github/workflows/server-random-bank-refill.yml`, `tools/refill-random-bank.mjs`, `tools/random-bank-live-rules.mjs`. 생성기: `tools/random-bank-generator.mjs`, 보충 관리자: `tools/random-bank-refill-core.mjs`, 서버 인증: `tools/random-bank-admin.mjs`.
 
-**보안:** 클라이언트의 `randomPuzzleBank` 쓰기 권한은 계속 금지한다. 서버 서비스 계정은 GitHub Actions 환경에만 주입하고 빌드 파일에 포함하지 않는다. 사용자 완료 관계 역시 개인 계정 아래에만 저장한다.
+**보안:** 운영 Firebase 프로젝트·DB URL 고정 및 **실제 배포된 Firebase 규칙 검사**를 통과해야 쓰기 작업을 시작한다. 클라이언트의 `randomPuzzleBank` 쓰기 권한은 계속 금지한다. 서버 서비스 계정은 GitHub Actions 환경에만 주입하고 빌드 파일에 포함하지 않는다. 사용자 완료 관계 역시 개인 계정 아래에만 저장한다.
 
 ## 테스트
 
