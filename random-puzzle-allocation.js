@@ -1,5 +1,6 @@
 /* Shared, verified random puzzle assignment.
- * The private completed-ID index is read only for the CURRENT player.
+ * The private completed-ID index and separate in-progress index are consulted
+ * for the CURRENT player, without marking unfinished games as completed.
  * Server bank entries are read-only, seed-based v6 puzzles (no answers).
  * If no eligible bank entry exists, reuse a locally certified puzzle; otherwise
  * generate with existing fail-closed CaDiCaL uniqueness verification.
@@ -77,18 +78,24 @@ async function choose({group,difficulty,localPuzzles=[]}={}){
   // completions made on another device. Guests use local data only.
   const synced=await completion?.ready?.();
   const done=completion?.all?.()||{};
+  // Exclude ALL unfinished saves: solo, race, and shared co-op. This is a
+  // temporary allocation blocklist, never written to completed history.
+  const pending=await root.NONO_RANDOM_IN_PROGRESS?.all?.()||[];
+  const blocked=Object.assign(Object.create(null),done);
+  for(const id of pending)
+    if(typeof id==='string'&&idPattern.test(id))blocked[id]=true;
   const cloud=await cloudCandidates(sizes,difficulty,api);
-  const bank=pickUnseen(cloud,done);
+  const bank=pickUnseen(cloud,blocked);
   if(bank)return {puzzle:bank,source:'bank',syncStatus:synced};
   const local=(localPuzzles.length?localPuzzles:api.restore())
     .filter(p=>verifiedLocal(p,sizes,difficulty,api));
-  const cached=pickUnseen(local,done);
+  const cached=pickUnseen(local,blocked);
   if(cached)return {puzzle:cached,source:'local',syncStatus:synced};
   // Entire group is exhausted for THIS player, not for other users.
   // Fresh candidate must independently pass CaDiCaL blocked-reference UNSAT.
   const size=sizes[Math.floor(Math.random()*sizes.length)];
   const puzzle=await api.generateAsync({size,difficulty,maxMs:5000});
-  if(!puzzle||puzzle.verified!==true||completion?.has?.(puzzle.id))
+  if(!puzzle||puzzle.verified!==true||Object.hasOwn(blocked,puzzle.id)||completion?.has?.(puzzle.id))
     throw Error('유일해가 확인된 새 퍼즐을 배정하지 못했습니다.');
   return {puzzle,source:'generated',syncStatus:synced};
 }
