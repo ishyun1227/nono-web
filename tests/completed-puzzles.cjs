@@ -40,6 +40,8 @@ const {chromium}=require('playwright');
       localStorage.setItem('nono-account-scope-v1','alice');
       window.dispatchEvent(new CustomEvent('nono:account-changed',{detail:{previous:'guest',target:'alice'}}));
       const a=api.completedCount();
+      // account.js clears/restores scoped history on a real account switch.
+      localStorage.removeItem('nono-completion-history-v1');
       localStorage.setItem('nono-account-scope-v1','bob');
       window.dispatchEvent(new CustomEvent('nono:account-changed',{detail:{previous:'alice',target:'bob'}}));
       const b=api.completedCount();
