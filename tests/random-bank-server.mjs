@@ -59,6 +59,98 @@ assert.equal(result.published,3);
 assert.equal(Object.keys(await first.get('randomPuzzleBank/10_보통')).length,6);
 console.log('PASS initially empty bank fills in bounded, resumable batches');
 
+// Cumulative stats must distinguish generator yield from stock quantity, include
+// reason categories, measure elapsed time and survive the next scheduled run.
+const telemetryBucket={size:5,difficulty:'쉬움',key:'5_쉬움'};
+const telemetryStore=new Store();
+const telemetrySpec=puzzleSpec(5,'쉬움',4242);
+const telemetryAccepted=()=>{
+  return {status:'accepted',spec:{...telemetrySpec,verified:true,
+    verifiedBy:'cadical_reference_blocking_unsat_v1'},
+    grade:{difficulty:'쉬움'},proof:{status:'unique'}};
+};
+let telemetryTick=0,telemetryIndex=0;
+const telemetryCandidates=[
+  {status:'rejected',reason:'wrong_difficulty',grade:{difficulty:'보통'}},
+  {status:'rejected',reason:'uniqueness_multiple',grade:{difficulty:'쉬움'}},
+  null,telemetryAccepted(),telemetryAccepted()
+];
+result=await refill(telemetryStore,{
+  buckets:[telemetryBucket],maxPublished:5,maxAttempts:5,
+  perBucketAttempts:5,maxMs:10000,measureMs:()=>telemetryTick,
+  makeAttempt:async()=>{
+    telemetryTick+=100;
+    const index=telemetryIndex++;
+    if(index===2)throw Error('synthetic generation error');
+    return telemetryCandidates[index];
+  }
+});
+assert.equal(result.attempts,5);
+assert.equal(result.published,1);
+let stats=await telemetryStore.get('randomBankStats/5_쉬움');
+assert.equal(stats.schemaVersion,1);
+assert.equal(stats.attempts,5);
+assert.equal(stats.published,1);
+assert.equal(stats.failed,4);
+assert.equal(stats.successRatePct,20);
+assert.equal(stats.avgAttemptMs,100);
+assert.equal(stats.avgMsPerPublished,500,
+  'Time per published puzzle must include unsuccessful attempts');
+assert.equal(stats.avgPublishedAttemptMs,100);
+assert.equal(stats.totalAttemptMs,500);
+assert.deepEqual(stats.failures,{
+  wrong_difficulty:1,uniqueness_multiple:1,candidate_error:1,duplicate_id:1
+});
+assert.deepEqual(stats.gradedByDifficulty,{'보통':1,'쉬움':3});
+assert.equal(stats.attempts,stats.published+stats.failed);
+assert.deepEqual(
+  Object.keys((await telemetryStore.get('randomPuzzleBank/5_쉬움'))||{}),
+  [telemetrySpec.id],
+  'Stats must not change puzzle allocation or create duplicates'
+);
+const firstRecordedAt=stats.firstRecordedAt;
+result=await refill(telemetryStore,{
+  buckets:[telemetryBucket],maxPublished:1,maxAttempts:1,
+  perBucketAttempts:1,maxMs:10000,measureMs:()=>telemetryTick,
+  makeAttempt:async()=>{
+    telemetryTick+=200;
+    const spec=puzzleSpec(5,'쉬움',4243);
+    return {status:'accepted',spec:{...spec,verified:true,
+      verifiedBy:'cadical_reference_blocking_unsat_v1'},
+      grade:{difficulty:'쉬움'},proof:{status:'unique'}};
+  }
+});
+stats=await telemetryStore.get('randomBankStats/5_쉬움');
+assert.equal(stats.attempts,6);
+assert.equal(stats.published,2);
+assert.equal(stats.failed,4);
+assert.equal(stats.totalAttemptMs,700);
+assert.equal(stats.successRatePct,33.33);
+assert.equal(stats.avgMsPerPublished,350);
+assert.equal(stats.firstRecordedAt,firstRecordedAt);
+console.log('PASS cumulative per-bucket yield, classified failure reasons, difficulty mix, elapsed time and cross-run persistence');
+
+const interruptedStats=new Store();
+let failureCalls=0;
+result=await refill(interruptedStats,{
+  buckets:[telemetryBucket],maxPublished:2,maxAttempts:21,
+  perBucketAttempts:21,maxMs:10000,makeAttempt:async()=>{
+    failureCalls++;
+    return {status:'rejected',reason:'logic_unknown_or_invalid'};
+  }
+});
+assert.equal(failureCalls,21);
+assert.equal(result.published,0);
+stats=await interruptedStats.get('randomBankStats/5_쉬움');
+assert.equal(stats.attempts,21);
+assert.equal(stats.successRatePct,0);
+assert.equal(stats.avgMsPerPublished,null);
+assert.equal(stats.failures.logic_unknown_or_invalid,21);
+assert.equal(interruptedStats.writes.filter(w=>w.path==='randomBankStats/5_쉬움').length,3,
+  'Aggregated stats should flush periodically, never once per candidate');
+console.log('PASS bounded statistics writes and no divide-by-zero when a bucket produces nothing');
+
+
 // Across one run, no size/difficulty bucket may monopolize the attempt budget.
 const fairBuckets=[
   {size:5,difficulty:'쉬움',key:'5_쉬움'},
