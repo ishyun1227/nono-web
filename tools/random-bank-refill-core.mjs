@@ -26,15 +26,28 @@ function goodCandidate(result,b){
 // database entry per candidate: aggregate statistics and flush periodically.
 const STATS_FLUSH_ATTEMPTS=10;
 const REASONS=new Set([
-  'wrong_difficulty','logic_unknown_or_invalid','logic_solution_mismatch',
-  'uniqueness_multiple','uniqueness_unknown','candidate_error',
-  'publish_error','duplicate_id','invalid_candidate','other_rejection'
+  'wrong_difficulty','logic_unknown_or_invalid','logic_unknown','logic_invalid',
+  'logic_solution_mismatch','uniqueness_multiple','uniqueness_unknown',
+  'uniqueness_timeout','uniqueness_error','uniqueness_encoding_issue',
+  'candidate_error','publish_error','duplicate_id','invalid_candidate','other_rejection'
 ]);
 function emptyDelta(){
   return {attempts:0,published:0,failed:0,totalAttemptMs:0,
     publishedAttemptMs:0,failures:{},gradedByDifficulty:{}};
 }
 function failureFor(candidate){
+  if(candidate?.status==='rejected'&&candidate.reason==='logic_unknown_or_invalid'){
+    if(candidate.logicStatus==='unknown')return 'logic_unknown';
+    if(candidate.logicStatus==='invalid')return 'logic_invalid';
+  }
+  if(candidate?.status==='rejected'&&candidate.reason==='uniqueness_unknown'){
+    const detail=candidate.proof?.reason;
+    if(['proof_time_budget','encode_time_budget','encode_timeout'].includes(detail))
+      return 'uniqueness_timeout';
+    if(detail==='sat_error')return 'uniqueness_error';
+    if(typeof detail==='string'&&detail.startsWith('encode_'))
+      return 'uniqueness_encoding_issue';
+  }
   return candidate?.status==='rejected'&&REASONS.has(candidate.reason)
     ?candidate.reason:candidate?.status==='rejected'?'other_rejection':'invalid_candidate';
 }
