@@ -31,7 +31,7 @@
 
 - 서버 실행기가 `randomBankStats/{size}_{difficulty}`에 **관리자 전용** 누적 통계를 기록한다. 웹 브라우저의 일반 계정에는 이 노드를 읽거나 쓸 수 있는 권한을 추가하지 않는다.
 - `attempts`: 해당 분류를 목표로 생성 후보를 시도한 총 횟수. **`published`**: 실제 유일해 검증·서버 저장까지 성공한 수. **`failed`**: 나머지 후보 수. `successRatePct = published / attempts × 100`이다. 재고에 기존 퍼즐이 몇 개 있는지와는 별개다.
-- `failures`: `wrong_difficulty`, `logic_unknown_or_invalid`, `logic_solution_mismatch`, `uniqueness_multiple`, `uniqueness_unknown`, `candidate_error`, `publish_error`, `duplicate_id`, `invalid_candidate`, `other_rejection` 등 실패 원인별 누적 수.
+- `failures`: 난이도 불일치 `wrong_difficulty`, 논리 풀이 불확정 `logic_unknown`, 논리 오류 `logic_invalid`, 복수해 `uniqueness_multiple`, CaDiCaL 검증 시간 한도 `uniqueness_timeout`, 검증 오류 `uniqueness_error`, 인코딩 문제 `uniqueness_encoding_issue`, 중복 ID `duplicate_id`, 후보 생성 오류 `candidate_error`, DB 저장 오류 `publish_error` 등 **실패 원인별 누적 횟수**. 판정 상세가 없는 기존 유형은 `logic_unknown_or_invalid`, `uniqueness_unknown` 등으로 남긴다.
 - `gradedByDifficulty`: 시도했던 후보 가운데 난이도 판정이 완료된 경우, 실제 판정된 쉬움·보통·어려움·전문가의 분포. 생성 실패·판정 불가 후보는 포함되지 않는다.
 - `totalAttemptMs`: 후보 생성·난이도 분석·유일해 확인 및 발행 시도에 소요된 시간의 합계(밀리초). `avgAttemptMs`: 시도 1회당 평균. `avgMsPerPublished = totalAttemptMs / published`: 실패에 쓴 시간까지 포함한 **저장 성공 1개당 평균 소요 시간**. 성공 개수가 0이면 이 지표는 `null`이다. 통계 저장 작업 자체의 통신 시간과 실행기 준비 시간은 포함하지 않는다.
 - 실행 중 측정치를 후보 10회마다(또는 실행 종료 시) 묶어 기록한다. Firebase에 후보마다 쓰는 방식이 아니다. 갑자기 중단되면 **마지막 기록 이후 최대 9회분** 통계는 누락될 수 있다. 이미 저장된 퍼즐을 지우거나 통계를 초기화하지 않는다.
