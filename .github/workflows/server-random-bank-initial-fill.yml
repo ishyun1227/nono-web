@@ -1,0 +1,56 @@
+name: One-time initial random puzzle stock fill
+on:
+  schedule:
+    # An additional hourly run only while the one-time stock warmup is active.
+    # GitHub scheduled jobs may start late or be skipped under load.
+    - cron: "47 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  # Serialize with the normal hourly refill and one-time rules activation.
+  group: server-random-puzzle-bank-writer
+  cancel-in-progress: false
+jobs:
+  initial-fill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check existing Firebase credential availability
+        id: ready
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        shell: bash
+        run: |
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "## No initial fill: existing Firebase key is unavailable." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Check the 36 initial inventories, security rules and safety window
+        id: plan
+        if: steps.ready.outputs.ready == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node --check tools/random-bank-initial-fill-core.mjs
+          node --check tools/plan-random-bank-initial-fill.mjs
+          node tools/plan-random-bank-initial-fill.mjs
+      - name: Install deterministic generator and CaDiCaL WASM
+        if: steps.plan.outputs.run == 'true'
+        run: npm ci
+      - name: Fill only size/difficulty categories still below 100 puzzles
+        if: steps.plan.outputs.run == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          RANDOM_BANK_TARGET_BUCKETS: ${{ steps.plan.outputs.buckets }}
+          RANDOM_BANK_MAX_PUBLISHED: "60"
+          RANDOM_BANK_MAX_ATTEMPTS: "4000"
+          RANDOM_BANK_MAX_MS: "420000"
+          RANDOM_BANK_PER_BUCKET_ATTEMPTS: "0"
+        run: node tools/refill-random-bank.mjs
