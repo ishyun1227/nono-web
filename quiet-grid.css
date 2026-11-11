@@ -443,3 +443,164 @@ body[data-nono-theme="neon"] #home-view:not(.hidden) :is(
     transition:none !important;
   }
 }
+
+
+/* Frontend Design skill / NONO puzzle-workbench composition */
+/* Skill-driven structural pass: selection controls form a workbench with
+   explicit zones; resume content becomes a dense session index rather than
+   another stack of SaaS cards. Only the default home is affected. */
+@media (min-width:981px) {
+  body[data-nono-theme="neon"] #home-view:not(.hidden) .home-content {
+    display:grid !important;
+    grid-template-columns:minmax(0,1.28fr) minmax(0,.72fr) !important;
+    align-items:stretch;
+    column-gap:12px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) .home-content>#setup {
+    grid-column:1 !important;
+    grid-row:1 !important;
+    padding:19px 20px 66px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-setup {
+    display:grid !important;
+    grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr) !important;
+    gap:14px !important;
+    margin-top:16px !important;
+    align-items:stretch !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-filters{
+    grid-column:1;
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) !important;
+    align-content:start;
+    gap:14px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-filter{
+    padding:0 !important;
+    border:0 !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-size-choices{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:5px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-difficulty-choices{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:5px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) :is(
+    .nono-apple-size-choices,.nono-apple-difficulty-choices
+  )>.nono-apple-choice {
+    width:100% !important;
+    min-width:0 !important;
+    min-height:34px !important;
+    padding:7px 4px !important;
+    font-size:12px !important;
+    line-height:1.2 !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-puzzles {
+    grid-column:2;
+    align-self:stretch;
+    border-left:1px solid #b5cbc0;
+    padding:0 0 0 14px !important;
+    margin:0 !important;
+    min-height:0 !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-puzzle-choices {
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    align-items:start !important;
+    align-content:start !important;
+    gap:5px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-puzzle-choices>.nono-apple-choice{
+    min-width:0 !important;
+    width:100% !important;
+    min-height:36px !important;
+    padding:6px 3px !important;
+    text-align:center !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-puzzle-choices>.nono-apple-random-generate{
+    grid-column:1 / -1;
+    min-height:36px !important;
+    white-space:normal !important;
+    line-height:1.25 !important;
+    text-align:center !important;
+    font-size:11px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup>.setup-actions{
+    right:20px !important;
+    bottom:15px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) .home-content>#nono-resume-view{
+    grid-column:2 !important;
+    grid-row:1 !important;
+    display:flex !important;
+    flex-direction:column !important;
+    min-width:0;
+    gap:10px !important;
+    padding:19px 15px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #nono-resume-items{
+    display:grid !important;
+    grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    gap:0 9px !important;
+    align-content:start !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-card{
+    min-height:54px !important;
+    border:0 !important;
+    border-bottom:1px solid #d1ddd4 !important;
+    border-radius:0 !important;
+    padding:8px 3px !important;
+    background:transparent !important;
+    box-shadow:none !important;
+    display:grid !important;
+    grid-template-columns:minmax(0,1fr) 24px !important;
+    align-items:center !important;
+    gap:3px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-card:hover{
+    background:#eff5ee !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-card-copy strong{
+    font-size:15px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-card-copy>span{
+    font-size:10px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-continue{
+    width:22px !important;
+    min-width:22px !important;
+    height:29px !important;
+    min-height:29px !important;
+  }
+}
+/* A narrower window is a different layout problem: retain the tested
+   existing tablet/mobile launcher instead of forcing two cramped columns. */
+@media (min-width:981px) and (max-width:1230px) {
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-setup{
+    grid-template-columns:minmax(0,1fr) !important;
+    gap:9px !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-puzzles{
+    grid-column:1 !important;
+    border-left:0 !important;
+    border-top:1px solid #d3ddd5 !important;
+    padding:8px 0 0 !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-size-choices{
+    grid-template-columns:repeat(4,minmax(0,1fr)) !important;
+  }
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup:not(:has(> #public-lobby:not(.hidden))) .nono-apple-difficulty-choices{
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+  }
+}
+@media(max-width:790px) {
+  /* Mobile gameplay remains governed by its existing fullscreen controls.
+     No new top/bottom bars, overlays or viewport-height constraints. */
+  body[data-nono-theme="neon"] #home-view:not(.hidden) #setup .setup-description h3::before{
+    width:11px;height:11px;vertical-align:0;margin-right:7px;
+  }
+}
