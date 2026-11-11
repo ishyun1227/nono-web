@@ -1,0 +1,25 @@
+name: Firebase Realtime Database free quota check
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily check, 09:27 Korea time. Initial fill also checks before EACH burst.
+    - cron: "27 0 * * *"
+permissions:
+  contents: read
+jobs:
+  usage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Read Firebase storage and current-month downloads with Cloud Monitoring
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node --check tools/random-bank-admin.mjs
+          node --check tools/random-bank-usage-metrics.mjs
+          node --check tools/check-random-bank-usage.mjs
+          node tools/check-random-bank-usage.mjs
