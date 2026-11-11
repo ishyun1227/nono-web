@@ -150,6 +150,29 @@ assert.equal(interruptedStats.writes.filter(w=>w.path==='randomBankStats/5_쉬�
   'Aggregated stats should flush periodically, never once per candidate');
 console.log('PASS bounded statistics writes and no divide-by-zero when a bucket produces nothing');
 
+const categorized=new Store();
+const reasonExamples=[
+  {status:'rejected',reason:'logic_unknown_or_invalid',logicStatus:'unknown'},
+  {status:'rejected',reason:'logic_unknown_or_invalid',logicStatus:'invalid'},
+  {status:'rejected',reason:'uniqueness_unknown',proof:{reason:'proof_time_budget'}},
+  {status:'rejected',reason:'uniqueness_unknown',proof:{reason:'sat_error'}},
+  {status:'rejected',reason:'uniqueness_unknown',proof:{reason:'encode_unsupported'}}
+];
+let reasonIndex=0;
+result=await refill(categorized,{
+  buckets:[telemetryBucket],maxPublished:1,maxAttempts:5,
+  perBucketAttempts:5,maxMs:10000,
+  makeAttempt:async()=>reasonExamples[reasonIndex++]
+});
+stats=await categorized.get('randomBankStats/5_쉬움');
+assert.equal(stats.attempts,5);
+assert.deepEqual(stats.failures,{
+  logic_unknown:1,logic_invalid:1,uniqueness_timeout:1,
+  uniqueness_error:1,uniqueness_encoding_issue:1
+});
+console.log('PASS separate logic unknown/invalid, SAT timeout, SAT error and encoding failure metrics');
+
+
 
 // Across one run, no size/difficulty bucket may monopolize the attempt budget.
 const fairBuckets=[
