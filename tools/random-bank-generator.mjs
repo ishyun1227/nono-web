@@ -67,7 +67,8 @@ export async function attempt({size,difficulty,seed=randomSeed(),logicMs=1500,pr
   const puzzle=random.fromSpec(spec),reference=random.answerFor(spec);
   const logic=solveLogic(puzzle,{maxMs:logicMs,captureTrace:false});
   const grade=classify(size,logic);
-  if(!grade)return {status:'rejected',reason:'logic_unknown_or_invalid',spec};
+  if(!grade)return {status:'rejected',reason:'logic_unknown_or_invalid',spec,
+    logicStatus:logic?.status,logicReason:logic?.reason};
   if(grade.difficulty!==difficulty)return {status:'rejected',reason:'wrong_difficulty',spec,grade};
   if(logic.status==='solved'&&logic.cells.join('')!==reference)
     return {status:'rejected',reason:'logic_solution_mismatch',spec};
