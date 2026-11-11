@@ -7,6 +7,7 @@
 import {makeAdminStore,validateCredential,validateDatabaseUrl} from './random-bank-admin.mjs';
 import {assertTargetAccount,checkLiveBankRules,TARGET_DATABASE_URL} from './random-bank-live-rules.mjs';
 import {refill} from './random-bank-refill-core.mjs';
+import {BUCKETS} from './random-bank-generator.mjs';
 import {appendFileSync} from 'node:fs';
 
 const credentials=process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
@@ -21,7 +22,21 @@ const integer=(key,fallback,max)=>{
   const value=Number(process.env[key]);
   return Number.isSafeInteger(value)&&value>=0?Math.min(value,max):fallback;
 };
+// The initial-fill workflow may target ONLY the missing initial inventory
+// buckets. Reject an empty, duplicate, or unknown selection rather than
+// accidentally invoking an unrestricted production refill.
+const selectedRaw=process.env.RANDOM_BANK_TARGET_BUCKETS;
+let selectedBuckets=BUCKETS;
+if(selectedRaw!==undefined){
+  const names=selectedRaw.split(',');
+  const known=new Map(BUCKETS.map(bucket=>[bucket.key,bucket]));
+  if(!names.length||names.some(name=>!known.has(name))||
+     new Set(names).size!==names.length)
+    throw Error('Invalid or empty RANDOM_BANK_TARGET_BUCKETS');
+  selectedBuckets=names.map(name=>known.get(name));
+}
 const result=await refill(store,{
+  buckets:selectedBuckets,
   maxPublished:integer('RANDOM_BANK_MAX_PUBLISHED',12,100),
   maxAttempts:integer('RANDOM_BANK_MAX_ATTEMPTS',1200,5000),
   maxMs:integer('RANDOM_BANK_MAX_MS',300000,900000),
