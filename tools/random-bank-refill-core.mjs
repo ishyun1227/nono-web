@@ -257,7 +257,9 @@ export async function refill(store,{
     if(state.cumulative)state.entry.cumulative={
       attempts:state.cumulative.attempts,published:state.cumulative.published,
       failed:state.cumulative.failed,successRatePct:state.cumulative.successRatePct,
-      avgMsPerPublished:state.cumulative.avgMsPerPublished
+      avgMsPerPublished:state.cumulative.avgMsPerPublished,
+      avgAttemptMs:state.cumulative.avgAttemptMs,
+      failures:state.cumulative.failures
     };
     if(state.entry.attempted)log('bucket_processed',state.entry);
   }
