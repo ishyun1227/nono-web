@@ -55,8 +55,8 @@ if(stepSummary){
     '',
     '전체 36개 분류의 누적 상세 기록은 비공개 Firebase RTDB \u0060randomBankStats/{size}_{difficulty}\u0060에 저장됩니다.',
     ''
-  ].join('\\n');
-  appendFileSync(stepSummary,markdown+'\\n');
+  ].join('\n');
+  appendFileSync(stepSummary,markdown+'\n');
 }
 console.log(JSON.stringify({
   event:'refill_complete',
