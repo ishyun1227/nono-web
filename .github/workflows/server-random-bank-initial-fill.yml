@@ -32,9 +32,18 @@ jobs:
             exit 0
           fi
           echo "ready=true" >> "$GITHUB_OUTPUT"
+      - name: Check live Firebase free-tier usage (block burst at 80% or missing data)
+        id: usage
+        if: steps.ready.outputs.ready == 'true'
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          node --check tools/random-bank-usage-metrics.mjs
+          node --check tools/check-random-bank-usage.mjs
+          node tools/check-random-bank-usage.mjs
       - name: Check the 36 initial inventories, security rules and safety window
         id: plan
-        if: steps.ready.outputs.ready == 'true'
+        if: steps.usage.outputs.safe == 'true'
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |
