@@ -8,6 +8,10 @@ on:
       - tools/random-bank-initial-fill-core.mjs
       - tools/plan-random-bank-initial-fill.mjs
       - .github/workflows/server-random-bank-initial-fill.yml
+      - tools/random-bank-usage-metrics.mjs
+      - tools/check-random-bank-usage.mjs
+      - tests/random-bank-usage.mjs
+      - .github/workflows/server-random-bank-usage.yml
       - tools/random-bank-admin.mjs
       - tools/random-bank-live-rules.mjs
       - tools/activate-random-bank-rules.mjs
@@ -36,6 +40,9 @@ jobs:
         run: |
           node --check tools/random-bank-generator.mjs
           node --check tools/random-bank-admin.mjs
+          node --check tools/random-bank-usage-metrics.mjs
+          node --check tools/check-random-bank-usage.mjs
+          node --check tests/random-bank-usage.mjs
           node --check tools/random-bank-live-rules.mjs
           node --check tools/activate-random-bank-rules.mjs
           node --check tools/random-bank-refill-core.mjs
@@ -46,5 +53,7 @@ jobs:
           node -e "JSON.parse(require('node:fs').readFileSync('database.rules.json','utf8'))"
       - name: Test initial burst safety caps, 100-stock planner, refill, proof and credentials
         run: node tests/random-bank-server.mjs
+      - name: Test no-cost Firebase quota telemetry and fail-closed decisions
+        run: node tests/random-bank-usage.mjs
       - name: Test Firebase bank and restock request security
         run: npx firebase emulators:exec --project demo-nono --only database,auth "node tests/random-puzzle-bank-rules.cjs"
