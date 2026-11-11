@@ -1,0 +1,215 @@
+/* NONO / Quiet Grid — default homepage visual refinement
+   The nonogram grid is the identity: editorial structure, visible state,
+   restrained colour, crisp borders. This deliberately leaves the game,
+   touch controls, modal flows and all premium worlds unchanged.
+   Keep the existing responsive geometry and interactive behaviour. */
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) {
+  --nono-ink:#20352f;
+  --nono-paper:#f2f4ef;
+  --nono-canvas:#fffefa;
+  --nono-line:#cbd5ce;
+  --nono-muted:#64766f;
+  --nono-play:#176d59;
+  --nono-play-hover:#115541;
+  background:#f2f4ef !important;
+  color:var(--nono-ink) !important;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .topbar {
+  background:var(--nono-canvas) !important;
+  border:1px solid var(--nono-line) !important;
+  border-bottom:3px solid #2b6153 !important;
+  border-radius:9px !important;
+  box-shadow:none !important;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .brand {
+  color:var(--nono-ink) !important;
+  letter-spacing:-.07em;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .brand::before {
+  content:"";
+  display:block;
+  flex:0 0 auto;
+  width:16px;height:16px;
+  background:linear-gradient(90deg,#235c4e 47%,transparent 47% 53%,#235c4e 53%),
+             linear-gradient(#235c4e 47%,transparent 47% 53%,#235c4e 53%);
+  background-blend-mode:multiply;
+  border:1px solid #235c4e;
+  border-radius:1px;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .topbar>.mode-select {
+  background:#f0f3ee !important;
+  border:1px solid #d6ded8 !important;
+  border-radius:6px !important;
+  box-shadow:none !important;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .topbar .mode-select .mode-card {
+  border-radius:4px !important;
+  color:#496258 !important;
+  font-weight:750;
+  letter-spacing:-.02em;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .topbar .mode-select .mode-card.selected,
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .topbar .mode-select .mode-card.selected:hover {
+  background:#245748 !important;
+  color:#fffefa !important;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .topbar .mode-select .mode-card:hover:not(.selected){
+  background:#dce9e0 !important;
+  color:#1a4d3c !important;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) :is(
+  .header-right .profile-chip,#nono-theme-open,#nono-open-settings
+) {
+  background:#fffefa !important;
+  border:1px solid var(--nono-line) !important;
+  border-radius:6px !important;
+  box-shadow:none !important;
+  color:var(--nono-ink) !important;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) :is(
+  .header-right .profile-chip,#nono-theme-open,#nono-open-settings
+):hover {background:#e6eee8 !important}
+body[data-nono-theme="neon"] #home-view:not(.hidden) #setup {
+  background:var(--nono-canvas) !important;
+  border:1px solid var(--nono-line) !important;
+  border-top:4px solid #245748 !important;
+  border-radius:9px !important;
+  box-shadow:none !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) #setup .setup-description h3 {
+  color:#173b31 !important;
+  font-weight:850;
+  letter-spacing:-.055em;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) #setup .setup-description p {
+  color:var(--nono-muted) !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-apple-setup h4 {
+  color:#496459;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-apple-filter:nth-child(2) {
+  border-color:#d9e0d9;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-apple-choice {
+  background:#f8faf6 !important;
+  color:#344c41 !important;
+  border:1px solid #ced8d0 !important;
+  border-radius:6px !important;
+  box-shadow:none !important;
+  font-weight:720;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-apple-choice[aria-pressed="true"] {
+  background:#245748 !important;
+  border-color:#245748 !important;
+  color:#fffefa !important;
+  box-shadow:inset 0 0 0 1px #fffefa2e !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-apple-choice:hover:not([disabled]):not([aria-pressed="true"]){
+  background:#e7efe9 !important;
+  border-color:#9cb5a6 !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) #setup .setup-actions #play-alone {
+  background:#176d59 !important;
+  color:white !important;
+  border:1px solid #115541 !important;
+  border-radius:6px !important;
+  box-shadow:none !important;
+  font-weight:800;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) #setup .setup-actions #play-alone:hover:not(:disabled) {
+  background:#115541 !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) #nono-resume-view {
+  background:var(--nono-canvas) !important;
+  border:1px solid var(--nono-line) !important;
+  border-radius:9px !important;
+  box-shadow:none !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) #nono-resume-view .nono-resume-heading h2 {
+  color:#173b31;
+  font-weight:850;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) #nono-resume-view .nono-resume-heading p {
+  color:var(--nono-muted);
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-card {
+  background:#f8faf6 !important;
+  border:1px solid #d3ddd4 !important;
+  border-radius:6px !important;
+  box-shadow:none !important;
+  transform:none !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-card:hover {
+  background:#edf4ed !important;
+  border-color:#8aa99a !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-card-copy strong {color:#1b3a30}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-card-copy>span {color:#60736a}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-apple-progress {
+  background:#dce5dd;
+  border-radius:2px;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-apple-progress>span {
+  border-radius:2px;
+  background:#176d59;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) [data-nono-resume-mode="race"] .nono-apple-progress>span {background:#346e9e}
+body[data-nono-theme="neon"] #home-view:not(.hidden) [data-nono-resume-mode="coop"] .nono-apple-progress>span {background:#8c659d}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-resume-empty {
+  background:#f5f8f3;
+  border:1px dashed #cbd5ce;
+  border-radius:6px;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) :is(
+  .nono-rail-panel,.nono-daily-card
+) {
+  background:#fffefa !important;
+  border:1px solid #cbd5ce !important;
+  border-radius:9px !important;
+  box-shadow:none !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) :is(
+  .nono-completion-item,.nono-mission-row,.nono-attendance-day
+) {
+  background:#f7f9f5 !important;
+  border:1px solid #d4ded4 !important;
+  border-radius:5px !important;
+  box-shadow:none !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) :is(
+  .nono-rail-title,.nono-daily-head h2
+) {color:#183e32}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-rail-indicator {
+  background:#22785e;
+  box-shadow:none;
+  border-radius:1px;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-ad-placeholder {
+  background:#f6f8f4 !important;
+  border:1px dashed #bfcfc2 !important;
+  border-radius:5px !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-ad-placeholder-icon {
+  border-radius:5px !important;
+  background:#e4eee6 !important;
+  color:#295e4c !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) .nono-completion-tag {
+  border-radius:3px;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) :is(
+  .nono-mission-claim,.nono-attendance-claim
+) {
+  border-radius:5px !important;
+  box-shadow:none !important;
+}
+body[data-nono-theme="neon"] #home-view:not(.hidden) :is(
+  .nono-apple-choice,.nono-resume-continue,.mode-card,.nono-mission-claim,.nono-attendance-claim
+):focus-visible {
+  outline:2px solid #176d59 !important;
+  outline-offset:2px;
+}
+/* All responsive measurements, grid placement, scroll rules and game board
+   remain owned by the existing stylesheets. Only the surface language changes. */
