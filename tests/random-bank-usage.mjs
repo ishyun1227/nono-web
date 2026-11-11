@@ -4,7 +4,7 @@
 import assert from 'node:assert/strict';
 import {EXPECTED_NAMESPACE,LIMIT_RATIO,SPARK_STORAGE_BYTES,
   SPARK_MONTHLY_DOWNLOAD_BYTES,evaluateUsage,pickMetricSample,
-  readFirebaseUsage,usageReportMarkdown} from '../tools/random-bank-usage-metrics.mjs';
+  readFirebaseUsage,usageReportMarkdown,classifyMonitoringFailure} from '../tools/random-bank-usage-metrics.mjs';
 import {TARGET_PROJECT} from '../tools/random-bank-live-rules.mjs';
 const now=Date.parse('2026-11-11T06:00:00Z');
 const sample=(value,time=now-60*60*1000)=>({
@@ -79,7 +79,40 @@ assert.equal(missingMetrics.missing.length,4);
 await assert.rejects(readFirebaseUsage({
   getAccessToken:async()=>'MOCK_ONLY',now,
   fetchFn:async()=>({ok:false,status:403})
-}),/Monitoring Viewer permission or API access/);
+}),/category=access_denied_unknown_cause/);
+const gcpFailure=(reason,message)=>({
+  error:{code:403,status:'PERMISSION_DENIED',message,
+    details:[{'@type':'type.googleapis.com/google.rpc.ErrorInfo',
+      reason,domain:'googleapis.com'}]}
+});
+assert.deepEqual(
+  classifyMonitoringFailure(403,gcpFailure('BILLING_DISABLED',
+    'This API method requires billing to be enabled')).category,
+  'billing_not_enabled_or_restricted');
+assert.equal(classifyMonitoringFailure(403,gcpFailure('SERVICE_DISABLED',
+  'Cloud Monitoring API has not been used')).category,'monitoring_api_disabled');
+assert.equal(classifyMonitoringFailure(403,gcpFailure('IAM_PERMISSION_DENIED',
+  'Permission monitoring.timeSeries.list denied')).category,
+  'monitoring_iam_or_project_restriction');
+assert.equal(classifyMonitoringFailure(403,gcpFailure('ACCESS_TOKEN_SCOPE_INSUFFICIENT',
+  'Insufficient authentication scopes')).category,'token_scope_missing');
+assert.equal(classifyMonitoringFailure(403,gcpFailure('CONSUMER_INVALID','consumer')),
+  'project_consumer_restricted');
+const privateSample='access_token=PRIVATE_VALUE';
+await assert.rejects(readFirebaseUsage({
+  getAccessToken:async()=>'MOCK_ONLY',now,
+  fetchFn:async()=>({ok:false,status:403,
+    headers:{get:()=> 'application/json'},
+    json:async()=>gcpFailure('BILLING_DISABLED',
+      'This API method requires billing. '+privateSample)})
+}),error=>{
+  assert.equal(error.diagnostic.category,'billing_not_enabled_or_restricted');
+  assert.equal(error.diagnostic.providerReason,'BILLING_DISABLED');
+  assert(!error.message.includes(privateSample));
+  assert(!JSON.stringify(error.diagnostic).includes(privateSample));
+  return true;
+});
+console.log('PASS 403 billing, disabled API, IAM, scope and project classification without secret leakage');
 await assert.rejects(readFirebaseUsage({
   getAccessToken:async()=>'MOCK_ONLY',now,
   project:'other-project',fetchFn:mockFetch
