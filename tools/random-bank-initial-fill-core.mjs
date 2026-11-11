@@ -55,7 +55,8 @@ export async function planInitialFill(store,{
     throw Error('Invalid initial-fill control record; refusing writes');
   if(control?.status==='finished')return {
     run:false,reason:control.reason||'already_finished',
-    runs:control.runs,remainingBuckets:0
+    runs:control.runs,
+    remainingBuckets:control.reason==='target_reached'?0:(control.remainingBuckets??null)
   };
   const startedAt=control?.startedAt??now;
   const runs=control?.runs??0;
