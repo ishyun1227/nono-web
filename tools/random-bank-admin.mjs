@@ -51,17 +51,18 @@ export function makeAdminStore({serviceAccountJson,databaseUrl,fetchFn=fetch}){
     cached=data.access_token;expires=Date.now()+data.expires_in*1000;
     return cached;
   }
-  async function request(method,path,value,conditional=false,renew=false){
+  async function request(method,path,value,conditional=false,renew=false,shallow=false){
     if(typeof path!=='string'||!path||path.split('/').some(part=>!part||part==='.'||part==='..'))
       throw Error('Invalid Firebase database path');
     const uri=new URL(base+'/'+path.split('/').map(encodeURIComponent).join('/')+'.json');
     uri.searchParams.set('access_token',await token(renew));
+    if(shallow)uri.searchParams.set('shallow','true');
     const headers={'Content-Type':'application/json'};
     if(conditional)headers['If-Match']='null_etag';
     const response=await fetchFn(uri,{method,headers,
       ...(method==='PUT'?{body:JSON.stringify(value)}:{})});
     if((response.status===401||response.status===403)&&!renew)
-      return request(method,path,value,conditional,true);
+      return request(method,path,value,conditional,true,shallow);
     if(conditional&&response.status===412)return {created:false};
     if(!response.ok)throw Error('Firebase RTDB '+method+' failed, HTTP '+response.status);
     if(method==='DELETE')return true;
@@ -97,6 +98,7 @@ export function makeAdminStore({serviceAccountJson,databaseUrl,fetchFn=fetch}){
   }
   return {
     get:path=>request('GET',path),
+    keys:async path=>Object.keys((await request('GET',path,undefined,false,false,true))||{}),
     put:(path,value)=>request('PUT',path,value),
     create:(path,value)=>request('PUT',path,value,true),
     remove:path=>request('DELETE',path),
