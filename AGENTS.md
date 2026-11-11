@@ -9,3 +9,5 @@ Never duplicate primary interaction paths or actual selectors just to fill decor
 Do not paste or crop reference screenshots to mimic a real UI. Build original semantic interactive components, CSS and appropriately sourced SVG/art.
 
 Do not call a theme "fully implemented" without live visual review and functional tests. CI success does not prove Cloudflare published the latest build.
+
+Default homepage / UI redesigns must read and use `.agents/skills/frontend-design/SKILL.md` (original Anthropic skill, Apache-2.0 license stored alongside it). The puzzle is the primary interaction, not a decorative hero or a dashboard ornament. When reshaping the default homepage, change information architecture and component layout where warranted; recoloring and border-radius changes alone do not count as a redesign. Preserve real puzzle selection, all game modes, existing state/data, mobile touch and controller interactions, and the premium theme layouts. Inspect the responsive breakpoints and verify the view in a real browser before claiming visual QA is complete.
