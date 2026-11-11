@@ -68,6 +68,81 @@ export function evaluateUsage(samples,{ratio=LIMIT_RATIO}={}){
   return {safe:!blockers.length,reason:blockers.length?'near_spark_limit':'below_80pct',
     blockers,storage,downloads,thresholdPct:ratio*100};
 }
+// Classify provider errors without echoing the response body: Google may
+// include account details, links or request identifiers in its message.
+const KNOWN_GOOGLE_ERROR_REASONS=new Set([
+  'BILLING_DISABLED','BILLING_NOT_ENABLED','BILLING_ACCOUNT_DISABLED',
+  'SERVICE_DISABLED','API_DISABLED','SERVICE_USAGE_DISABLED',
+  'IAM_PERMISSION_DENIED','ACCESS_TOKEN_SCOPE_INSUFFICIENT',
+  'CONSUMER_INVALID','CONSUMER_SUSPENDED','RATE_LIMIT_EXCEEDED',
+  'QUOTA_EXCEEDED','PERMISSION_DENIED'
+]);
+export function classifyMonitoringFailure(status,payload){
+  const error=payload?.error&&typeof payload.error==='object'?payload.error:{};
+  const info=Array.isArray(error.details)?error.details.find(item=>
+    typeof item?.reason==='string' &&
+    KNOWN_GOOGLE_ERROR_REASONS.has(item.reason.toUpperCase())):null;
+  const reason=info?.reason?.toUpperCase()||null;
+  const message=typeof error.message==='string'?error.message.toLowerCase():'';
+  let category='unclassified_api_failure';
+  if(reason?.startsWith('BILLING') ||
+     /billing (?:account |must be |is |to be )?(?:enabled|disabled|suspend|required)|requires billing|billing check failed|enable billing/.test(message)){
+    category='billing_not_enabled_or_restricted';
+  }else if(['SERVICE_DISABLED','API_DISABLED','SERVICE_USAGE_DISABLED'].includes(reason)||
+     /api (?:has not been used|is disabled)|service .*disabled/.test(message)){
+    category='monitoring_api_disabled';
+  }else if(reason==='ACCESS_TOKEN_SCOPE_INSUFFICIENT'||
+     /insufficient authentication scopes/.test(message)){
+    category='token_scope_missing';
+  }else if(reason==='IAM_PERMISSION_DENIED' ||
+     /permission monitoring\.timeseries\.list|permission denied on resource/.test(message)){
+    category='monitoring_iam_or_project_restriction';
+  }else if(reason==='CONSUMER_INVALID'||reason==='CONSUMER_SUSPENDED'){
+    category='project_consumer_restricted';
+  }else if(status===403){
+    category='access_denied_unknown_cause';
+  }else if(status===429||reason==='QUOTA_EXCEEDED'||reason==='RATE_LIMIT_EXCEEDED'){
+    category='monitoring_request_rate_limited';
+  }
+  const guidance={
+    billing_not_enabled_or_restricted:
+      'Cloud Monitoring에서 결제 계정 연결을 요구하는 것일 수 있습니다. Spark 요금제를 자동으로 바꾸지 않습니다. Firebase 콘솔의 사용량 탭으로 확인하세요.',
+    monitoring_api_disabled:
+      'Cloud Monitoring API의 활성화 상태와 실제 호출 프로젝트를 확인하세요.',
+    token_scope_missing:
+      '서비스 계정 OAuth 토큰의 monitoring.read 범위가 필요한 상태입니다. GitHub 최신 main 코드를 사용했는지 확인하세요.',
+    monitoring_iam_or_project_restriction:
+      'GitHub에 저장된 서비스 계정이 IAM에서 확인한 모니터링 뷰어 계정과 동일한지 확인하세요.',
+    project_consumer_restricted:
+      '프로젝트 API 소비자 설정 또는 조직 정책 제한을 확인하세요.',
+    access_denied_unknown_cause:
+      '403의 상세 원인을 아직 확정할 수 없습니다. 서비스 계정 일치 여부, 프로젝트 정책과 결제 상태를 확인하세요.',
+    monitoring_request_rate_limited:
+      'Cloud Monitoring 요청 한도에 걸렸습니다. 반복 실행을 피하세요.',
+    unclassified_api_failure:
+      'Cloud Monitoring 호출에 실패했습니다. 상태코드와 API 설정을 확인하세요.'
+  }[category];
+  return {status:Number.isInteger(status)?status:null,category,
+    providerReason:reason,providerStatus:
+      typeof error.status==='string'&&/^[A-Z_]{1,50}$/.test(error.status)
+        ?error.status:null,
+    guidance};
+}
+async function safeMonitoringFailure(response,metric){
+  let payload=null;
+  // Never log raw response text. Parse structured error fields only.
+  try{
+    const contentType=response.headers?.get?.('content-type')||'';
+    if(contentType&& !/json/i.test(contentType))throw Error('Non-JSON error');
+    payload=await response.json();
+  }catch{}
+  const diagnostic=classifyMonitoringFailure(response.status,payload);
+  const error=new Error('Cloud Monitoring HTTP '+diagnostic.status+
+    ' metric='+metric+' category='+diagnostic.category+
+    (diagnostic.providerReason?' providerReason='+diagnostic.providerReason:''));
+  error.diagnostic=diagnostic;
+  return error;
+}
 export async function readFirebaseUsage({
   getAccessToken,fetchFn=fetch,now=Date.now(),
   project=TARGET_PROJECT,namespace=EXPECTED_NAMESPACE
@@ -100,10 +175,8 @@ export async function readFirebaseUsage({
       const response=await fetchFn(url,{
         method:'GET',headers:{Authorization:'Bearer '+token,Accept:'application/json'}
       });
-      // Never print API response bodies, access tokens, or query parameters.
-      if(!response.ok)throw Error('Cloud Monitoring API HTTP '+response.status+
-        ' for metric '+definition.type+
-        (response.status===403?' (Monitoring Viewer permission or API access may be missing)':''));
+      // Keep only whitelisted, structured diagnostics. Never expose tokens or raw bodies.
+      if(!response.ok)throw await safeMonitoringFailure(response,definition.type);
       const body=await response.json();
       if(!Array.isArray(body?.timeSeries)&&body?.timeSeries!==undefined)
         throw Error('Malformed Cloud Monitoring time series');
