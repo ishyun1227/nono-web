@@ -3,6 +3,7 @@
  */
 import assert from 'node:assert/strict';
 import {refill} from '../tools/random-bank-refill-core.mjs';
+import {planInitialFill,INITIAL_BUCKET_KEYS,INITIAL_MAX_RUNS,INITIAL_MAX_DAYS} from '../tools/random-bank-initial-fill-core.mjs';
 import {attempt,classify,proveUnique,puzzleSpec,BUCKETS} from '../tools/random-bank-generator.mjs';
 import {validateDatabaseUrl,validateCredential,makeAdminStore} from '../tools/random-bank-admin.mjs';
 import {generateKeyPairSync} from 'node:crypto';
@@ -15,6 +16,7 @@ class Store {
   constructor(data={}){this.data=deep(data);this.writes=[];}
   parts(path){return path.split('/');}
   async get(path){let item=this.data;for(const part of this.parts(path)){if(!item||typeof item!=='object')return null;item=item[part];}return deep(item);}
+  async keys(path){return Object.keys((await this.get(path))||{});}
   async put(path,value){let item=this.data;const parts=this.parts(path);
     for(const part of parts.slice(0,-1))item=item[part]??={};
     item[parts.at(-1)]=deep(value);this.writes.push({path,value:deep(value)});return deep(value);}
@@ -36,6 +38,57 @@ class Store {
     return {written:true};
   }
 }
+// The initial stock warmup reserves one run at a time, scans only shallow
+// inventory keys, and stops permanently when all 36 categories reach 100.
+const initialStore=new Store();
+let warmup=await planInitialFill(initialStore,{now:1000000000});
+assert.equal(warmup.run,true);
+assert.equal(warmup.remainingBuckets,36);
+assert.equal(warmup.totalDeficit,3600);
+assert.equal(warmup.runs,1);
+assert.equal((await initialStore.get('randomBankControl/initialFill')).runs,1);
+const firstKeys=Object.fromEntries(Array.from({length:100},(_,i)=>['p'+i,true]));
+await initialStore.put('randomPuzzleBank/5_쉬움',firstKeys);
+warmup=await planInitialFill(initialStore,{now:1000002000});
+assert.equal(warmup.run,true);
+assert.equal(warmup.remainingBuckets,35);
+assert.equal(warmup.totalDeficit,3500);
+assert(!warmup.bucketKeys.includes('5_쉬움'));
+assert.equal(warmup.runs,2);
+for(const key of INITIAL_BUCKET_KEYS)await initialStore.put('randomPuzzleBank/'+key,firstKeys);
+warmup=await planInitialFill(initialStore,{now:1000003000});
+assert.equal(warmup.run,false);
+assert.equal(warmup.reason,'target_reached');
+const finished=(await initialStore.get('randomBankControl/initialFill'));
+assert.equal(finished.status,'finished');
+assert.equal(finished.runs,2,'Goal completion must not reserve another run');
+initialStore.keys=()=>{throw Error('Done mode must not query all stocks again');};
+warmup=await planInitialFill(initialStore,{now:1000004000});
+assert.equal(warmup.run,false);
+console.log('PASS initial stock warmup targets 36x100 and transitions permanently to normal-only mode');
+
+const expiry=new Store({randomBankControl:{initialFill:{
+  status:'active',startedAt:1000000000,runs:12
+}}});
+expiry.keys=()=>{throw Error('Expired warmup must stop before reading puzzle inventory');};
+warmup=await planInitialFill(expiry,{
+  now:1000000000+INITIAL_MAX_DAYS*24*60*60*1000
+});
+assert.equal(warmup.run,false);
+assert.equal(warmup.reason,'time_cap');
+assert.equal((await expiry.get('randomBankControl/initialFill')).status,'finished');
+const capped=new Store({randomBankControl:{initialFill:{
+  status:'active',startedAt:1000000000,runs:INITIAL_MAX_RUNS
+}}});
+capped.keys=()=>{throw Error('Run cap must stop before scanning inventory');};
+warmup=await planInitialFill(capped,{now:1000002000});
+assert.equal(warmup.run,false);
+assert.equal(warmup.reason,'run_cap');
+await assert.rejects(planInitialFill(new Store({randomBankControl:{initialFill:{
+  status:'active',startedAt:-2,runs:0
+}}}),{now:1000002000}),/Invalid initial-fill control/);
+console.log('PASS initial warmup cannot exceed 7 days or 168 runs and fails closed on invalid controls');
+
 const main={size:10,difficulty:'보통',key:'10_보통'};
 let nextSeed=123,makeCalls=0;
 const good=async ({size,difficulty})=>{
@@ -340,6 +393,11 @@ await admin.create('randomPuzzleBank/10_보통/random-10-1-100',{verified:true})
 assert(requests[1].uri.includes('access_token=fake-token'));
 assert(requests[1].uri.includes('10_%EB%B3%B4%ED%86%B5'));
 assert.equal(requests[1].headers['If-Match'],'null_etag');
+const shallowKeys=await admin.keys('randomPuzzleBank/5_쉬움');
+assert.deepEqual(shallowKeys,['ok']);
+assert(requests.at(-1).uri.includes('shallow=true'),
+  'Initial warmup must count shallow keys without downloading puzzle bodies');
+assert.equal(requests.at(-1).method,'GET');
 console.log('PASS restricted service-account URL, OAuth JWT and conditional no-overwrite REST writes');
 
 let savedRuleValue={rules:{'.read':false,'.write':false}};
