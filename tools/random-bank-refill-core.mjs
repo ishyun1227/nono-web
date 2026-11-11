@@ -7,6 +7,7 @@
  * Progress is persisted across scheduled jobs; never publish unproved grids.
  */
 import {BUCKETS,attempt,DIFFICULTIES,SIZES} from './random-bank-generator.mjs';
+import {performance} from 'node:perf_hooks';
 const own=(obj,id)=>Object.prototype.hasOwnProperty.call(obj||{},id);
 const clamp=(x,fallback,max)=>Number.isSafeInteger(x)&&x>=0?Math.min(x,max):fallback;
 const BUCKET_SET=new Set(BUCKETS.map(b=>b.key));
@@ -20,6 +21,51 @@ function goodCandidate(result,b){
     s.version===6&&s.size===b.size&&s.difficulty===b.difficulty&&
     Number.isSafeInteger(s.seed)&&s.seed>=0&&s.seed<=4294967295&&
     typeof s.id==='string'&&/^random-[a-z0-9-]{1,85}$/.test(s.id);
+}
+// Small per-bucket aggregates, private to the server admin. Never write one
+// database entry per candidate: aggregate statistics and flush periodically.
+const STATS_FLUSH_ATTEMPTS=10;
+const REASONS=new Set([
+  'wrong_difficulty','logic_unknown_or_invalid','logic_solution_mismatch',
+  'uniqueness_multiple','uniqueness_unknown','candidate_error',
+  'publish_error','duplicate_id','invalid_candidate','other_rejection'
+]);
+function emptyDelta(){
+  return {attempts:0,published:0,failed:0,totalAttemptMs:0,
+    publishedAttemptMs:0,failures:{},gradedByDifficulty:{}};
+}
+function failureFor(candidate){
+  return candidate?.status==='rejected'&&REASONS.has(candidate.reason)
+    ?candidate.reason:candidate?.status==='rejected'?'other_rejection':'invalid_candidate';
+}
+const safeCount=n=>Number.isSafeInteger(n)&&n>=0?n:0;
+const round=n=>Math.round(n*100)/100;
+function mergeCounts(left,right){
+  const result={...values(left)};
+  for(const [key,value] of Object.entries(right)){
+    if(Number.isSafeInteger(value)&&value>0)result[key]=safeCount(result[key])+value;
+  }
+  return result;
+}
+export function combineStatistics(previous,delta,updatedAt){
+  const old=values(previous);
+  const attempts=safeCount(old.attempts)+delta.attempts;
+  const published=safeCount(old.published)+delta.published;
+  const failed=safeCount(old.failed)+delta.failed;
+  const totalAttemptMs=safeCount(old.totalAttemptMs)+delta.totalAttemptMs;
+  const publishedAttemptMs=safeCount(old.publishedAttemptMs)+delta.publishedAttemptMs;
+  return {
+    schemaVersion:1,attempts,published,failed,totalAttemptMs,publishedAttemptMs,
+    failures:mergeCounts(old.failures,delta.failures),
+    gradedByDifficulty:mergeCounts(old.gradedByDifficulty,delta.gradedByDifficulty),
+    successRatePct:attempts?round(100*published/attempts):null,
+    avgAttemptMs:attempts?round(totalAttemptMs/attempts):null,
+    // Includes time spent on failed candidates, not just successful ones.
+    avgMsPerPublished:published?round(totalAttemptMs/published):null,
+    avgPublishedAttemptMs:published?round(publishedAttemptMs/published):null,
+    firstRecordedAt:safeCount(old.firstRecordedAt)||updatedAt,
+    updatedAt
+  };
 }
 // Visit all size/difficulty combinations in a diagonal order rather than
 // exhausting one size before trying the next. Every four consecutive slots
@@ -37,7 +83,8 @@ export function balancedBucketOrder(buckets=BUCKETS){
 }
 export async function refill(store,{
   buckets=BUCKETS,maxPublished=12,maxAttempts=144,maxMs=300000,
-  perBucketAttempts=0,makeAttempt=attempt,now=Date.now,log=()=>{}
+  perBucketAttempts=0,makeAttempt=attempt,now=Date.now,
+  measureMs=()=>performance.now(),log=()=>{}
 }={}){
   if(!store?.get||!store?.put||!store?.create||!store?.remove)
     throw Error('A privileged Firebase data adapter is required');
@@ -99,11 +146,40 @@ export async function refill(store,{
       bucket:b,ref,current,count,target,quota:perBucket||automaticQuota(b.size),
       served:Number.isSafeInteger(recorded)&&recorded>=0&&recorded<=1000000000
         ?recorded:initialCredit,
-      entry:{bucket:b.key,before:count,target,accepted:0,attempted:0,failed:0}
+      entry:{bucket:b.key,before:count,target,accepted:0,attempted:0,failed:0},
+      statsDelta:emptyDelta(),cumulative:null
     });
   }
   log('inventory_plan',{buckets:states.length,
     underTarget:states.filter(s=>s.count<s.target).length,cursor});
+  function recordAttempt(state,started,candidate,success,reason){
+    const delta=state.statsDelta;
+    const duration=Math.max(0,Math.round(measureMs()-started));
+    delta.attempts++;
+    delta.totalAttemptMs+=duration;
+    if(DIFFICULTIES.includes(candidate?.grade?.difficulty)){
+      const grade=candidate.grade.difficulty;
+      delta.gradedByDifficulty[grade]=(delta.gradedByDifficulty[grade]||0)+1;
+    }
+    if(success){
+      delta.published++;
+      delta.publishedAttemptMs+=duration;
+    }else{
+      delta.failed++;
+      const key=REASONS.has(reason)?reason:'other_rejection';
+      delta.failures[key]=(delta.failures[key]||0)+1;
+    }
+  }
+  async function flushStatistics(state){
+    const delta=state.statsDelta;
+    if(!delta.attempts)return;
+    const path='randomBankStats/'+state.bucket.key;
+    const existing=await store.get(path);
+    const next=combineStatistics(existing,delta,now());
+    await store.put(path,next);
+    state.cumulative=next;
+    state.statsDelta=emptyDelta();
+  }
   // Persistent least-served scheduling: even a category with no successful
   // candidates accumulates an attempt credit. It therefore cannot monopolize
   // a run, and already-stocked categories are not starved by zero-stock ones.
@@ -127,30 +203,46 @@ export async function refill(store,{
     selected.entry.attempted++;
     totalAttempts++;
     visited.add(selected.bucket.key);
-    let candidate;
+    const started=measureMs();
+    let candidate,reason=null,success=false,fatal=null;
     try{
       candidate=await makeAttempt({
         size:selected.bucket.size,difficulty:selected.bucket.difficulty
       });
     }catch(error){
-      selected.entry.failed++;
+      reason='candidate_error';
       log('candidate_error',{bucket:selected.bucket.key,
         reason:String(error?.message||error).slice(0,140)});
-      continue;
     }
-    if(!goodCandidate(candidate,selected.bucket)){
-      selected.entry.failed++;
-      continue;
+    if(!reason){
+      if(!goodCandidate(candidate,selected.bucket)){
+        reason=failureFor(candidate);
+      }else{
+        // Firebase REST If-Match:null_etag protects existing puzzle IDs.
+        try{
+          const result=await store.create(selected.ref+'/'+candidate.spec.id,candidate.spec);
+          if(result?.created){
+            selected.current[candidate.spec.id]=candidate.spec;
+            selected.count++;
+            published++;
+            selected.entry.accepted++;
+            success=true;
+          }else reason='duplicate_id';
+        }catch(error){
+          reason='publish_error';
+          fatal=error; // A database failure is not a normal rejected candidate.
+        }
+      }
     }
-    // Firebase REST If-Match:null_etag protects existing puzzle IDs.
-    const result=await store.create(selected.ref+'/'+candidate.spec.id,candidate.spec);
-    if(result?.created){
-      selected.current[candidate.spec.id]=candidate.spec;
-      selected.count++;
-      published++;
-      selected.entry.accepted++;
-    }else selected.entry.failed++;
+    if(!success)selected.entry.failed++;
+    recordAttempt(selected,started,candidate,success,reason);
+    // Bound lost measurements if a scheduled job is interrupted externally.
+    if(selected.statsDelta.attempts>=STATS_FLUSH_ATTEMPTS||fatal)
+      await flushStatistics(selected);
+    if(fatal)throw fatal;
   }
+  // Keep the rest of the run even if a bucket had no successful candidates.
+  for(const state of states)await flushStatistics(state);
   // Save fairness across scheduled runs. Rotate the cursor even when all
   // targets are full; no bucket is permanently the first preferred option.
   const minCredit=Math.min(...states.map(s=>s.served));
@@ -162,6 +254,11 @@ export async function refill(store,{
     totalAttempts?nextCursor:(cursor+1)%states.length);
   for(const state of states){
     state.entry.after=state.count;
+    if(state.cumulative)state.entry.cumulative={
+      attempts:state.cumulative.attempts,published:state.cumulative.published,
+      failed:state.cumulative.failed,successRatePct:state.cumulative.successRatePct,
+      avgMsPerPublished:state.cumulative.avgMsPerPublished
+    };
     if(state.entry.attempted)log('bucket_processed',state.entry);
   }
   return {
