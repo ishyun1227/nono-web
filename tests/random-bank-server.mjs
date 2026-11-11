@@ -59,6 +59,68 @@ assert.equal(result.published,3);
 assert.equal(Object.keys(await first.get('randomPuzzleBank/10_보통')).length,6);
 console.log('PASS initially empty bank fills in bounded, resumable batches');
 
+// Across one run, no size/difficulty bucket may monopolize the attempt budget.
+const fairBuckets=[
+  {size:5,difficulty:'쉬움',key:'5_쉬움'},
+  {size:10,difficulty:'보통',key:'10_보통'},
+  {size:15,difficulty:'어려움',key:'15_어려움'},
+  {size:20,difficulty:'전문가',key:'20_전문가'}
+];
+const balanced=new Store();
+result=await refill(balanced,{buckets:fairBuckets,makeAttempt:good,
+  maxPublished:8,maxAttempts:8,perBucketAttempts:8,maxMs:10000});
+assert.equal(result.published,8);
+assert.equal(result.visited,4);
+for(const b of fairBuckets){
+  assert.equal(Object.keys(await balanced.get('randomPuzzleBank/'+b.key)).length,2,
+    'Each size and difficulty must receive an equal initial opportunity');
+}
+console.log('PASS fair round-robin replenishment across four sizes and difficulties');
+
+// Attempt fairness persists after the job ends, even when no full sweep fits.
+const split=new Store();
+for(let run=0;run<2;run++){
+  result=await refill(split,{buckets:fairBuckets,makeAttempt:good,
+    maxPublished:2,maxAttempts:2,perBucketAttempts:8,maxMs:10000});
+  assert.equal(result.published,2);
+}
+for(const b of fairBuckets){
+  assert.equal(Object.keys(await split.get('randomPuzzleBank/'+b.key)).length,1,
+    'The next scheduled run must resume categories not served previously');
+}
+console.log('PASS least-served scheduler preserves fairness across short jobs');
+
+// A category that rejects every candidate cannot exhaust the entire run.
+const stubborn=new Store();
+result=await refill(stubborn,{
+  buckets:fairBuckets,maxPublished:3,maxAttempts:4,perBucketAttempts:8,
+  maxMs:10000,
+  makeAttempt:async b=>b.size===5?{status:'rejected',reason:'test_rejection'}:good(b)
+});
+assert.equal(result.published,3);
+assert.equal(result.attempts,4);
+assert.equal(result.visited,4);
+for(const b of fairBuckets.slice(1)){
+  assert.equal(Object.keys(await stubborn.get('randomPuzzleBank/'+b.key)).length,1);
+}
+console.log('PASS repeatedly rejected bucket cannot starve other classifications');
+
+// Among categories with equal service credit, the least-stocked comes first.
+const almostFull=Object.fromEntries(Array.from({length:98},(_,i)=>{
+  const spec=puzzleSpec(5,'쉬움',i);
+  return [spec.id,{...spec,verified:true}];
+}));
+const priority=new Store({randomPuzzleBank:{'5_쉬움':almostFull}});
+let firstSelected=null;
+result=await refill(priority,{buckets:fairBuckets.slice(0,2),
+  maxPublished:1,maxAttempts:1,perBucketAttempts:8,maxMs:10000,
+  makeAttempt:async b=>{firstSelected=b.difficulty;return good(b);}
+});
+assert.equal(firstSelected,'보통');
+assert.equal(result.published,1);
+console.log('PASS inventory shortage breaks ties without violating attempt fairness');
+
+
 const inventory=Object.fromEntries(Array.from({length:100},(_,i)=>[
   'random-10-1-'+i,{...puzzleSpec(10,'보통',i),verified:true}
 ]));
