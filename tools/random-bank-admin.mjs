@@ -33,7 +33,7 @@ export function makeAdminStore({serviceAccountJson,databaseUrl,fetchFn=fetch}){
     const payload={
       iss:account.client_email,sub:account.client_email,
       aud:'https://oauth2.googleapis.com/token',iat:now,exp:now+3600,
-      scope:'https://www.googleapis.com/auth/firebase.database https://www.googleapis.com/auth/userinfo.email'
+      scope:'https://www.googleapis.com/auth/firebase.database https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/monitoring.read'
     };
     const claim=b64({alg:'RS256',typ:'JWT'})+'.'+b64(payload);
     const signature=sign('RSA-SHA256',Buffer.from(claim),account.private_key).toString('base64url');
@@ -97,6 +97,8 @@ export function makeAdminStore({serviceAccountJson,databaseUrl,fetchFn=fetch}){
     return {value:result,etag:typeof received==='string'&&received?received:null};
   }
   return {
+    // Server-only Monitoring API read scope; never log or return this token to clients.
+    getMonitoringAccessToken:()=>token(),
     get:path=>request('GET',path),
     keys:async path=>Object.keys((await request('GET',path,undefined,false,false,true))||{}),
     put:(path,value)=>request('PUT',path,value),
