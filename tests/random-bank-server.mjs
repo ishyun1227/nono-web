@@ -3,7 +3,7 @@
  */
 import assert from 'node:assert/strict';
 import {refill} from '../tools/random-bank-refill-core.mjs';
-import {planInitialFill,INITIAL_BUCKET_KEYS,INITIAL_MAX_RUNS,INITIAL_MAX_DAYS} from '../tools/random-bank-initial-fill-core.mjs';
+import {planInitialFill,INITIAL_BUCKET_KEYS,INITIAL_MAX_STALLED_RUNS} from '../tools/random-bank-initial-fill-core.mjs';
 import {attempt,classify,proveUnique,puzzleSpec,BUCKETS} from '../tools/random-bank-generator.mjs';
 import {validateDatabaseUrl,validateCredential,makeAdminStore} from '../tools/random-bank-admin.mjs';
 import {generateKeyPairSync} from 'node:crypto';
@@ -67,27 +67,49 @@ warmup=await planInitialFill(initialStore,{now:1000004000});
 assert.equal(warmup.run,false);
 console.log('PASS initial stock warmup targets 36x100 and transitions permanently to normal-only mode');
 
-const expiry=new Store({randomBankControl:{initialFill:{
-  status:'active',startedAt:1000000000,runs:12
+// Continue beyond the historic seven-day/run cap, but prevent endless
+// expensive creation attempts if the full bank makes no progress for 24 runs.
+const uncapped=new Store({randomBankControl:{initialFill:{
+  status:'finished',reason:'time_cap',startedAt:1000000000,runs:168
 }}});
-expiry.keys=()=>{throw Error('Expired warmup must stop before reading puzzle inventory');};
-warmup=await planInitialFill(expiry,{
-  now:1000000000+INITIAL_MAX_DAYS*24*60*60*1000
+warmup=await planInitialFill(uncapped,{
+  now:1000000000+8*24*60*60*1000
+});
+assert.equal(warmup.run,true);
+assert.equal(warmup.runs,169);
+console.log('PASS previously expired 7-day warmup resumes toward 36x100 stock goal');
+
+const stagnant=new Store();
+for(let i=0;i<INITIAL_MAX_STALLED_RUNS;i++){
+  warmup=await planInitialFill(stagnant,{now:1000000000+i*3600000});
+  assert.equal(warmup.run,true,'A stagnant run must still have its 24-hour opportunity');
+}
+warmup=await planInitialFill(stagnant,{
+  now:1000000000+INITIAL_MAX_STALLED_RUNS*3600000
 });
 assert.equal(warmup.run,false);
-assert.equal(warmup.reason,'time_cap');
-assert.equal((await expiry.get('randomBankControl/initialFill')).status,'finished');
-const capped=new Store({randomBankControl:{initialFill:{
-  status:'active',startedAt:1000000000,runs:INITIAL_MAX_RUNS
-}}});
-capped.keys=()=>{throw Error('Run cap must stop before scanning inventory');};
-warmup=await planInitialFill(capped,{now:1000002000});
+assert.equal(warmup.reason,'no_progress_24_runs');
+assert.equal(warmup.stalledRuns,INITIAL_MAX_STALLED_RUNS);
+assert.equal((await stagnant.get('randomBankControl/initialFill')).status,'paused');
+const pausedWrites=stagnant.writes.length;
+warmup=await planInitialFill(stagnant,{
+  now:1000000000+(INITIAL_MAX_STALLED_RUNS+1)*3600000
+});
 assert.equal(warmup.run,false);
-assert.equal(warmup.reason,'run_cap');
+assert.equal(warmup.reason,'no_progress_paused');
+assert.equal(stagnant.writes.length,pausedWrites,
+  'An idle paused scheduler must not keep rewriting control');
+await stagnant.put('randomPuzzleBank/5_쉬움',{fresh:true});
+warmup=await planInitialFill(stagnant,{
+  now:1000000000+(INITIAL_MAX_STALLED_RUNS+2)*3600000
+});
+assert.equal(warmup.run,true);
+assert.equal(warmup.stalledRuns,0,'Any new inventory must restart the progress window');
+assert.equal((await stagnant.get('randomBankControl/initialFill')).status,'active');
 await assert.rejects(planInitialFill(new Store({randomBankControl:{initialFill:{
   status:'active',startedAt:-2,runs:0
 }}}),{now:1000002000}),/Invalid initial-fill control/);
-console.log('PASS initial warmup cannot exceed 7 days or 168 runs and fails closed on invalid controls');
+console.log('PASS pause after 24 no-progress runs, automatic resume on stock progress and invalid-control rejection');
 
 const main={size:10,difficulty:'보통',key:'10_보통'};
 let nextSeed=123,makeCalls=0;
