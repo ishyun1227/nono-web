@@ -5,6 +5,7 @@ on:
     paths:
       - tools/random-bank-generator.mjs
       - tools/random-bank-refill-core.mjs
+      - sat-nonogram-solver.js
       - tools/random-bank-initial-fill-core.mjs
       - tools/plan-random-bank-initial-fill.mjs
       - .github/workflows/server-random-bank-initial-fill.yml
@@ -42,6 +43,7 @@ jobs:
       - name: Check source syntax and Firebase rules JSON
         run: |
           node --check tools/random-bank-generator.mjs
+          node --check sat-nonogram-solver.js
           node --check tools/random-bank-admin.mjs
           node --check tools/random-bank-usage-metrics.mjs
           node --check tools/check-random-bank-usage.mjs
