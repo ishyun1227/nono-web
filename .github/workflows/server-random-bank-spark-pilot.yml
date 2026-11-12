@@ -1,0 +1,42 @@
+name: Spark one-time small random puzzle pilot
+on:
+  # When first committed, attempt exactly one bounded pilot. Further source
+  # changes do not trigger it, and the Firebase one-time claim prevents repeats.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/server-random-bank-spark-pilot.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: server-random-puzzle-bank-writer
+  cancel-in-progress: false
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Confirm existing Firebase credential is configured
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "$FIREBASE_SERVICE_ACCOUNT_JSON" ]; then
+            echo "## Pilot blocked: existing Firebase credential is unavailable." >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+      - name: Install pinned solver and check safety tests
+        run: |
+          npm ci
+          node --check tools/run-spark-random-pilot.mjs
+          node tests/spark-random-pilot.mjs
+      - name: Run one bounded production trial (up to 10 verified puzzles)
+        env:
+          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: node tools/run-spark-random-pilot.mjs
