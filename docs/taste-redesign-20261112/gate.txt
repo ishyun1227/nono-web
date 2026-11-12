@@ -1,0 +1,98 @@
+gate: checking dist/index.html (gaming); this takes a few minutes on a CPU Chrome
+gate: 31 FAIL open
+  FAIL hero-fill        div#home-view > section.home-content "플레이 방식"  [1440]
+       the next section shows on the first screen: it starts at 120px on a 900px screen (the hero ends at 537px)
+       fix: let the hero fill the first screen alone (min-height: 100svh, less above it): nothing of the next section on load
+  FAIL flush            button#nono-shop-tab-top "상점"  [1440]
+       aside#nono-workbench-nav and section.home-content run together: -399px between their content, on one ground
+       fix: give the section its padding at the edge where the ground changes (the closing call keeps a clear gap above the footer)
+  FAIL flush            h2#nono-daily-title "오늘의 미션"  [1440]
+       its first line sits 9px under the top edge of aside#nono-workbench-support, where the ground changes
+       fix: give the section its padding at the edge where the ground changes (the closing call keeps a clear gap above the footer)
+  FAIL flush            div#home-view > section.nono-replay-recent > div.nono-replay-items > p.nono-replay-help "완  [1440, 390]
+       section.nono-replay-recent and aside#nono-ad-sidebar run together: -215px between their content, on one ground
+       fix: give the section its padding at the edge where the ground changes (the closing call keeps a clear gap above the footer)
+  FAIL nav              div.shell > header.topbar  [1440]
+       the nav has no bar, and its pieces sit past the content's edges (40-1408px against 220-1220px)
+       fix: make the nav one bar from the content's left edge to its right edge, with every link and action inside it
+  FAIL row-gap          div.nono-apple-setup > div.nono-apple-puzzles > div.nono-apple-puzzle-choices > button.non  [1440, 390]
+       fills 32% of its grid row and leaves 68% of it empty on the right
+       fix: fill the row at this width: span the columns, or stack the split
+  FAIL no-visual        div#home-view > section.home-content "플레이 방식"  [1440, 390]
+       no picture, effect or mock in this section; a feature section needs a visual
+       fix: give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits
+  FAIL button-styles    (one screen)  [1440]
+       3 button styles on one screen: soft, fill #151515, outline #3a3a3a ("⚙ 설정"); soft, fill #2a2a2a ("+50 P"); soft, fill #b11226, outline #d12b40 ("퍼즐 시작 →"); the odd one out: "퍼즐 시작 →"
+       fix: one primary and one secondary button: one shape, one height per size, one label size
+  FAIL button-styles    (the page)  [1440, 390]
+       3 button styles on the page: soft, fill #151515, outline #3a3a3a x3 ("⚙ 설정"); soft, fill #b11226, outline #d12b40 x1 ("퍼즐 시작 →"); soft, fill #2a2a2a x3 ("+50 P")
+       fix: one primary and one secondary button: one shape, one height per size, one label size
+  FAIL cta              aside#nono-workbench-nav  [1440]
+       the hero has no button (the nav's does not count)
+       fix: add the action: a button in the hero, one on every priced item, one in the closing section
+  FAIL cta              aside#nono-ad-sidebar "광고 광고 영역광고가 연결되면 이 위치에 표시됩니다."  [1440, 390]
+       the last section before the footer ends with no button
+       fix: add the action: a button in the hero, one on every priced item, one in the closing section
+  FAIL heading-scale    section#nono-resume-view > div.nono-resume-heading > div > h2 "이어서 풀기"  [1440, 390]
+       h2 headings in 4 sizes, 13px ("퍼즐 크기") to 20px (x1.54)
+       fix: size headings by level: the h1 largest, one size per level, each level below the one above
+  FAIL off-grid         aside#nono-workbench-nav > nav.mode-select > button.mode-card.selected "▦ 혼자 풀기"  [1440]
+       left edge at 32px, 12px off a common edge of its section at 44px (3 elements, like p.nono-nav-label)
+       fix: move it onto the page margin, or the column edge its section uses
+  FAIL hero-enter       div#home-view > section.hero  [1440]
+       the hero does not enter on load: no data-enter on the hero and no head line setting html.m-enter (motion.md, The hero's entrance)
+       fix: put data-enter on the hero <section> and keep the head line from starter.html that sets html.m-enter
+  FAIL moment-none      (the page)  [1440]
+       a gaming page (--type) deals no moment: every kind carries one, two on a long page (moments.md)
+       fix: deal one (moments.mjs pick --page gaming) and mount it in its own section
+  FAIL hero-screen      div#home-view "플레이 ▦혼자 풀기나만의 속도로✓ ⚔실시간 대결먼저 완성하면 승리✓ ♧협"  [1440]
+       the hero ends at 1276px on a 900px screen, 376px below the fold: it ends at the fold, 1px either way (SR-1)
+       fix: make the hero exactly one screen (height: 100svh, its content fitted inside), never taller or shorter
+  FAIL section-height   div.shell > footer "NONO · 친구와 함께 푸는 노노그램"  [1440]
+       the section is 79px tall (0.1 screens), 821px short of one screen (900px): every section after the hero is one screen or two, 2px either way (SR-2)
+       fix: set the section to one screen or two (height: calc(var(--h,1) * 100vh), --h 1 or 2) and cut or split its content to fit
+  FAIL section-height   div#home-view "플레이 ▦혼자 풀기나만의 속도로✓ ⚔실시간 대결먼저 완성하면 승리✓ ♧협"  [1440]
+       the section starts at 120px, 120px below the screen grid (0 x 900px): sections start on whole screens (SR-2)
+       fix: make every section above it exactly one or two screens tall, so this one starts on a whole screen
+  FAIL one-section      div.shell > footer "NONO · 친구와 함께 푸는 노노그램"  [1440]
+       the screen at scroll 455px (the top of section 2) shows 79px of section 2 beside section 1: a screen shows one section (another may peek 8px, 24px WARN) (SR-4)
+       fix: make each section exactly one screen or two, so a screen shows one section and no neighbour peeks
+  FAIL one-section      div#home-view "플레이 ▦혼자 풀기나만의 속도로✓ ⚔실시간 대결먼저 완성하면 승리✓ ♧협"  [1440]
+       a <div> sits directly in <main>: every part of <main> is a <section> (SR-4)
+       fix: put every block of <main> in a <section>, and give a band its own section instead of a ground inside one
+  FAIL one-heading      div.nono-apple-setup > div.nono-apple-filters > div.nono-apple-filter:nth-of-type(1) > h2   [1440]
+       the hero holds an h2 (8): its heading is the h1, and an h2 opens the next section (SR-5)
+       fix: give each section one h2, first in its .wrap, and the hero only its h1
+  FAIL container-edges  div.shell > header.topbar "▦NONO. 홈퍼즐하기멀티플레이기록 경쟁🛍 상점⚙ 설정● 온라인 연결◈"  [1440]
+       the nav's content runs 32px from the left and 32px from the right (read from its outermost blocks: no .wrap): the margin is 64-120px at 1440px (one container, equal margins, 2px either way) (SR-6)
+       fix: use one container on every section and the nav (.wrap): one margin left and right, 64-120px on a desktop, 16-24px on a phone
+  FAIL container-edges  div#home-view "플레이 ▦혼자 풀기나만의 속도로✓ ⚔실시간 대결먼저 완성하면 승리✓ ♧협"  [1440]
+       the content of section 1 runs 32px from the left and 32px from the right (read from its outermost blocks: no .wrap): the margin is 64-120px at 1440px (one container, equal margins, 2px either way) (SR-6)
+       fix: use one container on every section and the nav (.wrap): one margin left and right, 64-120px on a desktop, 16-24px on a phone
+  FAIL container-edges  div.shell "퍼즐 선택으로 건너뛰기 ▦NONO. 홈퍼즐하기멀티플레이기록 경쟁🛍 상점"  [1440]
+       a <div> at the top of the page, outside header.nav, main, footer.closing and nav.actionbar (SR-6)
+       fix: build the page as header.nav, a main of sections (each one in-flow .wrap plus background layers) and footer.closing
+  FAIL container-edges  aside#nono-clear-sidebar > section.nono-rail-panel.nono-clear-panel > p.nono-rail-descript  [1440]
+       2 text blocks start on a left line at x 1108, 1076px from the container's left: text starts on the container's left, or on one split line (x 615, 732, 849) (also "혼자 · 대결 · 협동 완료 기록") (SR-6)
+       fix: start the text on the container's left, or on the one split line every split shares
+  FAIL container-edges  h2#nono-daily-title "오늘의 미션"  [1440]
+       the h2 starts 1076px right of the container's left: every h1 and h2 starts on it, 2px either way (and 10 more like it: "출석 보상", "최근 클리어", "난이도") (SR-6)
+       fix: start the text on the container's left, or on the one split line every split shares
+  FAIL container-edges  section#setup "퍼즐 선택원하는 크기와 난이도를 선택하세요.퍼즐 크기작음중간큼거대난이도쉬"  [1440]
+       a box over half the container wide runs 220-1084px, not on the container's lines at 32-1408px (SR-6)
+       fix: run the picture or box from the container's left line to its right line, or put it in a row or a split
+  FAIL container-edges  aside#nono-ad-sidebar > section.nono-rail-panel.nono-ad-panel "광고ADVERTISEMENT▤광고 영역광고가 연결  [1440]
+       a box over half the container wide runs 220-1084px, not on the container's lines at 32-1408px (SR-6)
+       fix: run the picture or box from the container's left line to its right line, or put it in a row or a split
+  FAIL row-lines        section#setup > div.nono-apple-setup > div.nono-apple-filters "퍼즐 크기작음중간큼거대난이도쉬움보통어려움전문가미평  [1440]
+       a row of 2 items: its first item starts at 253px, the container's left line at 32px; its last item ends at 1051px, the container's right line at 1408px (2px either way) (SR-7)
+       fix: start the row's first item on the container's left line and end its last on the right line, every item one height
+  FAIL no-visual        aside#nono-workbench-support "오늘의 미션"  [390]
+       no picture, effect or mock in this section; a feature section needs a visual
+       fix: give the section a visual: a UI fragment on a ground, real icons, or a photograph that fits
+  FAIL container        page  [1440, 390]
+       no .wrap
+       fix: put the content in one .wrap
+  18 WARN (not blocking), first: button-styles div.nono-apple-filters > div.nono-apple-; copy-headline h1#setup-heading "퍼즐 선택"; copy-buttons div.nono-apple-setup > div.nono-apple-pu; copy-actions (the page); off-grid aside#nono-workbench-nav > nav.mode-sele
+A FAIL you judge false: add {"check": "<id>", "target": "<its where, enough to name that one finding>", "reason": "<why, 12+ characters>"} to .taste-skill/waivers.json (one finding each, 5 at most, never for kit-edited or checker-gaming); it goes in your report. Never edit the kit's files or hide the page from the checker.
+GATE: FAIL 31 (round 1 of 3)

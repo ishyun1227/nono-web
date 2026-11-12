@@ -1,0 +1,54 @@
+
+perf dist/index.html @ 1440px
+  WARN  host CPU load (before/after)               66/14 %        busy host: timing verdicts capped at WARN, rerun when idle
+  WARN  total transfer                             1611.4 KiB     html 440.4K  css 58.2K  js 445.2K  font 198.4K  img 27.3K  other 441.8K
+  WARN  requests                                   76             75 by load
+  PASS  images bytes                               27.3 KiB       1 files
+  PASS  largest image                              27.3 KiB       assets/friends-parade.svg?v=4
+  FAIL  JS parsed                                  1289.4 KiB     51 files, 445.2K gz
+  PASS  CSS                                        58.2 KiB       17 files
+  PASS  font families                              1              Epilogue
+  PASS  font files                                 1              198.4K
+  WARN  font bytes                                 198.4 KiB      
+  WARN  images without width+height                1              w+qEzriaeBoxQAAAABJRU5ErkJggg==
+  PASS  below-fold images not lazy                 0              
+  PASS  oversized images (natural > 2.2x shown)    0              
+  PASS  WebGL live at load                         0              
+  PASS  WebGL live at bottom                       0              
+  PASS  WebGL peak live                            0              0 contexts made in all
+  PASS  long tasks                                 2              runs 3, 2..3, busy host, max 134ms
+  PASS  blocking time                              103 ms         runs 3, 91..113, busy host ms; at load 103ms
+  PASS  FCP (CPU, relative)                        204 ms         runs 3, 156..820, busy host
+  PASS  LCP (CPU, relative)                        1180 ms        runs 3, 1088..1612, busy host, p.nono-completion-empty
+  PASS  layout shift                               0.060          runs 3, 0.060..0.076; at load 0.059
+  PASS  modules loaded, never mounted              0              
+  PASS  broken requests                            0              
+  PASS  page height                                1.6 screens    DOM 828 nodes
+
+perf dist/index.html @ 390px
+  WARN  host CPU load (before/after)               66/14 %        busy host: timing verdicts capped at WARN, rerun when idle
+  WARN  total transfer                             1609.5 KiB     html 440.4K  css 58.2K  js 444.5K  font 198.4K  img 27.3K  other 440.7K
+  WARN  requests                                   74             74 by load
+  PASS  images bytes                               27.3 KiB       1 files
+  PASS  largest image                              27.3 KiB       assets/friends-parade.svg?v=4
+  FAIL  JS parsed                                  1289.4 KiB     51 files, 444.5K gz
+  PASS  CSS                                        58.2 KiB       17 files
+  PASS  font families                              1              Epilogue
+  PASS  font files                                 1              198.4K
+  WARN  font bytes                                 198.4 KiB      
+  WARN  images without width+height                1              w+qEzriaeBoxQAAAABJRU5ErkJggg==
+  WARN  below-fold images not lazy                 2              w+qEzriaeBoxQAAAABJRU5ErkJggg==, friends-parade.svg?v=4
+  PASS  oversized images (natural > 2.2x shown)    0              
+  PASS  WebGL live at load                         0              
+  PASS  WebGL live at bottom                       0              
+  PASS  WebGL peak live                            0              0 contexts made in all
+  PASS  long tasks                                 2              runs 3, 1..2, busy host, max 132ms
+  PASS  blocking time                              99 ms          runs 3, 68..104, busy host ms; at load 99ms
+  PASS  FCP (CPU, relative)                        288 ms         runs 3, 144..356, busy host
+  PASS  LCP (CPU, relative)                        736 ms         runs 3, 724..1016, busy host, h1
+  PASS  layout shift                               0.000          runs 3, 0.000..0.000; at load 0.000
+  PASS  modules loaded, never mounted              0              
+  PASS  broken requests                            0              
+  PASS  page height                                2.8 screens    DOM 828 nodes
+
+SUMMARY dist/index.html: 2 FAIL, 11 WARN  -> FAIL

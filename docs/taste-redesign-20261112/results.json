@@ -1,0 +1,1312 @@
+{
+  "passed": true,
+  "results": [
+    {
+      "check": "home",
+      "width": 1440,
+      "scrollWidth": 1440,
+      "nav": {
+        "x": 32,
+        "y": 120,
+        "right": 196,
+        "bottom": 537,
+        "width": 164,
+        "height": 417
+      },
+      "setup": {
+        "x": 220,
+        "y": 120,
+        "right": 1084,
+        "bottom": 705.578125,
+        "width": 864,
+        "height": 585.578125
+      },
+      "start": {
+        "x": 253,
+        "y": 616.578125,
+        "right": 1051,
+        "bottom": 672.578125,
+        "width": 798,
+        "height": 56
+      },
+      "resume": {
+        "x": 220,
+        "y": 729.578125,
+        "right": 1084,
+        "bottom": 883.96875,
+        "width": 864,
+        "height": 154.390625
+      },
+      "support": {
+        "x": 1108,
+        "y": 120,
+        "right": 1408,
+        "bottom": 931.109375,
+        "width": 300,
+        "height": 811.109375
+      },
+      "ad": {
+        "x": 220,
+        "y": 955.109375,
+        "right": 1084,
+        "bottom": 1007.109375,
+        "width": 864,
+        "height": 52
+      },
+      "choices": 1
+    },
+    {
+      "check": "home",
+      "width": 1024,
+      "scrollWidth": 1024,
+      "nav": {
+        "x": 32,
+        "y": 120,
+        "right": 164,
+        "bottom": 537,
+        "width": 132,
+        "height": 417
+      },
+      "setup": {
+        "x": 188,
+        "y": 120,
+        "right": 992,
+        "bottom": 705.578125,
+        "width": 804,
+        "height": 585.578125
+      },
+      "start": {
+        "x": 221,
+        "y": 616.578125,
+        "right": 959,
+        "bottom": 672.578125,
+        "width": 738,
+        "height": 56
+      },
+      "resume": {
+        "x": 188,
+        "y": 729.578125,
+        "right": 992,
+        "bottom": 883.96875,
+        "width": 804,
+        "height": 154.390625
+      },
+      "support": {
+        "x": 188,
+        "y": 907.96875,
+        "right": 992,
+        "bottom": 1406.21875,
+        "width": 804,
+        "height": 498.25
+      },
+      "ad": {
+        "x": 188,
+        "y": 1430.21875,
+        "right": 992,
+        "bottom": 1482.21875,
+        "width": 804,
+        "height": 52
+      },
+      "choices": 1
+    },
+    {
+      "check": "home",
+      "width": 768,
+      "scrollWidth": 768,
+      "nav": {
+        "x": 24,
+        "y": 120,
+        "right": 744,
+        "bottom": 168,
+        "width": 720,
+        "height": 48
+      },
+      "setup": {
+        "x": 24,
+        "y": 192,
+        "right": 744,
+        "bottom": 817.578125,
+        "width": 720,
+        "height": 625.578125
+      },
+      "start": {
+        "x": 49,
+        "y": 736.578125,
+        "right": 719,
+        "bottom": 792.578125,
+        "width": 670,
+        "height": 56
+      },
+      "resume": {
+        "x": 24,
+        "y": 841.578125,
+        "right": 744,
+        "bottom": 995.96875,
+        "width": 720,
+        "height": 154.390625
+      },
+      "support": {
+        "x": 24,
+        "y": 1019.96875,
+        "right": 744,
+        "bottom": 1518.21875,
+        "width": 720,
+        "height": 498.25
+      },
+      "ad": {
+        "x": 24,
+        "y": 1542.21875,
+        "right": 744,
+        "bottom": 1594.21875,
+        "width": 720,
+        "height": 52
+      },
+      "choices": 1
+    },
+    {
+      "check": "home",
+      "width": 390,
+      "scrollWidth": 390,
+      "nav": {
+        "x": 16,
+        "y": 88,
+        "right": 374,
+        "bottom": 192,
+        "width": 358,
+        "height": 104
+      },
+      "setup": {
+        "x": 16,
+        "y": 216,
+        "right": 374,
+        "bottom": 847.390625,
+        "width": 358,
+        "height": 631.390625
+      },
+      "start": {
+        "x": 37,
+        "y": 766.390625,
+        "right": 353,
+        "bottom": 822.390625,
+        "width": 316,
+        "height": 56
+      },
+      "resume": {
+        "x": 16,
+        "y": 871.390625,
+        "right": 374,
+        "bottom": 1048.171875,
+        "width": 358,
+        "height": 176.78125
+      },
+      "support": {
+        "x": 16,
+        "y": 1072.171875,
+        "right": 374,
+        "bottom": 1883.28125,
+        "width": 358,
+        "height": 811.109375
+      },
+      "ad": {
+        "x": 16,
+        "y": 1907.28125,
+        "right": 374,
+        "bottom": 1959.28125,
+        "width": 358,
+        "height": 52
+      },
+      "choices": 1
+    },
+    {
+      "check": "home",
+      "width": 320,
+      "scrollWidth": 320,
+      "nav": {
+        "x": 16,
+        "y": 88,
+        "right": 304,
+        "bottom": 192,
+        "width": 288,
+        "height": 104
+      },
+      "setup": {
+        "x": 16,
+        "y": 216,
+        "right": 304,
+        "bottom": 901.390625,
+        "width": 288,
+        "height": 685.390625
+      },
+      "start": {
+        "x": 37,
+        "y": 820.390625,
+        "right": 283,
+        "bottom": 876.390625,
+        "width": 246,
+        "height": 56
+      },
+      "resume": {
+        "x": 16,
+        "y": 925.390625,
+        "right": 304,
+        "bottom": 1102.171875,
+        "width": 288,
+        "height": 176.78125
+      },
+      "support": {
+        "x": 16,
+        "y": 1126.171875,
+        "right": 304,
+        "bottom": 1956.46875,
+        "width": 288,
+        "height": 830.296875
+      },
+      "ad": {
+        "x": 16,
+        "y": 1980.46875,
+        "right": 304,
+        "bottom": 2050.46875,
+        "width": 288,
+        "height": 70
+      },
+      "choices": 1
+    },
+    {
+      "check": "play",
+      "width": 1440,
+      "height": 900,
+      "scrollHeight": 1044,
+      "scrollWidth": 1440,
+      "board": {
+        "x": 553.671875,
+        "y": 381,
+        "right": 886.34375,
+        "bottom": 710.125,
+        "width": 332.671875,
+        "height": 329.125
+      },
+      "hint": {
+        "x": 291,
+        "y": 852.125,
+        "right": 401.203125,
+        "bottom": 894.125,
+        "width": 110.203125,
+        "height": 42
+      },
+      "pad": null
+    },
+    {
+      "check": "play",
+      "width": 1024,
+      "height": 768,
+      "scrollHeight": 1035,
+      "scrollWidth": 1024,
+      "board": {
+        "x": 345.671875,
+        "y": 371.515625,
+        "right": 678.34375,
+        "bottom": 700.640625,
+        "width": 332.671875,
+        "height": 329.125
+      },
+      "hint": {
+        "x": 83,
+        "y": 842.640625,
+        "right": 193.203125,
+        "bottom": 884.640625,
+        "width": 110.203125,
+        "height": 42
+      },
+      "pad": null
+    },
+    {
+      "check": "play",
+      "width": 768,
+      "height": 1024,
+      "scrollHeight": 1024,
+      "scrollWidth": 768,
+      "board": {
+        "x": 218.671875,
+        "y": 228.9375,
+        "right": 549.34375,
+        "bottom": 556.0625,
+        "width": 330.671875,
+        "height": 327.125
+      },
+      "hint": {
+        "x": 7,
+        "y": 747,
+        "right": 78.890625,
+        "bottom": 777,
+        "width": 71.890625,
+        "height": 30
+      },
+      "pad": {
+        "y": 784.90625,
+        "height": 130,
+        "targets": [
+          {
+            "x": 218.5,
+            "y": 784.90625,
+            "right": 369.5,
+            "bottom": 914.90625,
+            "width": 151,
+            "height": 130
+          },
+          {
+            "x": 379.5,
+            "y": 784.90625,
+            "right": 549.5,
+            "bottom": 914.90625,
+            "width": 170,
+            "height": 130
+          }
+        ]
+      }
+    },
+    {
+      "check": "play",
+      "width": 390,
+      "height": 844,
+      "scrollHeight": 844,
+      "scrollWidth": 390,
+      "board": {
+        "x": 29.671875,
+        "y": 158.9375,
+        "right": 360.34375,
+        "bottom": 486.0625,
+        "width": 330.671875,
+        "height": 327.125
+      },
+      "hint": {
+        "x": 7,
+        "y": 607,
+        "right": 78.890625,
+        "bottom": 637,
+        "width": 71.890625,
+        "height": 30
+      },
+      "pad": {
+        "y": 644.015625,
+        "height": 113,
+        "targets": [
+          {
+            "x": 52,
+            "y": 644.015625,
+            "right": 183,
+            "bottom": 757.015625,
+            "width": 131,
+            "height": 113
+          },
+          {
+            "x": 193,
+            "y": 644.015625,
+            "right": 338,
+            "bottom": 757.015625,
+            "width": 145,
+            "height": 113
+          }
+        ]
+      }
+    },
+    {
+      "check": "paint, undo, redo, persist, reload, resume",
+      "passed": true
+    },
+    {
+      "check": "all modes, community, account, attendance duplicate guard",
+      "passed": true
+    },
+    {
+      "check": "all ten themes and default navigation restored",
+      "passed": true
+    },
+    {
+      "check": "random generation starts real game",
+      "passed": true
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "fixed",
+      "puzzle": "cat10",
+      "grid": {
+        "x": 18.015625,
+        "y": 134.625,
+        "width": 353.984375,
+        "height": 357.734375,
+        "top": 134.625,
+        "right": 372,
+        "bottom": 492.359375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 589,
+            "width": 121.875,
+            "height": 30,
+            "top": 589,
+            "right": 383,
+            "bottom": 619,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 589,
+            "width": 71.890625,
+            "height": 30,
+            "top": 589,
+            "right": 78.890625,
+            "bottom": 619,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-dpad",
+          "rect": {
+            "x": 7.990936279296875,
+            "y": 626.0010986328125,
+            "width": 172.76812744140625,
+            "height": 149.02899169921875,
+            "top": 626.0010986328125,
+            "right": 180.75906372070312,
+            "bottom": 775.0300903320312,
+            "left": 7.990936279296875
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 190.75906372070312,
+            "y": 626.0010986328125,
+            "width": 191.23190307617188,
+            "height": 149.02899169921875,
+            "top": 626.0010986328125,
+            "right": 381.990966796875,
+            "bottom": 775.0300903320312,
+            "left": 190.75906372070312
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "fixed",
+      "puzzle": "vox_crabino_front",
+      "grid": {
+        "x": 18.015625,
+        "y": 153.65625,
+        "width": 353.984375,
+        "height": 319.6875,
+        "top": 153.65625,
+        "right": 372,
+        "bottom": 473.34375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 589,
+            "width": 121.875,
+            "height": 30,
+            "top": 589,
+            "right": 383,
+            "bottom": 619,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 589,
+            "width": 71.890625,
+            "height": 30,
+            "top": 589,
+            "right": 78.890625,
+            "bottom": 619,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-dpad",
+          "rect": {
+            "x": 7.990936279296875,
+            "y": 626.0010986328125,
+            "width": 172.76812744140625,
+            "height": 149.02899169921875,
+            "top": 626.0010986328125,
+            "right": 180.75906372070312,
+            "bottom": 775.0300903320312,
+            "left": 7.990936279296875
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 190.75906372070312,
+            "y": 626.0010986328125,
+            "width": 191.23190307617188,
+            "height": 149.02899169921875,
+            "top": 626.0010986328125,
+            "right": 381.990966796875,
+            "bottom": 775.0300903320312,
+            "left": 190.75906372070312
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "trackpad",
+      "puzzle": "cat10",
+      "grid": {
+        "x": 18.015625,
+        "y": 132.125,
+        "width": 353.984375,
+        "height": 357.734375,
+        "top": 132.125,
+        "right": 372,
+        "bottom": 489.859375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 584,
+            "width": 121.875,
+            "height": 30,
+            "top": 584,
+            "right": 383,
+            "bottom": 614,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 584,
+            "width": 71.890625,
+            "height": 30,
+            "top": 584,
+            "right": 78.890625,
+            "bottom": 614,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-floating-zone",
+          "rect": {
+            "x": 7.99334716796875,
+            "y": 621.7484130859375,
+            "width": 190.9508056640625,
+            "height": 157.534423828125,
+            "top": 621.7484130859375,
+            "right": 198.94415283203125,
+            "bottom": 779.2828369140625,
+            "left": 7.99334716796875
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 208.94415283203125,
+            "y": 633.0861206054688,
+            "width": 173.0491943359375,
+            "height": 134.8590087890625,
+            "top": 633.0861206054688,
+            "right": 381.99334716796875,
+            "bottom": 767.9451293945312,
+            "left": 208.94415283203125
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "trackpad",
+      "puzzle": "vox_crabino_front",
+      "grid": {
+        "x": 18.015625,
+        "y": 151.15625,
+        "width": 353.984375,
+        "height": 319.6875,
+        "top": 151.15625,
+        "right": 372,
+        "bottom": 470.84375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 584,
+            "width": 121.875,
+            "height": 30,
+            "top": 584,
+            "right": 383,
+            "bottom": 614,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 584,
+            "width": 71.890625,
+            "height": 30,
+            "top": 584,
+            "right": 78.890625,
+            "bottom": 614,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-floating-zone",
+          "rect": {
+            "x": 7.99334716796875,
+            "y": 621.7484130859375,
+            "width": 190.9508056640625,
+            "height": 157.534423828125,
+            "top": 621.7484130859375,
+            "right": 198.94415283203125,
+            "bottom": 779.2828369140625,
+            "left": 7.99334716796875
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 208.94415283203125,
+            "y": 633.0861206054688,
+            "width": 173.0491943359375,
+            "height": 134.8590087890625,
+            "top": 633.0861206054688,
+            "right": 381.99334716796875,
+            "bottom": 767.9451293945312,
+            "left": 208.94415283203125
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "minimap",
+      "puzzle": "cat10",
+      "grid": {
+        "x": 18.015625,
+        "y": 108.625,
+        "width": 353.984375,
+        "height": 357.734375,
+        "top": 108.625,
+        "right": 372,
+        "bottom": 466.359375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 537,
+            "width": 121.875,
+            "height": 30,
+            "top": 537,
+            "right": 383,
+            "bottom": 567,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 537,
+            "width": 71.890625,
+            "height": 30,
+            "top": 537,
+            "right": 78.890625,
+            "bottom": 567,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-absolute-pad",
+          "rect": {
+            "x": 36.86610412597656,
+            "y": 603.3817138671875,
+            "width": 156.73654174804688,
+            "height": 156.736572265625,
+            "top": 603.3817138671875,
+            "right": 193.60264587402344,
+            "bottom": 760.1182861328125,
+            "left": 36.86610412597656
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 232.4751739501953,
+            "y": 642.2550048828125,
+            "width": 149.51841735839844,
+            "height": 116.521240234375,
+            "top": 642.2550048828125,
+            "right": 381.99359130859375,
+            "bottom": 758.7762451171875,
+            "left": 232.4751739501953
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "minimap",
+      "puzzle": "vox_crabino_front",
+      "grid": {
+        "x": 18.015625,
+        "y": 127.65625,
+        "width": 353.984375,
+        "height": 319.6875,
+        "top": 127.65625,
+        "right": 372,
+        "bottom": 447.34375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 537,
+            "width": 121.875,
+            "height": 30,
+            "top": 537,
+            "right": 383,
+            "bottom": 567,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 537,
+            "width": 71.890625,
+            "height": 30,
+            "top": 537,
+            "right": 78.890625,
+            "bottom": 567,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-absolute-pad",
+          "rect": {
+            "x": 36.86610412597656,
+            "y": 603.3817138671875,
+            "width": 156.73654174804688,
+            "height": 156.736572265625,
+            "top": 603.3817138671875,
+            "right": 193.60264587402344,
+            "bottom": 760.1182861328125,
+            "left": 36.86610412597656
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 232.4751739501953,
+            "y": 642.2550048828125,
+            "width": 149.51841735839844,
+            "height": 116.521240234375,
+            "top": 642.2550048828125,
+            "right": 381.99359130859375,
+            "bottom": 758.7762451171875,
+            "left": 232.4751739501953
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "smartTrackpad",
+      "puzzle": "cat10",
+      "grid": {
+        "x": 18.015625,
+        "y": 109.125,
+        "width": 353.984375,
+        "height": 357.734375,
+        "top": 109.125,
+        "right": 372,
+        "bottom": 466.859375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 538,
+            "width": 121.875,
+            "height": 30,
+            "top": 538,
+            "right": 383,
+            "bottom": 568,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 538,
+            "width": 71.890625,
+            "height": 30,
+            "top": 538,
+            "right": 78.890625,
+            "bottom": 568,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-dpad",
+          "rect": {
+            "x": 46.870948791503906,
+            "y": 623.5949096679688,
+            "width": 135.85186767578125,
+            "height": 117.1851806640625,
+            "top": 623.5949096679688,
+            "right": 182.72281646728516,
+            "bottom": 740.7800903320312,
+            "left": 46.870948791503906
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 231.6116943359375,
+            "y": 641.9230346679688,
+            "width": 150.370361328125,
+            "height": 117.1851806640625,
+            "top": 641.9230346679688,
+            "right": 381.9820556640625,
+            "bottom": 759.1082153320312,
+            "left": 231.6116943359375
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "smartTrackpad",
+      "puzzle": "vox_crabino_front",
+      "grid": {
+        "x": 18.015625,
+        "y": 128.15625,
+        "width": 353.984375,
+        "height": 319.6875,
+        "top": 128.15625,
+        "right": 372,
+        "bottom": 447.84375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 538,
+            "width": 121.875,
+            "height": 30,
+            "top": 538,
+            "right": 383,
+            "bottom": 568,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 538,
+            "width": 71.890625,
+            "height": 30,
+            "top": 538,
+            "right": 78.890625,
+            "bottom": 568,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-dpad",
+          "rect": {
+            "x": 46.870948791503906,
+            "y": 623.5949096679688,
+            "width": 135.85186767578125,
+            "height": 117.1851806640625,
+            "top": 623.5949096679688,
+            "right": 182.72281646728516,
+            "bottom": 740.7800903320312,
+            "left": 46.870948791503906
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 231.6116943359375,
+            "y": 641.9230346679688,
+            "width": 150.370361328125,
+            "height": 117.1851806640625,
+            "top": 641.9230346679688,
+            "right": 381.9820556640625,
+            "bottom": 759.1082153320312,
+            "left": 231.6116943359375
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "smartMinimap",
+      "puzzle": "cat10",
+      "grid": {
+        "x": 18.015625,
+        "y": 109.125,
+        "width": 353.984375,
+        "height": 357.734375,
+        "top": 109.125,
+        "right": 372,
+        "bottom": 466.859375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 538,
+            "width": 121.875,
+            "height": 30,
+            "top": 538,
+            "right": 383,
+            "bottom": 568,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 538,
+            "width": 71.890625,
+            "height": 30,
+            "top": 538,
+            "right": 78.890625,
+            "bottom": 568,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-smart-edge-rail",
+          "rect": {
+            "x": 7.982063293457031,
+            "y": 575.3726806640625,
+            "width": 213.629638671875,
+            "height": 213.629638671875,
+            "top": 575.3726806640625,
+            "right": 221.61170196533203,
+            "bottom": 789.0023193359375,
+            "left": 7.982063293457031
+          }
+        },
+        {
+          "id": "nono-absolute-pad",
+          "rect": {
+            "x": 35.98206329345703,
+            "y": 603.3726806640625,
+            "width": 157.629638671875,
+            "height": 157.629638671875,
+            "top": 603.3726806640625,
+            "right": 193.61170196533203,
+            "bottom": 761.0023193359375,
+            "left": 35.98206329345703
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 231.6116943359375,
+            "y": 641.9230346679688,
+            "width": 150.370361328125,
+            "height": 117.1851806640625,
+            "top": 641.9230346679688,
+            "right": 381.9820556640625,
+            "bottom": 759.1082153320312,
+            "left": 231.6116943359375
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "smartMinimap",
+      "puzzle": "vox_crabino_front",
+      "grid": {
+        "x": 18.015625,
+        "y": 128.15625,
+        "width": 353.984375,
+        "height": 319.6875,
+        "top": 128.15625,
+        "right": 372,
+        "bottom": 447.84375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 538,
+            "width": 121.875,
+            "height": 30,
+            "top": 538,
+            "right": 383,
+            "bottom": 568,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 538,
+            "width": 71.890625,
+            "height": 30,
+            "top": 538,
+            "right": 78.890625,
+            "bottom": 568,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-smart-edge-rail",
+          "rect": {
+            "x": 7.982063293457031,
+            "y": 575.3726806640625,
+            "width": 213.629638671875,
+            "height": 213.629638671875,
+            "top": 575.3726806640625,
+            "right": 221.61170196533203,
+            "bottom": 789.0023193359375,
+            "left": 7.982063293457031
+          }
+        },
+        {
+          "id": "nono-absolute-pad",
+          "rect": {
+            "x": 35.98206329345703,
+            "y": 603.3726806640625,
+            "width": 157.629638671875,
+            "height": 157.629638671875,
+            "top": 603.3726806640625,
+            "right": 193.61170196533203,
+            "bottom": 761.0023193359375,
+            "left": 35.98206329345703
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 231.6116943359375,
+            "y": 641.9230346679688,
+            "width": 150.370361328125,
+            "height": 117.1851806640625,
+            "top": 641.9230346679688,
+            "right": 381.9820556640625,
+            "bottom": 759.1082153320312,
+            "left": 231.6116943359375
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "smartHybrid",
+      "puzzle": "cat10",
+      "grid": {
+        "x": 18.015625,
+        "y": 132.125,
+        "width": 353.984375,
+        "height": 357.734375,
+        "top": 132.125,
+        "right": 372,
+        "bottom": 489.859375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 584,
+            "width": 121.875,
+            "height": 30,
+            "top": 584,
+            "right": 383,
+            "bottom": 614,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 584,
+            "width": 71.890625,
+            "height": 30,
+            "top": 584,
+            "right": 78.890625,
+            "bottom": 614,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-floating-zone",
+          "rect": {
+            "x": 12.767112731933594,
+            "y": 609.81396484375,
+            "width": 181.40325927734375,
+            "height": 181.40325927734375,
+            "top": 609.81396484375,
+            "right": 194.17037200927734,
+            "bottom": 791.2172241210938,
+            "left": 12.767112731933594
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 208.94415283203125,
+            "y": 633.0861206054688,
+            "width": 173.0491943359375,
+            "height": 134.8590087890625,
+            "top": 633.0861206054688,
+            "right": 381.99334716796875,
+            "bottom": 767.9451293945312,
+            "left": 208.94415283203125
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "mobile controller",
+      "inputMode": "smartHybrid",
+      "puzzle": "vox_crabino_front",
+      "grid": {
+        "x": 18.015625,
+        "y": 151.15625,
+        "width": 353.984375,
+        "height": 319.6875,
+        "top": 151.15625,
+        "right": 372,
+        "bottom": 470.84375,
+        "left": 18.015625
+      },
+      "controls": [
+        {
+          "id": "nono-board-zoom",
+          "rect": {
+            "x": 261.125,
+            "y": 584,
+            "width": 121.875,
+            "height": 30,
+            "top": 584,
+            "right": 383,
+            "bottom": 614,
+            "left": 261.125
+          }
+        },
+        {
+          "id": "nono-hint-action",
+          "rect": {
+            "x": 7,
+            "y": 584,
+            "width": 71.890625,
+            "height": 30,
+            "top": 584,
+            "right": 78.890625,
+            "bottom": 614,
+            "left": 7
+          }
+        },
+        {
+          "id": "nono-floating-zone",
+          "rect": {
+            "x": 12.767112731933594,
+            "y": 609.81396484375,
+            "width": 181.40325927734375,
+            "height": 181.40325927734375,
+            "top": 609.81396484375,
+            "right": 194.17037200927734,
+            "bottom": 791.2172241210938,
+            "left": 12.767112731933594
+          }
+        },
+        {
+          "id": "nono-pad-actions",
+          "rect": {
+            "x": 208.94415283203125,
+            "y": 633.0861206054688,
+            "width": 173.0491943359375,
+            "height": 134.8590087890625,
+            "top": 633.0861206054688,
+            "right": 381.99334716796875,
+            "bottom": 767.9451293945312,
+            "left": 208.94415283203125
+          }
+        }
+      ],
+      "height": 844,
+      "scroll": 844
+    },
+    {
+      "check": "8.5-second delayed script never exposes legacy layout",
+      "passed": true
+    }
+  ],
+  "errors": []
+}
