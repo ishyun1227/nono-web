@@ -1,6 +1,7 @@
-/* GitHub Actions guard for the ONE-TIME initial puzzle stock burst.
+/* GitHub Actions planner for continuing initial stock auto-fill.
  * Uses the existing Firebase service account. It never activates rules,
- * changes the paid plan, or writes puzzles on its own.
+ * changes the paid plan, or writes puzzles on its own. Generation occurs in
+ * the separate bounded refill step only when understocked buckets remain.
  */
 import {appendFileSync} from 'node:fs';
 import {makeAdminStore,validateCredential,validateDatabaseUrl} from './random-bank-admin.mjs';
