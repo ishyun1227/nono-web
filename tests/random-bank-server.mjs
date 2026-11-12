@@ -2,7 +2,7 @@
  * No credentials or live Firebase are used here.
  */
 import assert from 'node:assert/strict';
-import {refill} from '../tools/random-bank-refill-core.mjs';
+import {refill,serverProofBudget} from '../tools/random-bank-refill-core.mjs';
 import {planInitialFill,INITIAL_BUCKET_KEYS,INITIAL_MAX_STALLED_RUNS} from '../tools/random-bank-initial-fill-core.mjs';
 import {attempt,classify,proveUnique,puzzleSpec,BUCKETS} from '../tools/random-bank-generator.mjs';
 import {validateDatabaseUrl,validateCredential,makeAdminStore} from '../tools/random-bank-admin.mjs';
@@ -110,6 +110,33 @@ await assert.rejects(planInitialFill(new Store({randomBankControl:{initialFill:{
   status:'active',startedAt:-2,runs:0
 }}}),{now:1000002000}),/Invalid initial-fill control/);
 console.log('PASS pause after 24 no-progress runs, automatic resume on stock progress and invalid-control rejection');
+
+// The stock refiller is offline: don't abandon big SAT proofs after 4s.
+// Every candidate remains bounded by the overall scheduled job deadline.
+assert.equal(serverProofBudget(5,420000),15000);
+assert.equal(serverProofBudget(10,420000),15000);
+assert.equal(serverProofBudget(15,420000),30000);
+assert.equal(serverProofBudget(20,420000),30000);
+assert.equal(serverProofBudget(30,420000),45000);
+assert.equal(serverProofBudget(50,420000),60000);
+assert.equal(serverProofBudget(75,420000),90000);
+assert.equal(serverProofBudget(100,420000),120000);
+assert.equal(serverProofBudget(100,2000),2000);
+assert.equal(serverProofBudget(100,-30),1);
+assert.throws(()=>serverProofBudget(101,10000),/budget/);
+let observedBudget=null;
+const budgetBucket={size:100,difficulty:'전문가',key:'100_전문가'};
+await refill(new Store(),{
+  buckets:[budgetBucket],maxPublished:1,maxAttempts:1,
+  perBucketAttempts:1,maxMs:420000,
+  makeAttempt:async options=>{
+    observedBudget=options.proofMs;
+    return {status:'rejected',reason:'uniqueness_unknown',
+      proof:{status:'unknown',reason:'proof_time_budget'}};
+  }
+});
+assert(observedBudget>4000&&observedBudget<=120000);
+console.log('PASS offline uniqueness time budgets scale with puzzle size and batch deadline');
 
 const main={size:10,difficulty:'보통',key:'10_보통'};
 let nextSeed=123,makeCalls=0;
