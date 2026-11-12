@@ -43,7 +43,7 @@
 - 조회에는 Google Cloud Monitoring API **`projects.timeSeries.list`**와 공식 Realtime Database 메트릭 `storage/total_bytes`, `storage/limit`, `network/monthly_sent`, `network/monthly_sent_limit`를 사용한다. 프로젝트 `nono-web-ishyun-20261020`, 데이터베이스 namespace `nono-web-ishyun-20261020-default-rtdb`만 대상으로 고정한다.
 - 한도 대비 사용량은 **Monitoring에 마지막으로 수집된 값**이다. 저장량은 하루에 한 번 수집되고 최대 하루 지연될 수 있으며, 월간 다운로드량은 30분마다 수집되어 최대 90분 늦게 보일 수 있다. 이에 더해 안전한 유효 기간(저장 60시간 / 다운로드 4시간)을 벗어난 샘플은 차단한다. 현재 시점의 실시간·최종 청구 수치나 남은 요금을 정확히 보장하지 않는다.
 - 기존 GitHub Actions 비밀정보 **`FIREBASE_SERVICE_ACCOUNT_JSON`**만 사용한다. 조회 역할 `roles/monitoring.viewer`(읽기 전용)과 **Cloud Monitoring API가 이미 사용 가능한 상태**여야 한다. 자격증명은 작업 로그나 GitHub 커밋에 기록하지 않는다. **권한이나 API가 미설정된 상태에서 자동 활성화, 요금제 변경, 새 키 발급은 하지 않는다.** 기존 Spark 요금제를 그대로 사용한다.
-- **확인 방법**: [사용량 점검 Actions](https://github.com/ishyun1227/nono-web/actions/workflows/server-random-bank-usage.yml) → Run workflow → 실행 결과 Summary. 초기 집중 생성 [Actions](https://github.com/ishyun1227/nono-web/actions/workflows/server-random-bank-initial-fill.yml)에도 같은 요약이 표시된다. 권한 부족으로 실패하면 [Cloud Monitoring API](https://console.cloud.google.com/apis/library/monitoring.googleapis.com?project=nono-web-ishyun-20261020) 상태와 [IAM](https://console.cloud.google.com/iam-admin/iam?project=nono-web-ishyun-20261020)을 확인한다.
+- **확인 방법:** [사용량 조회 Actions](https://github.com/ishyun1227/nono-web/actions/workflows/server-random-bank-usage.yml)는 Spark에서 403으로 실패할 수 있다. 대신 [Firebase Console 사용량 탭](https://console.firebase.google.com/project/nono-web-ishyun-20261020/usage)에서 실제 저장량·월간 다운로드량을 확인한다. [초기 집중 생성 Actions](https://github.com/ishyun1227/nono-web/actions/workflows/server-random-bank-initial-fill.yml)는 재고·시도·성공률과 중지 사유만 보고하며 전체 Firebase 사용량을 보고하지 않는다.
 - 실제 프로젝트의 사용량 조회를 아직 실행·검증하지 않았을 때는 **실제 남은 용량 '정보 없음'**이다. 단순히 코드가 GitHub에 저장되었다는 사실만으로 안전한 사용량을 확인했다고 할 수 없다.
 
 근거: [Firebase 공식 Realtime Database 사용량 모니터링](https://firebase.google.com/docs/database/usage/monitor-usage), [Google Cloud Monitoring Metric Types](https://docs.cloud.google.com/monitoring/api/metrics_gcp_d_h), [Cloud Monitoring IAM 읽기 권한](https://docs.cloud.google.com/monitoring/access-control), [Firebase 가격표](https://firebase.google.com/pricing/).
@@ -52,7 +52,7 @@
 
 - [무료 사용량 확인 Actions](https://github.com/ishyun1227/nono-web/actions/workflows/server-random-bank-usage.yml)이 403을 반환하면 Google API의 **구조화된 오류 코드(ErrorInfo.reason)만** 분석해서 **결제 계정 필요 가능성, Cloud Monitoring API 비활성화, IAM 거부, OAuth 토큰 범위 부족, 프로젝트 소비자 제한**을 구분한다. 반환된 오류 원문, URL, 토큰, 서비스 계정 비공개 키는 출력하지 않는다.
 - 프로젝트의 IAM 화면에서 확인한 계정은 `firebase-adminsdk-fbsvc@nono-web-ishyun-20261020.iam.gserviceaccount.com`이며, 기존 GitHub Secret의 `client_email`이 이 계정과 다른 경우 **조회 실패로 중단**한다. IAM에서 역할을 추가했다고 해서 GitHub가 반드시 해당 키를 사용한다는 보장은 없기 때문이다.
-- **Spark 요금제의 Cloud Monitoring API가 결제 연결을 요구하는 경우** 별도의 요금제 변경 없이 API로 정확한 실사용량을 읽는 데 제한이 생길 수 있다. 이 경우에는 사용량을 `정보 없음`으로 보고 집중 생성을 유지 중단하며, [Firebase Console 사용량 탭](https://console.firebase.google.com/project/nono-web-ishyun-20261020/database)에서 직접 확인한다.
+- **Spark 요금제의 Cloud Monitoring API가 결제 연결을 요구하는 경우** 별도의 요금제 변경 없이 API로 정확한 실사용량을 읽는 데 제한이 생길 수 있다. 이 경우에는 Cloud Monitoring 기준 사용량은 `정보 없음`으로 표시하되, 초기 집중 생성에서는 더 이상 이 API를 호출하지 않으며, [Firebase Console 사용량 탭](https://console.firebase.google.com/project/nono-web-ishyun-20261020/database)에서 직접 확인한다.
 - 오류 코드만으로 원인을 확정할 수 없으면 `access_denied_unknown_cause`로 표기하며, 권한 재추가나 유료 전환을 임의로 진행하지 않는다.
 
 ## 난이도 판단 — 현재 임시 기준
