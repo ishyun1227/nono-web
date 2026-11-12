@@ -1,5 +1,5 @@
 body:not([data-nono-theme="neon"]) .nono-reward-hint {display:none!important}
-body[data-nono-theme="neon"] .nono-apple-puzzles h4{
+body[data-nono-theme="neon"] .nono-apple-puzzles h2{
  display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:7px;
 }
 body[data-nono-theme="neon"] .nono-reward-hint{

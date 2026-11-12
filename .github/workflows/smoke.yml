@@ -96,6 +96,8 @@ jobs:
         run: node tests/voxel-preview.cjs
       - name: Verify professional CaDiCaL WASM Worker in Chromium
         run: node tests/browser-cadical-v6.cjs
+      - name: Verify puzzle-first responsive workbench and delayed boot
+        run: npm run test:design
       - name: Run browser test
         run: node tests/smoke.cjs
       - name: Validate database security rules

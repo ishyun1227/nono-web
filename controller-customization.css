@@ -301,9 +301,7 @@
  body.nono-fit-playing.nono-touch-pad-visible #game .board-footer{
    bottom:var(--nono-mobile-pad-reserve,178px)!important;
  }
- body.nono-fit-playing.nono-touch-pad-visible #game #nono-actions{
-   bottom:calc(var(--nono-mobile-pad-reserve,178px) + 34px)!important;
- }
+
 }
 
 /* Sliding smart viewport: this shows the player's input, never the answer.

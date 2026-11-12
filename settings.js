@@ -769,7 +769,7 @@ body.nono-fit-playing #game .board-scroll #board{max-width:none!important}
 /* Exact-fit large puzzles must start at the viewport top, not at the 32px
    layout position inherited from the surrounding shell. Zoomed boards retain
    normal document scrolling through the earlier relative-position rule. */
-body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
+body.nono-fit-playing:not(.nono-zoom-exceeded):where(:not(.nono-mobile-app)) #game{
  position:fixed!important;inset:0!important;
  width:100vw!important;max-width:none!important;
  height:100dvh!important;min-height:100dvh!important;
@@ -835,7 +835,8 @@ body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
   padding:0!important;overflow:hidden!important}
  body.nono-mobile-app .shell>footer,body.nono-mobile-app .shell>.home-content{display:none!important}
  body.nono-mobile-app #game{
-  box-sizing:border-box!important;position:fixed!important;inset:0!important;
+  /* Absolute avoids trapping the back/title header below the fixed top bar. */
+  box-sizing:border-box!important;position:absolute!important;inset:0!important;
   width:100vw!important;min-width:0!important;max-width:100vw!important;
   height:100dvh!important;min-height:100dvh!important;max-height:100dvh!important;
   margin:0!important;padding:0!important;overflow:hidden!important;
@@ -915,8 +916,8 @@ body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
  body.nono-mobile-app #game .board-top .mini-stat,
  body.nono-mobile-app #game .board-top .timer-stat{display:none!important}
  body.nono-mobile-app #game #nono-actions{
-  position:fixed!important;z-index:164!important;top:51px!important;right:6px!important;
-  left:auto!important;bottom:auto!important;width:auto!important;
+  position:fixed!important;z-index:164!important;top:auto!important;right:auto!important;
+  left:7px!important;bottom:3px!important;width:auto!important;
   padding:0!important;margin:0!important;display:flex!important
  }
  body.nono-mobile-app #game #nono-hint-action{
@@ -937,7 +938,7 @@ body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
  body.nono-mobile-app #game #nono-board-zoom #nono-zoom-fit{min-width:44px!important}
  /* Zoom controls live in a dedicated dock row instead of floating on top
     of puzzle clues/cells. When pad is collapsed, restore their bottom edge. */
- body.nono-mobile-app.nono-touch-pad-visible #game #nono-board-zoom{
+ body.nono-mobile-app.nono-touch-pad-visible #game :is(#nono-board-zoom,#nono-actions){
   bottom:calc(var(--nono-mobile-pad-reserve,178px) - 40px)!important;
  }
  body.nono-mobile-app:not(.nono-touch-pad-visible) #game #nono-board-zoom{
@@ -946,7 +947,7 @@ body.nono-fit-playing:not(.nono-zoom-exceeded) #game{
 }
 
 `;document.head.append(css);
-const top=document.querySelector('.header-right');const b=E('button','nono-settings-toggle','⚙ 설정');b.id='nono-open-settings';top.insertBefore(b,top.firstChild);b.addEventListener('click',openSettings);
+const top=document.querySelector('.header-right');const b=E('button','nono-settings-toggle','⚙ 설정');b.id='nono-open-settings';b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-expanded','false');top.insertBefore(b,top.firstChild);b.addEventListener('click',openSettings);
 const bar=E('div','nono-actions');bar.id='nono-actions';bar.innerHTML='<button type="button" id="nono-hint-action">💡 도움 힌트</button><button type="button" id="nono-check-action">✓ 오답 검사</button><span id="nono-hint-status" class="nono-keys-hint" aria-live="polite"></span>';
 document.querySelector('.board-footer').after(bar);
 document.getElementById('nono-hint-action').onclick=logicHint;
@@ -1107,11 +1108,11 @@ function openVisualGuides(focusKey){
  close.focus();
 }
 
-function openSettings(){if(settingsOpen)return;settingsOpen=true;const overlay=E('div','nono-settings-overlay');overlay.id='nono-settings-overlay';overlay.innerHTML='<div class="nono-settings" role="dialog" aria-modal="true" aria-label="노노그램 설정"><div class="nono-settings-head"><div><h2>⚙ 노노그램 설정</h2><small>변경 즉시 적용 · 장치별 브라우저 저장 · '+(device==='touch'?'터치':'PC')+' 프로필</small></div><button class="nono-modal-btn" id="nono-settings-close">닫기</button></div><div class="nono-settings-tabs"></div><div class="nono-settings-content" id="nono-settings-content"></div><div class="nono-settings-foot"><span>※ (시험/보류) 옵션은 사용하면서 평가할 기능입니다.</span><button class="nono-modal-btn" id="nono-settings-default">현재 장치 설정 초기화</button></div></div>';document.body.append(overlay);
+function openSettings(){if(settingsOpen)return;settingsOpen=true;$('nono-open-settings').setAttribute('aria-expanded','true');const overlay=E('div','nono-settings-overlay');overlay.id='nono-settings-overlay';overlay.innerHTML='<div class="nono-settings" role="dialog" aria-modal="true" aria-label="노노그램 설정"><div class="nono-settings-head"><div><h2>⚙ 노노그램 설정</h2><small>변경 즉시 적용 · 장치별 브라우저 저장 · '+(device==='touch'?'터치':'PC')+' 프로필</small></div><button class="nono-modal-btn" id="nono-settings-close">닫기</button></div><div class="nono-settings-tabs"></div><div class="nono-settings-content" id="nono-settings-content"></div><div class="nono-settings-foot"><span>※ (시험/보류) 옵션은 사용하면서 평가할 기능입니다.</span><button class="nono-modal-btn" id="nono-settings-default">현재 장치 설정 초기화</button></div></div>';document.body.append(overlay);
 const tabs=overlay.querySelector('.nono-settings-tabs');tabs.setAttribute('role','tablist');tabs.setAttribute('aria-label','설정 분류');schema.forEach(([title],i)=>{const b=E('button',i===0?'is-active':'',title);b.type='button';b.setAttribute('role','tab');b.setAttribute('aria-selected',String(i===0));b.dataset.tab=i;b.onclick=()=>{const prev=tabs.querySelector('.is-active');if(prev){prev.classList.remove('is-active');prev.setAttribute('aria-selected','false')}b.classList.add('is-active');b.setAttribute('aria-selected','true');b.scrollIntoView({block:'nearest',inline:'nearest'});drawSettings()};tabs.append(b)});
 overlay.querySelector('#nono-settings-close').onclick=closeSettings;overlay.querySelector('#nono-settings-default').onclick=()=>{if(confirm('현재 장치의 설정을 기본값으로 되돌릴까요?')){prefs=Object.assign({},defaults);persist();apply();drawSettings();}};
 overlay.addEventListener('click',e=>{if(e.target===overlay)closeSettings()});drawSettings();}
-function closeSettings(){settingsOpen=false;document.getElementById('nono-settings-overlay')?.remove();}
+function closeSettings(){settingsOpen=false;$('nono-open-settings').setAttribute('aria-expanded','false');document.getElementById('nono-settings-overlay')?.remove();}
 
 let cachedSolutionId='',cachedSolution=null;
 function exactSolution(){
@@ -1342,6 +1343,7 @@ function fitBoardToViewport(){
   }
   reservedControls=Math.min(Math.max(0,viewportH-120),reservedControls);
  }
+ if(mobileApp)reservedControls=Math.max(40,reservedControls);
  document.documentElement.style.setProperty('--nono-mobile-pad-reserve',reservedControls+'px');
  // Mobile is one fixed app viewport. The header and the floating touch pad
  // occupy dedicated rails; only the puzzle pane may pan after zooming.

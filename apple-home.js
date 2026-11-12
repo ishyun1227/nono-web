@@ -22,17 +22,17 @@ const supportsMode=p=>mode()==='practice'||(p.generated&&(mode()==='race'||mode(
 const inGroup=p=>p.size>=sizeGroups[state.group].min&&p.size<=sizeGroups[state.group].max;
 const eligible=p=>inGroup(p)&&difficultyOf(p)===state.level&&supportsMode(p);
 const state={group:0,level:'보통'};
-const origin=document.createComment('Original mode navigation location');
-tabs.parentNode.insertBefore(origin,tabs);
+const origin=$('nono-mode-origin');
+const navigation=$('nono-workbench-nav');
 /* Resume stays below the mode cards; no separate top navigation tab. */
 const ui=document.createElement('div');
 ui.className='nono-apple-setup';
 ui.innerHTML=[
   '<div class="nono-apple-filters">',
-  '<div class="nono-apple-filter"><h4>퍼즐 크기</h4><div class="nono-apple-size-choices" role="group" aria-label="퍼즐 크기"></div></div>',
-  '<div class="nono-apple-filter"><h4>난이도</h4><div class="nono-apple-difficulty-choices" role="group" aria-label="난이도"></div></div>',
+  '<div class="nono-apple-filter"><h2>퍼즐 크기</h2><div class="nono-apple-size-choices" role="group" aria-label="퍼즐 크기"></div></div>',
+  '<div class="nono-apple-filter"><h2>난이도</h2><div class="nono-apple-difficulty-choices" role="group" aria-label="난이도"></div></div>',
   '</div>',
-  '<div class="nono-apple-puzzles"><h4>퍼즐</h4><div class="nono-apple-puzzle-choices" role="group" aria-label="퍼즐 번호"></div></div>'
+  '<div class="nono-apple-puzzles"><h2>퍼즐</h2><div class="nono-apple-puzzle-choices" role="group" aria-label="퍼즐 번호"></div></div>'
 ].join('');
 setup.querySelector('.setup-description')?.after(ui);
 const sizeRow=ui.querySelector('.nono-apple-size-choices');
@@ -53,7 +53,7 @@ function selectPuzzle(p){
 }
 function fixThemeNavigation(){
   if(neon()){
-    if(tabs.parentNode!==topbar)topbar.insertBefore(tabs,topbar.querySelector('.header-right'));
+    if(tabs.parentNode!==navigation)navigation.append(tabs);
   }else if(tabs.parentNode!==origin.parentNode){
     origin.parentNode.insertBefore(tabs,origin.nextSibling);
     start.disabled=false;
@@ -80,8 +80,10 @@ function render(){
   puzzleRow.replaceChildren();
   choices.forEach((p,i)=>{
     const number=String(i+1).padStart(2,'0');
-    const label=p.generated?'✦ '+p.name:p.trialOnly?p.name:number;
+    const label=p.generated?p.name:p.trialOnly?p.name:'퍼즐 '+number;
     const b=makeButton(label,picker.value===p.id,false,()=>{selectPuzzle(p);render();});
+    b.dataset.puzzleId=p.id;
+    const dimensions=document.createElement('small');dimensions.textContent=(p.width||p.size)+' × '+(p.height||p.size);b.append(dimensions);
     b.setAttribute('aria-label',(p.trialOnly?p.name:'퍼즐 '+number)+', '+(p.width||p.size)+'×'+(p.height||p.size));
     puzzleRow.append(b);
   });
@@ -127,7 +129,7 @@ function render(){
     });
     make.classList.add('nono-apple-random-generate');
     make.setAttribute('aria-label',sizeGroups[state.group].name+' 크기 '+state.level+' 난이도의 새 랜덤 퍼즐 생성'+(mode()==='practice'?'':' 및 방 만들기'));
-    make.textContent=mode()==='practice'?'✦ 새 랜덤 퍼즐 생성':'✦ 랜덤 퍼즐로 방 만들기';
+    make.textContent=mode()==='practice'?'새 랜덤 퍼즐 만들기':'랜덤 퍼즐로 방 만들기';
     puzzleRow.append(make);
   }
   if(!choices.length){
@@ -138,7 +140,7 @@ function render(){
   start.disabled=choices.length===0;
   const m=mode();
   const heading=$('setup-heading'),description=$('setup-description');
-  const titles={practice:'오늘은 어떤 퍼즐?',race:'대결할 퍼즐을 골라주세요',coop:'함께 풀 퍼즐을 골라주세요',record:'기록에 도전해볼까요?'};
+  const titles={practice:'퍼즐 선택',race:'대결 퍼즐',coop:'협동 퍼즐',record:'기록 도전'};
   if(heading&&heading.textContent!==titles[m])heading.textContent=titles[m];
   if(description)description.textContent='원하는 크기와 난이도를 선택하세요.';
 }
@@ -177,7 +179,7 @@ function decorateResume(){
     const track=document.createElement('div');track.className='nono-apple-progress';
     const fill=document.createElement('span');fill.style.width=Math.max(0,Math.min(100,rate))+'%';
     track.append(fill);card.querySelector('.nono-resume-card-copy').append(track);
-    button.textContent='→';button.setAttribute('aria-label',full+' 이어하기');
+    button.textContent='이어 풀기';button.setAttribute('aria-label',full+' 이어하기');
     button.title=full+' 이어하기';
     card.dataset.nonoResumeMode=modeName==='대결'?'race':modeName==='협동'?'coop':'solo';
   });

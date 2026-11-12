@@ -15,7 +15,7 @@ async function main(){
        return [id,answerBits.pack(mask,size,size)];
      })));
   });
- const server=http.createServer((req,res)=>{const file=req.url.split('?')[0];res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':'text/html');if(file==='/firebase-config.js')return res.end("window.NONO_FIREBASE_CONFIG={apiKey:'demo-key',projectId:'demo-nono',databaseURL:'https://demo-nono.firebaseio.com',appId:'demo'};window.NONO_FIREBASE_EMULATORS=true;");const target=path.join(process.cwd(),file==='/'?'index.html':file);if(!target.startsWith(process.cwd())){res.statusCode=403;return res.end();}fs.readFile(target,(e,data)=>{res.statusCode=e?404:200;res.end(e?'missing':data);});});
+ const server=http.createServer((req,res)=>{const file=req.url.split('?')[0];res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':file.endsWith('.svg')?'image/svg+xml':'text/html');if(file==='/firebase-config.js')return res.end("window.NONO_FIREBASE_CONFIG={apiKey:'demo-key',projectId:'demo-nono',databaseURL:'https://demo-nono.firebaseio.com',appId:'demo'};window.NONO_FIREBASE_EMULATORS=true;");const target=path.join(process.cwd(),'dist',file==='/'?'index.html':file);if(!target.startsWith(process.cwd())){res.statusCode=403;return res.end();}fs.readFile(target,(e,data)=>{res.statusCode=e?404:200;res.end(e?'missing':data);});});
  await new Promise(r=>server.listen(4173,'127.0.0.1',r));
  const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{})});
  try{
@@ -60,9 +60,9 @@ async function main(){
   // The redesigned launcher starts with 10x10 selected. This scenario uses
   // the known 5x5 fixture and must select it explicitly before room creation.
   await a.click('[data-mode="practice"]');
-  await a.selectOption('#nono-quick-size','5');
-  await a.click('[data-mode="coop"]');await a.click('#create-room');await a.waitForURL(/room=/);const coop=new URL(a.url()).searchParams.get('room');
-  await b.click('[data-mode="coop"]');await b.fill('#room-code',coop);await b.click('#join-room');
+  await a.getByRole('button',{name:'쉬움',exact:true}).click();await a.locator('.nono-apple-choice[data-puzzle-id="heart5"]').click();
+  await a.click('[data-mode="coop"]');await a.click('#public-lobby-create');await a.waitForURL(/room=/);const coop=new URL(a.url()).searchParams.get('room');
+  await b.click('[data-mode="coop"]');await b.fill('#public-lobby-code',coop);await b.click('#public-lobby-join');
   await b.locator('#board .cell').first().waitFor();
   await Promise.all([a.locator('#board .cell').nth(0).click(),b.locator('#board .cell').nth(1).click()]);
   for(const p of [a,b])await p.waitForFunction(()=>board[0]==='1'&&board[1]==='1');
@@ -110,8 +110,8 @@ async function main(){
   assert.equal(await b.evaluate(()=>{tick();return document.querySelector('#timer').textContent;}),coopFinish.label);
   console.log('PASS cooperative completion freezes timer for both players');
   await Promise.all([a.evaluate(()=>leaveGame()),b.evaluate(()=>leaveGame())]);
-  await a.click('[data-mode="race"]');await a.click('#create-room');await a.waitForURL(/room=/);const race=new URL(a.url()).searchParams.get('room');
-  await b.click('[data-mode="race"]');await b.fill('#room-code',race);await b.click('#join-room');await b.locator('#lobby-players').getByText('플레이어').first().waitFor();
+  await a.click('[data-mode="race"]');await a.click('#public-lobby-create');await a.waitForURL(/room=/);const race=new URL(a.url()).searchParams.get('room');
+  await b.click('[data-mode="race"]');await b.fill('#public-lobby-code',race);await b.click('#public-lobby-join');await b.locator('#lobby-players').getByText('플레이어').first().waitFor();
   await a.click('#start-race');for(const p of [a,b])await p.waitForFunction(()=>meta?.status==='playing'&&!startingRace&&!settingBoard&&raceStates[currentId()]);
   // A race must resume from its saved personal board in the shared panel below every mode.
   const firstBlack=answers.heart5.indexOf('1');
@@ -168,9 +168,9 @@ async function main(){
     picker.dispatchEvent(new Event('change',{bubbles:true}));
     return {id:p.id,rows:p.rows,cols:p.cols,answer:window.NONO_RANDOM_PUZZLES.answerFor(p)};
   });
-  await a.click('#create-room');await a.waitForURL(/room=/);
+  await a.click('#public-lobby-create');await a.waitForURL(/room=/);
   const generatedCode=new URL(a.url()).searchParams.get('room');
-  await b.click('[data-mode="race"]');await b.fill('#room-code',generatedCode);await b.click('#join-room');
+  await b.click('[data-mode="race"]');await b.fill('#public-lobby-code',generatedCode);await b.click('#public-lobby-join');
   await b.waitForURL(/room=/);
   const other=await b.evaluate(()=>({id:puzzle.id,rows:puzzle.rows,cols:puzzle.cols,generated:puzzle.generated}));
   assert.equal(other.id,generated.id);assert.deepEqual(other.rows,generated.rows);assert.deepEqual(other.cols,generated.cols);
@@ -187,9 +187,9 @@ async function main(){
   await Promise.all([a.evaluate(()=>leaveGame()),b.evaluate(()=>leaveGame())]);
   await a.click('[data-mode="coop"]');
   await a.evaluate(id=>{const select=document.querySelector('#puzzle');select.value=id;select.dispatchEvent(new Event('change',{bubbles:true}));},generated.id);
-  await a.click('#create-room');await a.waitForURL(/room=/);
+  await a.click('#public-lobby-create');await a.waitForURL(/room=/);
   const generatedCoopCode=new URL(a.url()).searchParams.get('room');
-  await b.click('[data-mode="coop"]');await b.fill('#room-code',generatedCoopCode);await b.click('#join-room');
+  await b.click('[data-mode="coop"]');await b.fill('#public-lobby-code',generatedCoopCode);await b.click('#public-lobby-join');
   await b.waitForURL(/room=/);
   await a.evaluate(()=>paint(0,'1',false));
   await b.waitForFunction(()=>board[0]==='1');

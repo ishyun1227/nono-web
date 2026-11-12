@@ -500,9 +500,10 @@ console.log('MINI_EXTREMES_PASS: four outside strips, both sides and all corners
 const layoutStart=controllerSource.indexOf('function calculateMobileDock(');
 const layoutEnd=controllerSource.indexOf('let lastDockReserve=',layoutStart);
 assert.ok(layoutStart>=0&&layoutEnd>layoutStart,'locate production dock solver');
-const mobileDock=new Function('clamp',
+const mobileDock=new Function('clamp','document',
  controllerSource.slice(layoutStart,layoutEnd)+';return calculateMobileDock;')(
- (v,low,high)=>Math.max(low,Math.min(high,v)));
+ (v,low,high)=>Math.max(low,Math.min(high,v)),
+ {documentElement:{style:{getPropertyValue:()=>''}}});
 let layoutCases=0,stackedCases=0,restrictedCases=0;
 for(const [width,height] of [
  [320,480],[320,568],[375,667],[390,844],[430,932],
@@ -520,8 +521,8 @@ for(const [width,height] of [
  const dock=mobileDock(width,height,size/100,mode,
   prefs.dpad,prefs.actions,prefs.offsets,height-43);
  const landscape=height<=470&&width>height;
- const primary=mode==='minimap'?[208,208]:mode==='smartMinimap'?[206,206]:
-  mode==='trackpad'?[160,132]:mode==='smartHybrid'?[152,152]:
+ const primary=mode==='minimap'?[208,208]:mode==='smartMinimap'||mode==='smartTrackpad'?[206,206]:
+  mode==='trackpad'||mode==='smartHybrid'?[160,132]:
   landscape?[116,98]:width<=480?[131,113]:[151,130];
  const aw=landscape?142:width<=480?145:170;
  const ah=landscape?96:width<=480?113:130;
@@ -562,8 +563,8 @@ for(const [width,height] of [
  if(dock.scale<size/100-.001)restrictedCases++;
  layoutCases++;
 }
-assert.ok(stackedCases>0&&restrictedCases>0,
- 'responsive controller has both stacking and viewport-fitting paths');
+assert.equal(stackedCases,0,'puzzle-first dock must not stack controls');
+assert.ok(restrictedCases>0,'oversized controls must shrink to preserve the puzzle viewport');
 console.log('MOBILE_DOCK_PASS: '+layoutCases+
  ' cases, 6 modes, 65-150%, extreme offsets and landscape');
 console.log('LAPTOP_TRACKPAD_PASS: diagonal inside/outside and editing-only axis lock');

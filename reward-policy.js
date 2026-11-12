@@ -97,7 +97,7 @@ function showTable(){
 function onEscape(e){if(e.key==='Escape')hide()}
 function hide(){if(!dialog)return;dialog.remove();dialog=null;document.removeEventListener('keydown',onEscape);badge?.focus({preventScroll:true})}
 if(root){
- const title=root.querySelector('h4');
+ const title=root.querySelector('h2');
  if(title){
   badge=document.createElement('button');
   badge.type='button';badge.className='nono-reward-hint';

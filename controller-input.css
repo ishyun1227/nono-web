@@ -129,9 +129,7 @@
   body.nono-fit-playing.nono-touch-pad-visible #game .board-footer{
     bottom:calc(173px + env(safe-area-inset-bottom,0px))!important;
   }
-  body.nono-fit-playing.nono-touch-pad-visible #game #nono-actions{
-    bottom:calc(207px + env(safe-area-inset-bottom,0px))!important;
-  }
+
 }
 @media(max-height:470px) and (orientation:landscape) and (pointer:coarse){
   #nono-mobile-pad{
@@ -150,7 +148,7 @@
     bottom:0!important;padding-left:235px!important;
   }
   body.nono-fit-playing.nono-touch-pad-visible #game .board-footer{bottom:5px!important}
-  body.nono-fit-playing.nono-touch-pad-visible #game #nono-actions{bottom:38px!important}
+
 }
 
 

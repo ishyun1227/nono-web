@@ -26,9 +26,9 @@ const {pathToFileURL}=require('node:url');
         overflowY:document.documentElement.scrollHeight>innerHeight+3
       };
     });
-    if(info.overflowX||info.clear.right>=info.setup.left||info.ad.left<=info.resume.right||
-       Math.abs(info.setup.top-info.resume.top)>3||info.rewards.top<info.setup.bottom-3||
-       info.fakeItems!==0||info.overflowY)
+    if(info.overflowX||info.clear.left<info.setup.right||info.ad.top<info.resume.bottom||
+       info.resume.top<info.setup.bottom||info.rewards.left<info.setup.right||
+       info.fakeItems!==0)
       throw Error('1440×900 home layout regression: '+JSON.stringify(info));
     await page.setViewportSize({width:390,height:844});
     const mobile=await page.evaluate(()=>{

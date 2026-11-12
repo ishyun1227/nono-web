@@ -2,6 +2,16 @@
 (()=>{'use strict';
 const ids=['en','ja','zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
 const rows=[
+ ["퍼즐 선택으로 건너뛰기", "Skip to puzzle selection", "パズル選択へスキップ", "跳转到谜题选择", "跳至謎題選擇", "Ir a elegir puzle", "Ir à seleção de puzzles", "Aller au choix de grille", "Zur Rätselauswahl", "Lewati ke pilihan puzzle", "Đến phần chọn câu đố", "ข้ามไปเลือกปริศนา"],
+ ["새 랜덤 퍼즐 만들기", "Create random puzzle", "ランダムパズルを作る", "生成随机谜题", "產生隨機謎題", "Crear puzle aleatorio", "Criar puzzle aleatório", "Créer une grille aléatoire", "Zufallsrätsel erstellen", "Buat puzzle acak", "Tạo câu đố ngẫu nhiên", "สร้างปริศนาสุ่ม"],
+ ["NONO · 친구와 함께 푸는 노노그램", "NONO · Nonograms with friends", "NONO · 友達と遊ぶノノグラム", "NONO · 和朋友一起玩数织", "NONO · 和朋友一起玩數織", "NONO · Nonogramas con amigos", "NONO · Nonogramas com amigos", "NONO · Nonogrammes entre amis", "NONO · Nonogramme mit Freunden", "NONO · Nonogram bersama teman", "NONO · Nonogram cùng bạn bè", "NONO · โนโนแกรมกับเพื่อน"],
+ ["게임 메뉴", "Game menu", "ゲームメニュー", "游戏菜单", "遊戲選單", "Menú de juego", "Menu do jogo", "Menu du jeu", "Spielmenü", "Menu permainan", "Menu trò chơi", "เมนูเกม"],
+ ["오늘의 활동", "Today’s activity", "今日の活動", "今日活动", "今日活動", "Actividad de hoy", "Atividade de hoje", "Activité du jour", "Heutige Aktivität", "Aktivitas hari ini", "Hoạt động hôm nay", "กิจกรรมวันนี้"],
+ ["대결 퍼즐", "Race puzzle", "対戦パズル", "对战谜题", "對戰謎題", "Puzle de duelo", "Puzzle de duelo", "Grille en duel", "Duellrätsel", "Puzzle duel", "Câu đố đối kháng", "ปริศนาแข่งขัน"],
+ ["협동 퍼즐", "Co-op puzzle", "協力パズル", "合作谜题", "合作謎題", "Puzle cooperativo", "Puzzle cooperativo", "Grille coopérative", "Kooperatives Rätsel", "Puzzle bersama", "Câu đố hợp tác", "ปริศนาร่วมมือ"],
+ ["기록 도전", "Time challenge", "タイムチャレンジ", "计时挑战", "計時挑戰", "Reto cronometrado", "Desafio cronometrado", "Défi chronométré", "Zeit-Challenge", "Tantangan waktu", "Thử thách thời gian", "ท้าทายจับเวลา"],
+ ["이어 풀기", "Resume", "続きから", "继续", "繼續", "Continuar", "Continuar", "Reprendre", "Fortsetzen", "Lanjutkan", "Tiếp tục", "เล่นต่อ"],
+
  ['커뮤니티','Community','コミュニティ','社区','社群','Comunidad','Comunidade','Communauté','Community','Komunitas','Cộng đồng','ชุมชน'],
  ['🪙 퍼즐 보상표','🪙 Puzzle rewards','🪙 パズル報酬','🪙 谜题奖励','🪙 謎題獎勵','🪙 Recompensas','🪙 Recompensas','🪙 Récompenses','🪙 Rätselprämien','🪙 Hadiah puzzle','🪙 Thưởng câu đố','🪙 รางวัลปริศนา'],
  ['퍼즐 포인트 보상표 열기','Open puzzle point rewards','パズル報酬表を開く','打开谜题积分表','開啟謎題點數表','Ver tabla de puntos','Abrir tabela de pontos','Voir les récompenses','Punktetabelle öffnen','Lihat tabel poin','Xem bảng điểm thưởng','เปิดตารางคะแนนรางวัล'],

@@ -5,6 +5,8 @@ test-results/
 tests/live-generated.cjs
 dist/
 .wrangler/
+.taste-skill/
+.test-tools/
 
 # Never commit plaintext puzzle answers, service account keys, or private inputs.
 private/

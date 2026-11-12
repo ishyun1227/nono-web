@@ -174,7 +174,7 @@ window.addEventListener('nono:activity',onActivity);
 window.addEventListener('storage',e=>{if(e.key===KEY){state=load();render();window.dispatchEvent(new Event('nono:wallet-change'));}});
 function dock(){
  const theme=document.body.dataset.nonoTheme;
- const target=theme==='enchanted'?$('#fg-home'):theme==='terminal'?$('#terminal-experience'):$('#home-view');
+ const target=theme==='enchanted'?$('#fg-home'):theme==='terminal'?$('#terminal-experience'):theme==='neon'?$('#nono-workbench-support'):$('#home-view');
  if(!target)return;
  root.classList.toggle('nono-daily-in-terminal',theme==='terminal');
  if(root.parentNode!==target)target.append(root);

@@ -40,6 +40,7 @@ const apply=(locale,key,args={})=>{
 };
 const make=(source,locale,t)=>{
  let m;
+ if((m=/^퍼즐 (\d+)$/.exec(source)))return t('퍼즐')+' '+m[1];
  if((m=/^(.+?) 크기 (.+?) 난이도의 새 랜덤 퍼즐 생성( 및 방 만들기)?$/.exec(source)))
    return apply(locale,m[3]?'randomPuzzleRoomAria':'randomPuzzleAria',{size:t(m[1]),level:t(m[2])});
  if((m=/^(.+?) 이미지로 설명보기$/.exec(source)))return apply(locale,'example',{name:t(m[1])});

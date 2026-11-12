@@ -122,7 +122,7 @@ const { pathToFileURL } = require('node:url');
     throw new Error('Default five-tab launcher broken: '+JSON.stringify(base));
   if(!await page.locator('#nono-community-tab').isVisible() ||
      !await page.locator('#nono-shop-tab-top').isVisible() ||
-      await page.locator('.mode-card[data-mode="record"]').isVisible())
+     !await page.locator('.mode-card[data-mode="record"]').isVisible())
     throw new Error('Community/shop tab visibility regression');
   // The resume section is a persistent shared area below the setup for every mode.
   if(await page.locator('.mode-card').count()!==4 ||
@@ -153,9 +153,9 @@ const { pathToFileURL } = require('node:url');
       throw new Error('Resume panel missing or exceeding five entries in '+choice);
     const layout=await page.evaluate(()=>{
       const setup=document.getElementById('setup').getBoundingClientRect(),resume=document.getElementById('nono-resume-view').getBoundingClientRect();
-      return {nextTo:resume.left>=setup.right,visible:resume.width>0,overflow:document.documentElement.scrollWidth>innerWidth+2};
+      return {nextTo:resume.top>=setup.bottom,visible:resume.width>0,overflow:document.documentElement.scrollWidth>innerWidth+2};
     });
-    if(!layout.nextTo||!layout.visible||layout.overflow)throw new Error('Resume must appear next to the active setup: '+JSON.stringify(layout));
+    if(!layout.nextTo||!layout.visible||layout.overflow)throw new Error('Resume must appear below the active setup: '+JSON.stringify(layout));
   }
   await page.evaluate(()=>{
     for(const p of PUZZLES)localStorage.removeItem('nono-web-puzzle-v1:'+p.id);
@@ -218,7 +218,10 @@ const { pathToFileURL } = require('node:url');
   if(!await page.locator('#quick-match').isVisible())throw new Error('Quick matching action missing');
   if(!await page.locator('#public-room-toggle').isChecked())throw new Error('New rooms must default to public');
   await page.locator('#quick-match').click();
-  if(!((await page.locator('#toast').innerText()).includes('온라인 연결')))throw new Error('Offline quick matching must show an honest connection warning');
+  if(await page.locator('.nono-account-panel').isVisible()){
+    if(!await page.locator('.nono-account-panel').getByText('Google로 계속하기').count())throw new Error('Guest matchmaking must offer sign in');
+    await page.locator('.nono-account-close').click();
+  }else if(!((await page.locator('#toast').innerText()).includes('온라인 연결')))throw new Error('Offline quick matching must show an honest connection warning');
   if(!await page.locator('#setup .nono-apple-setup').isVisible() ||
       !await page.locator('#public-lobby-create').isVisible() ||
       await page.locator('#room-controls').isVisible())
@@ -259,7 +262,7 @@ const { pathToFileURL } = require('node:url');
   await page.locator('#setup .nono-apple-difficulty-choices button').filter({hasText:'보통'}).click();
   if(!await page.locator('#setup .nono-apple-difficulty-choices').isVisible())
     throw new Error('Difficulty filter is missing for 30x30');
-  if(await page.locator('#setup .nono-apple-puzzle-choices button:not(.nono-apple-random-generate)').allTextContents().then(x=>x.join(','))!=='01,02,03')
+  if(await page.locator('#setup .nono-apple-puzzle-choices button[data-puzzle-id]').evaluateAll(bs=>bs.map(b=>b.dataset.puzzleId).join(','))!=='vox_crabino_front,vox_crabino_side,vox_crabino_top')
     throw new Error('30x30 puzzle choices should show 01 / 02 / 03');
   await page.locator('#setup .nono-apple-puzzle-choices button:not(.nono-apple-random-generate)').nth(2).click();
   if(await page.locator('#puzzle').inputValue()!=='vox_crabino_top')
@@ -291,7 +294,7 @@ const { pathToFileURL } = require('node:url');
     document.querySelector('#puzzle').append(option);
     document.querySelector('#puzzle').dispatchEvent(new Event('change',{bubbles:true}));
   });
-  if(await page.locator('#setup .nono-apple-puzzle-choices button:not(.nono-apple-random-generate)').allTextContents().then(x=>x.join(','))!=='01,02')
+  if(await page.locator('#setup .nono-apple-puzzle-choices button[data-puzzle-id]').evaluateAll(bs=>bs.map(b=>b.dataset.puzzleId).join(','))!=='cat10,cat10_extra_test')
     throw new Error('All puzzles matching the size and difficulty must appear');
   await page.locator('#setup .nono-apple-puzzle-choices button:not(.nono-apple-random-generate)').nth(1).click();
   if(await page.locator('#puzzle').inputValue()!=='cat10_extra_test')

@@ -29,7 +29,7 @@ right.innerHTML=[
   '<p class="nono-ad-caption">현재는 광고가 없는 빈 공간입니다.</p>',
   '</section>'
 ].join('');
-home.insertBefore(left,home.querySelector('.home-content')||null);
+(document.getElementById('nono-workbench-support')||home).append(left);
 home.append(right);
 
 const list=left.querySelector('#nono-completion-list');

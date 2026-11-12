@@ -163,7 +163,8 @@ async function changeUser(next){
   const synced=await syncNow();
   if(movedGuest&&synced===true)localStorage.setItem(CACHE+'guest',JSON.stringify({format:1,keys:{}}));
  }
- else if(!localStorage.getItem(INTRO)&&auth)setTimeout(()=>{if(!isSignedIn()&&!modal)open('welcome');},300);
+ // Guest play is the first action. The header and gated online modes keep the
+ // complete sign-in flow available without covering the puzzle picker on load.
  if(typeof resumeHub!=='undefined'){resumeHub?.watch?.();resumeHub?.refresh?.();}
  window.dispatchEvent(new CustomEvent('nono:account-changed',{detail:{previous,target}}));
 }
@@ -171,7 +172,13 @@ function node(tag,text,parent,className){
  const n=document.createElement(tag);if(text!==null)n.textContent=text;
  if(className)n.className=className;if(parent)parent.append(n);return n;
 }
-function close(){if(!modal)return;modal.remove();modal=null;document.removeEventListener('keydown',esc);}
+let returnFocus=null,backgroundInert=false;
+function close(){
+ if(!modal)return;
+ modal.remove();modal=null;document.removeEventListener('keydown',esc);
+ const shell=document.querySelector('.shell');if(shell)shell.inert=backgroundInert;
+ if(returnFocus?.isConnected)returnFocus.focus({preventScroll:true});
+}
 function esc(e){if(e.key==='Escape'&&!busy)close();}
 function action(container,label,fn){
  const b=node('button',label,container);
@@ -182,10 +189,12 @@ function row(container,label,value){
 }
 function open(kind='profile'){
  close();
+ returnFocus=document.activeElement;
+ const shell=document.querySelector('.shell');backgroundInert=!!shell?.inert;if(shell)shell.inert=true;
  modal=node('div',null,document.body,'nono-account-shade');
  const panel=node('section',null,modal,'nono-account-panel');panel.setAttribute('role','dialog');panel.setAttribute('aria-modal','true');
  const x=node('button','×',panel,'nono-account-close');x.type='button';x.setAttribute('aria-label','닫기');x.onclick=close;
- node('h2',kind==='welcome'?'NONO 시작하기':'내 프로필',panel);
+ const heading=node('h2',kind==='welcome'?'NONO 시작하기':'내 프로필',panel);heading.id='nono-account-title';panel.setAttribute('aria-labelledby',heading.id);
  if(kind==='welcome')node('p','로그인 없이 혼자 풀기를 즐길 수 있어요. Google 또는 Apple로 로그인하면 퍼즐 진행 상태와 완료 기록을 기기 간 동기화할 수 있어요.',panel);
  else{
   node('p',isSignedIn()?(user.displayName||'소셜 계정')+' · 로그인됨':'비회원 플레이 중 · 이 브라우저에서만 기록이 보관됩니다.',panel);
