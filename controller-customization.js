@@ -112,7 +112,7 @@ function calculateMobileDock(width,height,requestedScale,mode,dpadPref,actionsPr
  const landscape=height<=470&&width>height;
  const primarySize=mode==='minimap'?[208,208]:
   mode==='smartMinimap'||mode==='smartTrackpad'?[206,206]:
-  mode==='trackpad'||mode==='smartHybrid'?[160,132]:
+  mode==='trackpad'?[160,132]:mode==='smartHybrid'?[152,152]:
   landscape?[116,98]:width<=480?[131,113]:[151,130];
  const nav={width:primarySize[0],height:primarySize[1]};
  // Each editable action may have an independent +/-60px offset. A group

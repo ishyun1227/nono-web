@@ -522,7 +522,7 @@ for(const [width,height] of [
   prefs.dpad,prefs.actions,prefs.offsets,height-43);
  const landscape=height<=470&&width>height;
  const primary=mode==='minimap'?[208,208]:mode==='smartMinimap'||mode==='smartTrackpad'?[206,206]:
-  mode==='trackpad'||mode==='smartHybrid'?[160,132]:
+  mode==='trackpad'?[160,132]:mode==='smartHybrid'?[152,152]:
   landscape?[116,98]:width<=480?[131,113]:[151,130];
  const aw=landscape?142:width<=480?145:170;
  const ah=landscape?96:width<=480?113:130;

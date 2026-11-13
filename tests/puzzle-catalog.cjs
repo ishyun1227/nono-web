@@ -108,6 +108,8 @@ for(const removed of ['playtest-rabbit-samurai.html','winter-snowman-test.html',
 assert(!fs.existsSync(path.join(dist,'trials')),'Standalone trial pages were rebuilt');
 assert(!builtHome.includes('playtest-rabbit-samurai.html'));
 assert(!builtHome.includes('winter-snowman-trial-v1.html'));
-assert(builtHome.includes('<script src="./puzzles-public-catalog.js?v=1"></script>'));
+const catalogHash=require('node:crypto').createHash('sha256').update(script).digest('hex').slice(0,12);
+assert(builtHome.includes('<script src="./puzzles-public-catalog.js?v='+catalogHash+'"></script>'),
+ 'Published catalog URL must match its content hash');
 assert(!/privateAnswersPacked|\\bb64\\b|\\bmask\\b/.test(script),'Public clues must not embed answer bits');
 console.log('PASS canonical 12-puzzle catalog, all 12 in existing main runtime, no standalone players, protected answers');
