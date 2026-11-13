@@ -1,5 +1,10 @@
 name: One-time initial random puzzle stock fill
 on:
+  # Start a bounded initial-fill run when enabling this revised Spark workflow.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/server-random-bank-initial-fill.yml
   schedule:
     # An additional hourly run only while the one-time stock warmup is active.
     # GitHub scheduled jobs may start late or be skipped under load.
@@ -32,18 +37,20 @@ jobs:
             exit 0
           fi
           echo "ready=true" >> "$GITHUB_OUTPUT"
-      - name: Check live Firebase free-tier usage (block burst at 80% or missing data)
-        id: usage
+      - name: Explain Spark free quota and bounded progress policy
         if: steps.ready.outputs.ready == 'true'
-        env:
-          FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        shell: bash
         run: |
-          node --check tools/random-bank-usage-metrics.mjs
-          node --check tools/check-random-bank-usage.mjs
-          node tools/check-random-bank-usage.mjs
-      - name: Check the 36 initial inventories, security rules and safety window
+          echo "## Spark initial puzzle stock fill" >> "$GITHUB_STEP_SUMMARY"
+          echo "Target: 100 per each of 36 size/difficulty categories." >> "$GITHUB_STEP_SUMMARY"
+          echo "One job: <=60 certified puzzles, <=4000 attempts, <=420 seconds generation." >> "$GITHUB_STEP_SUMMARY"
+          echo "Pauses after 24 consecutive no-progress refill runs; resumes if the normal writer grows stock." >> "$GITHUB_STEP_SUMMARY"
+          echo "**Quota caution:** Cloud Monitoring usage API cannot read this Spark project's billing metrics." >> "$GITHUB_STEP_SUMMARY"
+          echo "User inspected Firebase Console on 2026-11-12; this is NOT live quota verification." >> "$GITHUB_STEP_SUMMARY"
+          echo "Do not assume downloads remain below 10 GB/month indefinitely; review Firebase Console Usage." >> "$GITHUB_STEP_SUMMARY"
+      - name: Check the 36 initial inventories, production rules and progress stall
         id: plan
-        if: steps.usage.outputs.safe == 'true'
+        if: steps.ready.outputs.ready == 'true'
         env:
           FIREBASE_SERVICE_ACCOUNT_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
         run: |

@@ -5,6 +5,7 @@ on:
     paths:
       - tools/random-bank-generator.mjs
       - tools/random-bank-refill-core.mjs
+      - sat-nonogram-solver.js
       - tools/random-bank-initial-fill-core.mjs
       - tools/plan-random-bank-initial-fill.mjs
       - .github/workflows/server-random-bank-initial-fill.yml
@@ -17,6 +18,9 @@ on:
       - tools/activate-random-bank-rules.mjs
       - .github/workflows/activate-random-bank.yml
       - tools/refill-random-bank.mjs
+      - tools/run-spark-random-pilot.mjs
+      - tests/spark-random-pilot.mjs
+      - .github/workflows/server-random-bank-spark-pilot.yml
       - random-puzzle-allocation.js
       - database.rules.json
       - tests/random-bank-server.mjs
@@ -39,6 +43,7 @@ jobs:
       - name: Check source syntax and Firebase rules JSON
         run: |
           node --check tools/random-bank-generator.mjs
+          node --check sat-nonogram-solver.js
           node --check tools/random-bank-admin.mjs
           node --check tools/random-bank-usage-metrics.mjs
           node --check tools/check-random-bank-usage.mjs
@@ -49,10 +54,14 @@ jobs:
           node --check tools/random-bank-initial-fill-core.mjs
           node --check tools/plan-random-bank-initial-fill.mjs
           node --check tools/refill-random-bank.mjs
+          node --check tools/run-spark-random-pilot.mjs
+          node --check tests/spark-random-pilot.mjs
           node --check tests/random-bank-server.mjs
           node -e "JSON.parse(require('node:fs').readFileSync('database.rules.json','utf8'))"
       - name: Test initial burst safety caps, 100-stock planner, refill, proof and credentials
         run: node tests/random-bank-server.mjs
+      - name: Test one-time Spark pilot stock and resource caps
+        run: node tests/spark-random-pilot.mjs
       - name: Test no-cost Firebase quota telemetry and fail-closed decisions
         run: node tests/random-bank-usage.mjs
       - name: Test Firebase bank and restock request security

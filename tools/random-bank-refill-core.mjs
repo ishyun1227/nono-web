@@ -94,6 +94,16 @@ export function balancedBucketOrder(buckets=BUCKETS){
     return rank(a)-rank(b);
   });
 }
+// Generation happens offline: allow slow large-grid proof attempts more
+// time, but never let one SAT candidate exceed the remaining job window.
+// The real work budget is controlled by the refill runner's deadline.
+export function serverProofBudget(size,remainingMs){
+  if(!SIZES.includes(size)||!Number.isFinite(remainingMs))
+    throw Error('Invalid server proof budget input');
+  const maxMs=size<=10?15000:size<=20?30000:size<=30?45000:
+    size<=50?60000:size<=75?90000:120000;
+  return Math.max(1,Math.min(maxMs,Math.floor(remainingMs)));
+}
 export async function refill(store,{
   buckets=BUCKETS,maxPublished=12,maxAttempts=144,maxMs=300000,
   perBucketAttempts=0,makeAttempt=attempt,now=Date.now,
@@ -219,8 +229,12 @@ export async function refill(store,{
     const started=measureMs();
     let candidate,reason=null,success=false,fatal=null;
     try{
+      // Leave a small reserve for the independent logic solver and Firebase
+      // persistence. If the batch window expires, the next cron run resumes.
+      const remainingMs=deadline-now()-2500;
+      const proofMs=serverProofBudget(selected.bucket.size,remainingMs);
       candidate=await makeAttempt({
-        size:selected.bucket.size,difficulty:selected.bucket.difficulty
+        size:selected.bucket.size,difficulty:selected.bucket.difficulty,proofMs
       });
     }catch(error){
       reason='candidate_error';

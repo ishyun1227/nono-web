@@ -218,7 +218,10 @@ function encode(puzzle,reference,options={}){
        !sameHint(col,puzzle.cols[index]))
       return {status:'invalid'};
   }
-  const remaining=Number.isFinite(options.maxMs)&&options.maxMs>=0?Math.min(options.maxMs,10000):10000;
+  // External server CaDiCaL verification can request up to two minutes for
+  // large offline puzzles. The browser/default remains 10 seconds; the
+  // separately exposed encodeForSolve path retains its original 10s cap.
+  const remaining=Number.isFinite(options.maxMs)&&options.maxMs>=0?Math.min(options.maxMs,120000):10000;
   const deadline=Date.now()+remaining;
   let result;
   try{

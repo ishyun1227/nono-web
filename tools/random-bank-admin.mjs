@@ -23,6 +23,18 @@ export function validateCredential(json){
     throw Error('FIREBASE_SERVICE_ACCOUNT_JSON is not a valid Google service account');
   return account;
 }
+// Retry ONLY read requests. A PUT may have reached Firebase even when its
+// connection is lost, so blindly replaying writes can corrupt accounting.
+const RETRYABLE_HTTP=new Set([408,429,500,502,503,504]);
+const RETRYABLE_NETWORK=new Set([
+  'UND_ERR_SOCKET','UND_ERR_CONNECT_TIMEOUT','UND_ERR_HEADERS_TIMEOUT',
+  'UND_ERR_BODY_TIMEOUT','ECONNRESET','ECONNABORTED','ETIMEDOUT',
+  'EPIPE','EAI_AGAIN'
+]);
+const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+export function retryableFirebaseReadError(error){
+  return RETRYABLE_NETWORK.has(error?.cause?.code)||RETRYABLE_NETWORK.has(error?.code);
+}
 export function makeAdminStore({serviceAccountJson,databaseUrl,fetchFn=fetch}){
   const account=validateCredential(serviceAccountJson);
   const base=validateDatabaseUrl(databaseUrl);
@@ -59,15 +71,30 @@ export function makeAdminStore({serviceAccountJson,databaseUrl,fetchFn=fetch}){
     if(shallow)uri.searchParams.set('shallow','true');
     const headers={'Content-Type':'application/json'};
     if(conditional)headers['If-Match']='null_etag';
-    const response=await fetchFn(uri,{method,headers,
-      ...(method==='PUT'?{body:JSON.stringify(value)}:{})});
-    if((response.status===401||response.status===403)&&!renew)
-      return request(method,path,value,conditional,true,shallow);
-    if(conditional&&response.status===412)return {created:false};
-    if(!response.ok)throw Error('Firebase RTDB '+method+' failed, HTTP '+response.status);
-    if(method==='DELETE')return true;
-    const data=await response.json();
-    return conditional?{created:true}:data;
+    const maxRetries=method==='GET'?2:0;
+    for(let retry=0;retry<=maxRetries;retry++){
+      try{
+        const response=await fetchFn(uri,{method,headers,
+          ...(method==='PUT'?{body:JSON.stringify(value)}:{})});
+        if((response.status===401||response.status===403)&&!renew)
+          return request(method,path,value,conditional,true,shallow);
+        // Retry transient HTTP responses on reads only. Never retry
+        // unauthorized/permission errors and never repeat ambiguous writes.
+        if(method==='GET'&&retry<maxRetries&&RETRYABLE_HTTP.has(response.status)){
+          await delay(250*(retry+1));
+          continue;
+        }
+        if(conditional&&response.status===412)return {created:false};
+        if(!response.ok)throw Error('Firebase RTDB '+method+' failed, HTTP '+response.status);
+        if(method==='DELETE')return true;
+        const data=await response.json();
+        return conditional?{created:true}:data;
+      }catch(error){
+        if(method!=='GET'||retry>=maxRetries||
+           !retryableFirebaseReadError(error))throw error;
+        await delay(250*(retry+1));
+      }
+    }
   }
   // Firebase's versioned conditional REST writes protect the entire ruleset
   // from clobbering a concurrent admin edit. Never log access tokens/ETags.
