@@ -449,6 +449,60 @@ assert(requests.at(-1).uri.includes('shallow=true'),
 assert.equal(requests.at(-1).method,'GET');
 console.log('PASS restricted service-account URL, OAuth JWT and conditional no-overwrite REST writes');
 
+// A socket reset during a read-only statistics GET must not abort an entire
+// generated batch. Never repeat ambiguous Firebase writes after a lost socket.
+let getCalls=0;
+const socketError=()=>Object.assign(new TypeError('fetch failed'),{
+  cause:{code:'UND_ERR_SOCKET'}
+});
+const socketRecoveringFetch=async(url,opts)=>{
+  if(opts.method==='POST')return {ok:true,json:async()=>({
+    access_token:'fake-token',expires_in:3600
+  })};
+  if(opts.method==='GET'){
+    getCalls++;
+    if(getCalls===1)throw socketError();
+    return {ok:true,json:async()=>({attempts:17})};
+  }
+  throw Error('Unexpected request '+opts.method);
+};
+const socketStore=makeAdminStore({
+  serviceAccountJson:account,databaseUrl:'https://demo.firebaseio.com',
+  fetchFn:socketRecoveringFetch
+});
+assert.deepEqual(await socketStore.get('randomBankStats/5_쉬움'),{attempts:17});
+assert.equal(getCalls,2,'Transient read socket failure must be retried');
+let retryHttpCalls=0;
+const httpRecoverStore=makeAdminStore({
+  serviceAccountJson:account,databaseUrl:'https://demo.firebaseio.com',
+  fetchFn:async(url,opts)=>{
+    if(opts.method==='POST')return {ok:true,json:async()=>({
+      access_token:'fake-token',expires_in:3600
+    })};
+    retryHttpCalls++;
+    return retryHttpCalls===1?{ok:false,status:503}:
+      {ok:true,json:async()=>({ok:true})};
+  }
+});
+assert.deepEqual(await httpRecoverStore.get('randomBankStats/10_보통'),{ok:true});
+assert.equal(retryHttpCalls,2);
+let putCalls=0;
+const ambiguousWriteStore=makeAdminStore({
+  serviceAccountJson:account,databaseUrl:'https://demo.firebaseio.com',
+  fetchFn:async(url,opts)=>{
+    if(opts.method==='POST')return {ok:true,json:async()=>({
+      access_token:'fake-token',expires_in:3600
+    })};
+    if(opts.method==='PUT'){putCalls++;throw socketError();}
+    throw Error('Unexpected request '+opts.method);
+  }
+});
+await assert.rejects(ambiguousWriteStore.put('randomBankStats/5_쉬움',{attempts:1}),
+  /fetch failed/);
+assert.equal(putCalls,1,'Never replay a write with unknown success state');
+console.log('PASS Firebase transient GET retry, HTTP 503 retry and no unsafe write replay');
+
+
 let savedRuleValue={rules:{'.read':false,'.write':false}};
 let remoteEtag='"rules-v1"';
 const etagHeaders=[];
