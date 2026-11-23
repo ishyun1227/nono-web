@@ -7,7 +7,7 @@ if(!home||!tabs||document.getElementById('nono-community-tab'))return;
 const button=(id,label)=>{
  const el=document.createElement('button');
  el.id=id;el.type='button';el.className='nono-top-action';el.textContent=label;
- el.setAttribute('aria-label',label+' 열기');return el;
+ el.setAttribute('aria-label',label==='노노그램'?'NONOgram':label+' 열기');return el;
 };
 const community=button('nono-community-tab','노노그램');
 const shop=button('nono-shop-tab-top','상점');
