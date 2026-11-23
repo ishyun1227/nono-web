@@ -31,7 +31,14 @@ const server=http.createServer((req,res)=>{
    await page.screenshot({path:path.join(out,'home-'+width+'.png'),fullPage:true});results.push({check:'home',...state});
   }
   await page.setViewportSize({width:1440,height:900});
-  await page.getByRole('button',{name:'쉬움',exact:true}).click();
+  // Size is the row, difficulty is the column. The intersection is one selection.
+  assert.equal(await page.locator('.nono-apple-matrix tbody tr').count(),4);
+  assert.equal(await page.locator('.nono-apple-matrix-cell').count(),20);
+  await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').click();
+  assert.equal(await page.locator('.nono-apple-matrix-cell[aria-pressed="true"]').count(),1);
+  assert.equal(await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').getAttribute('aria-pressed'),'true');
+  assert.ok(await page.locator('.nono-apple-choice[data-puzzle-id="heart5"]').isVisible());
+  await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').click();
   await page.locator('.nono-apple-choice[data-puzzle-id="heart5"]').click();await page.click('#play-alone');
   await page.locator('#board .cell').first().waitFor({state:'visible'});
   await page.locator('#board .cell').first().click();
@@ -72,7 +79,7 @@ const server=http.createServer((req,res)=>{
   }
   await page.click('#nono-theme-use');assert.ok(await page.locator('#nono-workbench-nav .mode-select').isVisible());
   results.push({check:'all ten themes and default navigation restored',passed:true});
-  await page.getByRole('button',{name:'쉬움',exact:true}).click();await page.locator('.nono-apple-random-generate').click();
+  await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').click();await page.locator('.nono-apple-random-generate').click();
   await page.locator('#board .cell').first().waitFor({state:'visible',timeout:90000});
   assert.ok(await page.evaluate(()=>puzzle.generated===true));results.push({check:'random generation starts real game',passed:true});await page.click('#leave-game');
   // Exercise the actual six controller surfaces on both ordinary and dense grids.
