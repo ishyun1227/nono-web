@@ -58,6 +58,7 @@ const server=http.createServer((req,res)=>{
    await page.click('[data-mode="'+mode+'"]');assert.equal(await page.locator('[data-mode="'+mode+'"]').getAttribute('aria-pressed'),'true');
   }
   await page.click('#nono-community-tab');await page.locator('#nono-community-title').waitFor({state:'visible'});
+  await page.getByRole('tab',{name:'랭킹'}).click();
   await page.getByRole('button',{name:'기록 경쟁 시작'}).first().click();
   assert.equal(await page.locator('[data-mode="record"]').getAttribute('aria-pressed'),'true');
   await page.click('[data-mode="practice"]');
