@@ -47,6 +47,19 @@ const {pathToFileURL}=require('node:url');
   if(!await page.locator('#nono-shop-balance').isVisible())throw Error('Shop not accessible from header');
   if(!((await page.locator('#nono-shop-balance').textContent())||'').includes('195'))throw Error('Game points missing from shop wallet');
   await page.locator('#nono-theme-close').click();
+  await page.setViewportSize({width:390,height:844});
+  await page.locator('#nono-community-tab').click();
+  if(!await page.locator('.nono-social-mobile-head').isVisible())throw Error('Mobile feed header is missing');
+  if(!await page.locator('.nono-social-bottom').isVisible())throw Error('Mobile bottom navigation is missing');
+  if(await page.locator('.nono-social-bottom .nono-social-nav-item').count()!==5)
+    throw Error('Mobile navigation must have five destinations');
+  const geometry=await page.evaluate(()=>{
+    const nav=document.querySelector('.nono-social-bottom').getBoundingClientRect();
+    return {scrollWidth:document.documentElement.scrollWidth,navBottom:nav.bottom,viewportHeight:innerHeight};
+  });
+  if(geometry.scrollWidth>391||geometry.navBottom>geometry.viewportHeight+1)
+    throw Error('Mobile NONOgram overflow: '+JSON.stringify(geometry));
+  await page.locator('.nono-social-back').click();
   if(errors.length)throw Error('Browser errors: '+errors.join(' | '));
   console.log('PASS community navigation, reward table, gameplay preview wallet and store');
  }finally{await browser.close();}
