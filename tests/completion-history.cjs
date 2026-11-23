@@ -15,7 +15,7 @@ const {pathToFileURL}=require('node:url');
     const file=path.resolve(__dirname,'..','dist','index.html');
     if(!fs.existsSync(file))throw Error('Run npm run build first');
     await page.goto(pathToFileURL(file).href);
-    await page.locator('#nono-completion-list').waitFor();
+    await page.locator('#nono-completion-list').waitFor({state:'attached'});
     const detail={
       mode:'solo',puzzleId:'heart5',size:5,name:'테스트',
       roomCode:'',finishedAt:Date.now()
@@ -27,9 +27,9 @@ const {pathToFileURL}=require('node:url');
     assert.equal(await page.locator('#nono-completion-list .nono-completion-item').count(),1);
     assert.match(await page.locator('#nono-completion-list').innerText(),/내 완료/);
     await page.locator('#nono-community-tab').click();
-    assert.match(await page.locator('.nono-community-card').nth(1).innerText(),/혼자.*5×5/);
+    assert.match(await page.locator('.nono-social-post').first().innerText(),/혼자 풀기.*5×5/);
     await page.reload();
-    await page.locator('#nono-completion-list').waitFor();
+    await page.locator('#nono-completion-list').waitFor({state:'attached'});
     assert.equal(await page.locator('#nono-completion-list .nono-completion-item').count(),1,
       'completion must survive a reload');
     await page.evaluate(()=>{
@@ -40,7 +40,7 @@ const {pathToFileURL}=require('node:url');
     });
     assert.equal(await page.locator('#nono-completion-list .nono-completion-item').count(),3);
     await page.locator('#nono-community-tab').click();
-    const own=await page.locator('.nono-community-card').nth(1).innerText();
+    const own=(await page.locator('.nono-social-post').allInnerTexts()).join('\n');
     assert.match(own,/혼자/);
     assert.match(own,/대결/);
     assert.match(own,/협동/);
