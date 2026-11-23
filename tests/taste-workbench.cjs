@@ -53,7 +53,8 @@ const server=http.createServer((req,res)=>{
   const hintState=await page.evaluate(()=>({
     columns:[...document.querySelectorAll('.nono-apple-axis-col .nono-apple-axis-clue')].map(el=>el.textContent),
     rows:[...document.querySelectorAll('.nono-apple-axis-row .nono-apple-axis-clue')].map(el=>el.textContent),
-    selected:document.querySelector('.nono-apple-matrix-cell[aria-pressed="true"]')?.dataset
+    selected:{sizeGroup:document.querySelector('.nono-apple-matrix-cell[aria-pressed="true"]')?.dataset.sizeGroup,
+      difficulty:document.querySelector('.nono-apple-matrix-cell[aria-pressed="true"]')?.dataset.difficulty}
   }));
   assert.deepEqual(hintState.columns,['4','4','1,2','4'],'column clues of all cells except chosen');
   assert.deepEqual(hintState.rows,['4','2,1','4','4'],'row clues of all cells except chosen');
