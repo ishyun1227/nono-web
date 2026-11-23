@@ -122,8 +122,8 @@ const { pathToFileURL } = require('node:url');
     throw new Error('Default five-tab launcher broken: '+JSON.stringify(base));
   if(!await page.locator('#nono-community-tab').isVisible() ||
      !await page.locator('#nono-shop-tab-top').isVisible() ||
-     !await page.locator('.mode-card[data-mode="record"]').isVisible())
-    throw new Error('Community/shop tab visibility regression');
+     await page.locator('.mode-card[data-mode="record"]').isVisible())
+    throw new Error('Expected five navigation destinations; record competition is inside NONOgram');
   // The resume section is a persistent shared area below the setup for every mode.
   if(await page.locator('.mode-card').count()!==4 ||
       await page.locator('#nono-resume-tab').count()!==0 ||
