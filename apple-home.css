@@ -615,3 +615,33 @@ body[data-nono-theme="neon"] .nono-apple-matrix-section + .nono-apple-puzzles{
  body[data-nono-theme="neon"] .nono-apple-matrix td{height:35px}
  body[data-nono-theme="neon"] .nono-apple-matrix-cell{height:34px;font-size:16px}
 }
+
+
+/* Fit the connected matrix and primary start action on tablet/mobile first viewports. */
+@media(min-width:681px){
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .topbar{height:76px;margin-bottom:20px}
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-setup{
+ margin:15px 0 12px;gap:12px;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix-section{
+ gap:7px;
+}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix thead th{height:29px}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix tbody th,
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix td{height:37px}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix-cell{height:36px}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix-section + .nono-apple-puzzles{padding-top:13px}
+@media(max-width:480px){
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup{padding:12px 14px;gap:8px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup .setup-description p{display:none}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup .setup-description h1{font-size:22px;margin-bottom:0}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-setup{margin:8px 0 8px;gap:8px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix thead th{height:26px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix tbody th,
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix td{height:31px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix-cell{height:30px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-matrix-section + .nono-apple-puzzles{padding-top:9px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-puzzle-choices>.nono-apple-choice{min-height:48px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup #play-alone{min-height:44px}
+}
