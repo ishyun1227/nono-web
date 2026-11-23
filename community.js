@@ -327,7 +327,7 @@ function render(){
               mkButton('◎','nono-social-action',()=>document.getElementById('profile-button')?.click()));
  mobileHeader.append(tools);body.append(mobileHeader);
  const heading=$('div','nono-social-heading');
- heading.append($('h1','','노노그램'),mkButton('←','nono-social-back',close));body.append(heading);
+ const h1=$('h1','','노노그램');h1.id='nono-community-title';heading.append(h1,mkButton('←','nono-social-back',close));body.append(heading);
  body.append(tabsRow());
  const list=$('section','nono-social-feed');list.setAttribute('aria-label','퍼즐 완료 피드');
  let rows=feedRows();
