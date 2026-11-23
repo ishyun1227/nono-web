@@ -28,15 +28,17 @@ const navigation=$('nono-workbench-nav');
 const ui=document.createElement('div');
 ui.className='nono-apple-setup';
 ui.innerHTML=[
-  '<div class="nono-apple-filters">',
-  '<div class="nono-apple-filter"><h2>퍼즐 크기</h2><div class="nono-apple-size-choices" role="group" aria-label="퍼즐 크기"></div></div>',
-  '<div class="nono-apple-filter"><h2>난이도</h2><div class="nono-apple-difficulty-choices" role="group" aria-label="난이도"></div></div>',
+  '<div class="nono-apple-matrix-section">',
+  '<h2>크기 × 난이도</h2>',
+  '<div class="nono-apple-matrix-scroll"><table class="nono-apple-matrix" aria-label="행에서 퍼즐 크기, 열에서 난이도를 선택">',
+  '<thead><tr><th scope="col" class="nono-apple-matrix-corner">크기＼난이도</th>',
+  difficulties.map(d=>'<th scope="col">'+d+'</th>').join(''),
+  '</tr></thead><tbody></tbody></table></div>',
   '</div>',
   '<div class="nono-apple-puzzles"><h2>퍼즐</h2><div class="nono-apple-puzzle-choices" role="group" aria-label="퍼즐 번호"></div></div>'
 ].join('');
 setup.querySelector('.setup-description')?.after(ui);
-const sizeRow=ui.querySelector('.nono-apple-size-choices');
-const difficultyRow=ui.querySelector('.nono-apple-difficulty-choices');
+const matrixBody=ui.querySelector('.nono-apple-matrix tbody');
 const puzzleRow=ui.querySelector('.nono-apple-puzzle-choices');
 function makeButton(text,pressed,disabled,click){
   const b=document.createElement('button');
@@ -64,15 +66,34 @@ function render(){
   if(!neon())return;
   const all=catalog();
   const allowed=all.filter(supportsMode);
-  sizeRow.replaceChildren();
-  sizeGroups.forEach((g,i)=>{
-    const exists=allowed.some(p=>p.size>=g.min&&p.size<=g.max);
-    sizeRow.append(makeButton(g.name,state.group===i,!exists&&mode()==='record',()=>{state.group=i;render();}));
-  });
-  difficultyRow.replaceChildren();
-  difficulties.forEach(d=>{
-    const available=allowed.some(p=>inGroup(p)&&difficultyOf(p)===d);
-    difficultyRow.append(makeButton(d,state.level===d,!available&&(mode()==='record'||d==='미평가'),()=>{state.level=d;render();}));
+  matrixBody.replaceChildren();
+  sizeGroups.forEach((group,groupIndex)=>{
+    const row=document.createElement('tr');
+    const label=document.createElement('th');
+    label.scope='row';
+    label.textContent=group.name;
+    row.append(label);
+    difficulties.forEach(difficulty=>{
+      const available=allowed.some(p=>p.size>=group.min&&p.size<=group.max&&difficultyOf(p)===difficulty);
+      const unavailable=!available&&(mode()==='record'||difficulty==='미평가');
+      const selected=state.group===groupIndex&&state.level===difficulty;
+      const cell=document.createElement('td');
+      const choice=document.createElement('button');
+      choice.type='button';choice.className='nono-apple-matrix-cell';
+      choice.dataset.sizeGroup=String(groupIndex);
+      choice.dataset.difficulty=difficulty;
+      choice.setAttribute('aria-pressed',String(selected));
+      choice.setAttribute('aria-label',group.name+' 크기 · '+difficulty+' 난이도');
+      choice.title=unavailable?'이 조합은 선택할 수 없어요':group.name+' · '+difficulty;
+      choice.disabled=unavailable;
+      if(selected)choice.classList.add('is-selected');
+      choice.append(document.createTextNode(selected?'✓':''));
+      choice.addEventListener('click',()=>{
+        state.group=groupIndex;state.level=difficulty;render();
+      });
+      cell.append(choice);row.append(cell);
+    });
+    matrixBody.append(row);
   });
   const choices=allowed.filter(eligible);
   const chosen=choices.find(p=>p.id===picker.value);
