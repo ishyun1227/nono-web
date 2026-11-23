@@ -446,3 +446,103 @@ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-replay-help{col
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-puzzle-choices>.nono-apple-choice{min-height:54px;padding:8px}
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup #play-alone{min-height:46px;font-size:15px}
 }
+
+/* Shared launcher shell: NONOgram is content, not a separate fullscreen app. */
+/* Existing header + original #nono-workbench-nav remain present on all launcher pages.
+   Only the independently mounted #game screen uses its original game layout. */
+body.nono-social-open{overflow:auto}
+body[data-nono-theme="neon"] #home-view.nono-social-view{
+ display:grid;grid-template-columns:164px minmax(0,1fr) 300px;
+ align-items:start;column-gap:24px;row-gap:0;
+}
+body[data-nono-theme="neon"] #home-view.nono-social-view>:is(.home-content,#nono-workbench-support,#nono-ad-sidebar,#nono-clear-sidebar,.nono-replay-recent,#nono-daily-hub){display:none!important}
+body[data-nono-theme="neon"] #home-view.nono-social-view>#nono-workbench-nav{
+ grid-column:1;grid-row:1;display:block!important;
+}
+body[data-nono-theme="neon"] #home-view.nono-social-view #nono-workbench-nav .mode-card.selected{
+ box-shadow:none;background:transparent;color:#272727;
+}
+body[data-nono-theme="neon"] #home-view.nono-social-view #nono-community-tab{
+ background:#f9eaf2;color:#be2872;box-shadow:inset 3px 0 #d62976;
+}
+body[data-nono-theme="neon"] #nono-community-page{
+ position:static;inset:auto;z-index:auto;overflow:visible;
+ grid-column:2 / 4;grid-row:1;
+ width:100%;min-width:0;max-height:none;min-height:0;
+ background:transparent;color:#222;
+}
+body[data-nono-theme="neon"] #nono-community-page .nono-social-layout{
+ width:100%;min-height:0;margin:0;
+ display:grid;grid-template-columns:minmax(0,1fr) 300px;
+ justify-content:stretch;gap:24px;
+}
+body[data-nono-theme="neon"] #nono-community-page .nono-social-center{
+ grid-column:1;min-width:0;width:100%;padding:0 0 80px;
+}
+body[data-nono-theme="neon"] #nono-community-page .nono-social-right{
+ grid-column:2;position:static;top:auto;height:auto;
+ min-width:0;padding:8px 0 0;
+}
+body[data-nono-theme="neon"] #nono-community-page .nono-social-heading{margin-bottom:15px}
+body[data-nono-theme="neon"] #nono-community-page .nono-social-post-media{background:#fff}
+body[data-nono-theme="neon"] #nono-community-page .nono-social-post{
+ background:#fff;border:1px solid #ececec;border-radius:11px;overflow:hidden;
+ padding:0 0 16px;margin-bottom:18px;
+}
+body[data-nono-theme="neon"] #nono-community-page .nono-social-post-actions{padding:12px 14px 4px}
+body[data-nono-theme="neon"] #nono-community-page .nono-social-post-description,
+body[data-nono-theme="neon"] #nono-community-page .nono-social-post-sub{margin-left:14px;margin-right:14px}
+body[data-nono-theme="neon"] #nono-community-page .nono-social-left,
+body[data-nono-theme="neon"] #nono-community-page .nono-social-bottom,
+body[data-nono-theme="neon"] #nono-community-page .nono-social-mobile-head{display:none!important}
+@media(max-width:1199px){
+ body[data-nono-theme="neon"] #home-view.nono-social-view{
+  grid-template-columns:132px minmax(0,1fr);gap:24px;
+ }
+ body[data-nono-theme="neon"] #nono-community-page{grid-column:2;grid-row:1}
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-layout{
+  grid-template-columns:minmax(0,1fr) 230px;gap:18px;
+ }
+}
+@media(max-width:860px){
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-layout{
+  display:block;max-width:660px;margin:0 auto;
+ }
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-right{display:none!important}
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-center{padding:0 0 80px}
+}
+@media(max-width:800px){
+ body[data-nono-theme="neon"] #home-view.nono-social-view{
+  grid-template-columns:minmax(0,1fr);gap:16px;
+ }
+ body[data-nono-theme="neon"] #home-view.nono-social-view>#nono-workbench-nav{
+  grid-column:1;grid-row:1;
+ }
+ body[data-nono-theme="neon"] #nono-community-page{grid-column:1;grid-row:2}
+}
+@media(max-width:680px){
+ body[data-nono-theme="neon"] #home-view.nono-social-view{
+  display:flex;flex-direction:column;gap:0;
+ }
+ body[data-nono-theme="neon"] #home-view.nono-social-view>#nono-workbench-nav{
+  position:fixed;top:auto;bottom:0;left:0;right:0;z-index:900;
+ }
+ body[data-nono-theme="neon"] #home-view.nono-social-view #nono-community-tab{
+  box-shadow:none;background:#f9eaf2;color:#d62976;
+ }
+ body[data-nono-theme="neon"] #nono-community-page{
+  flex:1;order:1;width:100%;min-height:0;grid-column:auto;grid-row:auto;
+ }
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-layout{max-width:none}
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-center{
+  padding:0 0 86px;
+ }
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-heading{padding:12px 3px 6px}
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-filters{
+  padding:0 3px;margin:0 0 12px;
+ }
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-post{
+  border-radius:0;margin-left:-12px;margin-right:-12px;border-left:0;border-right:0;
+ }
+ body[data-nono-theme="neon"] #nono-community-page .nono-social-inline-rail{margin:14px 0}
+}
