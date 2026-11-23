@@ -24,6 +24,15 @@ const server=http.createServer((req,res)=>{
     const box=s=>{const e=document.querySelector(s),r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height}};
     return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,nav:box('#nono-workbench-nav'),setup:box('#setup'),start:box('#play-alone'),resume:box('#nono-resume-view'),support:box('#nono-workbench-support'),ad:box('#nono-ad-sidebar'),choices:document.querySelectorAll('.nono-apple-choice[data-puzzle-id]').length};
    });
+   const matrix=await page.evaluate(()=>{
+     const rect=el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height}};
+     return {board:rect(document.querySelector('.nono-apple-matrix')),
+       cell:rect(document.querySelector('.nono-apple-matrix tbody td')),
+       tabVisible:!!document.querySelector('.nono-apple-text-picker')?.getBoundingClientRect().height};
+   });
+   assert.ok(matrix.tabVisible,'size/difficulty tabs must remain visible');
+   assert.ok(Math.abs(matrix.board.width-matrix.board.height)<3,'matrix not square '+JSON.stringify({width,matrix}));
+   assert.ok(Math.abs(matrix.cell.width-matrix.cell.height)<3,'matrix cell not square '+JSON.stringify({width,matrix}));
    assert.ok(state.scrollWidth<=width+1,'horizontal overflow '+JSON.stringify(state));assert.ok(state.choices>0,'real puzzle choices missing');
    assert.ok(state.resume.y>=state.setup.bottom-1,'resume overlaps selector');
    if(width>=1200)assert.ok(state.nav.right<=state.setup.x&&state.setup.right<=state.support.x,'desktop hierarchy');
@@ -33,7 +42,28 @@ const server=http.createServer((req,res)=>{
   await page.setViewportSize({width:1440,height:900});
   // Size is the row, difficulty is the column. The intersection is one selection.
   assert.equal(await page.locator('.nono-apple-matrix tbody tr').count(),4);
-  assert.equal(await page.locator('.nono-apple-matrix-cell').count(),20);
+  assert.equal(await page.locator('.nono-apple-matrix-cell').count(),16);
+  assert.equal(await page.locator('.nono-apple-axis-col').count(),4);
+  assert.equal(await page.locator('.nono-apple-text-size button').count(),4);
+  assert.equal(await page.locator('.nono-apple-text-level button').count(),4);
+  assert.equal(await page.locator('#setup').getByText('미평가',{exact:true}).count(),0);
+  // Text tabs on the left must update a square nonogram on the right.
+  await page.locator('.nono-apple-text-size button').nth(1).click();
+  await page.locator('.nono-apple-text-level button').nth(2).click();
+  const hintState=await page.evaluate(()=>({
+    columns:[...document.querySelectorAll('.nono-apple-axis-col .nono-apple-axis-clue')].map(el=>el.textContent),
+    rows:[...document.querySelectorAll('.nono-apple-axis-row .nono-apple-axis-clue')].map(el=>el.textContent),
+    selected:document.querySelector('.nono-apple-matrix-cell[aria-pressed="true"]')?.dataset
+  }));
+  assert.deepEqual(hintState.columns,['4','4','1,2','4'],'column clues of all cells except chosen');
+  assert.deepEqual(hintState.rows,['4','2,1','4','4'],'row clues of all cells except chosen');
+  assert.equal(hintState.selected.sizeGroup,'1');
+  assert.equal(hintState.selected.difficulty,'어려움');
+  await page.locator('.nono-apple-axis-col[data-difficulty="보통"]').click();
+  assert.equal(await page.locator('.nono-apple-matrix-cell[data-size-group="1"][data-difficulty="보통"]').getAttribute('aria-pressed'),'true');
+  await page.locator('.nono-apple-axis-row').nth(0).click();
+  assert.equal(await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="보통"]').getAttribute('aria-pressed'),'true');
+  assert.match(await page.locator('.nono-apple-matrix-cell[aria-pressed="true"]').innerText(),/30\s*P/);
   await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').click();
   assert.equal(await page.locator('.nono-apple-matrix-cell[aria-pressed="true"]').count(),1);
   assert.equal(await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').getAttribute('aria-pressed'),'true');
