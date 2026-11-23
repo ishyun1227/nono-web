@@ -29,10 +29,10 @@ const ui=document.createElement('div');
 ui.className='nono-apple-setup';
 ui.innerHTML=[
   '<div class="nono-apple-matrix-section">',
-  '<h2>크기 × 난이도</h2>',
-  '<div class="nono-apple-matrix-scroll"><table class="nono-apple-matrix" aria-label="행에서 퍼즐 크기, 열에서 난이도를 선택">',
-  '<thead><tr><th scope="col" class="nono-apple-matrix-corner">크기＼난이도</th>',
-  difficulties.map(d=>'<th scope="col">'+d+'</th>').join(''),
+  '<h2 id="nono-apple-matrix-heading"><span>퍼즐 크기</span><span aria-hidden="true"> × </span><span>난이도</span></h2>',
+  '<div class="nono-apple-matrix-scroll"><table class="nono-apple-matrix" aria-labelledby="nono-apple-matrix-heading">',
+  '<thead><tr><th scope="col" class="nono-apple-matrix-corner" aria-hidden="true">↘</th>',
+  difficulties.map((d,i)=>'<th id="nono-apple-matrix-col-'+i+'" scope="col">'+d+'</th>').join(''),
   '</tr></thead><tbody></tbody></table></div>',
   '</div>',
   '<div class="nono-apple-puzzles"><h2>퍼즐</h2><div class="nono-apple-puzzle-choices" role="group" aria-label="퍼즐 번호"></div></div>'
@@ -71,9 +71,10 @@ function render(){
     const row=document.createElement('tr');
     const label=document.createElement('th');
     label.scope='row';
+    label.id='nono-apple-matrix-row-'+groupIndex;
     label.textContent=group.name;
     row.append(label);
-    difficulties.forEach(difficulty=>{
+    difficulties.forEach((difficulty,difficultyIndex)=>{
       const available=allowed.some(p=>p.size>=group.min&&p.size<=group.max&&difficultyOf(p)===difficulty);
       const unavailable=!available&&(mode()==='record'||difficulty==='미평가');
       const selected=state.group===groupIndex&&state.level===difficulty;
@@ -83,11 +84,10 @@ function render(){
       choice.dataset.sizeGroup=String(groupIndex);
       choice.dataset.difficulty=difficulty;
       choice.setAttribute('aria-pressed',String(selected));
-      choice.setAttribute('aria-label',group.name+' 크기 · '+difficulty+' 난이도');
-      choice.title=unavailable?'이 조합은 선택할 수 없어요':group.name+' · '+difficulty;
+      choice.setAttribute('aria-labelledby',label.id+' nono-apple-matrix-col-'+difficultyIndex);
       choice.disabled=unavailable;
       if(selected)choice.classList.add('is-selected');
-      choice.append(document.createTextNode(selected?'✓':''));
+      choice.append(document.createTextNode(selected?'✓':unavailable?'–':''));
       choice.addEventListener('click',()=>{
         state.group=groupIndex;state.level=difficulty;render();
       });
