@@ -43,6 +43,14 @@ const server=http.createServer((req,res)=>{
   // Size is the row, difficulty is the column. The intersection is one selection.
   assert.equal(await page.locator('.nono-apple-matrix tbody tr').count(),4);
   assert.equal(await page.locator('.nono-apple-matrix-cell').count(),16);
+  assert.equal(await page.locator('.nono-apple-cell-x').count(),15,'all unselected squares have X');
+  const fullCell=await page.evaluate(()=>{
+    const button=document.querySelector('.nono-apple-matrix-cell[aria-pressed="true"]');
+    const td=button.closest('td').getBoundingClientRect(),b=button.getBoundingClientRect();
+    return {dx:Math.abs(td.x-b.x),dy:Math.abs(td.y-b.y),
+      dw:Math.abs(td.width-b.width),dh:Math.abs(td.height-b.height)};
+  });
+  assert.ok(Object.values(fullCell).every(n=>n<1.1),'selected square must be filled edge to edge '+JSON.stringify(fullCell));
   assert.equal(await page.locator('.nono-apple-axis-col').count(),4);
   assert.equal(await page.locator('.nono-apple-text-size button').count(),4);
   assert.equal(await page.locator('.nono-apple-text-level button').count(),4);
