@@ -426,3 +426,23 @@ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #home-view .nono-rewa
 body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-replay-recent{color:#222;border-top:1px solid #ededed}
 body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-replay-recent :is(h2,h3,strong){color:#222}
 body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-replay-help{color:#777}
+
+
+/* Mobile launcher remains puzzle-first above the fixed app navigation. */
+@media(max-width:480px){
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #home-view:not(.hidden){gap:10px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup{padding:14px 14px;border-radius:13px;gap:10px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup .setup-description h1{font-size:24px;line-height:1.15;margin:0 0 5px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup .setup-description p{font-size:12px;line-height:1.35}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-setup{margin:12px 0 10px;gap:12px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-filters{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-setup h2{margin-bottom:7px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-size-choices,
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-difficulty-choices{gap:5px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-size-choices>.nono-apple-choice,
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-difficulty-choices>.nono-apple-choice{flex:1 0 calc(50% - 5px);min-width:0;min-height:34px;padding:7px 4px;font-size:11px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-puzzles{padding-top:12px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-puzzle-choices{gap:7px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-puzzle-choices>.nono-apple-choice{min-height:54px;padding:8px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup #play-alone{min-height:46px;font-size:15px}
+}
