@@ -366,6 +366,7 @@ body[data-nono-theme="neon"] #nono-community-page{
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav .mode-text strong{font-size:10px}
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav .nono-nav-label{display:none}
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-support{order:3}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-ad-sidebar{order:4}
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #home-view>.home-content{order:1}
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup{padding:18px;border-radius:12px}
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-apple-filters{gap:12px}
