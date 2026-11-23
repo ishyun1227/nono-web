@@ -13,10 +13,10 @@ const sizeGroups=[
   {name:'큼',min:21,max:34},
   {name:'거대',min:35,max:Infinity}
 ];
-const difficulties=['쉬움','보통','어려움','전문가','미평가'];
+const difficulties=['쉬움','보통','어려움','전문가'];
 const legacy={heart5:'쉬움',cat10:'보통',rocket10:'어려움',
   vox_crabino_front:'보통',vox_crabino_side:'보통',vox_crabino_top:'보통'};
-const difficultyOf=p=>{const level=p.generated?p.difficulty:p.trialOnly?'미평가':(p.difficulty==='미평가'&&legacy[p.id]?legacy[p.id]:p.difficulty||legacy[p.id]);return difficulties.includes(level)?level:null;};
+const difficultyOf=p=>{const level=p.generated?p.difficulty:p.trialOnly?'미평가':(p.difficulty==='미평가'&&legacy[p.id]?legacy[p.id]:p.difficulty||legacy[p.id]);return difficulties.includes(level)||level==='미평가'?level:null;};
 const catalog=()=>typeof PUZZLES!=='undefined'?PUZZLES.filter(p=>p&&p.id&&!p.sizeTest&&Number.isInteger(p.size)&&difficultyOf(p)):[];
 const supportsMode=p=>mode()==='practice'||(p.generated&&(mode()==='race'||mode()==='coop'))||(!p.trialOnly&&p.size<30);
 const inGroup=p=>p.size>=sizeGroups[state.group].min&&p.size<=sizeGroups[state.group].max;
@@ -28,18 +28,56 @@ const navigation=$('nono-workbench-nav');
 const ui=document.createElement('div');
 ui.className='nono-apple-setup';
 ui.innerHTML=[
+  '<div class="nono-apple-selector">',
+  '<div class="nono-apple-text-picker">',
+  '<div class="nono-apple-text-group"><h2 id="nono-apple-size-heading">퍼즐 크기</h2><div class="nono-apple-text-size" role="group" aria-labelledby="nono-apple-size-heading"></div></div>',
+  '<div class="nono-apple-text-group"><h2 id="nono-apple-level-heading">난이도</h2><div class="nono-apple-text-level" role="group" aria-labelledby="nono-apple-level-heading"></div></div>',
+  '</div>',
   '<div class="nono-apple-matrix-section">',
-  '<h2 id="nono-apple-matrix-heading"><span>퍼즐 크기</span><span aria-hidden="true"> × </span><span>난이도</span></h2>',
-  '<div class="nono-apple-matrix-scroll"><table class="nono-apple-matrix" aria-labelledby="nono-apple-matrix-heading">',
+  '<div class="nono-apple-matrix-scroll"><table class="nono-apple-matrix" aria-labelledby="nono-apple-size-heading nono-apple-level-heading">',
   '<thead><tr><th scope="col" class="nono-apple-matrix-corner" aria-hidden="true">↘</th>',
-  difficulties.map((d,i)=>'<th id="nono-apple-matrix-col-'+i+'" scope="col">'+d+'</th>').join(''),
+  difficulties.map((d,i)=>'<th id="nono-apple-matrix-col-'+i+'" scope="col"><button type="button" class="nono-apple-axis-button nono-apple-axis-col" data-difficulty="'+d+'"><span>'+d+'</span><small class="nono-apple-axis-clue" aria-hidden="true"></small></button></th>').join(''),
   '</tr></thead><tbody></tbody></table></div>',
+  '</div>',
   '</div>',
   '<div class="nono-apple-puzzles"><h2>퍼즐</h2><div class="nono-apple-puzzle-choices" role="group" aria-label="퍼즐 번호"></div></div>'
 ].join('');
 setup.querySelector('.setup-description')?.after(ui);
+const sizeTabs=ui.querySelector('.nono-apple-text-size');
+const levelTabs=ui.querySelector('.nono-apple-text-level');
+const matrixHead=ui.querySelector('.nono-apple-matrix thead tr');
 const matrixBody=ui.querySelector('.nono-apple-matrix tbody');
 const puzzleRow=ui.querySelector('.nono-apple-puzzle-choices');
+/* One omitted selected square within an otherwise-filled 4x4 nonogram.
+   Row 2, column 3 gives columns 4/4/1,2/4 and rows 4/2,1/4/4. */
+function nonogramRuns(values){
+  const groups=[];let run=0;
+  for(const filled of values){if(filled)run++;else if(run){groups.push(run);run=0;}}
+  if(run)groups.push(run);
+  return groups.length?groups.join(','):'0';
+}
+function selectionClues(){
+  const col=difficulties.indexOf(state.level);
+  const filled=(r,c)=>r!==state.group||c!==col;
+  return {
+    rows:sizeGroups.map((_,r)=>nonogramRuns(difficulties.map((_,c)=>filled(r,c)))),
+    cols:difficulties.map((_,c)=>nonogramRuns(sizeGroups.map((_,r)=>filled(r,c))))
+  };
+}
+function textTab(name,selected,click){
+  const b=document.createElement('button');
+  b.type='button';b.className='nono-apple-text-tab';
+  b.textContent=name;b.setAttribute('aria-pressed',String(selected));
+  if(selected)b.classList.add('is-current');
+  b.addEventListener('click',click);
+  return b;
+}
+function previewPoints(group,difficulty){
+  const policy=window.NONO_REWARD_POLICY;
+  if(!policy?.reward)return null;
+  const result=policy.reward(mode()==='coop'?'coop':'solo',group.min,difficulty,false,0);
+  return Number.isFinite(result?.completion)?result.completion:null;
+}
 function makeButton(text,pressed,disabled,click){
   const b=document.createElement('button');
   b.type='button';b.className='nono-apple-choice';
@@ -66,17 +104,38 @@ function render(){
   if(!neon())return;
   const all=catalog();
   const allowed=all.filter(supportsMode);
+  const clues=selectionClues();
+  sizeTabs.replaceChildren();
+  levelTabs.replaceChildren();
+  sizeGroups.forEach((group,i)=>{
+    sizeTabs.append(textTab(group.name,state.group===i,()=>{state.group=i;render();}));
+  });
+  difficulties.forEach(difficulty=>{
+    levelTabs.append(textTab(difficulty,state.level===difficulty,()=>{state.level=difficulty;render();}));
+  });
+  matrixHead.querySelectorAll('button.nono-apple-axis-col').forEach((axis,index)=>{
+    const difficulty=difficulties[index];
+    axis.setAttribute('aria-pressed',String(state.level===difficulty));
+    axis.classList.toggle('is-current',state.level===difficulty);
+    axis.querySelector('.nono-apple-axis-clue').textContent=clues.cols[index];
+    axis.onclick=()=>{state.level=difficulty;render();};
+  });
   matrixBody.replaceChildren();
   sizeGroups.forEach((group,groupIndex)=>{
     const row=document.createElement('tr');
     const label=document.createElement('th');
-    label.scope='row';
-    label.id='nono-apple-matrix-row-'+groupIndex;
-    label.textContent=group.name;
-    row.append(label);
+    label.scope='row';label.id='nono-apple-matrix-row-'+groupIndex;
+    const axis=document.createElement('button');
+    axis.type='button';axis.className='nono-apple-axis-button nono-apple-axis-row';
+    axis.setAttribute('aria-pressed',String(state.group===groupIndex));
+    if(state.group===groupIndex)axis.classList.add('is-current');
+    const name=document.createElement('span');name.textContent=group.name;
+    const clue=document.createElement('small');clue.className='nono-apple-axis-clue';
+    clue.setAttribute('aria-hidden','true');clue.textContent=clues.rows[groupIndex];
+    axis.append(name,clue);
+    axis.addEventListener('click',()=>{state.group=groupIndex;render();});
+    label.append(axis);row.append(label);
     difficulties.forEach((difficulty,difficultyIndex)=>{
-      const available=allowed.some(p=>p.size>=group.min&&p.size<=group.max&&difficultyOf(p)===difficulty);
-      const unavailable=!available&&(mode()==='record'||difficulty==='미평가');
       const selected=state.group===groupIndex&&state.level===difficulty;
       const cell=document.createElement('td');
       const choice=document.createElement('button');
@@ -85,12 +144,20 @@ function render(){
       choice.dataset.difficulty=difficulty;
       choice.setAttribute('aria-pressed',String(selected));
       choice.setAttribute('aria-labelledby',label.id+' nono-apple-matrix-col-'+difficultyIndex);
-      choice.disabled=unavailable;
-      if(selected)choice.classList.add('is-selected');
-      choice.append(document.createTextNode(selected?'✓':unavailable?'–':''));
-      choice.addEventListener('click',()=>{
-        state.group=groupIndex;state.level=difficulty;render();
-      });
+      if(selected){
+        choice.classList.add('is-selected');
+        const points=previewPoints(group,difficulty);
+        const reward=document.createElement('span');reward.className='nono-apple-cell-reward';
+        if(points===null){
+          reward.textContent='보상 미정';
+        }else{
+          const caption=document.createElement('small');caption.textContent='완료';
+          const amount=document.createElement('strong');amount.textContent='+'+points+' P';
+          reward.append(caption,amount);
+        }
+        reward.setAttribute('aria-hidden','true');choice.append(reward);
+      }
+      choice.addEventListener('click',()=>{state.group=groupIndex;state.level=difficulty;render();});
       cell.append(choice);row.append(cell);
     });
     matrixBody.append(row);
@@ -108,7 +175,7 @@ function render(){
     b.setAttribute('aria-label',(p.trialOnly?p.name:'퍼즐 '+number)+', '+(p.width||p.size)+'×'+(p.height||p.size));
     puzzleRow.append(b);
   });
-  if(mode()!=='record'&&state.level!=='미평가'){
+  if(mode()!=='record'){
     const make=makeButton('✦ 새 랜덤 퍼즐 생성',false,false,async()=>{
       if(!window.NONO_RANDOM_ALLOCATION?.choose){
         toast('랜덤 생성기를 불러오지 못했어요.');return;
@@ -155,7 +222,7 @@ function render(){
   }
   if(!choices.length){
     const msg=document.createElement('p');msg.className='nono-apple-empty';
-    msg.textContent=mode()!=='record'&&state.level!=='미평가'?'등록된 퍼즐이 없어도 위 버튼으로 새 퍼즐을 만들 수 있어요.':'이 조건의 퍼즐은 아직 준비 중이에요.';
+    msg.textContent=mode()!=='record'?'등록된 퍼즐이 없어도 위 버튼으로 새 퍼즐을 만들 수 있어요.':'이 조건의 퍼즐은 아직 준비 중이에요.';
     puzzleRow.append(msg);
   }
   start.disabled=choices.length===0;
@@ -163,7 +230,7 @@ function render(){
   const heading=$('setup-heading'),description=$('setup-description');
   const titles={practice:'퍼즐 선택',race:'대결 퍼즐',coop:'협동 퍼즐',record:'기록 도전'};
   if(heading&&heading.textContent!==titles[m])heading.textContent=titles[m];
-  if(description)description.textContent='원하는 크기와 난이도를 선택하세요.';
+  if(description)description.textContent='';
 }
 function adoptExternalPuzzle(){
   if(!neon())return;
@@ -176,6 +243,7 @@ function adoptExternalPuzzle(){
   render();
 }
 picker.addEventListener('change',adoptExternalPuzzle);
+window.addEventListener('nono:reward-policy-ready',()=>{if(neon())render();});
 document.querySelectorAll('.mode-card[data-mode]').forEach(b=>{
   b.addEventListener('click',()=>queueMicrotask(render));
   new MutationObserver(()=>queueMicrotask(render)).observe(b,{attributes:true,attributeFilter:['class']});
