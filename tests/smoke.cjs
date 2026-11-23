@@ -194,7 +194,7 @@ const { pathToFileURL } = require('node:url');
   const simple=await page.evaluate(()=>{
     const panel=document.querySelector('#setup').getBoundingClientRect();
     const heading=document.getElementById('setup-heading').getBoundingClientRect();
-    const options=document.querySelector('#setup .nono-apple-size-choices').getBoundingClientRect();
+    const options=document.querySelector('#setup .nono-apple-matrix').getBoundingClientRect();
     const start=document.getElementById('play-alone').getBoundingClientRect();
     const decors=[...document.querySelectorAll('.nono-base-kicker,.nono-base-detail,.nono-base-footer')];
     return {
@@ -257,11 +257,11 @@ const { pathToFileURL } = require('node:url');
   // Every (size, difficulty) pair must list all matching real puzzle IDs, not
   // only the 30x30 voxel group. Keep solution thumbnails and titles hidden.
   await selectUnderlying('nono-quick-size','30');
-  // The current launcher uses visible size/difficulty chips as the authority.
-  await page.locator('#setup .nono-apple-size-choices button').nth(2).click();
-  await page.locator('#setup .nono-apple-difficulty-choices button').filter({hasText:'보통'}).click();
-  if(!await page.locator('#setup .nono-apple-difficulty-choices').isVisible())
-    throw new Error('Difficulty filter is missing for 30x30');
+  // A single matrix cell selects both the size row and difficulty column.
+  await page.locator('#setup .nono-apple-matrix-cell[data-size-group="2"][data-difficulty="보통"]').click();
+  if(!await page.locator('#setup .nono-apple-matrix').isVisible() ||
+     await page.locator('#setup .nono-apple-matrix-cell[aria-pressed="true"]').count()!==1)
+    throw new Error('Size/difficulty matrix selection is broken for 30x30');
   if(await page.locator('#setup .nono-apple-puzzle-choices button[data-puzzle-id]').evaluateAll(bs=>bs.map(b=>b.dataset.puzzleId).join(','))!=='vox_crabino_front,vox_crabino_side,vox_crabino_top')
     throw new Error('30x30 puzzle choices should show 01 / 02 / 03');
   await page.locator('#setup .nono-apple-puzzle-choices button:not(.nono-apple-random-generate)').nth(2).click();
