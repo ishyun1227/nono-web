@@ -182,9 +182,12 @@ const { pathToFileURL } = require('node:url');
         screen:document.querySelector('.shell').getBoundingClientRect().height
       };
     });
+    // Mobile navigation spans the viewport, deliberately wider than the padded header.
+    const navOutOfBounds=viewport.width<=680
+      ?layout.tabs.left<-1||layout.tabs.right>viewport.width+1
+      :layout.tabs.left<layout.header.left||layout.tabs.right>layout.header.right+1;
     if(layout.overflow || layout.panel.width < (layout.viewport>=1280?layout.viewport*.30:layout.viewport*.38) ||
-      layout.tabs.left<layout.header.left || layout.tabs.right>layout.header.right+1 ||
-      layout.setupArt!=='none' ||
+      navOutOfBounds || layout.setupArt!=='none' ||
       layout.screen<viewport.height-1)
       throw new Error('Viewport-responsive NONO base layout failed: '+JSON.stringify({viewport,...layout}));
   }
