@@ -316,7 +316,7 @@ function render(){
  logo.append($('span','nono-social-logo-dot','•'));
  sidebar.append(logo,nav('feed'));
  const tail=$('div','nono-social-left-bottom');
- tail.append(mkButton('◎ 프로필','nono-social-plain',()=>document.getElementById('profile-button')?.click()));
+ tail.append(mkButton('◎ 프로필','nono-social-plain',()=>{close();document.getElementById('profile-button')?.click();}));
  tail.append(mkButton('← 돌아가기','nono-social-plain',close));
  sidebar.append(tail);
  const body=$('div','nono-social-center');
@@ -324,7 +324,7 @@ function render(){
  mobileHeader.append($('strong','','NONO'));
  const tools=$('div','nono-social-mobile-tools');
  tools.append(mkButton('⌕','nono-social-action',()=>notice('피드 검색 기능은 준비 중입니다.')),
-              mkButton('◎','nono-social-action',()=>document.getElementById('profile-button')?.click()));
+              mkButton('◎','nono-social-action',()=>{close();document.getElementById('profile-button')?.click();}));
  mobileHeader.append(tools);body.append(mobileHeader);
  const heading=$('div','nono-social-heading');
  const h1=$('h1','','노노그램');h1.id='nono-community-title';heading.append(h1,mkButton('←','nono-social-back',close));body.append(heading);
@@ -372,6 +372,7 @@ window.addEventListener('nono:completion-confirmed',()=>{
  setTimeout(()=>{if(mounted)render();},300);
 });
 window.addEventListener('keydown',e=>{if(e.key==='Escape'&&mounted)close();});
+document.addEventListener('visibilitychange',()=>{if(mounted){if(document.hidden)clearAnimations();else render();}});
 community.addEventListener('click',open);
 shop.addEventListener('click',()=>navigate('shop'));
 document.getElementById('brand-home')?.addEventListener('click',()=>{if(mounted)close();});
