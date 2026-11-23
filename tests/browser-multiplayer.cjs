@@ -145,7 +145,7 @@ async function main(){
   assert.equal(packedRace,answerBits.pack(answers.heart5,5,5),'Race finish must send packed answer');
   await b.screenshot({path:'test-results/race-desktop.png'});
   console.log('PASS synchronized race start, rapid input, completion and opponent results');
-  await a.evaluate(()=>leaveGame());await a.click('[data-mode="record"]');await a.click('#play-alone');
+  await a.evaluate(()=>leaveGame());await a.evaluate(()=>document.querySelector('[data-mode="record"]').click());await a.click('#play-alone');
   await a.locator('#game').waitFor({state:'visible'});
   const firstRun=await a.evaluate(()=>startedAt);
   a.once('dialog',d=>d.accept());await a.click('#restart');
