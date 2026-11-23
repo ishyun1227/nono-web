@@ -48,17 +48,30 @@ const {pathToFileURL}=require('node:url');
   if(!((await page.locator('#nono-shop-balance').textContent())||'').includes('195'))throw Error('Game points missing from shop wallet');
   await page.locator('#nono-theme-close').click();
   await page.setViewportSize({width:390,height:844});
+  const normalShell=await page.evaluate(()=>({
+    nav:document.getElementById('nono-workbench-nav').getBoundingClientRect().toJSON(),
+    header:document.querySelector('.topbar').getBoundingClientRect().toJSON()
+  }));
   await page.locator('#nono-community-tab').click();
-  if(!await page.locator('.nono-social-mobile-head').isVisible())throw Error('Mobile feed header is missing');
-  if(!await page.locator('.nono-social-bottom').isVisible())throw Error('Mobile bottom navigation is missing');
-  if(await page.locator('.nono-social-bottom .nono-social-nav-item').count()!==5)
-    throw Error('Mobile navigation must have five destinations');
+  if(!await page.locator('#nono-community-title').isVisible())throw Error('NONOgram is not visible');
+  if(!await page.locator('.topbar').isVisible())throw Error('Shared top header disappeared');
+  if(!await page.locator('#nono-workbench-nav').isVisible())throw Error('Shared bottom navigation disappeared');
+  if(await page.locator('#nono-workbench-nav .mode-select>button:visible').count()!==5)
+    throw Error('Mobile shared navigation must have five destinations');
+  if(await page.locator('.nono-social-left,.nono-social-bottom').count())
+    throw Error('NONOgram duplicated the launcher navigation');
   const geometry=await page.evaluate(()=>{
-    const nav=document.querySelector('.nono-social-bottom').getBoundingClientRect();
-    return {scrollWidth:document.documentElement.scrollWidth,navBottom:nav.bottom,viewportHeight:innerHeight};
+    const nav=document.getElementById('nono-workbench-nav').getBoundingClientRect();
+    const header=document.querySelector('.topbar').getBoundingClientRect();
+    return {scrollWidth:document.documentElement.scrollWidth,
+      nav:nav.toJSON(),header:header.toJSON(),viewportHeight:innerHeight,
+      contained:document.getElementById('home-view').contains(document.getElementById('nono-community-page'))};
   });
-  if(geometry.scrollWidth>391||geometry.navBottom>geometry.viewportHeight+1)
-    throw Error('Mobile NONOgram overflow: '+JSON.stringify(geometry));
+  if(!geometry.contained || geometry.scrollWidth>391 ||
+     Math.abs(geometry.nav.y-normalShell.nav.y)>2 ||
+     Math.abs(geometry.header.y-normalShell.header.y)>2 ||
+     geometry.nav.bottom>geometry.viewportHeight+1)
+    throw Error('Mobile NONOgram does not share launcher shell: '+JSON.stringify(geometry));
   await page.locator('.nono-social-back').click();
   if(errors.length)throw Error('Browser errors: '+errors.join(' | '));
   console.log('PASS community navigation, reward table, gameplay preview wallet and store');
