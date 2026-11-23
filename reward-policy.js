@@ -41,15 +41,9 @@ function selectedPuzzle(){
  }catch{return null;}
 }
 function updateBadge(){
- if(!badge)return;
- const p=selectedPuzzle(),m=mode();
- const result=p?reward(m==='record'?'solo':m,p.size,difficultyOf(p),true,2):null;
- if(!result){badge.textContent='보상표';return;}
- badge.textContent=m==='race'
-  ?'완료 +'+result.completion+' P · 승리 +'+result.victory+' P · 연승 추가'
-  :m==='coop'
-  ?'협동 완료 +'+result.completion+' P'
-  :'완료 +'+result.completion+' P';
+ // The completion amount is displayed in the selected 4x4 matrix cell.
+ // Keep the original detailed reward policy dialog reachable as a small link.
+ if(badge)badge.textContent='보상표';
 }
 function cell(text){
  const el=document.createElement('td');el.textContent=text;return el;
@@ -97,12 +91,12 @@ function showTable(){
 function onEscape(e){if(e.key==='Escape')hide()}
 function hide(){if(!dialog)return;dialog.remove();dialog=null;document.removeEventListener('keydown',onEscape);badge?.focus({preventScroll:true})}
 if(root){
- const title=root.querySelector('h2');
- if(title){
+ const holder=document.querySelector('#setup .nono-apple-text-picker')||root;
+ if(holder){
   badge=document.createElement('button');
   badge.type='button';badge.className='nono-reward-hint';
   badge.setAttribute('aria-label','퍼즐 포인트 보상표 열기');badge.addEventListener('click',showTable);
-  title.append(badge);
+  holder.append(badge);
  }
  document.addEventListener('click',event=>{
   if(event.target.closest('.mode-select,.nono-apple-setup'))queueMicrotask(updateBadge);
@@ -150,4 +144,5 @@ async function awardConfirmed(event){
 }
 window.addEventListener('nono:completion-confirmed',event=>{awardConfirmed(event).catch(console.warn)});
 window.addEventListener('nono:race-forfeit',()=>window.NONO_DAILY_REWARDS?.resetWinStreak?.());
+window.dispatchEvent(new Event('nono:reward-policy-ready'));
 })();
