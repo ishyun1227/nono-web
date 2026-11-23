@@ -2,6 +2,9 @@
 (()=>{'use strict';
 const ids=['en','ja','zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
 const rows=[
+ ['완료','Completed','完了','完成','完成','Completado','Concluído','Terminé','Abgeschlossen','Selesai','Hoàn tất','สำเร็จ'],
+ ['보상 미정','Reward TBD','報酬未定','奖励未定','獎勵未定','Recompensa pendiente','Recompensa a definir','Récompense à définir','Belohnung offen','Hadiah belum ditetapkan','Chưa xác định thưởng','ยังไม่กำหนดรางวัล'],
+ ['보상표','Rewards','報酬表','奖励表','獎勵表','Recompensas','Recompensas','Récompenses','Belohnungen','Tabel hadiah','Bảng thưởng','ตารางรางวัล'],
  ["퍼즐 선택으로 건너뛰기", "Skip to puzzle selection", "パズル選択へスキップ", "跳转到谜题选择", "跳至謎題選擇", "Ir a elegir puzle", "Ir à seleção de puzzles", "Aller au choix de grille", "Zur Rätselauswahl", "Lewati ke pilihan puzzle", "Đến phần chọn câu đố", "ข้ามไปเลือกปริศนา"],
  ["새 랜덤 퍼즐 만들기", "Create random puzzle", "ランダムパズルを作る", "生成随机谜题", "產生隨機謎題", "Crear puzle aleatorio", "Criar puzzle aleatório", "Créer une grille aléatoire", "Zufallsrätsel erstellen", "Buat puzzle acak", "Tạo câu đố ngẫu nhiên", "สร้างปริศนาสุ่ม"],
  ["NONO · 친구와 함께 푸는 노노그램", "NONO · Nonograms with friends", "NONO · 友達と遊ぶノノグラム", "NONO · 和朋友一起玩数织", "NONO · 和朋友一起玩數織", "NONO · Nonogramas con amigos", "NONO · Nonogramas com amigos", "NONO · Nonogrammes entre amis", "NONO · Nonogramme mit Freunden", "NONO · Nonogram bersama teman", "NONO · Nonogram cùng bạn bè", "NONO · โนโนแกรมกับเพื่อน"],
