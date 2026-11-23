@@ -54,9 +54,13 @@ const server=http.createServer((req,res)=>{
   await page.locator('.nono-resume-continue').first().waitFor();await page.reload();
   await page.locator('.nono-resume-continue').first().click();assert.equal(await page.evaluate(()=>board[0]),'1');
   results.push({check:'paint, undo, redo, persist, reload, resume',passed:true});await page.click('#leave-game');
-  for(const mode of ['race','coop','record','practice']){
+  for(const mode of ['race','coop','practice']){
    await page.click('[data-mode="'+mode+'"]');assert.equal(await page.locator('[data-mode="'+mode+'"]').getAttribute('aria-pressed'),'true');
   }
+  await page.click('#nono-community-tab');await page.locator('#nono-community-title').waitFor({state:'visible'});
+  await page.getByRole('button',{name:'기록 경쟁 시작'}).first().click();
+  assert.equal(await page.locator('[data-mode="record"]').getAttribute('aria-pressed'),'true');
+  await page.click('[data-mode="practice"]');
   await page.click('#nono-community-tab');await page.locator('#nono-community-title').waitFor({state:'visible'});await page.keyboard.press('Escape');
   await page.click('#profile-button');await page.locator('.nono-account-panel').waitFor({state:'visible'});assert.equal(await page.locator('.shell').evaluate(e=>e.inert),true);await page.click('.nono-account-close');assert.equal(await page.locator('.shell').evaluate(e=>e.inert),false);
   await page.click('#nono-attendance-claim');assert.equal(await page.evaluate(()=>NONO_DAILY_REWARDS.getSnapshot().points),20);assert.equal(await page.evaluate(()=>NONO_DAILY_REWARDS.claimAttendance()),false);
