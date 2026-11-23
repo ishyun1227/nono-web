@@ -325,7 +325,7 @@ body[data-nono-theme="neon"] #nono-community-page{
 .nono-social-mini-line small{font-size:11px;color:#888;text-align:right;max-width:55%}
 .nono-social-muted{color:#999;font-size:12px;line-height:1.6}
 .nono-social-empty{padding:60px 20px;color:#888;text-align:center;font-size:13px}
-.nono-social-inline-rail{display:none}
+.nono-social-inline-rail{display:block;padding:14px 0}
 .nono-social-notice{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:100110;background:#242424;color:#fff;padding:10px 16px;border-radius:9px;max-width:min(90vw,400px);font-size:12px;box-shadow:0 6px 20px #0002}
 .nono-social-notice[hidden]{display:none}
 .nono-social-mobile-head,.nono-social-bottom{display:none}
