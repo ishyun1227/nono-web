@@ -69,7 +69,10 @@ function feedRows(){
  }));
  const list=[...local,...remote];
  for(const row of completions){
-  const dup=list.some(r=>r.puzzleId===row.puzzleId&&
+  // Same puzzle and timestamp can be completed in different modes.
+  // Never collapse a race/coop/solo event into another mode's feed entry.
+  const normalize=m=>(m==='practice'||m==='record')?'solo':m;
+  const dup=list.some(r=>r.puzzleId===row.puzzleId&&normalize(r.mode)===normalize(row.mode)&&
     (r.uid===row.uid||(!row.uid&&r.own))&&
     Math.abs(r.completedAt-row.completedAt)<120000);
   if(!dup)list.push(row);
