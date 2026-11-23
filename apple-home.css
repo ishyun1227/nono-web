@@ -415,3 +415,13 @@ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav .
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-community-tab::before{content:"♡";font-size:23px;line-height:24px}
  body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-shop-tab-top::before{content:"▤";font-size:23px;line-height:24px}
 }
+
+/* Preserve contrast of existing mission, attendance and recent-play records. */
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #home-view .nono-attendance-day :is(strong,span){color:#555}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #home-view .nono-attendance-day.is-today{background:#fbeaf3;border-color:#d62976}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #home-view .nono-attendance-claim{background:#d62976;color:#fff;border:0}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #home-view .nono-daily-note{color:#777}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #home-view .nono-reward-hint{background:#f8eaf1;color:#a92e72;border:1px solid #f1ccdf}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-replay-recent{color:#222;border-top:1px solid #ededed}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-replay-recent :is(h2,h3,strong){color:#222}
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) .nono-replay-help{color:#777}
