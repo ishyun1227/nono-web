@@ -404,3 +404,14 @@ body[data-nono-theme="neon"] #nono-community-page{
 @media(prefers-reduced-motion:reduce){
  .nono-social-replay{scroll-behavior:auto}
 }
+
+
+/* Exactly five app destinations. Record competition is entered through NONOgram ranking. */
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav .mode-card[data-mode="record"]{display:none!important}
+@media(max-width:680px){
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav :is(.mode-card,.nono-top-action){display:flex;flex-direction:column;align-items:center;gap:3px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav .mode-icon{display:block;width:auto;height:auto;font-size:20px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav .nono-top-action{font-size:10px!important}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-community-tab::before{content:"♡";font-size:23px;line-height:24px}
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-shop-tab-top::before{content:"▤";font-size:23px;line-height:24px}
+}
