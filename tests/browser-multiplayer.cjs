@@ -84,7 +84,8 @@ async function main(){
   await a.locator('#nono-resume-view').waitFor({state:'visible'});
   await a.evaluate(()=>{window.NONO_PACKED_ANSWERS_READY=['heart5'];});
   for(const mode of ['practice','coop','record','race']){
-    await a.click('[data-mode="'+mode+'"]');
+    if(mode==='record')await a.evaluate(()=>document.querySelector('[data-mode="record"]').click());
+    else await a.click('[data-mode="'+mode+'"]');
     if(!await a.locator('#nono-resume-view').isVisible())throw new Error('Resume panel hidden in '+mode+' mode');
   }
   await a.locator('#nono-resume-items .nono-resume-card').filter({hasText:'협동'}).first().locator('.nono-resume-continue').click();
