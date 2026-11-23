@@ -113,6 +113,8 @@ function render(values){
     Math.abs(p.completedAt-x.completedAt)<120000));
   const rows=[...published,...unmatched]
     .sort((a,b)=>b.completedAt-a.completedAt).slice(0,6);
+  window.NONO_COMMUNITY_COMPLETIONS=rows.slice();
+  window.dispatchEvent(new CustomEvent('nono:completion-feed'));
   if(!rows.length){message('아직 공개된 완료 기록이 없어요. 첫 클리어를 기다리고 있어요!');return;}
   const nodes=rows.map(item=>{
     const row=document.createElement('article');row.className='nono-completion-item';row.setAttribute('role','article');
