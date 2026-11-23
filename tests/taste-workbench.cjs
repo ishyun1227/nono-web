@@ -87,8 +87,8 @@ const server=http.createServer((req,res)=>{
    await page.evaluate(mode=>localStorage.setItem('nono-input-settings-v1',JSON.stringify({mode,size:150})),inputMode);
    await page.reload();
    for(const [group,id] of [['작음','cat10'],['큼','vox_crabino_front']]){
-    await page.getByRole('button',{name:group,exact:true}).click();
-    await page.getByRole('button',{name:'보통',exact:true}).click();
+    const row=group==='작음'?'0':'2';
+    await page.locator('.nono-apple-matrix-cell[data-size-group="'+row+'"][data-difficulty="보통"]').click();
     await page.locator('.nono-apple-choice[data-puzzle-id="'+id+'"]').click();await page.click('#play-alone');
     await page.locator('#board .cell').first().waitFor();await page.waitForTimeout(500);
     const bounds=await page.evaluate(()=>{
