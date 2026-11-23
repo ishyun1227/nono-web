@@ -15,7 +15,7 @@ tabs.append(community,shop);
 const root=document.createElement('section');
 root.id='nono-community-page';root.hidden=true;
 root.setAttribute('aria-label','노노그램 피드');
-home.after(root);
+home.append(root);
 const $=(tag,cls,txt)=>{
  const el=document.createElement(tag);
  if(cls)el.className=cls;
@@ -118,16 +118,16 @@ function clearAnimations(){
 }
 function close(){
  if(!mounted)return;
- root.hidden=true;document.body.classList.remove('nono-social-open');
+ root.hidden=true;document.body.classList.remove('nono-social-open');home.classList.remove('nono-social-view');
  community.classList.remove('is-current');community.setAttribute('aria-expanded','false');
  mounted=false;clearAnimations();
 }
 function open(){
  if(document.body.dataset.nonoTheme!=='neon'||!document.getElementById('game')?.classList.contains('hidden'))return;
- root.hidden=false;document.body.classList.add('nono-social-open');
+ root.hidden=false;document.body.classList.add('nono-social-open');home.classList.add('nono-social-view');
  community.setAttribute('aria-expanded','true');community.classList.add('is-current');
  mounted=true;view='추천';render();
- root.scrollTop=0;
+ window.scrollTo({top:0,behavior:'instant'});
 }
 function tabsRow(){
  const row=$('div','nono-social-filters');row.setAttribute('role','tablist');
@@ -314,21 +314,9 @@ function render(){
  clearAnimations();
  root.replaceChildren();
  const layout=$('div','nono-social-layout');
- const sidebar=$('aside','nono-social-left');
- const logo=$('div','nono-social-logo','NONO');
- logo.append($('span','nono-social-logo-dot','•'));
- sidebar.append(logo,nav('feed'));
- const tail=$('div','nono-social-left-bottom');
- tail.append(mkButton('◎ 프로필','nono-social-plain',()=>{close();document.getElementById('profile-button')?.click();}));
- tail.append(mkButton('← 돌아가기','nono-social-plain',close));
- sidebar.append(tail);
+
  const body=$('div','nono-social-center');
- const mobileHeader=$('header','nono-social-mobile-head');
- mobileHeader.append($('strong','','NONO'));
- const tools=$('div','nono-social-mobile-tools');
- tools.append(mkButton('⌕','nono-social-action',()=>notice('피드 검색 기능은 준비 중입니다.')),
-              mkButton('◎','nono-social-action',()=>{close();document.getElementById('profile-button')?.click();}));
- mobileHeader.append(tools);body.append(mobileHeader);
+
  const heading=$('div','nono-social-heading');
  const h1=$('h1','','노노그램');h1.id='nono-community-title';heading.append(h1,mkButton('←','nono-social-back',close));body.append(heading);
  body.append(tabsRow());
@@ -346,9 +334,8 @@ function render(){
   else rows.slice(0,16).forEach(r=>list.append(post(r)));
  }
  body.append(list);
- const rail=$('aside','nono-social-right');layout.append(sidebar,body,rail);
- root.append(layout,nav('feed'));
- root.lastChild.classList.add('nono-social-bottom');
+ const rail=$('aside','nono-social-right');layout.append(body,rail);
+ root.append(layout);
  const notification=$('div','nono-social-notice');notification.setAttribute('role','status');notification.hidden=true;root.append(notification);
  drawRail();
 }
