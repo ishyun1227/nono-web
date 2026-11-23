@@ -214,7 +214,7 @@
   });
   let stopAnimations = [], remoteRows = [], accountRows = [];
   window.NONO_REPLAY_UI = {
-    setRemote(rows) {remoteRows = Array.isArray(rows) ? rows.slice(0,5) : [];renderRecent();},
+    setRemote(rows) {remoteRows = Array.isArray(rows) ? rows.slice(0,5) : [];renderRecent();window.dispatchEvent(new CustomEvent('nono:public-replays',{detail:remoteRows}));},
     setAccount(rows) {accountRows = Array.isArray(rows) ? rows.slice(0,5) : [];renderRecent();},
     setPublicPreference(value) {consentInput.disabled=false;consentInput.checked=Boolean(value);consentLabel.textContent=t('share');}
   };
