@@ -156,6 +156,12 @@ function render(){
           reward.append(caption,amount);
         }
         reward.setAttribute('aria-hidden','true');choice.append(reward);
+      }else{
+        const cross=document.createElement('span');
+        cross.className='nono-apple-cell-x';
+        cross.textContent='×';
+        cross.setAttribute('aria-hidden','true');
+        choice.append(cross);
       }
       choice.addEventListener('click',()=>{state.group=groupIndex;state.level=difficulty;render();});
       cell.append(choice);row.append(cell);
