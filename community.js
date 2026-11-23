@@ -319,7 +319,7 @@ function render(){
  tail.append(mkButton('◎ 프로필','nono-social-plain',()=>document.getElementById('profile-button')?.click()));
  tail.append(mkButton('← 돌아가기','nono-social-plain',close));
  sidebar.append(tail);
- const body=$('main','nono-social-center');
+ const body=$('div','nono-social-center');
  const mobileHeader=$('header','nono-social-mobile-head');
  mobileHeader.append($('strong','','NONO'));
  const tools=$('div','nono-social-mobile-tools');
@@ -364,8 +364,10 @@ window.addEventListener('nono:public-replays',e=>{
  remoteReplayRows=Array.isArray(e.detail)?e.detail:[];updateFeed();
 });
 window.addEventListener('nono:account-changed',()=>{
- if(mounted)render();
+ loadLeaderboard();if(mounted)render();
 });
+window.addEventListener('nono:firebase-ready',loadLeaderboard);
+window.addEventListener('nono:online-ready',loadLeaderboard);
 window.addEventListener('nono:completion-confirmed',()=>{
  setTimeout(()=>{if(mounted)render();},300);
 });
