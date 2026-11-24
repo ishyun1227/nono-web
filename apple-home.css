@@ -973,3 +973,21 @@ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup .nono-apple-la
 
 /* The resume card is completely absent from layout when there is no unfinished game. */
 body #nono-resume-view[hidden]{display:none!important}
+
+
+/* Replay sharing is configured only in the NONOgram feed (not the home launcher). */
+body[data-nono-theme="neon"] .nono-social-privacy{
+ display:flex;justify-content:flex-end;padding:2px 0 10px;
+}
+body[data-nono-theme="neon"] .nono-social-public-control{
+ display:inline-flex;align-items:center;gap:8px;margin:0;cursor:pointer;
+ color:#777;font-size:12px;line-height:1.4;
+}
+body[data-nono-theme="neon"] .nono-social-public-control input{
+ accent-color:#d62976;width:15px;height:15px;margin:0;flex:0 0 15px;
+}
+body[data-nono-theme="neon"] .nono-social-public-control:has(input:disabled){opacity:.55;cursor:default}
+@media(max-width:480px){
+ body[data-nono-theme="neon"] .nono-social-privacy{justify-content:flex-start}
+ body[data-nono-theme="neon"] .nono-social-public-control{font-size:11px}
+}
