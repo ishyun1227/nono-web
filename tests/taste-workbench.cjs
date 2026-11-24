@@ -26,7 +26,7 @@ const server=http.createServer((req,res)=>{
    });
    assert.ok(state.scrollWidth<=width+1,'horizontal overflow '+JSON.stringify(state));
    assert.ok(state.choices>0,'real puzzle choices missing');
-   assert.ok(state.resume.bottom<=state.setup.y+1,'resume must be above new puzzle selector '+JSON.stringify(state));
+   assert.equal(await page.locator('#nono-resume-view').isVisible(),false,'empty resume section must not occupy the launcher');
    assert.equal(await page.locator('#nono-apple-tab-select').getAttribute('aria-selected'),'true');
    assert.equal(await page.locator('#nono-apple-tab-random').count(),1);
    assert.equal(await page.locator('.nono-apple-option').count(),8);
@@ -79,6 +79,8 @@ const server=http.createServer((req,res)=>{
   }
   await page.click('#leave-game');
   await page.locator('.nono-resume-continue').first().waitFor();
+  assert.ok(await page.locator('#nono-resume-view').isVisible(),'resume becomes visible with saved moves');
+  assert.ok(await page.locator('#nono-resume-view').evaluate(el=>el.getBoundingClientRect().bottom<=document.querySelector('#setup').getBoundingClientRect().top+1),'resume appears above new puzzle');
   assert.ok(await page.locator('.nono-apple-resume-preview[aria-label="저장된 실제 퍼즐 진행 상태"]').first().isVisible(),'real saved cells preview');
   await page.reload();
   await page.locator('.nono-resume-continue').first().click();assert.equal(await page.evaluate(()=>board[0]),'1');
