@@ -131,16 +131,17 @@ async function main(){
   assert.equal(raceStorage.moves.length,1,'Race must store one changed-cell action');
   assert.equal(atob(raceStorage.moves[0].bits).length,2,'Race move is packed binary');
   await a.evaluate(()=>leaveGame());
-  // The same five-card resume area must remain below the mode-specific setup.
+  // Resume stays above new puzzle selection; record mode is intentionally entered via rankings, not the launcher.
   for(const tab of ['practice','coop','record','race']){
-    await a.click('[data-mode="'+tab+'"]');
+    if(tab==='record')await a.evaluate(()=>document.querySelector('[data-mode="record"]').click());
+    else await a.click('[data-mode="'+tab+'"]');
     if(!await a.locator('#nono-resume-view').isVisible())throw new Error('Missing persistent resume in '+tab);
   }
   await a.locator('#nono-resume-items .nono-resume-card').filter({hasText:'대결'}).first().locator('.nono-resume-continue').click();
   await a.waitForURL(/room=/);
   assert.equal(new URL(a.url()).searchParams.get('room'),race,'Resume must rejoin the original race');
   await a.waitForFunction(i=>board[i]==='1',firstBlack);
-  console.log('PASS persistent below-mode resume panel restores incomplete race state');
+  console.log('PASS persistent top resume panel restores incomplete race state');
   await a.evaluate(answer=>{for(let i=0;i<answer.length;i++)if(answer[i]==='1'&&board[i]!=='1')paint(i,'1',true);},answers.heart5);
   await a.waitForFunction(()=>finished);await b.waitForFunction(()=>Object.values(raceStates).some(s=>s.finishedAt>0));
   const packedRace=await a.evaluate(async()=>((await get(ref(database,`rooms/${roomCode}/states/${currentId()}`))).val()||{}).filled);
