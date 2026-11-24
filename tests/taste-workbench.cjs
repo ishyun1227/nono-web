@@ -24,60 +24,41 @@ const server=http.createServer((req,res)=>{
     const box=s=>{const e=document.querySelector(s),r=e.getBoundingClientRect();return {x:r.x,y:r.y,right:r.right,bottom:r.bottom,width:r.width,height:r.height}};
     return {width:innerWidth,scrollWidth:document.documentElement.scrollWidth,nav:box('#nono-workbench-nav'),setup:box('#setup'),start:box('#play-alone'),resume:box('#nono-resume-view'),support:box('#nono-workbench-support'),ad:box('#nono-ad-sidebar'),choices:document.querySelectorAll('.nono-apple-choice[data-puzzle-id]').length};
    });
-   const matrix=await page.evaluate(()=>{
-     const rect=el=>{const r=el.getBoundingClientRect();return {width:r.width,height:r.height}};
-     return {board:rect(document.querySelector('.nono-apple-matrix')),
-       cell:rect(document.querySelector('.nono-apple-matrix tbody td')),
-       tabVisible:!!document.querySelector('.nono-apple-text-picker')?.getBoundingClientRect().height};
-   });
-   assert.ok(matrix.tabVisible,'size/difficulty tabs must remain visible');
-   assert.ok(Math.abs(matrix.board.width-matrix.board.height)<3,'matrix not square '+JSON.stringify({width,matrix}));
-   assert.ok(Math.abs(matrix.cell.width-matrix.cell.height)<3,'matrix cell not square '+JSON.stringify({width,matrix}));
-   assert.ok(state.scrollWidth<=width+1,'horizontal overflow '+JSON.stringify(state));assert.ok(state.choices>0,'real puzzle choices missing');
-   assert.ok(state.resume.y>=state.setup.bottom-1,'resume overlaps selector');
+   assert.ok(state.scrollWidth<=width+1,'horizontal overflow '+JSON.stringify(state));
+   assert.ok(state.choices>0,'real puzzle choices missing');
+   assert.ok(state.resume.bottom<=state.setup.y+1,'resume must be above new puzzle selector '+JSON.stringify(state));
+   assert.equal(await page.locator('#nono-apple-tab-select').getAttribute('aria-selected'),'true');
+   assert.equal(await page.locator('#nono-apple-tab-random').count(),1);
+   assert.equal(await page.locator('.nono-apple-option').count(),8);
+   assert.equal(await page.locator('.nono-apple-matrix').count(),0,'4x4 matrix must be removed');
    if(width>=1200)assert.ok(state.nav.right<=state.setup.x&&state.setup.right<=state.support.x,'desktop hierarchy');
-   assert.ok(state.start.bottom<=height+20||width===320,'start below first screen '+JSON.stringify(state));
+   assert.ok(state.start.width<210,'start action must not be full-width '+JSON.stringify(state.start));
    await page.screenshot({path:path.join(out,'home-'+width+'.png'),fullPage:true});results.push({check:'home',...state});
   }
   await page.setViewportSize({width:1440,height:900});
-  // Size is the row, difficulty is the column. The intersection is one selection.
-  assert.equal(await page.locator('.nono-apple-matrix tbody tr').count(),4);
-  assert.equal(await page.locator('.nono-apple-matrix-cell').count(),16);
-  assert.equal(await page.locator('.nono-apple-cell-x').count(),15,'all unselected squares have X');
-  const fullCell=await page.evaluate(()=>{
-    const button=document.querySelector('.nono-apple-matrix-cell[aria-pressed="true"]');
-    const td=button.closest('td').getBoundingClientRect(),b=button.getBoundingClientRect();
-    return {dx:Math.abs(td.x-b.x),dy:Math.abs(td.y-b.y),
-      dw:Math.abs(td.width-b.width),dh:Math.abs(td.height-b.height)};
-  });
-  assert.ok(Object.values(fullCell).every(n=>n<1.1),'selected square must be filled edge to edge '+JSON.stringify(fullCell));
-  assert.equal(await page.locator('.nono-apple-axis-col').count(),4);
-  assert.equal(await page.locator('.nono-apple-text-size button').count(),4);
-  assert.equal(await page.locator('.nono-apple-text-level button').count(),4);
+  assert.equal(await page.locator('.nono-apple-size-options button').count(),4);
+  assert.equal(await page.locator('.nono-apple-level-options button').count(),4);
   assert.equal(await page.locator('#setup').getByText('미평가',{exact:true}).count(),0);
-  // Text tabs on the left must update a square nonogram on the right.
-  await page.locator('.nono-apple-text-size button').nth(1).click();
-  await page.locator('.nono-apple-text-level button').nth(2).click();
-  const hintState=await page.evaluate(()=>({
-    columns:[...document.querySelectorAll('.nono-apple-axis-col .nono-apple-axis-clue')].map(el=>el.textContent),
-    rows:[...document.querySelectorAll('.nono-apple-axis-row .nono-apple-axis-clue')].map(el=>el.textContent),
-    selected:{sizeGroup:document.querySelector('.nono-apple-matrix-cell[aria-pressed="true"]')?.dataset.sizeGroup,
-      difficulty:document.querySelector('.nono-apple-matrix-cell[aria-pressed="true"]')?.dataset.difficulty}
-  }));
-  assert.deepEqual(hintState.columns,['4','4','1,2','4'],'column clues of all cells except chosen');
-  assert.deepEqual(hintState.rows,['4','2,1','4','4'],'row clues of all cells except chosen');
-  assert.equal(hintState.selected.sizeGroup,'1');
-  assert.equal(hintState.selected.difficulty,'어려움');
-  await page.locator('.nono-apple-axis-col[data-difficulty="보통"]').click();
-  assert.equal(await page.locator('.nono-apple-matrix-cell[data-size-group="1"][data-difficulty="보통"]').getAttribute('aria-pressed'),'true');
-  await page.locator('.nono-apple-axis-row').nth(0).click();
-  assert.equal(await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="보통"]').getAttribute('aria-pressed'),'true');
-  assert.match(await page.locator('.nono-apple-matrix-cell[aria-pressed="true"]').innerText(),/30\s*P/);
-  await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').click();
-  assert.equal(await page.locator('.nono-apple-matrix-cell[aria-pressed="true"]').count(),1);
-  assert.equal(await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').getAttribute('aria-pressed'),'true');
+  await page.locator('.nono-apple-size-options button').nth(1).click();
+  await page.locator('.nono-apple-level-options button').nth(2).click();
+  assert.equal(await page.locator('.nono-apple-option.is-current').count(),2);
+  assert.match(await page.locator('.nono-apple-current-filter').textContent(),/중간 · 어려움/);
+  await page.click('#nono-apple-tab-random');
+  assert.equal(await page.locator('#nono-apple-tab-random').getAttribute('aria-selected'),'true');
+  assert.equal(await page.locator('#nono-apple-panel-select').isVisible(),false);
+  assert.equal(await page.locator('#nono-apple-panel-random').isVisible(),true);
+  assert.match(await page.locator('.nono-apple-random-summary').textContent(),/중간 · 어려움/);
+  assert.ok(await page.locator('.nono-apple-random-generate').isVisible());
+  await page.click('#nono-apple-tab-select');
+  assert.equal(await page.locator('#nono-apple-panel-select').isVisible(),true);
+  assert.equal(await page.locator('#nono-apple-panel-random').isVisible(),false);
+  assert.match(await page.locator('.nono-apple-current-filter').textContent(),/중간 · 어려움/);
+  await page.locator('.nono-apple-size-options button').nth(0).click();
+  await page.locator('.nono-apple-level-options button').nth(0).click();
   assert.ok(await page.locator('.nono-apple-choice[data-puzzle-id="heart5"]').isVisible());
-  await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').click();
+  await page.locator('.nono-apple-level-options button').nth(1).click();
+  assert.match(await page.locator('.nono-apple-points').innerText(),/30\s*P/);
+  await page.locator('.nono-apple-level-options button').nth(0).click();
   await page.locator('.nono-apple-choice[data-puzzle-id="heart5"]').click();await page.click('#play-alone');
   await page.locator('#board .cell').first().waitFor({state:'visible'});
   await page.locator('#board .cell').first().click();
@@ -97,7 +78,9 @@ const server=http.createServer((req,res)=>{
    await page.screenshot({path:path.join(out,'play-'+width+'.png')});results.push({check:'play',...geom});
   }
   await page.click('#leave-game');
-  await page.locator('.nono-resume-continue').first().waitFor();await page.reload();
+  await page.locator('.nono-resume-continue').first().waitFor();
+  assert.ok(await page.locator('.nono-apple-resume-preview[aria-label="저장된 실제 퍼즐 진행 상태"]').first().isVisible(),'real saved cells preview');
+  await page.reload();
   await page.locator('.nono-resume-continue').first().click();assert.equal(await page.evaluate(()=>board[0]),'1');
   results.push({check:'paint, undo, redo, persist, reload, resume',passed:true});await page.click('#leave-game');
   for(const mode of ['race','coop','practice']){
@@ -118,7 +101,7 @@ const server=http.createServer((req,res)=>{
   }
   await page.click('#nono-theme-use');assert.ok(await page.locator('#nono-workbench-nav .mode-select').isVisible());
   results.push({check:'all ten themes and default navigation restored',passed:true});
-  await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').click();await page.locator('.nono-apple-random-generate').click();
+  await page.locator('.nono-apple-size-options button').nth(0).click();await page.locator('.nono-apple-level-options button').nth(0).click();await page.click('#nono-apple-tab-random');await page.locator('.nono-apple-random-generate').click();
   await page.locator('#board .cell').first().waitFor({state:'visible',timeout:90000});
   assert.ok(await page.evaluate(()=>puzzle.generated===true));results.push({check:'random generation starts real game',passed:true});await page.click('#leave-game');
   // Exercise the actual six controller surfaces on both ordinary and dense grids.
@@ -126,8 +109,9 @@ const server=http.createServer((req,res)=>{
    await page.evaluate(mode=>localStorage.setItem('nono-input-settings-v1',JSON.stringify({mode,size:150})),inputMode);
    await page.reload();
    for(const [group,id] of [['작음','cat10'],['큼','vox_crabino_front']]){
-    const row=group==='작음'?'0':'2';
-    await page.locator('.nono-apple-matrix-cell[data-size-group="'+row+'"][data-difficulty="보통"]').click();
+    const row=group==='작음'?0:2;
+    await page.locator('.nono-apple-size-options button').nth(row).click();
+    await page.locator('.nono-apple-level-options button').nth(1).click();
     await page.locator('.nono-apple-choice[data-puzzle-id="'+id+'"]').click();await page.click('#play-alone');
     await page.locator('#board .cell').first().waitFor();await page.waitForTimeout(500);
     const bounds=await page.evaluate(()=>{
