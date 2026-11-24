@@ -2,6 +2,7 @@
 (()=>{'use strict';
 const ids=['en','ja','zh-CN','zh-TW','es','pt-BR','fr','de','id','vi','th'];
 const rows=[
+ ["모드별 진행 중 퍼즐","Puzzles in progress by mode","モード別の進行中パズル","按模式分类的进行中谜题","依模式分類的進行中謎題","Puzles en curso por modo","Puzzles em andamento por modo","Grilles en cours par mode","Laufende Rätsel nach Modus","Puzzle berlangsung menurut mode","Câu đố đang chơi theo chế độ","ปริศนาที่กำลังเล่นตามโหมด"],
  ["새 퍼즐","New puzzle","新しいパズル","新谜题","新謎題","Nuevo puzle","Novo puzzle","Nouvelle grille","Neues Rätsel","Puzzle baru","Câu đố mới","ปริศนาใหม่"],
  ["▦ 퍼즐 선택","▦ Choose puzzle","▦ パズル選択","▦ 选择谜题","▦ 選擇謎題","▦ Elegir puzle","▦ Escolher puzzle","▦ Choisir une grille","▦ Rätsel auswählen","▦ Pilih puzzle","▦ Chọn câu đố","▦ เลือกปริศนา"],
  ["⤨ 랜덤 생성","⤨ Random puzzle","⤨ ランダム生成","⤨ 随机生成","⤨ 隨機產生","⤨ Generar al azar","⤨ Gerar aleatório","⤨ Générer au hasard","⤨ Zufallsrätsel","⤨ Buat acak","⤨ Tạo ngẫu nhiên","⤨ สร้างแบบสุ่ม"],
