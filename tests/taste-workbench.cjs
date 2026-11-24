@@ -31,6 +31,7 @@ const server=http.createServer((req,res)=>{
    assert.equal(await page.locator('#nono-apple-tab-random').count(),1);
    assert.equal(await page.locator('.nono-apple-option').count(),8);
    assert.equal(await page.locator('.nono-apple-matrix').count(),0,'4x4 matrix must be removed');
+   assert.equal(await page.locator('#home-view .nono-replay-recent').count(),0,'old Recent Plays section must not be mounted in home');
    if(width>=1200)assert.ok(state.nav.right<=state.setup.x&&state.setup.right<=state.support.x,'desktop hierarchy');
    assert.ok(state.start.width<210,'start action must not be full-width '+JSON.stringify(state.start));
    await page.screenshot({path:path.join(out,'home-'+width+'.png'),fullPage:true});results.push({check:'home',...state});
@@ -89,6 +90,8 @@ const server=http.createServer((req,res)=>{
    await page.click('[data-mode="'+mode+'"]');assert.equal(await page.locator('[data-mode="'+mode+'"]').getAttribute('aria-pressed'),'true');
   }
   await page.click('#nono-community-tab');await page.locator('#nono-community-title').waitFor({state:'visible'});
+  assert.ok(await page.locator('.nono-social-privacy .nono-social-public-control').isVisible(),'replay sharing control moved into NONOgram');
+  assert.equal(await page.locator('.nono-social-privacy input[type="checkbox"]').count(),1,'privacy setting survives removal of home replay panel');
   await page.getByRole('tab',{name:'랭킹'}).click();
   await page.getByRole('button',{name:'기록 경쟁 시작'}).first().click();
   assert.equal(await page.locator('[data-mode="record"]').getAttribute('aria-pressed'),'true');
