@@ -810,7 +810,7 @@ function installResume(){
   const setup=document.getElementById('setup');
   if(!setup)return {watch(){},refresh(){}};
   const view=document.createElement('section');
-  view.id='nono-resume-view';view.className='card';
+  view.id='nono-resume-view';view.className='card';view.hidden=true;
   view.innerHTML=[
     '<div class="nono-resume-heading"><div><h2>이어서 풀기</h2><p>혼자 풀기 · 대결 · 협동의 진행 중 퍼즐</p></div><span id="nono-resume-total"></span></div>',
     '<div class="nono-resume-summary" aria-label="모드별 진행 중 퍼즐">',
@@ -851,16 +851,13 @@ function installResume(){
   }
   function render(){
     const list=choices();
+    view.hidden=list.length===0;
     for(const [id,kind,label] of [['nono-resume-solo-count','solo','혼자 풀기'],['nono-resume-race-count','race','대결'],['nono-resume-coop-count','coop','협동']]){
       document.getElementById(id).textContent=label+' '+list.filter(item=>item.kind===kind).length;
     }
     document.getElementById('nono-resume-total').textContent=list.length+' / 5';
     const target=document.getElementById('nono-resume-items');target.replaceChildren();
-    if(!list.length){
-      const empty=document.createElement('p');empty.className='nono-resume-empty';
-      empty.textContent='아직 진행 중인 퍼즐이 없어요. 혼자 풀기, 대결, 협동에서 퍼즐을 시작해 보세요.';
-      target.append(empty);return;
-    }
+    if(!list.length)return;
     for(const item of list){
       const card=document.createElement('div');card.className='nono-resume-card';
       card.dataset.nonoResumeBoard=item.board||'';
