@@ -205,7 +205,7 @@ function render(){
   start.disabled=choices.length===0;
   const m=mode();
   const heading=$('setup-heading'),description=$('setup-description');
-  const titles={practice:'퍼즐 선택',race:'대결 퍼즐',coop:'협동 퍼즐',record:'기록 도전'};
+  const titles={practice:'새 퍼즐',race:'대결 퍼즐',coop:'협동 퍼즐',record:'기록 도전'};
   if(heading&&heading.textContent!==titles[m])heading.textContent=titles[m];
   if(description)description.textContent='';
 }
