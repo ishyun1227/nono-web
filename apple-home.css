@@ -958,3 +958,15 @@ body[data-nono-theme="neon"] .nono-resume-card{gap:12px;padding:12px}
  body[data-nono-theme="neon"] #setup .nono-apple-panel-random{min-height:180px;padding:15px 10px}
  body[data-nono-theme="neon"] .nono-resume-card .nono-apple-resume-preview{width:52px;height:52px;flex-basis:52px}
 }
+
+
+/* Override the launcher-only full-width legacy start action (higher :has specificity). */
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup .nono-apple-launch-controls #play-alone{
+ width:auto;max-width:190px;min-width:137px;min-height:41px;
+ padding:9px 16px;font-size:13px;
+}
+@media(max-width:480px){
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup .nono-apple-launch-controls #play-alone{
+  width:auto;max-width:190px;min-width:125px;min-height:39px;
+ }
+}
