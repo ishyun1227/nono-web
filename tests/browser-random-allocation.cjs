@@ -49,7 +49,9 @@ const {pathToFileURL}=require('node:url');
       // or the selector generates on every click, fail immediately.
       window.NONO_RANDOM_PUZZLES.generateAsync=async()=>{throw Error('unexpected instant generation');};
     });
-    await page.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="보통"]').click();
+    await page.locator('.nono-apple-size-options button').nth(0).click();
+    await page.locator('.nono-apple-level-options button').nth(1).click();
+    await page.click('#nono-apple-tab-random');
     const button=page.locator('.nono-apple-random-generate');
     await button.waitFor({state:'visible'});
     await button.click();
