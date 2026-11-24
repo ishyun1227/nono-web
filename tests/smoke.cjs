@@ -124,11 +124,11 @@ const { pathToFileURL } = require('node:url');
      !await page.locator('#nono-shop-tab-top').isVisible() ||
      await page.locator('.mode-card[data-mode="record"]').isVisible())
     throw new Error('Expected five navigation destinations; record competition is inside NONOgram');
-  // The resume section is a persistent shared area below the setup for every mode.
+  // Do not show an empty resume section or a fifth navigation tab.
   if(await page.locator('.mode-card').count()!==4 ||
       await page.locator('#nono-resume-tab').count()!==0 ||
-      !await page.locator('#nono-resume-view').isVisible())
-    throw new Error('Resume must be below all four original tabs, not a fifth tab');
+      await page.locator('#nono-resume-view').isVisible())
+    throw new Error('New visitor must not see an empty resume section');
   const emptyCount=await page.locator('#nono-resume-items .nono-resume-card').count();
   if(emptyCount!==0)throw new Error('New visitor should start with an empty resume list');
   // Populate six eligible saves and ensure only the newest five display without previewing solutions.
@@ -145,6 +145,8 @@ const { pathToFileURL } = require('node:url');
     return {skipped:false,ids,rendered:document.querySelectorAll('#nono-resume-items .nono-resume-card').length};
   });
   if(!cap.skipped&&cap.rendered!==5)throw new Error('Resume must show at most five unfinished puzzles');
+  if(!cap.skipped&&!await page.locator('#nono-resume-view').isVisible())
+    throw new Error('Resume must appear when unfinished games are saved');
   for(const choice of ['practice','race','coop','record']){
     if(choice==='record')await page.evaluate(()=>document.querySelector('.mode-card[data-mode="record"]').click());
     else await page.locator('.mode-card[data-mode="'+choice+'"]').click();
@@ -161,6 +163,9 @@ const { pathToFileURL } = require('node:url');
     for(const p of PUZZLES)localStorage.removeItem('nono-web-puzzle-v1:'+p.id);
     resumeHub.render();
   });
+  // After all unfinished games are cleared, their section must disappear again.
+  if(!await page.locator('#nono-resume-view').evaluate(node=>node.hidden))
+    throw new Error('Empty resume section must be hidden again');
   await page.locator('.mode-card[data-mode="practice"]').click();
   // The default homepage must use the entire available viewport at
   // common desktop, tablet and phone sizes -- no fixed 570px strip.
