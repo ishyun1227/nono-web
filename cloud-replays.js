@@ -167,7 +167,7 @@
       stop();online=false;feed=[];watchedUid=next;
       UI.setRemote?.([]);UI.setAccount?.([]);
     }
-    if (!ready()) return;
+    if (!ready()) {UI.resetPublicControl?.();return;}
     UI.setPublicPreference?.(isPublicAllowed());
     if (!online) watchFeed();
     syncLocal().catch(e=>console.warn('리플레이 백업 재시도 필요',e));
