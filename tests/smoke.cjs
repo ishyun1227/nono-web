@@ -153,9 +153,9 @@ const { pathToFileURL } = require('node:url');
       throw new Error('Resume panel missing or exceeding five entries in '+choice);
     const layout=await page.evaluate(()=>{
       const setup=document.getElementById('setup').getBoundingClientRect(),resume=document.getElementById('nono-resume-view').getBoundingClientRect();
-      return {nextTo:resume.top>=setup.bottom,visible:resume.width>0,overflow:document.documentElement.scrollWidth>innerWidth+2};
+      return {above:resume.bottom<=setup.top+1,visible:resume.width>0,overflow:document.documentElement.scrollWidth>innerWidth+2};
     });
-    if(!layout.nextTo||!layout.visible||layout.overflow)throw new Error('Resume must appear below the active setup: '+JSON.stringify(layout));
+    if(!layout.above||!layout.visible||layout.overflow)throw new Error('Resume must appear above the active setup: '+JSON.stringify(layout));
   }
   await page.evaluate(()=>{
     for(const p of PUZZLES)localStorage.removeItem('nono-web-puzzle-v1:'+p.id);
