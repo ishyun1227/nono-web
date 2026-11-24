@@ -60,7 +60,9 @@ async function main(){
   // The redesigned launcher starts with 10x10 selected. This scenario uses
   // the known 5x5 fixture and must select it explicitly before room creation.
   await a.click('[data-mode="practice"]');
-  await a.locator('.nono-apple-matrix-cell[data-size-group="0"][data-difficulty="쉬움"]').click();await a.locator('.nono-apple-choice[data-puzzle-id="heart5"]').click();
+  await a.locator('.nono-apple-size-options button').nth(0).click();
+  await a.locator('.nono-apple-level-options button').nth(0).click();
+  await a.locator('.nono-apple-choice[data-puzzle-id="heart5"]').click();
   await a.click('[data-mode="coop"]');await a.click('#public-lobby-create');await a.waitForURL(/room=/);const coop=new URL(a.url()).searchParams.get('room');
   await b.click('[data-mode="coop"]');await b.fill('#public-lobby-code',coop);await b.click('#public-lobby-join');
   await b.locator('#board .cell').first().waitFor();
