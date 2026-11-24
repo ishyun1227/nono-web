@@ -41,8 +41,8 @@ function selectedPuzzle(){
  }catch{return null;}
 }
 function updateBadge(){
- // The completion amount is displayed in the selected 4x4 matrix cell.
- // Keep the original detailed reward policy dialog reachable as a small link.
+ // The completion preview is displayed beside the selected puzzle's start control.
+ // Keep the detailed policy dialog reachable from the shared size/difficulty options.
  if(badge)badge.textContent='보상표';
 }
 function cell(text){
@@ -91,7 +91,7 @@ function showTable(){
 function onEscape(e){if(e.key==='Escape')hide()}
 function hide(){if(!dialog)return;dialog.remove();dialog=null;document.removeEventListener('keydown',onEscape);badge?.focus({preventScroll:true})}
 if(root){
- const holder=document.querySelector('#setup .nono-apple-text-picker')||root;
+ const holder=document.querySelector('#setup .nono-apple-options')||root;
  if(holder){
   badge=document.createElement('button');
   badge.type='button';badge.className='nono-reward-hint';
