@@ -970,3 +970,6 @@ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #setup .nono-apple-la
   width:auto;max-width:190px;min-width:125px;min-height:39px;
  }
 }
+
+/* The resume card is completely absent from layout when there is no unfinished game. */
+body #nono-resume-view[hidden]{display:none!important}
