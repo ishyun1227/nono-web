@@ -136,8 +136,8 @@ function render(){
   const group=sizeGroups[state.group];
   const points=previewPoints(group,state.level);
   pointText.textContent=points===null?'보상 미정':'완료 +'+points+' P';
-  filterText.textContent=group.name+' · '+state.level;
-  randomSummary.textContent=group.name+' · '+state.level;
+  filterText.replaceChildren(document.createTextNode(group.name),' · ',document.createTextNode(state.level));
+  randomSummary.replaceChildren(document.createTextNode(group.name),' · ',document.createTextNode(state.level));
   randomSlot.replaceChildren();
   const choices=allowed.filter(eligible);
   const chosen=choices.find(p=>p.id===picker.value);
@@ -193,7 +193,6 @@ function render(){
       }
     });
     make.classList.add('nono-apple-random-generate');
-    make.setAttribute('aria-label',sizeGroups[state.group].name+' 크기 '+state.level+' 난이도의 새 랜덤 퍼즐 생성'+(mode()==='practice'?'':' 및 방 만들기'));
     make.textContent=mode()==='practice'?'새 랜덤 퍼즐 만들기':'랜덤 퍼즐로 방 만들기';
     randomSlot.append(make);
   }
