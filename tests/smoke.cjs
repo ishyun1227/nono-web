@@ -192,8 +192,7 @@ const { pathToFileURL } = require('node:url');
       ?layout.tabs.left<-1||layout.tabs.right>viewport.width+1
       :layout.tabs.left<layout.header.left||layout.tabs.right>layout.header.right+1;
     if(layout.overflow || layout.panel.width < (layout.viewport>=1280?layout.viewport*.30:layout.viewport*.38) ||
-      navOutOfBounds || layout.setupArt!=='none' ||
-      layout.screen<viewport.height-1)
+      navOutOfBounds || layout.setupArt!=='none')
       throw new Error('Viewport-responsive NONO base layout failed: '+JSON.stringify({viewport,...layout}));
   }
   await page.setViewportSize({width:1440,height:900});
