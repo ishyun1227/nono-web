@@ -26,8 +26,8 @@ const {pathToFileURL}=require('node:url');
         overflowY:document.documentElement.scrollHeight>innerHeight+3
       };
     });
-    if(info.overflowX||info.clear.left<info.setup.right||info.ad.top<info.resume.bottom||
-       info.resume.top<info.setup.bottom||info.rewards.left<info.setup.right||
+    if(info.overflowX||info.clear.left<info.setup.right||info.ad.top<info.setup.bottom||
+       info.resume.height!==0||info.rewards.left<info.setup.right||
        info.fakeItems!==0)
       throw Error('1440×900 home layout regression: '+JSON.stringify(info));
     await page.setViewportSize({width:390,height:844});
