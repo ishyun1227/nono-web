@@ -61,6 +61,7 @@ const filterText=ui.querySelector('.nono-apple-current-filter');
 const randomSummary=ui.querySelector('.nono-apple-random-summary');
 const randomSlot=ui.querySelector('.nono-apple-random-slot');
 const actions=setup.querySelector('.setup-actions');
+const actionsParent=actions?.parentNode,actionsNext=actions?.nextSibling;
 function optionButton(value,selected,click){
   const b=document.createElement('button');
   b.type='button';b.className='nono-apple-option';
@@ -104,7 +105,8 @@ function fixThemeNavigation(){
     if(resume&&resume.nextElementSibling!==setup)setup.before(resume);
   }else{
     if(tabs.parentNode!==origin.parentNode)origin.parentNode.insertBefore(tabs,origin.nextSibling);
-    if(actions&&actions.parentNode!==setup)setup.append(actions);
+    if(actions&&actionsParent&&actions.parentNode!==actionsParent)
+      actionsParent.insertBefore(actions,actionsNext?.parentNode===actionsParent?actionsNext:null);
     const resume=$('nono-resume-view');
     if(resume&&setup.nextElementSibling!==resume)setup.after(resume);
     start.disabled=false;
@@ -240,6 +242,43 @@ function decorateResume(){
     // Progress may be rendered in Korean or another selected UI language.
     const rate=Number(detail.textContent.match(/(\d+)%/)?.[1]||0);
     detail.textContent=modeName;
+    const raw=card.dataset.nonoResumeBoard||'';
+    const w=Number(card.dataset.nonoResumeWidth),h=Number(card.dataset.nonoResumeHeight);
+    let preview;
+    if(Number.isInteger(w)&&Number.isInteger(h)&&w>=1&&h>=1&&w*h<=10000&&
+       raw.length===w*h&&/^[012]+$/.test(raw)){
+      preview=document.createElement('canvas');
+      preview.width=w*4;preview.height=h*4;
+      preview.className='nono-apple-resume-preview';
+      preview.setAttribute('role','img');
+      preview.setAttribute('aria-label','저장된 실제 퍼즐 진행 상태');
+      const ctx=preview.getContext('2d');
+      if(ctx){
+        ctx.fillStyle='#fff';ctx.fillRect(0,0,preview.width,preview.height);
+        for(let i=0;i<raw.length;i++){
+          const x=(i%w)*4,y=Math.floor(i/w)*4,value=raw[i];
+          if(value==='1'){
+            ctx.fillStyle='#303030';ctx.fillRect(x,y,4,4);
+          }else if(value==='2'){
+            ctx.strokeStyle='#999';ctx.lineWidth=.65;
+            ctx.beginPath();ctx.moveTo(x+.8,y+.8);ctx.lineTo(x+3.2,y+3.2);
+            ctx.moveTo(x+3.2,y+.8);ctx.lineTo(x+.8,y+3.2);ctx.stroke();
+          }
+        }
+        if(w<=20&&h<=20){
+          ctx.strokeStyle='#e7e7e7';ctx.lineWidth=.3;
+          for(let x=0;x<=w;x++){ctx.beginPath();ctx.moveTo(x*4,0);ctx.lineTo(x*4,h*4);ctx.stroke();}
+          for(let y=0;y<=h;y++){ctx.beginPath();ctx.moveTo(0,y*4);ctx.lineTo(w*4,y*4);ctx.stroke();}
+        }
+      }
+    }else{
+      preview=document.createElement('span');
+      preview.className='nono-apple-resume-preview nono-apple-resume-preview-placeholder';
+      preview.textContent='미리보기 없음';
+      preview.setAttribute('aria-label','현재 보드 상태를 가져올 수 없습니다');
+    }
+    const originalIcon=card.querySelector('.nono-resume-symbol');
+    if(originalIcon)originalIcon.replaceWith(preview);else card.prepend(preview);
     const track=document.createElement('div');track.className='nono-apple-progress';
     const fill=document.createElement('span');fill.style.width=Math.max(0,Math.min(100,rate))+'%';
     track.append(fill);card.querySelector('.nono-resume-card-copy').append(track);
