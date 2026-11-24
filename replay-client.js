@@ -194,12 +194,10 @@
   const panel = document.createElement('section');
   panel.className = 'nono-replay-recent';
   panel.innerHTML = '<h2></h2><p class="nono-replay-help"></p><div class="nono-replay-items"></div>';
-  const anchor = root.querySelector('#nono-resume-section, .nono-resume-section');
-  if (anchor?.parentNode) anchor.after(panel);
-  else root.appendChild(panel);
+  // Completed solves already render in NONOgram's feed. Do not mount the legacy home replay panel.
   const list = panel.querySelector('.nono-replay-items');
   const consent=document.createElement('label');
-  consent.style.cssText='display:flex;gap:7px;align-items:center;font-size:12px;color:#b9c8e7;margin:4px 0 10px;cursor:pointer';
+  consent.className='nono-social-public-control';
   const consentInput=document.createElement('input');
   consentInput.type='checkbox';consentInput.disabled=true;consentInput.setAttribute('aria-label',t('share'));
   const consentLabel=document.createElement('span');consentLabel.textContent=t('share');
@@ -216,7 +214,9 @@
   window.NONO_REPLAY_UI = {
     setRemote(rows) {remoteRows = Array.isArray(rows) ? rows.slice(0,5) : [];renderRecent();window.dispatchEvent(new CustomEvent('nono:public-replays',{detail:remoteRows}));},
     setAccount(rows) {accountRows = Array.isArray(rows) ? rows.slice(0,5) : [];renderRecent();},
-    setPublicPreference(value) {consentInput.disabled=false;consentInput.checked=Boolean(value);consentLabel.textContent=t('share');}
+    setPublicPreference(value) {consentInput.disabled=false;consentInput.checked=Boolean(value);consentLabel.textContent=t('share');},
+    mountPublicControl(target) {if(target&&consent.parentNode!==target)target.append(consent);},
+    resetPublicControl() {consentInput.disabled=true;consentInput.checked=false;}
   };
   function draw(canvas, grid, size, height=size) {
     const ctx = canvas.getContext('2d');
@@ -280,7 +280,7 @@
     document.addEventListener('keydown',onKey);
   }
   function renderRecent() {
-    if (!list) return;
+    if (!list || !panel.isConnected) return;
     panel.querySelector('h2').textContent=t('recent');
     panel.querySelector('.nono-replay-help').textContent=t('help');
     stopAnimations.forEach(stop=>stop()); stopAnimations = [];
