@@ -821,6 +821,7 @@ function installResume(){
   ].join('');
   setup.after(view);
   let shared=[],sharedPendingIds=new Set(),stop=null,epoch=0,watchedUid=null;
+  const racePreviewBoards=new Map();
   const puzzleOf=id=>PUZZLES.find(item=>item.id===id);
   const progressFor=(value,p)=>{
     if(!p||typeof value!=='string')return 0;
@@ -833,7 +834,7 @@ function installResume(){
       try{
         const saved=JSON.parse(storage.getItem('nono-web-puzzle-v1:'+p.id)||'null');
         if(!saved||typeof saved.board!=='string'||!/^[012]+$/.test(saved.board)||saved.board.length!==p.size*(p.height||p.size)||saved.finishedAt||!/[12]/.test(saved.board)||isSolved(saved.board.split(''),p))continue;
-        list.push({kind:'solo',id:p.id,p,size:p.size,code:null,time:Number(saved.savedAt)||0,progress:progressFor(saved.board,p)});
+        list.push({kind:'solo',id:p.id,p,size:p.size,code:null,time:Number(saved.savedAt)||0,progress:progressFor(saved.board,p),board:saved.board});
       }catch(_){}
     }
     return list;
@@ -844,7 +845,7 @@ function installResume(){
   function choices(){
     const visit=visitTime(),races=raceSaves().map(item=>{
       const p=puzzleOf(item.puzzleId);
-      return p&&Number.isFinite(item.time)?{kind:'race',code:item.code,id:p.id,p,size:p.size,time:Math.max(Number(visit[item.code])||0,item.time),progress:Number(item.progress)||0}:null;
+      return p&&Number.isFinite(item.time)?{kind:'race',code:item.code,id:p.id,p,size:p.size,time:Math.max(Number(visit[item.code])||0,item.time),progress:Number(item.progress)||0,board:racePreviewBoards.get(item.code)||''}:null;
     }).filter(Boolean);
     return [...solo(),...shared,...races].sort((a,b)=>b.time-a.time).slice(0,5);
   }
@@ -862,6 +863,9 @@ function installResume(){
     }
     for(const item of list){
       const card=document.createElement('div');card.className='nono-resume-card';
+      card.dataset.nonoResumeBoard=item.board||'';
+      card.dataset.nonoResumeWidth=String(item.p.width||item.size);
+      card.dataset.nonoResumeHeight=String(item.p.height||item.size);
       const modeLabel={solo:'혼자 풀기',race:'대결',coop:'협동'}[item.kind];
       const icon=document.createElement('span');icon.className='nono-resume-symbol';icon.textContent=item.kind==='solo'?'▦':item.kind==='race'?'⚔':'♧';
       const info=document.createElement('div');info.className='nono-resume-card-copy';
@@ -899,7 +903,7 @@ function installResume(){
           typeof value==='string'&&value.length===p.size*(p.height||p.size)?value.split(''):null;
         if(!progressBoard||isSolved(progressBoard,p))return null;
         const valueString=progressBoard.join('');
-        return {kind:'coop',code,id:p.id,p,size:p.size,time:Number(visits[code])||Number(info.createdAt)||0,progress:progressFor(valueString,p),hasMoves:/[12]/.test(valueString)};
+        return {kind:'coop',code,id:p.id,p,size:p.size,time:Number(visits[code])||Number(info.createdAt)||0,progress:progressFor(valueString,p),board:valueString,hasMoves:/[12]/.test(valueString)};
       }catch(error){console.warn('협동 퍼즐 불러오기 실패',code,error);return null;}
     }));
     if(request!==epoch)return;
@@ -916,8 +920,21 @@ function installResume(){
       await Promise.all(saved.map(async item=>{
         try{
           const info=(await get(ref(database,`rooms/${item.code}/meta`))).val();
-          if(!info||info.mode!=='race'||info.puzzleId!==item.puzzleId)saveRaceResume(item.code,item.puzzleId,true);
-           else ensureRoomPuzzle(info);
+          if(!info||info.mode!=='race'||info.puzzleId!==item.puzzleId){
+            racePreviewBoards.delete(item.code);saveRaceResume(item.code,item.puzzleId,true);
+          }else{
+            const p=ensureRoomPuzzle(info);
+            if(!p)return;
+            const width=p.width||p.size,height=p.height||p.size;
+            const location=info.format===2?
+              `rooms/${item.code}/raceMoves/${currentId()}`:
+              `rooms/${item.code}/states/${currentId()}/board`;
+            const snapshot=(await get(ref(database,location))).val();
+            const raw=info.format===2?applyMoveLog(snapshot,p).join(''):snapshot;
+            if(typeof raw==='string'&&raw.length===width*height&&/^[012]+$/.test(raw))
+              racePreviewBoards.set(item.code,raw);
+            else racePreviewBoards.delete(item.code);
+          }
         }catch(error){console.warn('대결방 상태 확인 실패',item.code,error);}
       }));
     }catch(error){console.warn('이어서 풀기 목록 조회 실패',error);}
