@@ -320,6 +320,12 @@ function render(){
  const heading=$('div','nono-social-heading');
  const h1=$('h1','','노노그램');h1.id='nono-community-title';heading.append(h1,mkButton('←','nono-social-back',close));body.append(heading);
  body.append(tabsRow());
+ // Replay privacy belongs with the NONOgram completion feed, not the launcher.
+ if(FILTERS.slice(0,3).includes(view)){
+  const settings=$('div','nono-social-privacy');
+  window.NONO_REPLAY_UI?.mountPublicControl?.(settings);
+  if(settings.childElementCount)body.append(settings);
+ }
  const list=$('section','nono-social-feed');list.setAttribute('aria-label','퍼즐 완료 피드');
  let rows=feedRows();
  if(view==='팔로잉'){
