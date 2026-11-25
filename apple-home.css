@@ -1010,3 +1010,27 @@ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) :is(.brand-box,#nono-
   display:grid;place-items:center;width:24px;height:24px;flex:none;
  }
 }
+
+/* Home advertising placement replaces the former daily reward rail. */
+body[data-nono-theme="neon"] #nono-workbench-support #nono-ad-sidebar{grid-column:1/-1;grid-row:auto;order:0;min-width:0;width:100%}
+body[data-nono-theme="neon"] #nono-workbench-support .nono-ad-panel{display:flex;flex-direction:column;align-items:stretch;gap:10px;padding:12px;border:1px solid #e8e8e8;border-radius:12px;background:#fff}
+body[data-nono-theme="neon"] #nono-workbench-support .nono-ad-label{color:#777;font-size:11px;text-align:center}
+body[data-nono-theme="neon"] .nono-ad-placement{width:100%;min-width:0;min-height:250px}
+body[data-nono-theme="neon"] .nono-ad-pending{display:grid;place-items:center;color:#999;font-size:12px;background:#fafafa;border-radius:6px}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event{padding-bottom:12px}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-social-post-head{padding:12px 14px}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-avatar{background:linear-gradient(135deg,#f9c253,#d62976 65%,#833ab4);color:#fff;font-size:19px;line-height:1;display:grid;place-items:center}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-daily-card{margin:0 12px;padding:14px;border:1px solid #f0d9e6;border-radius:10px;background:#fff7fb;color:#242424}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-daily-head{margin:0 0 12px}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event :is(.nono-daily-progress,.nono-daily-wallet){color:#ad286d}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-mission-row{background:#fff;border:1px solid #f1e3eb;border-radius:8px;padding:9px;min-height:52px}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-mission-claim:enabled,
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-attendance-claim:enabled{background:#d62976;color:#fff;border:1px solid #d62976}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-attendance-claim:disabled{background:#f2e9ee;color:#806674;border:1px solid #e6dce1}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-attendance-day :is(strong,span){color:#444}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-attendance-day.is-today{background:#f9ddec;border-color:#d62976}
+body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-daily-note{color:#777}
+@media(max-width:680px){
+ body[data-nono-theme="neon"] #nono-workbench-support .nono-ad-placement{min-height:100px}
+ body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-daily-card{margin:0 8px;padding:10px}
+}
