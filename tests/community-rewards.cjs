@@ -17,7 +17,10 @@ const {pathToFileURL}=require('node:url');
   if(!await page.locator('#nono-open-settings').isVisible())throw Error('Settings not in header');
   await page.locator('#nono-community-tab').click();
   if(!await page.locator('#nono-community-title').isVisible())throw Error('Community not opened');
-  const fake=await page.locator('.nono-social-post').count();
+  if(await page.locator('#nono-workbench-support .nono-daily-card').count())throw Error('Daily rewards still in home rail');
+  if(await page.locator('.nono-official-event:visible').count()!==2)throw Error('Missing official reward posts');
+  if(await page.locator('#nono-attendance-claim').count()!==1)throw Error('Duplicate reward controls');
+  const fake=await page.locator('.nono-social-post:not(.nono-official-event)').count();
   if(fake!==0)throw Error('Community fabricated a score without records');
   await page.getByRole('button',{name:'기록 경쟁 시작'}).first().click();
   const record=await page.locator('.mode-card[data-mode="record"]').evaluate(el=>el.classList.contains('selected'));
@@ -72,7 +75,14 @@ const {pathToFileURL}=require('node:url');
      Math.abs(geometry.header.y-normalShell.header.y)>2 ||
      geometry.nav.bottom>geometry.viewportHeight+1)
     throw Error('Mobile NONOgram does not share launcher shell: '+JSON.stringify(geometry));
+  if(await page.locator('.nono-official-event:visible').count()!==2)throw Error('Mobile official posts missing');
   await page.locator('.nono-social-back').click();
+  if(await page.locator('.nono-daily-card:visible').count())throw Error('Rewards leaked back into home');
+  await page.locator('#nono-community-tab').click();
+  if(await page.locator('#nono-attendance-claim:visible').count()!==1)throw Error('Reward control not restored after reopening');
+  const attendance=await page.evaluate(()=>[window.NONO_DAILY_REWARDS.claimAttendance(),window.NONO_DAILY_REWARDS.claimAttendance()]);
+  if(attendance[0]!==true||attendance[1]!==false)throw Error('Attendance duplicate claim regression');
+  if(!await page.locator('#nono-attendance-claim').isDisabled())throw Error('Claimed attendance UI not updated');
   if(errors.length)throw Error('Browser errors: '+errors.join(' | '));
   console.log('PASS community navigation, reward table, gameplay preview wallet and store');
  }finally{await browser.close();}
