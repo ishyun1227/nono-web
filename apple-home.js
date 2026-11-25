@@ -21,13 +21,17 @@ const catalog=()=>typeof PUZZLES!=='undefined'?PUZZLES.filter(p=>p&&p.id&&!p.siz
 const supportsMode=p=>mode()==='practice'||(p.generated&&(mode()==='race'||mode()==='coop'))||(!p.trialOnly&&p.size<30);
 const inGroup=p=>p.size>=sizeGroups[state.group].min&&p.size<=sizeGroups[state.group].max;
 const eligible=p=>inGroup(p)&&difficultyOf(p)===state.level&&supportsMode(p);
-const state={group:0,level:'보통',view:'select'};
+const state={group:0,level:'보통',view:'select',roomIntent:'create',roomIntentRevision:0,lastMode:null};
 const origin=$('nono-mode-origin');
 const navigation=$('nono-workbench-nav');
 /* Resume stays below the mode cards; no separate top navigation tab. */
 const ui=document.createElement('div');
 ui.className='nono-apple-setup';
 ui.innerHTML=[
+  '<div class="nono-room-intent" role="group" aria-label="멀티플레이 방식" hidden>',
+  '<button type="button" data-room-intent="create" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M12 7v10M7 12h10"/></svg><span>방 만들기</span></button>',
+  '<button type="button" data-room-intent="join" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M13 4h7v16h-7M3 12h13m-5-5 5 5-5 5"/></svg><span>방 들어가기</span></button>',
+  '</div>',
   '<div class="nono-apple-switch" role="tablist" aria-label="새 퍼즐 방식">',
   '<button id="nono-apple-tab-select" type="button" role="tab" aria-controls="nono-apple-panel-select" aria-selected="true"><svg class="nono-apple-control-icon" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="4" width="24" height="24" rx="2"/><path d="M12 4v24M20 4v24M4 12h24M4 20h24"/><path d="M4 4h8v8H4zM20 12h8v8h-8zM12 20h8v8h-8z" fill="currentColor" stroke="none"/></svg><span>퍼즐 선택</span></button>',
   '<button id="nono-apple-tab-random" type="button" role="tab" aria-controls="nono-apple-panel-random" aria-selected="false"><svg class="nono-apple-control-icon" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h4c7 0 9 16 16 16h4m-5-5 5 5-5 5M4 24h4c3 0 5-3 7-7m3-5c2-3 4-4 6-4h4m-5-5 5 5-5 5"/></svg><span>랜덤 생성</span></button>',
@@ -46,7 +50,8 @@ ui.innerHTML=[
   '<p class="nono-apple-random-summary"></p>',
   '<p class="nono-apple-random-copy">선택한 크기와 난이도로 퍼즐을 배정하고 바로 시작합니다.</p>',
   '<div class="nono-apple-random-slot"></div>',
-  '</section>'
+  '</section>',
+  '<div class="nono-room-create-options" hidden><span class="nono-room-match-slot" hidden></span></div>'
 ].join('');
 setup.querySelector('.setup-description')?.after(ui);
 const sizeOptions=ui.querySelector('.nono-apple-size-options');
@@ -62,6 +67,44 @@ const randomSummary=ui.querySelector('.nono-apple-random-summary');
 const randomSlot=ui.querySelector('.nono-apple-random-slot');
 const actions=setup.querySelector('.setup-actions');
 const actionsParent=actions?.parentNode,actionsNext=actions?.nextSibling;
+const roomIntent=ui.querySelector('.nono-room-intent');
+const createOptions=ui.querySelector('.nono-room-create-options');
+const matchSlot=ui.querySelector('.nono-room-match-slot');
+const publicToggle=$('public-room-toggle')?.closest('label');
+const quickMatchButton=$('quick-match');
+const toggleHome=publicToggle?.parentNode,toggleNext=publicToggle?.nextSibling;
+const matchHome=quickMatchButton?.parentNode,matchNext=quickMatchButton?.nextSibling;
+const createRoomButton=$('create-room');
+function restoreNode(node,parent,next){
+  if(node&&parent&&node.parentNode!==parent)parent.insertBefore(node,next?.parentNode===parent?next:null);
+}
+function restoreRoomControls(){
+  delete setup.dataset.roomIntent;
+  roomIntent.hidden=true;createOptions.hidden=true;matchSlot.hidden=true;
+  restoreNode(publicToggle,toggleHome,toggleNext);
+  restoreNode(quickMatchButton,matchHome,matchNext);
+  if(createRoomButton)createRoomButton.disabled=false;
+}
+function renderRoomIntent(){
+  const m=mode(),multi=m==='race'||m==='coop';
+  if(state.lastMode!==m){state.lastMode=m;state.roomIntent='create';state.roomIntentRevision++;}
+  if(!multi){restoreRoomControls();return false;}
+  setup.dataset.roomIntent=state.roomIntent;
+  roomIntent.hidden=false;
+  for(const b of roomIntent.querySelectorAll('button[data-room-intent]'))
+    b.setAttribute('aria-pressed',String(b.dataset.roomIntent===state.roomIntent));
+  createOptions.hidden=state.roomIntent!=='create';
+  if(publicToggle&&publicToggle.parentNode!==createOptions)createOptions.prepend(publicToggle);
+  if(quickMatchButton&&quickMatchButton.parentNode!==matchSlot)matchSlot.append(quickMatchButton);
+  matchSlot.hidden=true;
+  return state.roomIntent==='join';
+}
+roomIntent.addEventListener('click',event=>{
+  const b=event.target.closest('button[data-room-intent]');
+  if(!b||b.dataset.roomIntent===state.roomIntent)return;
+  state.roomIntent=b.dataset.roomIntent;state.roomIntentRevision++;
+  render();
+});
 function controlIcon(kind,index){
   const ns='http://www.w3.org/2000/svg';
   const svg=document.createElementNS(ns,'svg');
@@ -140,11 +183,19 @@ function fixThemeNavigation(){
     const resume=$('nono-resume-view');
     if(resume&&setup.nextElementSibling!==resume)setup.after(resume);
     start.disabled=false;
+    restoreRoomControls();
   }
 }
 function render(){
   fixThemeNavigation();
   if(!neon())return;
+  const joining=renderRoomIntent();
+  const m=mode();
+  const heading=$('setup-heading'),description=$('setup-description');
+  const titles={practice:'새 퍼즐',race:'대결',coop:'협동',record:'기록 도전'};
+  if(heading&&heading.textContent!==titles[m])heading.textContent=titles[m];
+  if(description)description.textContent='';
+  if(joining)return;
   const all=catalog();
   const allowed=all.filter(supportsMode);
   if(mode()==='record'&&state.view==='random')state.view='select';
@@ -187,7 +238,7 @@ function render(){
       if(!window.NONO_RANDOM_ALLOCATION?.choose){
         toast('랜덤 생성기를 불러오지 못했어요.');return;
       }
-      const requestedGroup=state.group,requestedLevel=state.level,requestedMode=mode();
+      const requestedGroup=state.group,requestedLevel=state.level,requestedMode=mode(),requestedIntent=state.roomIntentRevision;
       if(requestedMode!=='practice'&&!window.NONO_ACCOUNT?.require())return;
       make.disabled=true;make.textContent='퍼즐 생성 중…';
       await new Promise(resolve=>requestAnimationFrame(resolve));
@@ -195,7 +246,7 @@ function render(){
         const assigned=await window.NONO_RANDOM_ALLOCATION.choose({
           group:requestedGroup,difficulty:requestedLevel,localPuzzles:PUZZLES
         });
-        if(requestedGroup!==state.group||requestedLevel!==state.level||requestedMode!==mode()){
+        if(requestedGroup!==state.group||requestedLevel!==state.level||requestedMode!==mode()||requestedIntent!==state.roomIntentRevision){
           toast('선택 조건이 변경됐어요. 다시 눌러 주세요.');render();return;
         }
         const selected=assigned.puzzle;
@@ -232,11 +283,10 @@ function render(){
     puzzleRow.append(msg);
   }
   start.disabled=choices.length===0;
-  const m=mode();
-  const heading=$('setup-heading'),description=$('setup-description');
-  const titles={practice:'새 퍼즐',race:'대결 퍼즐',coop:'협동 퍼즐',record:'기록 도전'};
-  if(heading&&heading.textContent!==titles[m])heading.textContent=titles[m];
-  if(description)description.textContent='';
+  if(m==='race'||m==='coop'){
+    if(createRoomButton)createRoomButton.disabled=choices.length===0;
+    matchSlot.hidden=state.view!=='select'||choices.length===0;
+  }
 }
 function adoptExternalPuzzle(){
   if(!neon())return;
