@@ -47,9 +47,15 @@ fs.writeFileSync(builtIndex,currentIndex.replace(/\.\/apple-home\.css\?v=[^"' ]+
 for(const asset of ['legacy-game-home.css','locale-sidebars.js','home-sidebars.css','home-sidebars.js','completed-puzzles.js','random-puzzle-allocation.js','apple-home.js','daily-rewards.js','reward-policy.css','reward-policy.js','community.css','community.js','locale-community-rewards.js']){
   const hash=crypto.createHash('sha256').update(fs.readFileSync(path.join(root,asset))).digest('hex').slice(0,12);
   const html=fs.readFileSync(builtIndex,'utf8');
-  const current='./'+asset+'?v=1';
-  if(!html.includes(current))throw Error('Home rail asset reference missing: '+asset);
-  fs.writeFileSync(builtIndex,html.replace(current,'./'+asset+'?v='+hash));
+  // Accept any existing version (including none); fingerprint the actual file.
+  let found=false;
+  const next=html.replace(/\.\/([a-zA-Z0-9/_-]+\.(?:css|js))(?:\?v=[^"' \t\r\n>]+)?(?=["'])/g,(url,name)=>{
+    if(name!==asset)return url;
+    found=true;
+    return './'+asset+'?v='+hash;
+  });
+  if(!found)throw Error('Home rail asset reference missing: '+asset);
+  fs.writeFileSync(builtIndex,next);
 }
 
 // Generate polished non-clickable decorations from the reference character strip.
