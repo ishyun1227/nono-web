@@ -118,6 +118,7 @@ function clearAnimations(){
 }
 function close(){
  if(!mounted)return;
+ window.NONO_DAILY_REWARDS?.parkFeed();
  root.hidden=true;document.body.classList.remove('nono-social-open');home.classList.remove('nono-social-view');
  community.classList.remove('is-current');community.setAttribute('aria-expanded','false');
  mounted=false;clearAnimations();
@@ -312,6 +313,7 @@ function notice(message){
 function render(){
  if(!mounted)return;
  clearAnimations();
+ window.NONO_DAILY_REWARDS?.parkFeed();
  root.replaceChildren();
  const layout=$('div','nono-social-layout');
 
@@ -338,6 +340,7 @@ function render(){
  if(FILTERS.slice(0,3).includes(view)){
   if(!rows.length)list.append($('div','nono-social-empty',view==='팔로잉'?'팔로우한 사람의 완료 기록이 아직 없어요.':'완료된 퍼즐 기록이 아직 없어요.'));
   else rows.slice(0,16).forEach(r=>list.append(post(r)));
+  window.NONO_DAILY_REWARDS?.mountFeed(list);
  }
  body.append(list);
  const rail=$('aside','nono-social-right');layout.append(body,rail);
