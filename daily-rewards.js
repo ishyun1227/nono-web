@@ -51,7 +51,31 @@ root.innerHTML=[
  '<button id="nono-attendance-claim" class="nono-attendance-claim" type="button">오늘 출석 보상 받기</button>',
  '<p class="nono-daily-note">포인트는 이 브라우저의 테마 상점 체험에 사용할 수 있어요. 현금 충전·기기 간 동기화는 아직 지원되지 않아요.</p></section>'
 ].join('');
-const el=id=>root.querySelector('#'+id);
+// Reuse the original nodes and their handlers across the launcher and the feed.
+const fields=new Map([...root.querySelectorAll('[id]')].map(node=>[node.id,node]));
+const el=id=>fields.get(id);
+const cards=[root.querySelector('.nono-daily-missions'),root.querySelector('.nono-daily-attendance')];
+function parkFeed(){
+ for(const card of cards)if(card.parentNode!==root)root.append(card);
+}
+function mountFeed(list){
+ if(document.body.dataset.nonoTheme!=='neon'||!list)return;
+ parkFeed();
+ const posts=[...list.children].filter(node=>node.classList.contains('nono-social-post')&&!node.classList.contains('nono-official-event'));
+ const empty=list.querySelector('.nono-social-empty');
+ cards.forEach((card,i)=>{
+  const article=document.createElement('article');
+  article.className='nono-social-post nono-official-event';
+  article.dataset.rewardEvent=i?'attendance':'mission';
+  const head=document.createElement('div');head.className='nono-social-post-head';
+  const mark=document.createElement('span');mark.className='nono-social-avatar nono-official-avatar';mark.textContent='▦';mark.setAttribute('aria-hidden','true');
+  const title=document.createElement('div');title.className='nono-social-post-author';
+  const name=document.createElement('strong');name.textContent='NONO 공식';
+  const label=document.createElement('small');label.textContent='공식 이벤트';
+  title.append(name,label);head.append(mark,title);article.append(head,card);
+  list.insertBefore(article,posts[i?6:2]||(!posts.length?empty:null));
+ });
+}
 function todayState(day){
  if(!state.days[day])state.days[day]={attendance:false,missions:{}};
  return state.days[day];
@@ -174,7 +198,9 @@ window.addEventListener('nono:activity',onActivity);
 window.addEventListener('storage',e=>{if(e.key===KEY){state=load();render();window.dispatchEvent(new Event('nono:wallet-change'));}});
 function dock(){
  const theme=document.body.dataset.nonoTheme;
- const target=theme==='enchanted'?$('#fg-home'):theme==='terminal'?$('#terminal-experience'):theme==='neon'?$('#nono-workbench-support'):$('#home-view');
+ if(theme==='neon'){root.remove();return;}
+ parkFeed();
+ const target=theme==='enchanted'?$('#fg-home'):theme==='terminal'?$('#terminal-experience'):$('#home-view');
  if(!target)return;
  root.classList.toggle('nono-daily-in-terminal',theme==='terminal');
  if(root.parentNode!==target)target.append(root);
@@ -185,7 +211,7 @@ window.addEventListener('focus',()=>{state=load();dock();render();});
 setInterval(()=>{if(dayKey()!==renderedDay){state=load();render();}},60000);
 window.NONO_DAILY_REWARDS=Object.freeze({
  getSnapshot:()=>JSON.parse(JSON.stringify({day:dayKey(),...state})),
- claimAttendance,claimMission,purchaseTheme,creditGameCompletion,resetWinStreak,
+ claimAttendance,claimMission,purchaseTheme,creditGameCompletion,resetWinStreak,mountFeed,parkFeed,
   refresh:()=>{state=load();dock();render();},
   ownsTheme:id=>id==='neon'||state.ownedThemes.includes(id)
 });
