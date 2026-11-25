@@ -12,34 +12,34 @@ const {pathToFileURL}=require('node:url');
     const index=path.resolve(__dirname,'..','dist','index.html');
     if(!fs.existsSync(index))throw Error('Run npm run build before test:home');
     await page.goto(pathToFileURL(index).href);
-    await page.locator('#nono-completion-list').waitFor();
-    await page.locator('#nono-daily-hub').waitFor();
-    await page.locator('#nono-resume-view').waitFor();
+    await page.locator('#nono-ad-sidebar').waitFor();
+    await page.locator('#nono-resume-view').waitFor({state:'attached'});
     const info=await page.evaluate(()=>{
       const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return {left:r.left,top:r.top,right:r.right,bottom:r.bottom,height:r.height}};
       return {
-        clear:rect('#nono-clear-sidebar'),ad:rect('#nono-ad-sidebar'),
-        setup:rect('#setup'),resume:rect('#nono-resume-view'),rewards:rect('#nono-daily-hub'),
+        ad:rect('#nono-ad-sidebar'),support:rect('#nono-workbench-support'),
+        setup:rect('#setup'),resume:rect('#nono-resume-view'),
         header:rect('.topbar'),
         fakeItems:document.querySelectorAll('#nono-completion-list .nono-completion-item').length,
+        rewardCards:document.querySelectorAll('#nono-workbench-support .nono-daily-card').length,
+        adCount:document.querySelectorAll('#nono-ad-sidebar').length,
         overflowX:document.documentElement.scrollWidth>innerWidth+2,
         overflowY:document.documentElement.scrollHeight>innerHeight+3
       };
     });
-    if(info.overflowX||info.clear.left<info.setup.right||info.ad.top<info.setup.bottom||
-       info.resume.height!==0||info.rewards.left<info.setup.right||
-       info.fakeItems!==0)
+    if(info.overflowX||info.ad.left<info.setup.right-2||info.ad.left<info.support.left-2||
+       info.resume.height!==0||info.rewardCards!==0||info.adCount!==1||info.fakeItems!==0)
       throw Error('1440×900 home layout regression: '+JSON.stringify(info));
     await page.setViewportSize({width:390,height:844});
     const mobile=await page.evaluate(()=>{
       const top=s=>document.querySelector(s).getBoundingClientRect().top;
       return {
-        setup:top('#setup'),clear:top('#nono-clear-sidebar'),
+        setup:top('#setup'),
         ad:top('#nono-ad-sidebar'),width:document.documentElement.scrollWidth,
         viewport:innerWidth
       };
     });
-    if(mobile.setup>=mobile.clear||mobile.clear>=mobile.ad||mobile.width>mobile.viewport+2)
+    if(mobile.setup>=mobile.ad||mobile.width>mobile.viewport+2)
       throw Error('Mobile side rail order/overflow regression: '+JSON.stringify(mobile));
     if(errors.length)throw Error('Page errors: '+errors.join('; '));
     console.log('PASS home dashboard rails, empty feed, responsive placement');
