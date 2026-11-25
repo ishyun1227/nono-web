@@ -1034,3 +1034,35 @@ body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-dai
  body[data-nono-theme="neon"] #nono-workbench-support .nono-ad-placement{min-height:100px}
  body[data-nono-theme="neon"] #nono-community-page .nono-official-event .nono-daily-card{margin:0 8px;padding:10px}
 }
+
+/* Icon-first launcher controls: retain the two/four-column layout without stretched button outlines. */
+body[data-nono-theme="neon"] #setup .nono-apple-switch>button,
+body[data-nono-theme="neon"] #setup .nono-apple-option{
+ display:flex;flex-direction:column;align-items:center;justify-content:center;
+ gap:7px;min-width:0;padding:10px 4px;border:0;border-radius:12px;
+ background:transparent;color:#595959;box-shadow:none;line-height:1.25;
+}
+body[data-nono-theme="neon"] #setup .nono-apple-switch>button{min-height:88px}
+body[data-nono-theme="neon"] #setup .nono-apple-option{min-height:76px}
+body[data-nono-theme="neon"] #setup .nono-apple-switch>button.is-current,
+body[data-nono-theme="neon"] #setup .nono-apple-option.is-current{
+ background:#fbe7f0;color:#b51f68;border:0;font-weight:750;
+}
+body[data-nono-theme="neon"] #setup .nono-apple-switch>button:not(.is-current):hover:not(:disabled),
+body[data-nono-theme="neon"] #setup .nono-apple-option:not(.is-current):hover{background:#f4eef1}
+body[data-nono-theme="neon"] #setup .nono-apple-options{
+ background:transparent;border:0;padding:8px 0;gap:14px;
+}
+body[data-nono-theme="neon"] #setup .nono-apple-control-icon{
+ display:block;flex:none;width:40px;height:40px;pointer-events:none;
+}
+body[data-nono-theme="neon"] #setup .nono-apple-switch .nono-apple-control-icon{width:32px;height:32px}
+body[data-nono-theme="neon"] #setup .nono-apple-level-options .nono-apple-control-icon{width:44px;height:30px}
+@media(max-width:480px){
+ body[data-nono-theme="neon"] #setup .nono-apple-switch>button{min-height:72px;gap:5px;padding:7px 2px}
+ body[data-nono-theme="neon"] #setup .nono-apple-option{min-height:65px;gap:5px;padding:6px 1px}
+ body[data-nono-theme="neon"] #setup .nono-apple-control-icon{width:34px;height:34px}
+ body[data-nono-theme="neon"] #setup .nono-apple-switch .nono-apple-control-icon{width:27px;height:27px}
+ body[data-nono-theme="neon"] #setup .nono-apple-level-options .nono-apple-control-icon{width:36px;height:27px}
+ body[data-nono-theme="neon"] #setup .nono-apple-options{padding:6px 0;gap:9px}
+}
