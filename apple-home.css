@@ -991,3 +991,22 @@ body[data-nono-theme="neon"] .nono-social-public-control:has(input:disabled){opa
  body[data-nono-theme="neon"] .nono-social-privacy{justify-content:flex-start}
  body[data-nono-theme="neon"] .nono-social-public-control{font-size:11px}
 }
+
+/* Align launcher menu glyphs with the brand mark without moving labels. */
+body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) :is(.brand-box,#nono-workbench-nav .mode-icon){
+ font-family:"Segoe UI Symbol","Noto Sans Symbols 2",sans-serif;
+ line-height:1;letter-spacing:0;text-align:center;
+}
+@media(min-width:681px){
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav .mode-card{
+  padding-left:0;gap:9px;
+ }
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav .mode-icon{
+  display:grid;place-items:center;flex:0 0 39px;width:39px;height:24px;
+ }
+}
+@media(max-width:680px){
+ body[data-nono-theme="neon"]:not(:has(#game:not(.hidden))) #nono-workbench-nav .mode-icon{
+  display:grid;place-items:center;width:24px;height:24px;flex:none;
+ }
+}
