@@ -1066,3 +1066,40 @@ body[data-nono-theme="neon"] #setup .nono-apple-level-options .nono-apple-contro
  body[data-nono-theme="neon"] #setup .nono-apple-level-options .nono-apple-control-icon{width:36px;height:27px}
  body[data-nono-theme="neon"] #setup .nono-apple-options{padding:6px 0;gap:9px}
 }
+
+/* Multiplayer intent precedes puzzle selection; preserve the native room handlers. */
+body[data-nono-theme="neon"] #setup .nono-room-intent{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;
+ padding:4px;background:#f5f5f5;border-radius:12px;
+}
+body[data-nono-theme="neon"] #setup .nono-room-intent>button{
+ display:flex;align-items:center;justify-content:center;gap:7px;
+ min-width:0;min-height:44px;padding:8px 5px;border:0;border-radius:9px;
+ background:transparent;color:#626262;box-shadow:none;font:inherit;font-size:14px;font-weight:650;
+}
+body[data-nono-theme="neon"] #setup .nono-room-intent>button[aria-pressed="true"]{
+ background:#fff;color:#b51f68;box-shadow:0 1px 4px #00000012;
+}
+body[data-nono-theme="neon"] #setup .nono-room-intent svg{width:19px;height:19px;flex:none}
+body[data-nono-theme="neon"] #setup :is(.nono-room-intent,.nono-room-create-options,.nono-room-match-slot)[hidden]{display:none!important}
+body[data-nono-theme="neon"] #setup[data-room-intent="join"] :is(.nono-apple-switch,.nono-apple-options,.nono-apple-panel-select,.nono-apple-panel-random,.nono-room-create-options){display:none!important}
+body[data-nono-theme="neon"] #setup[data-room-intent="create"] #public-lobby{display:none!important}
+body[data-nono-theme="neon"] #setup[data-room-intent="create"] #room-controls .join-row,
+body[data-nono-theme="neon"] #setup[data-room-intent="join"] #public-lobby-create{display:none!important}
+body[data-nono-theme="neon"] #setup[data-room-intent="join"] #public-lobby{margin-top:0}
+body[data-nono-theme="neon"] #setup[data-room-intent="join"] .nono-apple-setup{margin-bottom:0}
+body[data-nono-theme="neon"] #setup .nono-room-create-options{
+ display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+ padding:8px 0;border-top:1px solid #eee;color:#666;font-size:13px;
+}
+body[data-nono-theme="neon"] #setup .nono-room-create-options .public-lobby-opt{color:#555;display:flex;align-items:center;gap:6px}
+body[data-nono-theme="neon"] #setup .nono-room-create-options #quick-match{
+ width:auto;min-height:36px;padding:6px 12px;background:#fff;color:#a71b60;
+ border:1px solid #ead1df;border-radius:8px;box-shadow:none;font-size:12px;
+}
+body[data-nono-theme="neon"] #setup[data-room-intent="join"] .public-lobby-footer{display:block}
+body[data-nono-theme="neon"] #setup[data-room-intent="join"] .public-lobby-invite{width:100%;margin:0}
+@media(max-width:480px){
+ body[data-nono-theme="neon"] #setup .nono-room-intent>button{font-size:12px;min-height:40px}
+ body[data-nono-theme="neon"] #setup .nono-room-create-options{gap:8px;font-size:12px}
+}
