@@ -18,19 +18,39 @@ left.innerHTML=[
 const right=document.createElement('aside');
 right.id='nono-ad-sidebar';
 right.setAttribute('aria-label','광고 위치');
-right.innerHTML=[
-  '<section class="nono-rail-panel nono-ad-panel">',
-  '<div class="nono-ad-label"><span>광고</span><span>ADVERTISEMENT</span></div>',
-  '<div class="nono-ad-placeholder" aria-label="추후 광고가 표시될 자리">',
-  '<span class="nono-ad-placeholder-icon" aria-hidden="true">▤</span>',
-  '<strong>광고 영역</strong>',
-  '<small>광고가 연결되면 이 위치에 표시됩니다.</small>',
-  '</div>',
-  '<p class="nono-ad-caption">현재는 광고가 없는 빈 공간입니다.</p>',
-  '</section>'
-].join('');
-(document.getElementById('nono-workbench-support')||home).append(left);
-home.append(right);
+// Public publisher and ad unit identifiers; leave blank until account/site approval
+// and applicable consent requirements are satisfied.
+const AD_CONFIG=Object.freeze({client:'',homeSlot:''});
+const adsConfigured=/^ca-pub-\d{16}$/.test(AD_CONFIG.client)&&/^\d+$/.test(AD_CONFIG.homeSlot);
+right.innerHTML='<section class="nono-rail-panel nono-ad-panel"><div class="nono-ad-label">광고</div><div class="nono-ad-placement"></div></section>';
+const support=document.getElementById('nono-workbench-support')||home;
+support.append(left,right);
+const placement=right.querySelector('.nono-ad-placement');
+if(!adsConfigured){
+ placement.textContent='광고 연동 준비 중';
+ placement.classList.add('nono-ad-pending');
+}else if(location.protocol==='https:'){
+ let initialized=false;
+ const requestAd=()=>{
+  if(initialized||!placement.getClientRects().length||placement.clientWidth<1)return;
+  initialized=true;
+  const unit=document.createElement('ins');unit.className='adsbygoogle';unit.style.display='block';
+  unit.dataset.adClient=AD_CONFIG.client;unit.dataset.adSlot=AD_CONFIG.homeSlot;
+  unit.dataset.adFormat='auto';unit.dataset.fullWidthResponsive='false';placement.append(unit);
+  if(!document.querySelector('script[src*="pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"]')){
+   const script=document.createElement('script');script.async=true;script.crossOrigin='anonymous';
+   script.src='https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client='+AD_CONFIG.client;
+   document.head.append(script);
+  }
+  try{(window.adsbygoogle=window.adsbygoogle||[]).push({});}catch(error){console.warn('광고 요청 실패',error);}
+ };
+ if(typeof IntersectionObserver!=='undefined'){
+  const observer=new IntersectionObserver(entries=>{
+   if(entries.some(e=>e.isIntersecting)){requestAd();if(initialized)observer.disconnect();}
+  });
+  observer.observe(placement);
+ }else requestAnimationFrame(requestAd);
+}
 
 const list=left.querySelector('#nono-completion-list');
 
