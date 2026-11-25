@@ -29,8 +29,8 @@ const ui=document.createElement('div');
 ui.className='nono-apple-setup';
 ui.innerHTML=[
   '<div class="nono-apple-switch" role="tablist" aria-label="새 퍼즐 방식">',
-  '<button id="nono-apple-tab-select" type="button" role="tab" aria-controls="nono-apple-panel-select" aria-selected="true">▦ 퍼즐 선택</button>',
-  '<button id="nono-apple-tab-random" type="button" role="tab" aria-controls="nono-apple-panel-random" aria-selected="false">⤨ 랜덤 생성</button>',
+  '<button id="nono-apple-tab-select" type="button" role="tab" aria-controls="nono-apple-panel-select" aria-selected="true"><svg class="nono-apple-control-icon" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="4" y="4" width="24" height="24" rx="2"/><path d="M12 4v24M20 4v24M4 12h24M4 20h24"/><path d="M4 4h8v8H4zM20 12h8v8h-8zM12 20h8v8h-8z" fill="currentColor" stroke="none"/></svg><span>퍼즐 선택</span></button>',
+  '<button id="nono-apple-tab-random" type="button" role="tab" aria-controls="nono-apple-panel-random" aria-selected="false"><svg class="nono-apple-control-icon" viewBox="0 0 32 32" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h4c7 0 9 16 16 16h4m-5-5 5 5-5 5M4 24h4c3 0 5-3 7-7m3-5c2-3 4-4 6-4h4m-5-5 5 5-5 5"/></svg><span>랜덤 생성</span></button>',
   '</div>',
   '<div class="nono-apple-options" aria-label="공통 퍼즐 조건">',
   '<div class="nono-apple-option-group"><h2 id="nono-apple-size-heading">크기</h2><div class="nono-apple-size-options" role="group" aria-labelledby="nono-apple-size-heading"></div></div>',
@@ -62,10 +62,40 @@ const randomSummary=ui.querySelector('.nono-apple-random-summary');
 const randomSlot=ui.querySelector('.nono-apple-random-slot');
 const actions=setup.querySelector('.setup-actions');
 const actionsParent=actions?.parentNode,actionsNext=actions?.nextSibling;
-function optionButton(value,selected,click){
+function controlIcon(kind,index){
+  const ns='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(ns,'svg');
+  svg.setAttribute('class','nono-apple-control-icon');
+  svg.setAttribute('aria-hidden','true');
+  svg.setAttribute('focusable','false');
+  const node=(tag,attrs)=>{
+    const el=document.createElementNS(ns,tag);
+    Object.entries(attrs).forEach(([key,val])=>el.setAttribute(key,String(val)));
+    svg.append(el);
+  };
+  if(kind==='size'){
+    svg.setAttribute('viewBox','0 0 60 60');
+    const side=24+index*10,origin=(60-side)/2,divisions=index+3;
+    node('rect',{x:origin,y:origin,width:side,height:side,fill:'none',stroke:'currentColor','stroke-width':1.8});
+    for(let j=1;j<divisions;j++){
+      const at=origin+j*side/divisions;
+      node('path',{d:'M'+at+' '+origin+'v'+side+' M'+origin+' '+at+'h'+side,stroke:'currentColor','stroke-width':1.1});
+    }
+  }else{
+    svg.setAttribute('viewBox','0 0 50 32');
+    const colors=['#54a675','#d62976','#e78b36','#b34444'];
+    for(let j=0;j<4;j++){
+      const height=7+j*6;
+      node('rect',{x:4+j*11,y:28-height,width:8,height,rx:2,fill:j<=index?colors[index]:'#e4e4e4'});
+    }
+  }
+  return svg;
+}
+function optionButton(value,selected,click,kind,index){
   const b=document.createElement('button');
   b.type='button';b.className='nono-apple-option';
-  b.textContent=value;b.setAttribute('aria-pressed',String(selected));
+  const label=document.createElement('span');label.textContent=value;
+  b.append(controlIcon(kind,index),label);b.setAttribute('aria-pressed',String(selected));
   if(selected)b.classList.add('is-current');
   b.addEventListener('click',click);
   return b;
@@ -128,10 +158,10 @@ function render(){
   sizeOptions.replaceChildren();
   levelOptions.replaceChildren();
   sizeGroups.forEach((group,i)=>{
-    sizeOptions.append(optionButton(group.name,state.group===i,()=>{state.group=i;render();}));
+    sizeOptions.append(optionButton(group.name,state.group===i,()=>{state.group=i;render();},'size',i));
   });
-  difficulties.forEach(difficulty=>{
-    levelOptions.append(optionButton(difficulty,state.level===difficulty,()=>{state.level=difficulty;render();}));
+  difficulties.forEach((difficulty,i)=>{
+    levelOptions.append(optionButton(difficulty,state.level===difficulty,()=>{state.level=difficulty;render();},'level',i));
   });
   const group=sizeGroups[state.group];
   const points=previewPoints(group,state.level);
